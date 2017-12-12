@@ -74,7 +74,7 @@ FDetailMultiTopLevelObjectRootNode::FDetailMultiTopLevelObjectRootNode( const FD
 	: ChildNodes(InChildNodes)
 	, DetailsView(InDetailsView)
 	, RootObjectCustomization(InRootObjectCustomization)
-	, RootObject(&InRootObject)
+	, RootObject(const_cast<UObject*>(&InRootObject))
 	, NodeName(InRootObject.GetFName())
 	, bShouldBeVisible(false)
 {

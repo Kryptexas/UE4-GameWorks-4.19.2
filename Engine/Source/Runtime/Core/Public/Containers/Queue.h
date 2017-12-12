@@ -58,8 +58,6 @@ public:
 		}
 	}
 
-public:
-
 	/**
 	 * Removes and returns the item from the tail of the queue.
 	 *

@@ -43,6 +43,6 @@ public class AudioMixerAudioUnit : ModuleRules
             PublicFrameworks.Add("AudioUnit");
         }
 
-		Definitions.Add("WITH_OGGVORBIS=1");
+		PublicDefinitions.Add("WITH_OGGVORBIS=1");
 	}
 }

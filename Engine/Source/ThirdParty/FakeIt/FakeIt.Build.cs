@@ -19,6 +19,6 @@ public class FakeIt : ModuleRules
         // The including module will also need these enabled
         bUseRTTI = true;
         bEnableExceptions = true;
-        Definitions.Add("WITH_FAKEIT=1");
+        PublicDefinitions.Add("WITH_FAKEIT=1");
     }
 }

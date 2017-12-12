@@ -1152,7 +1152,7 @@ void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 			GObjCurrentPurgeObjectIndexResetPastPermanent	= true;
 
 			// Log status information.
-			UE_LOG(LogGarbage, Display, TEXT("GC purged %i objects (%i -> %i)"), GPurgedObjectCountSinceLastMarkPhase, GObjectCountDuringLastMarkPhase, GObjectCountDuringLastMarkPhase - GPurgedObjectCountSinceLastMarkPhase );
+			UE_LOG(LogGarbage, Log, TEXT("GC purged %i objects (%i -> %i)"), GPurgedObjectCountSinceLastMarkPhase, GObjectCountDuringLastMarkPhase, GObjectCountDuringLastMarkPhase - GPurgedObjectCountSinceLastMarkPhase );
 
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 			LogClassCountInfo( TEXT("objects of"), GClassToPurgeCountMap, 10, GPurgedObjectCountSinceLastMarkPhase );
@@ -1333,7 +1333,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		// This has to be unlocked before we call post GC callbacks
 		FGCScopeLock GCLock;
 
-		UE_LOG(LogGarbage, Display, TEXT("Collecting garbage%s   (GCheckForIllegalMarkPendingKill = %d)"), IsAsyncLoading() ? TEXT(" while async loading") : TEXT(""), GCheckForIllegalMarkPendingKill);
+		UE_LOG(LogGarbage, Log, TEXT("Collecting garbage%s   (GCheckForIllegalMarkPendingKill = %d)"), IsAsyncLoading() ? TEXT(" while async loading") : TEXT(""), GCheckForIllegalMarkPendingKill);
 
 		// Make sure previous incremental purge has finished or we do a full purge pass in case we haven't kicked one
 		// off yet since the last call to garbage collection.
@@ -1416,7 +1416,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			const double StartTime = FPlatformTime::Seconds();
 			FRealtimeGC TagUsedRealtimeGC;
 			TagUsedRealtimeGC.PerformReachabilityAnalysis(KeepFlags, bForceSingleThreadedGC);
-			UE_LOG(LogGarbage, Display, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
 		}
 
 		// Reconstruct clusters if needed
@@ -1424,7 +1424,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		{
 			const double StartTime = FPlatformTime::Seconds();
 			GUObjectClusters.DissolveClusters();
-			UE_LOG(LogGarbage, Display, TEXT("%f ms for dissolving GC clusters"), (FPlatformTime::Seconds() - StartTime) * 1000);
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for dissolving GC clusters"), (FPlatformTime::Seconds() - StartTime) * 1000);
 		}
 
 		// Fire post-reachability analysis hooks
@@ -1499,7 +1499,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 			}
 
-			UE_LOG(LogGarbage, Display, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);
 			FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.Broadcast();
 		}
 		FScopedCBDProfile::DumpProfile();

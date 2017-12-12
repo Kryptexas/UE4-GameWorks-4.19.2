@@ -64,6 +64,7 @@
 #include "Engine/LevelStreaming.h"
 #include "ContentBrowserCommands.h"
 
+#include "PackageHelperFunctions.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -528,6 +529,53 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		}
 	}
 	MenuBuilder.EndSection();
+
+	if (GetDefault<UEditorExperimentalSettings>()->bTextAssetFormatSupport)
+	{
+		MenuBuilder.BeginSection("AssetContextTextAssetFormatActions", LOCTEXT("AssetContextTextAssetFormatActionsHeading", "Text Assets"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportToTextFormat", "Export to text format"),
+				LOCTEXT("ExportToTextFormatTooltip", "Exports the selected asset(s) to the experimental text asset format"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExportSelectedAssetsToText))
+			);
+		}
+		MenuBuilder.EndSection();
+	}
+}
+
+void FAssetContextMenu::ExportSelectedAssetsToText()
+{
+	FString FailedPackage;
+	for (const FAssetData& Asset : SelectedAssets)
+	{
+		UPackage* Package = Asset.GetPackage();
+		FString Filename = FPackageName::LongPackageNameToFilename(Package->GetPathName(), FPackageName::GetTextAssetPackageExtension());
+		if (!SavePackageHelper(Package, Filename))
+		{
+			FailedPackage = Package->GetPathName();
+			break;
+		}
+	}
+
+	if (FailedPackage.Len() > 0)
+	{
+		FNotificationInfo Info(LOCTEXT("ExportedTextAssetFailed", "Exported selected asset(s) failed"));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+	else
+	{
+		FNotificationInfo Info(LOCTEXT("ExportedTextAssetsSuccessfully", "Exported selected asset(s) successfully"));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
+bool FAssetContextMenu::CanExportSelectedAssetsToText() const
+{
+	return true;
 }
 
 bool FAssetContextMenu::CanExecuteAssetActions() const
@@ -1554,7 +1602,7 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 		}
 	}
 
-	void Generate( const UObject* AssetToFind, TArray< TWeakObjectPtr<UObject> >& OutObjects )
+	void Generate( const UObject* AssetToFind, TArray< TWeakObjectPtr<const UObject> >& OutObjects )
 	{
 		// Don't examine visited objects
 		if (!AssetToFind->HasAnyMarks(OBJECTMARK_TagExp))
@@ -1601,7 +1649,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
-		TArray< TWeakObjectPtr<UObject> > OutObjects;
+		TArray< TWeakObjectPtr<const UObject> > OutObjects;
 		WorldReferenceGenerator ObjRefGenerator;
 
 		SlowTask.EnterProgressFrame();
@@ -1624,7 +1672,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 			// Select referencing actors
 			for (int32 ActorIdx = 0; ActorIdx < OutObjects.Num(); ++ActorIdx)
 			{
-				GEditor->SelectActor(CastChecked<AActor>(OutObjects[ActorIdx].Get()), InSelected, Notify);
+				GEditor->SelectActor(const_cast<AActor*>(CastChecked<AActor>(OutObjects[ActorIdx].Get())), InSelected, Notify);
 			}
 
 			GEditor->NoteSelectionChange();

@@ -36,7 +36,7 @@ public class IntelTBB : ModuleRules
 
 			// Disable the #pragma comment(lib, ...) used by default in MallocTBB...
 			// We want to explicitly include the library.
-			Definitions.Add("__TBBMALLOC_BUILD=1");
+			PublicDefinitions.Add("__TBBMALLOC_BUILD=1");
 
 			string LibName = "tbbmalloc";
 			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)

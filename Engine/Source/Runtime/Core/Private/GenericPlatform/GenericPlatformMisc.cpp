@@ -598,50 +598,50 @@ const TCHAR* FGenericPlatformMisc::RootDir()
 	if (Path.Len() == 0)
 	{
 		FString TempPath = FPaths::EngineDir();
-		int32 chopPos = TempPath.Find(TEXT("/Engine"));
+		int32 chopPos = TempPath.Find(TEXT("/Engine"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 		if (chopPos != INDEX_NONE)
 		{
 			TempPath = TempPath.Left(chopPos + 1);
-			TempPath = FPaths::ConvertRelativePathToFull(TempPath);
-			Path = TempPath;
 		}
 		else
 		{
-			Path = FPlatformProcess::BaseDir();
+			TempPath = FPlatformProcess::BaseDir();
 
 			// if the path ends in a separator, remove it
-			if( Path.Right(1)==TEXT("/") )
+			if (TempPath.Right(1) == TEXT("/"))
 			{
-				Path = Path.LeftChop( 1 );
+				TempPath = TempPath.LeftChop(1);
 			}
 
 			// keep going until we've removed Binaries
 #if IS_MONOLITHIC && !IS_PROGRAM
-			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetProjectName()));
+			int32 pos = TempPath.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetProjectName()));
 #else
-			int32 pos = Path.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase);
+			int32 pos = TempPath.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 #endif
-			if ( pos != INDEX_NONE )
+			if (pos != INDEX_NONE)
 			{
-				Path = Path.Left(pos + 1);
+				TempPath = TempPath.Left(pos + 1);
 			}
 			else
 			{
-				pos = Path.Find(TEXT("/../Binaries"), ESearchCase::IgnoreCase);
-				if ( pos != INDEX_NONE )
+				pos = TempPath.Find(TEXT("/../Binaries"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				if (pos != INDEX_NONE)
 				{
-					Path = Path.Left(pos + 1) + TEXT("../../");
+					TempPath = TempPath.Left(pos + 1) + TEXT("../../");
 				}
 				else
 				{
-					while( Path.Len() && Path.Right(1)!=TEXT("/") )
+					while (TempPath.Len() && TempPath.Right(1) != TEXT("/"))
 					{
-						Path = Path.LeftChop( 1 );
+						TempPath = TempPath.LeftChop(1);
 					}
 				}
-
 			}
 		}
+
+		Path = FPaths::ConvertRelativePathToFull(TempPath);
+		FPaths::RemoveDuplicateSlashes(Path);
 	}
 	return *Path;
 }

@@ -372,30 +372,36 @@ void FKCHandler_CallDelegate::Compile(FKismetFunctionContext& Context, UEdGraphN
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_DefaultToSelf.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_DefaultToSelf.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_WorldContext.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_WorldContext.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_AutoCreateRefTerm.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_AutoCreateRefTerm.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 

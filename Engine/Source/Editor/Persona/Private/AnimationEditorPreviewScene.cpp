@@ -67,7 +67,7 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 
 	// create a default additional mesh collection so we dont always have to create an asset to edit additional meshes
 	UPreviewMeshCollectionFactory* FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
-	FactoryToUse->CurrentSkeleton = &InEditableSkeleton->GetSkeleton();
+	FactoryToUse->CurrentSkeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(&InEditableSkeleton->GetSkeleton()));
 	PreviewSceneDescription->DefaultAdditionalMeshes = CastChecked<UPreviewMeshCollection>(FactoryToUse->FactoryCreateNew(UPreviewMeshCollection::StaticClass(), PreviewSceneDescription, "UnsavedCollection", RF_Transient, nullptr, nullptr));
 
 	if (!PreviewSceneDescription->AdditionalMeshes.IsValid())

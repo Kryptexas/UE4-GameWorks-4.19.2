@@ -39,6 +39,7 @@
 #include "DynamicMeshBuilder.h"
 #include "Model.h"
 #include "SplineMeshSceneProxy.h"
+#include "Templates/UniquePtr.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -881,7 +882,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 
 void FStaticMeshRenderData::SyncUVChannelData(const TArray<FStaticMaterial>& ObjectData)
 {
-	TSharedPtr< TArray<FMeshUVChannelInfo> > UpdateData = TSharedPtr< TArray<FMeshUVChannelInfo> >(new TArray<FMeshUVChannelInfo>);
+	TUniquePtr< TArray<FMeshUVChannelInfo> > UpdateData = MakeUnique< TArray<FMeshUVChannelInfo> >();
 	UpdateData->Empty(ObjectData.Num());
 
 	for (const FStaticMaterial& StaticMaterial : ObjectData)
@@ -889,13 +890,10 @@ void FStaticMeshRenderData::SyncUVChannelData(const TArray<FStaticMaterial>& Obj
 		UpdateData->Add(StaticMaterial.UVChannelData);
 	}
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		SyncUVChannelData,
-		FStaticMeshRenderData*, This, this,
-		TSharedPtr< TArray<FMeshUVChannelInfo> >, Data, UpdateData,
-		{
-			FMemory::Memswap(&This->UVChannelDataPerMaterial, Data.Get(), sizeof(TArray<FMeshUVChannelInfo>));
-		} );
+	ENQUEUE_RENDER_COMMAND(SyncUVChannelData)([this, UpdateData = MoveTemp(UpdateData)](FRHICommandListImmediate& RHICmdList)
+	{
+		FMemory::Memswap(&UVChannelDataPerMaterial, UpdateData.Get(), sizeof(TArray<FMeshUVChannelInfo>));
+	});
 }
 
 /*------------------------------------------------------------------------------

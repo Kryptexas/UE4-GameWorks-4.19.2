@@ -67,7 +67,7 @@ public partial class Project : CommandUtils
 	/// </summary>
 	/// <param name="Filename"></param>
 	/// <param name="ResponseFile"></param>
-	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed, bool EncryptIniFiles, bool EncryptEverything)
+	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed, bool EncryptIniFiles, bool EncryptUAssetFiles, bool EncryptAllAssetFiles)
 	{
 		using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
 		{
@@ -79,7 +79,7 @@ public partial class Project : CommandUtils
 					Line += " -compress";
 				}
 
-				if (EncryptEverything || (Path.GetExtension(Entry.Key).Contains(".ini") && EncryptIniFiles))
+				if (EncryptAllAssetFiles || (Path.GetExtension(Entry.Key).Contains(".uasset") && EncryptUAssetFiles) || (Path.GetExtension(Entry.Key).Contains(".ini") && EncryptIniFiles))
 				{
 					Line += " -encrypt";
 				}
@@ -100,7 +100,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, FileReference OutputLocation, FileReference PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, bool EncryptPakIndex, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, FileReference OutputLocation, FileReference PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptUAssetFiles, bool EncryptAllAssetFiles, bool EncryptPakIndex, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -108,7 +108,7 @@ public partial class Project : CommandUtils
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation.FullName);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed, EncryptIniFiles, EncryptEverything);
+		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed, EncryptIniFiles, EncryptUAssetFiles, EncryptAllAssetFiles);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 		Log("Running UnrealPak *******");
@@ -939,7 +939,9 @@ public partial class Project : CommandUtils
 
 		var UnrealPakResponseFile = CreatePakResponseFileFromStagingManifest(SC);
 
-		CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName);
+        EncryptionAndSigning.CryptoSettings PakCryptoSettings = EncryptionAndSigning.ParseCryptoSettings(DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
+
+        CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName, PakCryptoSettings);
 	}
 
 	/// <summary>
@@ -1042,7 +1044,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	/// <param name="UnrealPakResponseFile"></param>
 	/// <param name="PakName"></param>
-	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
+	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName, EncryptionAndSigning.CryptoSettings CryptoSettings)
 	{
 		bool bShouldGeneratePatch = Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak(Params, SC);
 
@@ -1179,13 +1181,7 @@ public partial class Project : CommandUtils
 			string PakFilename = PakName + "-" + SC.FinalCookPlatform + "*.pak";
 			PatchSourceContentPath = SC.StageTargetPlatform.GetReleasePakFilePath(SC, Params, PakFilename);
 		}
-
-		ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
-		bool PackageSettingsEncryptIniFiles = false;
-		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptIniFiles", out PackageSettingsEncryptIniFiles);
-		bool PackageSettingsEncryptPakIndex = false;
-		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptPakIndex", out PackageSettingsEncryptPakIndex);
-
+		
 		if (!bCopiedExistingPak)
 		{
 			if (FileReference.Exists(OutputLocation))
@@ -1201,7 +1197,13 @@ public partial class Project : CommandUtils
 				String EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				String ProjectDir = CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName);
 				String Platform = ConfigHierarchy.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, Params.EncryptPakIndex || PackageSettingsEncryptPakIndex, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
+
+				bool bEncryptIndex = Params.EncryptPakIndex || CryptoSettings.bEnablePakIndexEncryption;
+				bool bEncryptIniFiles = Params.EncryptIniFiles || CryptoSettings.bEnablePakIniEncryption;
+				bool bEncryptUAssetFiles = Params.EncryptEverything || CryptoSettings.bEnablePakUAssetEncryption;
+				bool bEncryptAllAssetFiles = Params.EncryptEverything || CryptoSettings.bEnablePakFullAssetEncryption;
+
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, bEncryptIniFiles, bEncryptUAssetFiles, bEncryptAllAssetFiles, bEncryptIndex, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
 			}
 		}
 
@@ -1401,17 +1403,23 @@ public partial class Project : CommandUtils
 			}
 		}
 
-		IEnumerable<Tuple<Dictionary<string, string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
+        // Parse and cache crypto settings from INI file
+        EncryptionAndSigning.CryptoSettings PakCryptoSettings = EncryptionAndSigning.ParseCryptoSettings(DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
 
-		System.Threading.Tasks.ParallelOptions Options = new System.Threading.Tasks.ParallelOptions();
-		Options.MaxDegreeOfParallelism = 16;
-		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
+        IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
+	
+        System.Threading.Tasks.ParallelOptions Options = new System.Threading.Tasks.ParallelOptions();
+
+        Log("Creating Pak files utilizing {0} cores", Environment.ProcessorCount);
+        Options.MaxDegreeOfParallelism = Environment.ProcessorCount;        
+
+        System.Threading.Tasks.Parallel.ForEach(PakPairs, Options, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
-			if (PakPair.Item1.Count > 0)
-			{
-				CreatePak(Params, SC, PakPair.Item1, ChunkName);
-			}
+            if (PakPair.Item1.Count > 0)
+            {
+			    CreatePak(Params, SC, PakPair.Item1, ChunkName, PakCryptoSettings);
+            }
 		});
 
 		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());

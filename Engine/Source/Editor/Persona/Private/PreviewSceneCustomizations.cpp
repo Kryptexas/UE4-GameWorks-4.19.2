@@ -215,7 +215,7 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 	}
 
 	// set the skeleton to use in our factory as we shouldn't be picking one here
-	FactoryToUse->CurrentSkeleton = &EditableSkeleton.Pin()->GetSkeleton();
+	FactoryToUse->CurrentSkeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(&EditableSkeleton.Pin()->GetSkeleton()));
 	TArray<UFactory*> FactoriesToUse({ FactoryToUse });
 
 	FAssetData AdditionalMeshesAsset;

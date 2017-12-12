@@ -466,7 +466,7 @@ public:
 		FBPTerminal* LiteralStringTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		LiteralStringTerm->bIsLiteral = true;
 		LiteralStringTerm->Type.PinCategory = UEdGraphSchema_K2::PC_String;
-		LiteralStringTerm->Name = FString::Printf(*LOCTEXT("MultiGateNode IndexWarning", "MultiGate Node failed! Out of bounds indexing of the out pins. There are only %d outs available.").ToString(), OutPins.Num());
+		LiteralStringTerm->Name = FText::Format(LOCTEXT("MultiGateNode IndexWarningFmt", "MultiGate Node failed! Out of bounds indexing of the out pins. There are only {0} outs available."), OutPins.Num()).ToString();
 		PrintStatement.RHS.Add(LiteralStringTerm);
 		// Hook the IfNot statement's jump target to this statement
 		PrevIfIndexMatchesStatement->TargetLabel = &PrintStatement;

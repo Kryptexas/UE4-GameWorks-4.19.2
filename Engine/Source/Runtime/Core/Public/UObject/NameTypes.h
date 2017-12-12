@@ -11,6 +11,7 @@
 #include "HAL/CriticalSection.h"
 #include "Containers/StringConv.h"
 #include "UObject/UnrealNames.h"
+#include "Templates/Atomic.h"
 
 /*----------------------------------------------------------------------------
 	Definitions.
@@ -128,7 +129,7 @@ private:
 
 public:
 	/** Pointer to the next entry in this hash bin's linked list. */
-	FNameEntry*		HashNext;
+	TAtomic<FNameEntry*>		HashNext;
 
 protected:
 	/** Name, variable-sized - note that AllocateNameEntry only allocates memory as needed. */
@@ -348,7 +349,7 @@ class TStaticIndirectArrayThreadSafeRead
 	/** Static master table to chunks of pointers **/
 	ElementType** Chunks[ChunkTableSize];
 	/** Number of elements we currently have **/
-	int32 NumElements;
+	TAtomic<int32> NumElements;
 	/** Number of chunks we currently have **/
 	int32 NumChunks;
 
@@ -414,7 +415,7 @@ public:
 	**/
 	FORCEINLINE int32 Num() const
 	{
-		return NumElements;
+		return NumElements.Load(EMemoryOrder::Relaxed);
 	}
 	/** 
 	 * Return if this index is valid
@@ -447,11 +448,9 @@ public:
 	int32 AddZeroed(int32 NumToAdd)
 	{
 		int32 Result = NumElements;
-		check(NumElements + NumToAdd <= MaxTotalElements);
-		ExpandChunksToIndex(NumElements + NumToAdd - 1);
-		check(Result == NumElements);
+		check(Result + NumToAdd <= MaxTotalElements);
+		ExpandChunksToIndex(Result + NumToAdd - 1);
 		NumElements += NumToAdd;
-		FPlatformMisc::MemoryBarrier();
 		return Result;
 	}
 	/** 
@@ -467,7 +466,7 @@ public:
 	void Reserve(int32 Capacity)
 	{
 		check(Capacity >= 0 && Capacity <= MaxTotalElements);
-		if (Capacity > NumElements)
+		if (Capacity > NumElements.Load(EMemoryOrder::Relaxed))
 		{			
 			int32 MaxChunks = (Capacity + ElementsPerChunk - 1) / ElementsPerChunk;
 			check(MaxChunks >= NumChunks);
@@ -511,6 +510,11 @@ struct CORE_API FMinimalName
 		: Index(InIndex)
 		, Number(InNumber)
 	{
+	}
+
+	FORCEINLINE bool IsNone() const
+	{
+		return Index == 0 && Number == 0;
 	}
 
 	/** Index into the Names array (used to find String portion of the string/number pair) */
@@ -1003,7 +1007,6 @@ public:
 	template <typename TCharType>
 	static uint16 GetNonCasePreservingHash(const TCharType* Source);
 
-	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
 	static FString SafeString( int32 InDisplayIndex, int32 InstanceNumber=NAME_NO_NUMBER_INTERNAL )
 	{
@@ -1106,9 +1109,9 @@ private:
 	};
 
 	/** Name hash head - used to iterate the single-linked list.		*/
-	static FNameEntry*						NameHashHead[FNameDefs::NameHashBucketCount];
+	static TAtomic<FNameEntry*>				NameHashHead[FNameDefs::NameHashBucketCount];
 	/** Name hash tail - insert new entries after this - NON ATOMIC!	*/
-	static FNameEntry*						NameHashTail[FNameDefs::NameHashBucketCount];
+	static TAtomic<FNameEntry*>				NameHashTail[FNameDefs::NameHashBucketCount];
 	/** Size of all name entries.								*/
 	static int32							NameEntryMemorySize;	
 	/** Number of ANSI names in name table.						*/
@@ -1123,6 +1126,7 @@ private:
 	 * different initialization order of static variables across the codebase. Use this function to get or set the variable.
 	 */
 	static bool& GetIsInitialized();
+	static void StaticInit();
 
 	friend const TCHAR* DebugFName(int32);
 	friend const TCHAR* DebugFName(int32, int32);

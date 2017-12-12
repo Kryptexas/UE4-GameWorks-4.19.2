@@ -14,6 +14,7 @@
 #include "Shader.h"
 #include "HAL/RunnableThread.h"
 #include "HAL/Runnable.h"
+#include "Templates/Atomic.h"
 #include "UniquePtr.h"
 
 class FShaderCompileJob;
@@ -145,7 +146,7 @@ protected:
 	/** true if the thread has been terminated by an unhandled exception. */
 	bool bTerminatedByError;
 
-	volatile bool bForceFinish;
+	TAtomic<bool> bForceFinish;
 
 public:
 	FShaderCompileThreadRunnableBase(class FShaderCompilingManager* InManager);

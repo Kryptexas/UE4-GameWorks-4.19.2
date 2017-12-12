@@ -75,11 +75,11 @@ public class PhysX : ModuleRules
 
 		if (LibraryMode == PhysXLibraryMode.Shipping)
 		{
-			Definitions.Add("WITH_PHYSX_RELEASE=1");
+			PublicDefinitions.Add("WITH_PHYSX_RELEASE=1");
 		}
 		else
 		{
-			Definitions.Add("WITH_PHYSX_RELEASE=0");
+			PublicDefinitions.Add("WITH_PHYSX_RELEASE=0");
 		}
 
 		string PhysXVersion = "PhysX_3.4";
@@ -163,7 +163,7 @@ public class PhysX : ModuleRules
 
 			if (LibrarySuffix != "")
 			{
-				Definitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
+				PublicDefinitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
 			}
 
 			string PxSharedBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
@@ -218,7 +218,7 @@ public class PhysX : ModuleRules
 
 			if (LibrarySuffix != "")
 			{
-				Definitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
+				PublicDefinitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
 			}
 
 		}
@@ -262,7 +262,7 @@ public class PhysX : ModuleRules
 
 			if (LibrarySuffix != "")
 			{
-				Definitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
+				PublicDefinitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
@@ -477,8 +477,8 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			Definitions.Add("PX_PHYSX_STATIC_LIB=1");
-			Definitions.Add("_XBOX_ONE=1");
+			PublicDefinitions.Add("PX_PHYSX_STATIC_LIB=1");
+			PublicDefinitions.Add("_XBOX_ONE=1");
 
 			PublicLibraryPaths.Add(Path.Combine(PhysXLibDir,"XboxOne\\VS2015"));
 

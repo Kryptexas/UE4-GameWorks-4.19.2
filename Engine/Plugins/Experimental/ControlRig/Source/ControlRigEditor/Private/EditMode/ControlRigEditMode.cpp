@@ -124,7 +124,7 @@ void FControlRigEditMode::SetObjects(const TArray<TWeakObjectPtr<>>& InSelectedO
 	check(InSelectedObjects.Num() == InObjectBindings.Num());
 
 	ControlRigGuids = InObjectBindings;
-	Algo::Transform(InSelectedObjects, ControlRigs, [](TWeakObjectPtr<> Object) { return TWeakObjectPtr<UControlRig>(Cast<UControlRig>(Object.Get())); });
+	Algo::Transform(InSelectedObjects, ControlRigs, [](TWeakObjectPtr<> Object) { return Cast<UControlRig>(Object); });
 
 	SetObjects_Internal();
 }

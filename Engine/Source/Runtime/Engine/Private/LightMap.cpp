@@ -325,38 +325,11 @@ struct FLightMapAllocationGroup
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FLightMapAllocationGroup(FLightMapAllocationGroup&&) = default;
 	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&&) = default;
 
 	FLightMapAllocationGroup(const FLightMapAllocationGroup&) = delete; // non-copy-able
 	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&) = delete;
-#else
-	FLightMapAllocationGroup(FLightMapAllocationGroup&& other)
-		: Allocations(MoveTemp(other.Allocations))
-		, Outer(other.Outer)
-		, LightmapFlags(other.LightmapFlags)
-		, Bounds(other.Bounds)
-		, TotalTexels(other.TotalTexels)
-	{
-	}
-
-	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&& other)
-	{
-		Allocations = MoveTemp(other.Allocations);
-		Outer = other.Outer;
-		LightmapFlags = other.LightmapFlags;
-		Bounds = other.Bounds;
-		TotalTexels = other.TotalTexels;
-
-		return *this;
-	}
-
-private:
-	FLightMapAllocationGroup(const FLightMapAllocationGroup&); // non-copy-able
-	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&);
-public:
-#endif
 
 	TArray<TUniquePtr<FLightMapAllocation>, TInlineAllocator<1>> Allocations;
 

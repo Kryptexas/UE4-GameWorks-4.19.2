@@ -96,7 +96,7 @@ public class MeshUtilities : ModuleRules
             RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/embree.2.14.0.dll"));
             RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbb.dll"));
             RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbbmalloc.dll"));
-            Definitions.Add("USE_EMBREE=1");
+            PublicDefinitions.Add("USE_EMBREE=1");
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -106,11 +106,11 @@ public class MeshUtilities : ModuleRules
             PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.14.0.dylib");
 			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbb.dylib");
 			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbbmalloc.dylib");
-            Definitions.Add("USE_EMBREE=1");
+            PublicDefinitions.Add("USE_EMBREE=1");
         }
         else
         {
-            Definitions.Add("USE_EMBREE=0");
+            PublicDefinitions.Add("USE_EMBREE=0");
         }
 	}
 }

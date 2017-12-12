@@ -73,7 +73,7 @@ public class LandscapeEditor : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_KISSFFT=0");
+			PublicDefinitions.Add("WITH_KISSFFT=0");
 		}
 	}
 }

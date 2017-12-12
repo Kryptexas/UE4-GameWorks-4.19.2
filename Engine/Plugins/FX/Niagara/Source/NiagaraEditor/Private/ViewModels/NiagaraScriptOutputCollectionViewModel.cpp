@@ -67,7 +67,7 @@ FNiagaraScriptOutputCollectionViewModel::FNiagaraScriptOutputCollectionViewModel
 
 	if (Source)
 	{
-		Graph = Cast<UNiagaraScriptSource>(Source)->NodeGraph;
+		Graph = Source->NodeGraph;
 		bCanHaveNumericParameters = false;
 		
 		OutputNode = Graph->FindOutputNode(ENiagaraScriptUsage::ParticleSpawnScript);

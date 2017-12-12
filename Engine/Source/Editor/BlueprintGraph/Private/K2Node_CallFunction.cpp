@@ -625,9 +625,13 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 				if (Function != NULL)
 				{
 					UClass* OldClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
-					Message_Note( FString::Printf(*LOCTEXT("FixedUpFunctionInLibrary", "UK2Node_CallFunction: Fixed up function '%s', originally in '%s', now in library '%s'.").ToString(),
-						*FunctionReference.GetMemberName().ToString(),
-						 (OldClass != NULL) ? *OldClass->GetName() : TEXT("(null)"), *TestClass->GetName()) );
+					Message_Note(
+						FText::Format(LOCTEXT("FixedUpFunctionInLibraryFmt", "UK2Node_CallFunction: Fixed up function '{0}', originally in '{1}', now in library '{2}'."),
+							FText::FromString(FunctionReference.GetMemberName().ToString()),
+							(OldClass != NULL) ? FText::FromString(*OldClass->GetName()) : LOCTEXT("FixedUpFunctionInLibraryNull", "(null)"),
+							FText::FromString(TestClass->GetName())
+						).ToString()
+					);
 					SetFromFunction(Function);
 					break;
 				}
@@ -823,7 +827,7 @@ void UK2Node_CallFunction::DetermineWantsEnumToExecExpansion(const UFunction* Fu
 				//put in warning state
 				bHasCompilerMessage = true;
 				ErrorType = EMessageSeverity::Warning;
-				ErrorMsg = FString::Printf(*LOCTEXT("EnumToExecExpansionFailed", "Unable to find enum parameter with name '%s' to expand for @@").ToString(), *EnumParamName);
+				ErrorMsg = FText::Format(LOCTEXT("EnumToExecExpansionFailedFmt", "Unable to find enum parameter with name '{0}' to expand for @@"), FText::FromString(EnumParamName)).ToString();
 			}
 		}
 	}
@@ -1806,13 +1810,13 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 		}
 		FString const FunctName = FunctionReference.GetMemberName().ToString();
 
-		FText const WarningFormat = LOCTEXT("FunctionNotFound", "Could not find a function named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
-		MessageLog.Error(*FString::Printf(*WarningFormat.ToString(), *FunctName, *OwnerName, *OwnerName), this);
+		FText const WarningFormat = LOCTEXT("FunctionNotFoundFmt", "Could not find a function named \"{0}\" in '{1}'.\nMake sure '{2}' has been compiled for @@");
+		MessageLog.Error(*FText::Format(WarningFormat, FText::FromString(FunctName), FText::FromString(OwnerName), FText::FromString(OwnerName)).ToString(), this);
 	}
 	else if (Function->HasMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs) && bWantsEnumToExecExpansion == false)
 	{
 		const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("EnumToExecExpansionFailed", "Unable to find enum parameter with name '%s' to expand for @@").ToString(), *EnumParamName), this);
+		MessageLog.Warning(*FText::Format(LOCTEXT("EnumToExecExpansionFailedFmt", "Unable to find enum parameter with name '{0}' to expand for @@"), FText::FromString(EnumParamName)).ToString(), this);
 	}
 
 	if (Function)
@@ -1870,9 +1874,10 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 	{
 		if (Pin && Pin->PinType.bIsWeakPointer && !Pin->PinType.IsContainer())
 		{
-			const FString ErrorString = FString::Printf(
-				*LOCTEXT("WeakPtrNotSupportedError", "Weak prointer is not supported as function parameter. Pin '%s' @@").ToString(),
-				*Pin->GetName());
+			const FString ErrorString = FText::Format(
+				LOCTEXT("WeakPtrNotSupportedErrorFmt", "Weak pointers are not supported as function parameters. Pin '{0}' @@"),
+				FText::FromString(Pin->GetName())
+			).ToString();
 			MessageLog.Error(*ErrorString, this);
 		}
 	}
@@ -1964,7 +1969,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 		SourceGraph->GetNodesOfClass(EntryPoints);
 		if (1 != EntryPoints.Num())
 		{
-			CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
+			CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("WrongEntryPointsNumFmt", "{0} entry points found while expanding node @@"), EntryPoints.Num()).ToString(), this);
 		}
 		else if (UEdGraphPin* BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 		{

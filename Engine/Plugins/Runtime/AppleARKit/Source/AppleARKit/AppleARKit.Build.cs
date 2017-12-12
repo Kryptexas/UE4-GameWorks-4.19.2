@@ -58,12 +58,12 @@ public class AppleARKit : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			Definitions.Add("ARKIT_SUPPORT=1");
+			PublicDefinitions.Add("ARKIT_SUPPORT=1");
 			PublicFrameworks.Add( "ARKit" );
 		}
 		else
 		{
-			Definitions.Add("ARKIT_SUPPORT=0");
+			PublicDefinitions.Add("ARKIT_SUPPORT=0");
 		}
 	}
 }

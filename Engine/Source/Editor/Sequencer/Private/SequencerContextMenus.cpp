@@ -288,7 +288,8 @@ public:
 			.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
 
 		// register details customizations for this instance
-		StructureDetailsView->GetDetailsView()->RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
+		TWeakObjectPtr<const UMovieSceneSection> ConstWeakSection = WeakSection;
+		StructureDetailsView->GetDetailsView()->RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, ConstWeakSection));
 
 		StructureDetailsView->SetStructureData(SelectedKeyStruct);
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SInlineDetailsView::OnFinishedChangingProperties, SelectedKeyStruct);

@@ -33,11 +33,11 @@ public class OpenCV : ModuleRules
 			string DLLName = LibName + ".dll";
 			PublicDelayLoadDLLs.Add(DLLName);
             RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(BinaryPath, DLLName)));
-			Definitions.Add("WITH_OPENCV=1");
+			PublicDefinitions.Add("WITH_OPENCV=1");
 		}
 		else // unsupported platform
 		{
-			Definitions.Add("WITH_OPENCV=0");
+            PublicDefinitions.Add("WITH_OPENCV=0");
 		}
 	}
 }

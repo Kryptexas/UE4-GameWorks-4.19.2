@@ -197,44 +197,10 @@ CORE_API const FText& FText::GetEmpty() // @todo clang: Workaround for missing s
 }
 #endif
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FText::FText(const FText& Other) = default;
-	FText::FText(FText&& Other) = default;
-	FText& FText::operator=(const FText& Other) = default;
-	FText& FText::operator=(FText&& Other) = default;
-#else
-FText::FText(const FText& Source)
-	: TextData(Source.TextData)
-	, Flags(Source.Flags)
-{
-}
-
-FText::FText(FText&& Source)
-	: TextData(MoveTemp(Source.TextData))
-	, Flags(Source.Flags)
-{
-}
-
-FText& FText::operator=(const FText& Source)
-{
-	if (this != &Source)
-	{
-		TextData = Source.TextData;
-		Flags = Source.Flags;
-	}
-	return *this;
-}
-
-FText& FText::operator=(FText&& Source)
-{
-	if (this != &Source)
-	{
-		TextData = MoveTemp(Source.TextData);
-		Flags = Source.Flags;
-	}
-	return *this;
-}
-#endif
+FText::FText(FText&&) = default;
+FText::FText(const FText&) = default;
+FText& FText::operator=(FText&&) = default;
+FText& FText::operator=(const FText&) = default;
 
 FText::FText( TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData )
 	: TextData(MoveTemp(InTextData))

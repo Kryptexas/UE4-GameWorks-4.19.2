@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/WindowsPlatformStackWalk.h"
 #include "HAL/PlatformMemory.h"
@@ -93,7 +93,7 @@ struct FWindowsThreadContextWrapper
  * @return	EXCEPTION_EXECUTE_HANDLER
  */
 
-static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, FWindowsThreadContextWrapper* ContextWapper)
+static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, FWindowsThreadContextWrapper* ContextWapper, uint32* Depth)
 {
 	STACKFRAME64		StackFrame64;
 	HANDLE				ProcessHandle;
@@ -104,6 +104,8 @@ static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, FWindow
 	ContextWapper->CheckOk();
 	HANDLE				ThreadHandle = ContextWapper->ThreadHandle;
 	CONTEXT				ContextCopy = ContextWapper->Context;
+
+	*Depth = 0;
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	__try
@@ -144,6 +146,7 @@ static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, FWindow
 												NULL );
 
 			BackTrace[CurrentDepth++] = StackFrame64.AddrPC.Offset;
+			*Depth = CurrentDepth;
 
 			if( !bStackWalkSucceeded  )
 			{
@@ -185,8 +188,9 @@ static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, CONTEXT
 	FWindowsThreadContextWrapper HelperContext;
 	HelperContext.ThreadHandle = GetCurrentThread();
 	HelperContext.Context = *Context;
+	uint32 Depth = 0;
 
-	return CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);
+	return CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);
 }
 
 #if USE_FAST_STACKTRACE
@@ -264,18 +268,19 @@ void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableSt
  * @param	MaxDepth			Entries in BackTrace array
  * @param	Context				Optional thread context information
  */
-void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
+uint32 FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
 {
 	// Make sure we have place to store the information before we go through the process of raising
 	// an exception and handling it.
 	if (BackTrace == NULL || MaxDepth == 0)
 	{
-		return;
+		return 0;
 	}
 
+	uint32 Depth = 0;
 	if (Context)
 	{
-		CaptureStackTraceHelper(BackTrace, MaxDepth, (FWindowsThreadContextWrapper*)Context);
+		CaptureStackTraceHelper(BackTrace, MaxDepth, (FWindowsThreadContextWrapper*)Context, &Depth);
 	}
 	else
 	{
@@ -286,6 +291,7 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 			}
 			PVOID WinBackTrace[MAX_CALLSTACK_DEPTH];
 		uint16 NumFrames = RtlCaptureStackBackTrace(0, FMath::Min<ULONG>(GMaxCallstackDepth, MaxDepth), WinBackTrace, NULL);
+		Depth = NumFrames;
 		for (uint16 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
 			{
 			BackTrace[FrameIndex] = (uint64)WinBackTrace[FrameIndex];
@@ -306,7 +312,7 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 		RtlCaptureContext(&HelperContext);
 
 		// Capture the back trace.
-		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);		
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);		
 #elif PLATFORM_64BITS
 		// Raise an exception so CaptureStackBackTraceHelper has access to context record.
 		__try
@@ -317,7 +323,7 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 				NULL);		// Array of arguments
 			}
 		// Capture the back trace.
-		__except (CaptureStackTraceHelper(BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord))
+		__except (CaptureStackTraceHelper(BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord, &Depth))
 		{
 		}
 #else
@@ -339,9 +345,10 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 		}
 
 		// Capture the back trace.
-		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);
 #endif
 	}	
+	return Depth;
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

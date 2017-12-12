@@ -6,7 +6,7 @@ public class Icmp : ModuleRules
 {
 	public Icmp(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("ICMP_PACKAGE=1");
+		PublicDefinitions.Add("ICMP_PACKAGE=1");
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

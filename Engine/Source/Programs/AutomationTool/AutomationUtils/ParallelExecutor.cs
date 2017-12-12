@@ -282,7 +282,7 @@ namespace AutomationTool
 								TryGetAttribute(ToolNode, "GroupPrefix", out Action.GroupPrefix);
 								TryGetAttribute(ToolNode, "OutputPrefix", out Action.OutputPrefix);
 								TryGetAttribute(ToolNode, "Path", out Action.ToolPath);
-								TryGetAttribute(ToolNode, "WorkingDir", out Action.WorkingDirectory);
+								TryGetAttribute(TaskNode, "WorkingDir", out Action.WorkingDirectory);
 
 								string EnvironmentName;
 								if(!TryGetAttribute(ProjectNode, "Env", out EnvironmentName))

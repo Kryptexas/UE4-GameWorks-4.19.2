@@ -121,7 +121,7 @@ public:
 	 */
 	int32 GetValue() const
 	{
-		return Counter;
+		return FPlatformAtomics::AtomicRead(&const_cast<FThreadSafeCounter*>(this)->Counter);
 	}
 
 private:

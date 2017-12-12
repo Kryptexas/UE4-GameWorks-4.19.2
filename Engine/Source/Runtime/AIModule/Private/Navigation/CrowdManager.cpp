@@ -1183,7 +1183,7 @@ void UCrowdManager::DebugTick() const
 				FString LogData = DetourAgentDebug->agentLog.FindRef(AgentData.AgentIndex);
 				if (LogData.Len() > 0)
 				{
-					UE_VLOG(LogOwner, LogCrowdFollowing, Log, *LogData);
+					UE_VLOG(LogOwner, LogCrowdFollowing, Log, TEXT("%s"), *LogData);
 				}
 
 				{

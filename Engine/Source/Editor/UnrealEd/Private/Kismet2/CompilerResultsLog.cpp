@@ -258,15 +258,15 @@ UObject const* FCompilerResultsLog::FindSourceObject(UObject const* PossiblyDupl
 	return SourceBacktrackMap.FindSourceObject(PossiblyDuplicatedObject);
 }
 
-void FCompilerResultsLog::NotifyIntermediateTunnelNode(UEdGraphNode* Node, UEdGraphNode* OuterTunnelInstance)
+void FCompilerResultsLog::NotifyIntermediateTunnelNode(const UEdGraphNode* Node, const UEdGraphNode* OuterTunnelInstance)
 {
 	IntermediateTunnelNodeToTunnelInstanceMap.Add(Node, OuterTunnelInstance);
 }
 
-UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const
+const UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const
 {
-	TWeakObjectPtr<UEdGraphNode> Result;
-	if (const TWeakObjectPtr<UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
+	TWeakObjectPtr<const UEdGraphNode> Result;
+	if (const TWeakObjectPtr<const UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
 	{
 		Result = *IntermediateTunnelInstanceNode;
 	}

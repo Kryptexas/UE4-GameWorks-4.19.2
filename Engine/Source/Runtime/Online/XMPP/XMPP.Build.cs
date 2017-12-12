@@ -6,7 +6,7 @@ public class XMPP : ModuleRules
 {
 	public XMPP(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("XMPP_PACKAGE=1");
+		PublicDefinitions.Add("XMPP_PACKAGE=1");
 
         PrivateIncludePaths.AddRange(
 			new string[] 
@@ -30,11 +30,11 @@ public class XMPP : ModuleRules
 			Target.Platform == UnrealTargetPlatform.PS4 )
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "WebRTC");
-			Definitions.Add("WITH_XMPP_JINGLE=1");
+			PublicDefinitions.Add("WITH_XMPP_JINGLE=1");
 		}
 		else
 		{
-			Definitions.Add("WITH_XMPP_JINGLE=0");
+			PublicDefinitions.Add("WITH_XMPP_JINGLE=0");
 		}
 		
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
@@ -43,7 +43,7 @@ public class XMPP : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_XMPP_STROPHE=0");
+			PublicDefinitions.Add("WITH_XMPP_STROPHE=0");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 ||

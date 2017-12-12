@@ -229,6 +229,8 @@ private:
 
 	/** Whether we already serialized the package file summary.																*/
 	bool					bHasSerializedPackageFileSummary;
+	/** Whether we already serialized preload dependencies.																*/
+	bool					bHasSerializedPreloadDependencies;
 	/** Whether we already fixed up import map.																				*/
 	bool					bHasFixedUpImportMap;
 	/** Whether we already matched up existing exports.																		*/

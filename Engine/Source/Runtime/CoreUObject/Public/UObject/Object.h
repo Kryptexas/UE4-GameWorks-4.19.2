@@ -870,7 +870,7 @@ public:
 	 * @param	bIncludeNestedSubobjects	controls whether subobjects which are contained by this object, but do not have this object
 	 *										as its direct Outer should be included
 	 */
-	void CollectDefaultSubobjects( TArray<UObject*>& OutDefaultSubobjects, bool bIncludeNestedSubobjects=false );
+	void CollectDefaultSubobjects( TArray<UObject*>& OutDefaultSubobjects, bool bIncludeNestedSubobjects=false ) const;
 
 	/**
 	 * Checks default sub-object assumptions.
@@ -878,7 +878,7 @@ public:
 	 * @param bForceCheck Force checks even if not enabled globally.
 	 * @return true if the assumptions are met, false otherwise.
 	 */
-	bool CheckDefaultSubobjects(bool bForceCheck = false);
+	bool CheckDefaultSubobjects(bool bForceCheck = false) const;
 
 	/**
 	 * Save configuration.
@@ -1285,14 +1285,14 @@ public:
 protected: 
 
 	/** Checks it's ok to perform subobjects check at this time. */
-	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult);
+	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult) const;
 
 	/**
 	* Checks default sub-object assumptions.
 	*
 	* @return true if the assumptions are met, false otherwise.
 	*/
-	virtual bool CheckDefaultSubobjectsInternal();
+	virtual bool CheckDefaultSubobjectsInternal() const;
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);

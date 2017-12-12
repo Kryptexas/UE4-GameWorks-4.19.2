@@ -138,7 +138,7 @@ public class APEX : ModuleRules
 			}
             if(LibrarySuffix != "")
             {
-                Definitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
+                PublicDefinitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
             }
 			
 		}
@@ -166,7 +166,7 @@ public class APEX : ModuleRules
 			}
             if (LibrarySuffix != "")
             {
-                Definitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
+                PublicDefinitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
             }
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -198,7 +198,7 @@ public class APEX : ModuleRules
 			}
 			if (LibrarySuffix != "")
 			{
-				Definitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
+				PublicDefinitions.Add("UE_APEX_SUFFIX=" + LibrarySuffix);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -232,10 +232,10 @@ public class APEX : ModuleRules
 			bIsApexStaticallyLinked = true;
 			bHasApexLegacy = false;
 
-			Definitions.Add("_XBOX_ONE=1");
+			PublicDefinitions.Add("_XBOX_ONE=1");
 
 			// This MUST be defined for XboxOne!
-			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
+			PublicDefinitions.Add("PX_HAS_SECURE_STRCPY=1");
 
 			APEXLibDir += "/XboxOne/VS2015";
 			PublicLibraryPaths.Add(APEXLibDir);
@@ -259,10 +259,10 @@ public class APEX : ModuleRules
 			LibraryFormatString = "{0}";
 		}
 
-		Definitions.Add("APEX_UE4=1");
+		PublicDefinitions.Add("APEX_UE4=1");
 
-		Definitions.Add(string.Format("APEX_STATICALLY_LINKED={0}", bIsApexStaticallyLinked ? 1 : 0));
-		Definitions.Add(string.Format("WITH_APEX_LEGACY={0}", bHasApexLegacy ? 1 : 0));
+		PublicDefinitions.Add(string.Format("APEX_STATICALLY_LINKED={0}", bIsApexStaticallyLinked ? 1 : 0));
+		PublicDefinitions.Add(string.Format("WITH_APEX_LEGACY={0}", bHasApexLegacy ? 1 : 0));
 
 		// Add the libraries needed (used for all platforms except Windows)
 		if (LibraryFormatString != null)

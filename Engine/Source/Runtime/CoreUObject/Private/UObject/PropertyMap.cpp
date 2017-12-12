@@ -621,24 +621,42 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 		return Buffer + 1;
 	}
 
-	int32 Index = 0;
+	uint8* TempPairStorage   = (uint8*)FMemory::Malloc(MapLayout.ValueOffset + ValueProp->ElementSize);
+	KeyProp  ->InitializeValue(TempPairStorage);
+	ValueProp->InitializeValue(TempPairStorage + MapLayout.ValueOffset);
+
+	bool bSuccess = false;
+	ON_SCOPE_EXIT
+	{
+		ValueProp->DestroyValue(TempPairStorage + MapLayout.ValueOffset);
+		KeyProp  ->DestroyValue(TempPairStorage);
+		FMemory::Free(TempPairStorage);
+
+		// If we are returning because of an error, remove any already-added elements from the map before returning
+		// to ensure we're not left with a partial state.
+		if (!bSuccess)
+		{
+			MapHelper.EmptyValues();
+		}
+	};
+
 	for (;;)
 	{
-		MapHelper.AddUninitializedValue();
-		MapHelper.ConstructItem(Index);
-		uint8* PairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
-
 		if (*Buffer++ != TCHAR('('))
 		{
 			return nullptr;
 		}
 
 		// Parse the key
-		Buffer = KeyProp->ImportText(Buffer, PairPtr, PortFlags | PPF_Delimited, Parent, ErrorText);
+		SkipWhitespace(Buffer);
+		Buffer = KeyProp->ImportText(Buffer, TempPairStorage, PortFlags | PPF_Delimited, Parent, ErrorText);
 		if (!Buffer)
 		{
 			return nullptr;
 		}
+
+		// Skip this element if it's already in the map
+		bool bSkip = MapHelper.FindMapIndexWithKey(TempPairStorage) != INDEX_NONE;
 
 		SkipWhitespace(Buffer);
 		if (*Buffer++ != TCHAR(','))
@@ -648,7 +666,7 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 
 		// Parse the value
 		SkipWhitespace(Buffer);
-		Buffer = ValueProp->ImportText(Buffer, PairPtr + MapLayout.ValueOffset, PortFlags | PPF_Delimited, Parent, ErrorText);
+		Buffer = ValueProp->ImportText(Buffer, TempPairStorage + MapLayout.ValueOffset, PortFlags | PPF_Delimited, Parent, ErrorText);
 		if (!Buffer)
 		{
 			return nullptr;
@@ -660,20 +678,31 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 			return nullptr;
 		}
 
+		if (!bSkip)
+		{
+			int32  Index   = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+			uint8* PairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
+
+			// Copy over imported key and value from temporary storage
+			KeyProp  ->CopyCompleteValue_InContainer(PairPtr, TempPairStorage);
+			ValueProp->CopyCompleteValue_InContainer(PairPtr, TempPairStorage);
+		}
+
+		SkipWhitespace(Buffer);
 		switch (*Buffer++)
 		{
 			case TCHAR(')'):
 				MapHelper.Rehash();
+				bSuccess = true;
 				return Buffer;
 
 			case TCHAR(','):
+				SkipWhitespace(Buffer);
 				break;
 
 			default:
 				return nullptr;
 		}
-
-		++Index;
 	}
 }
 

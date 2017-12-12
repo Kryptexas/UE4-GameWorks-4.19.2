@@ -421,8 +421,8 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 			{
 				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const ErrorFormat = LOCTEXT("BadCastInput", "'%s' does not have a clear object type (invalid input into @@).");
-				MessageLog.Error( *FString::Printf(*ErrorFormat.ToString(), *SourcePinName), this );
+				FText const ErrorFormat = LOCTEXT("BadCastInputFmt", "'{0}' does not have a clear object type (invalid input into @@).");
+				MessageLog.Error( *FText::Format(ErrorFormat, FText::FromString(SourcePinName)).ToString(), this );
 
 				continue;
 			}
@@ -432,20 +432,20 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 			{
 				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const WarningFormat = LOCTEXT("EqualObjectCast", "'%s' is already a '%s', you don't need @@.");
-				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *TargetType->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("EqualObjectCastFmt", "'{0}' is already a '{1}', you don't need @@.");
+				MessageLog.Note( *FText::Format(WarningFormat, FText::FromString(SourcePinName), TargetType->GetDisplayNameText()).ToString(), this );
 			}
 			else if (SourceClass->IsChildOf(SourceType))
 			{
 				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const WarningFormat = LOCTEXT("UnneededObjectCast", "'%s' is already a '%s' (which inherits from '%s'), so you don't need @@.");
-				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *SourceClass->GetDisplayNameText().ToString(), *TargetType->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("UnneededObjectCastFmt", "'{0}' is already a '{1}' (which inherits from '{2}'), so you don't need @@.");
+				MessageLog.Note( *FText::Format(WarningFormat, FText::FromString(SourcePinName), SourceClass->GetDisplayNameText(), TargetType->GetDisplayNameText()).ToString(), this );
 			}
 			else if (!SourceType->IsChildOf(SourceClass) && !FKismetEditorUtilities::IsClassABlueprintInterface(SourceType))
 			{
-				FText const WarningFormat = LOCTEXT("DisallowedObjectCast", "'%s' does not inherit from '%s' (@@ would always fail).");
-				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *TargetType->GetDisplayNameText().ToString(), *SourceClass->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("DisallowedObjectCast", "'{0}' does not inherit from '{1}' (@@ would always fail).");
+				MessageLog.Warning( *FText::Format(WarningFormat, TargetType->GetDisplayNameText(), SourceClass->GetDisplayNameText()).ToString(), this );
 			}
 		}
 	}

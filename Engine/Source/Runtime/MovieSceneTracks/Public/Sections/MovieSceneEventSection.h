@@ -109,26 +109,6 @@ struct FEventPayload
 	FEventPayload() {}
 	FEventPayload(FName InEventName) : EventName(InEventName) {}
 
-	FEventPayload(const FEventPayload&) = default;
-	FEventPayload& operator=(const FEventPayload&) = default;
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FEventPayload(FEventPayload&&) = default;
-	FEventPayload& operator=(FEventPayload&&) = default;
-#else
-	FEventPayload(FEventPayload&& RHS)
-		: EventName(MoveTemp(RHS.EventName))
-		, Parameters(MoveTemp(RHS.Parameters))
-	{
-	}
-	FEventPayload& operator=(FEventPayload&& RHS)
-	{
-		EventName = MoveTemp(RHS.EventName);
-		Parameters = MoveTemp(RHS.Parameters);
-		return *this;
-	}
-#endif
-
 	/** The name of the event to trigger */
 	UPROPERTY(EditAnywhere, Category=Event)
 	FName EventName;

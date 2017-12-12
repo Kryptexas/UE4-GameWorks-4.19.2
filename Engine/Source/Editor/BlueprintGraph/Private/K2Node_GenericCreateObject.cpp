@@ -130,7 +130,7 @@ void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& Mes
 	UClass* ClassToSpawn = GetClassToSpawn();
 	if (!FK2Node_GenericCreateObject_Utils::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Cannot construct objects of type '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
+		MessageLog.Error(*FText::Format(LOCTEXT("GenericCreateObject_WrongClassFmt", "Cannot construct objects of type '{0}' in @@"), FText::FromString(GetPathNameSafe(ClassToSpawn))).ToString(), this);
 	}
 
 	UEdGraphPin* OuterPin = GetOuterPin();

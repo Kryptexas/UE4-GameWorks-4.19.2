@@ -28,7 +28,7 @@ public class AndroidPlatform : Platform
 
 	private static string GetSONameWithoutArchitecture(ProjectParams Params, string DecoratedExeName)
 	{
-		return Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), DecoratedExeName) + ".so";
+		return Path.Combine(Path.GetDirectoryName(Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString()), DecoratedExeName) + ".so";
 	}
 
 	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture, string GPUArchitecture)
@@ -44,7 +44,7 @@ public class AndroidPlatform : Platform
 		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + Architecture + GPUArchitecture + ".apk";
 
 		// if the source binary was UE4Game, handle using it or switching to project name
-		if (Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename) == "UE4Game")
+		if (Path.GetFileNameWithoutExtension(Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString()) == "UE4Game")
 		{
 			if (bRenameUE4Game)
 			{
@@ -1469,7 +1469,7 @@ public class AndroidPlatform : Platform
 			{
 				throw new AutomationException(ExitCode.Error_AppNotFound, "Failed to find application " + ApkName);
 			}
-			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);
+			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString());
 
 			// run aapt to get the name of the intent
 			string PackageName = GetPackageInfo(ApkName, false);

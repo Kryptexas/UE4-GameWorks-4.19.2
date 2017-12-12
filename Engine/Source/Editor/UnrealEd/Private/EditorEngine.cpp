@@ -163,7 +163,6 @@
 
 // AIMdule
 
-#include "Misc/HotReloadInterface.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "GameFramework/GameUserSettings.h"
@@ -198,6 +197,8 @@
 #include "Engine/MapBuildDataRegistry.h"
 
 #include "DynamicResolutionState.h"
+
+#include "Developer/HotReload/Public/IHotReload.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -664,6 +665,10 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		// Setup a delegate to handle requests for opening assets
 		FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
 	}
+
+	IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+	HotReloadModule.OnModuleCompilerStarted ().AddUObject(this, &UEditorEngine::OnModuleCompileStarted);
+	HotReloadModule.OnModuleCompilerFinished().AddUObject(this, &UEditorEngine::OnModuleCompileFinished);
 }
 
 bool UEditorEngine::HandleOpenAsset(UObject* Asset)
@@ -875,7 +880,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	GEditor = this;
 	InitEditor(InEngineLoop);
 
-	Layers = FLayers::Create( TWeakObjectPtr< UEditorEngine >( this ) );
+	Layers = FLayers::Create( MakeWeakObjectPtr( this ) );
 
 	// Init transactioning.
 	Trans = CreateTrans();
@@ -1262,13 +1267,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
-
-	// Tick the hot reload interface
-	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
-	if(HotReload != nullptr)
-	{
-		HotReload->Tick();
-	}
 
 	// Tick the remote config IO manager
 	FRemoteConfigAsyncTaskManager::Get()->Tick();
@@ -4241,40 +4239,6 @@ bool UEditorEngine::IsPackageValidForAutoAdding(UPackage* InPackage, const FStri
 
 bool UEditorEngine::IsPackageOKToSave(UPackage* InPackage, const FString& InFilename, FOutputDevice* Error)
 {
-	TArray<FString>	AllStartupPackageNames;
-	appGetAllPotentialStartupPackageNames(AllStartupPackageNames, GEngineIni, false);
-
-	FString ConvertedPackageName, ConversionError;
-	if (!FPackageName::TryConvertFilenameToLongPackageName(InFilename, ConvertedPackageName, &ConversionError))
-	{
-		Error->Logf(ELogVerbosity::Error, *FText::Format(NSLOCTEXT("UnrealEd", "CannotConvertPackageName", "Cannot save asset '{0}' as conversion of long package name failed. Reason: '{1}'."), FText::FromString(InFilename), FText::FromString(ConversionError)).ToString());
-		return false;
-	}
-
-	bool bIsStartupPackage = AllStartupPackageNames.Contains(ConvertedPackageName);
-
-	// Make sure that if the package is a startup package, the user indeed wants to save changes
-	if( !IsRunningCommandlet()																		&& // Don't prompt about saving startup packages when running UCC
-		InFilename.EndsWith(FPackageName::GetAssetPackageExtension())				&& // Maps, even startup maps, are ok
-		bIsStartupPackage && 
-		(!StartupPackageToWarnState.Find(InPackage) || (*(StartupPackageToWarnState.Find(InPackage)) == false))
-		)
-	{		
-		// Prompt to save startup packages
-		if( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
-				NSLOCTEXT("UnrealEd", "Prompt_AboutToEditStartupPackage", "{0} is a startup package.  Startup packages are fully cooked and loaded when on consoles. ALL CONTENT IN THIS PACKAGE WILL ALWAYS USE MEMORY. Are you sure you want to save it?"),
-				FText::FromString(InPackage->GetName()))) )
-		{
-			StartupPackageToWarnState.Add( InPackage, true );
-		}
-		else
-		{
-			StartupPackageToWarnState.Add( InPackage, false );
-			Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "UnrealEd", "CannotSaveStartupPackage", "Cannot save asset '{0}' as user opted not to save this startup asset" ), FText::FromString( InFilename ) ).ToString() );
-			return false;
-		}
-	}
-
 	return true;
 }
 
@@ -7264,6 +7228,16 @@ bool UEditorEngine::IsHMDTrackingAllowed() const
 {
 	// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
 	return GEnableVREditorHacks || (PlayWorld && (bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl));
+}
+
+void UEditorEngine::OnModuleCompileStarted(bool bIsAsyncCompile)
+{
+	bIsCompiling = true;
+}
+
+void UEditorEngine::OnModuleCompileFinished(const FString& CompilationOutput, ECompilationResult::Type CompilationResult, bool bShowLog)
+{
+	bIsCompiling = false;
 }
 
 #undef LOCTEXT_NAMESPACE 

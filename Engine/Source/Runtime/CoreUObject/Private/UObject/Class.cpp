@@ -1980,14 +1980,6 @@ void UScriptStruct::PrepareCppStructOps()
 	bPrepareCppStructOpsCompleted = true;
 }
 
-void UScriptStruct::PostLoad()
-{
-	Super::PostLoad();
-	ClearCppStructOps(); // we want to be sure to do this from scratch
-	PrepareCppStructOps();
-}
-
-
 void UScriptStruct::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);

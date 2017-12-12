@@ -90,20 +90,12 @@ struct FMaterialParameterCollectionExecutionToken : IMovieSceneExecutionToken
 {
 	FMaterialParameterCollectionExecutionToken(UMaterialParameterCollection* InCollection) : Collection(InCollection) {}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMaterialParameterCollectionExecutionToken(FMaterialParameterCollectionExecutionToken&&) = default;
 	FMaterialParameterCollectionExecutionToken& operator=(FMaterialParameterCollectionExecutionToken&&) = default;
-#else
-	FMaterialParameterCollectionExecutionToken(FMaterialParameterCollectionExecutionToken&& RHS)
-		: Values(MoveTemp(RHS.Values))
-	{
-	}
-	FMaterialParameterCollectionExecutionToken& operator=(FMaterialParameterCollectionExecutionToken&& RHS)
-	{
-		Values = MoveTemp(RHS.Values);
-		return *this;
-	}
-#endif
+
+	// Non-copyable
+	FMaterialParameterCollectionExecutionToken(const FMaterialParameterCollectionExecutionToken&) = delete;
+	FMaterialParameterCollectionExecutionToken& operator=(const FMaterialParameterCollectionExecutionToken&) = delete;
 
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{

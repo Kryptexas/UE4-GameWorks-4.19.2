@@ -44,6 +44,18 @@ void FAnimInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 	}
 }
 
+void FAnimInstanceProxy::AddReferencedObjects(UAnimInstance* InAnimInstance, FReferenceCollector& Collector)
+{
+	for (int32 Index = 0; Index < ARRAY_COUNT(UngroupedActivePlayerArrays); ++Index)
+	{
+		TArray<FAnimTickRecord>& UngroupedPlayers = UngroupedActivePlayerArrays[Index];
+		for (FAnimTickRecord& TickRecord : UngroupedPlayers)
+		{
+			Collector.AddReferencedObject(TickRecord.SourceAsset, InAnimInstance);
+		}
+	}
+}
+
 void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 {
 	// copy anim instance object if it has not already been set up

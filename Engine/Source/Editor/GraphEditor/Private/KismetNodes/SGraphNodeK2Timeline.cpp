@@ -27,7 +27,7 @@ void SGraphNodeK2Timeline::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<F
 			UClass* ContainingClass = TimelineProperty->GetTypedOuter<UClass>();
 			if (!ActiveObject->IsA(ContainingClass))
 			{
-				const FString ErrorText = FString::Printf(*LOCTEXT("StaleDebugData", "Stale debug data\nProperty is on %s\nDebugging a %s").ToString(), *ContainingClass->GetName(), *ActiveObject->GetClass()->GetName());
+				const FString ErrorText = FText::Format(LOCTEXT("StaleDebugDataFmt", "Stale debug data\nProperty is on {0}\nDebugging a {1}"), FText::FromString(ContainingClass->GetName()), FText::FromString(ActiveObject->GetClass()->GetName())).ToString();
 				new (Popups) FGraphInformationPopupInfo(NULL, TimelineBubbleColor, ErrorText);
 			}
 			else if (UTimelineComponent* Timeline = Cast<UTimelineComponent>(TimelineProperty->GetObjectPropertyValue(TimelineProperty->ContainerPtrToValuePtr<void>(ActiveObject))))

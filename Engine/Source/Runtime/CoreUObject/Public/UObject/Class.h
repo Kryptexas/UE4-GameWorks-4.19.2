@@ -1092,7 +1092,6 @@ public:
 
 	// UObject Interface
 	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) override;
-	virtual COREUOBJECT_API void PostLoad() override;
 
 	// UStruct interface.
 	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
@@ -1618,6 +1617,13 @@ public:
 	 * @return index of the value the parsed enum name matches, or INDEX_NONE if no matches
 	 */
 	static int64 ParseEnum(const TCHAR*& Str);
+
+	/**
+	 * Tests if the enum contains a MAX value
+	 *
+	 * @return	true if the enum contains a MAX enum, false otherwise.
+	 */
+	bool ContainsExistingMax() const;
 
 	/**
 	 * Sets the array of enums.

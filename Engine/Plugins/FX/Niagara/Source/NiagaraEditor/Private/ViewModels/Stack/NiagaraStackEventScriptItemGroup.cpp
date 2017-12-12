@@ -112,7 +112,7 @@ void UNiagaraStackEventHandlerPropertiesItem::RefreshChildrenInternal(const TArr
 			UNiagaraSystem* System = &GetSystemViewModel()->GetSystem();
 			EventHandlerStruct = NewObject<UNiagaraStackStruct>(this);
 			EventHandlerStruct->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetEmitterViewModel()->GetEmitter(), FNiagaraEventScriptProperties::StaticStruct(), EventStructMemory);
-			EventHandlerStruct->SetDetailsCustomization(FOnGetDetailCustomizationInstance::CreateStatic(&FNiagaraEventScriptPropertiesCustomization::MakeInstance, TWeakObjectPtr<UNiagaraSystem>(System), TWeakObjectPtr<UNiagaraEmitter>(Emitter)));
+			EventHandlerStruct->SetDetailsCustomization(FOnGetDetailCustomizationInstance::CreateStatic(&FNiagaraEventScriptPropertiesCustomization::MakeInstance, MakeWeakObjectPtr(System), TWeakObjectPtr<UNiagaraEmitter>(Emitter)));
 			bForceRebuildChildStruct = false;
 		}
 	}

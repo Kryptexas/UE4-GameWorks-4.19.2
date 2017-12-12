@@ -807,7 +807,7 @@ FNavMeshSceneProxy::FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, F
 		ProxyData = *InProxyData;
 	}
 
-	RenderingComponent = Cast<const UNavMeshRenderingComponent>(InComponent);
+	RenderingComponent = MakeWeakObjectPtr(const_cast<UNavMeshRenderingComponent*>(Cast<UNavMeshRenderingComponent>(InComponent)));
 	bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == nullptr);
 	bUseThickLines = GIsEditor;
 

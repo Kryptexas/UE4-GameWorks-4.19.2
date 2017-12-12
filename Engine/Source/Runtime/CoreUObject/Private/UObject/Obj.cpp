@@ -1345,7 +1345,7 @@ void UObject::BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject
 }
 
 
-void UObject::CollectDefaultSubobjects( TArray<UObject*>& OutSubobjectArray, bool bIncludeNestedSubobjects/*=false*/ )
+void UObject::CollectDefaultSubobjects( TArray<UObject*>& OutSubobjectArray, bool bIncludeNestedSubobjects/*=false*/ ) const
 {
 	OutSubobjectArray.Empty();
 	GetObjectsWithOuter(this, OutSubobjectArray, bIncludeNestedSubobjects);
@@ -1375,7 +1375,7 @@ public:
 	 * @param InSubobjectArray	Array to add subobject references to
 	 * @param	InObject	Referencing object.
 	 */
-	FSubobjectReferenceFinder(TArray<const UObject*>& InSubobjectArray, UObject* InObject)
+	FSubobjectReferenceFinder(TArray<const UObject*>& InSubobjectArray, const UObject* InObject)
 		:	ObjectArray(InSubobjectArray)
 		, ReferencingObject(InObject)
 	{
@@ -1392,7 +1392,9 @@ public:
 		{
 			ReferencingObject->SerializeScriptProperties(GetVerySlowReferenceCollectorArchive());
 		}
-		ReferencingObject->CallAddReferencedObjects(*this);
+		// CallAddReferencedObjects doesn't modify the object with FSubobjectReferenceFinder passed in as parameter but may modify when called by GC
+		UObject* MutableReferencingObject = const_cast<UObject*>(ReferencingObject);
+		MutableReferencingObject->CallAddReferencedObjects(*this);
 	}
 
 	// Begin FReferenceCollector interface.
@@ -1418,7 +1420,7 @@ protected:
 	/** Stored reference to array of objects we add object references to. */
 	TArray<const UObject*>&	ObjectArray;
 	/** Object to check the references of. */
-	UObject* ReferencingObject;
+	const UObject* ReferencingObject;
 };
 
 
@@ -1434,7 +1436,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheckSubobjects, Fatal, All);
 		UE_LOG(LogCheckSubobjects, Log, TEXT("CompCheck %s failed."), TEXT(#Pred)); \
 	} 
 
-bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
+bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult) const
 {
 	bool bCanCheck = true;
 	bResult = true;
@@ -1453,7 +1455,7 @@ bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 	return bCanCheck;
 }
 
-bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/) const
 {
 	bool Result = true;
 	if (CanCheckDefaultSubObjects(bForceCheck, Result))
@@ -1463,7 +1465,7 @@ bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
 	return Result;
 }
 
-bool UObject::CheckDefaultSubobjectsInternal()
+bool UObject::CheckDefaultSubobjectsInternal() const
 {
 	bool Result = true;	
 

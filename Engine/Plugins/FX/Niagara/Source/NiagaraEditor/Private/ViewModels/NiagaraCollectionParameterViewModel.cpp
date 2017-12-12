@@ -161,7 +161,7 @@ TSharedRef<FStructOnScope> FNiagaraCollectionParameterViewModel::GetDefaultValue
 
 UObject* FNiagaraCollectionParameterViewModel::GetDefaultValueObject()
 {
-	return Cast<UObject>(CollectionInst->GetParameterStore().GetDataInterface(Parameter));
+	return CollectionInst->GetParameterStore().GetDataInterface(Parameter);
 }
 
 void FNiagaraCollectionParameterViewModel::NotifyDefaultValuePropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent)

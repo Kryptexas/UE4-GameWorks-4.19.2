@@ -6,6 +6,7 @@
 #include "UObject/NameTypes.h"
 #include "Logging/LogMacros.h"
 #include "HAL/PlatformTLS.h"
+#include "Templates/Atomic.h"
 
 class Error;
 class FConfigCacheIni;
@@ -431,7 +432,7 @@ extern CORE_API bool (*IsInAsyncLoadingThread)();
 extern CORE_API FRunnableThread* GRenderingThread;
 
 /** Whether the rendering thread is suspended (not even processing the tickables) */
-extern CORE_API int32 GIsRenderingThreadSuspended;
+extern CORE_API TAtomic<int32> GIsRenderingThreadSuspended;
 
 /** @return True if called from the RHI thread, or if called from ANY thread during single threaded rendering */
 extern CORE_API bool IsInRHIThread();

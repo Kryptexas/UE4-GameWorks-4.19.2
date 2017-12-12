@@ -288,11 +288,11 @@ public class UnrealEd : ModuleRules
 		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
-			Definitions.Add( "WITH_RECAST=1" );
+			PublicDefinitions.Add( "WITH_RECAST=1" );
 		}
 		else
 		{
-			Definitions.Add( "WITH_RECAST=0" );
+			PublicDefinitions.Add( "WITH_RECAST=0" );
 		}
 	}
 }

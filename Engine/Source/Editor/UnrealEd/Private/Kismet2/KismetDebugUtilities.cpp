@@ -274,7 +274,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		{
 			// Record into the trace log
 			FKismetTraceSample& Tracer = Data.TraceStackSamples.WriteNewElementUninitialized();
-			Tracer.Context = ActiveObject;
+			Tracer.Context = MakeWeakObjectPtr(const_cast<UObject*>(ActiveObject));
 			Tracer.Function = StackFrame.Node;
 			Tracer.Offset = BreakpointOffset; //@TODO: Might want to make this a parameter of Info
 			Tracer.ObservationTime = FPlatformTime::Seconds();
@@ -444,7 +444,7 @@ void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bo
 	if (NodeStoppedAt)
 	{
 		// Update tracked graph stack.
-		const UEdGraph* CurrentGraph = NodeStoppedAt->GetTypedOuter<UEdGraph>();
+		UEdGraph* CurrentGraph = NodeStoppedAt->GetTypedOuter<UEdGraph>();
 		if (ensure(CurrentGraph))
 		{
 			if (Data.GraphStack.FindLast(CurrentGraph) != INDEX_NONE)

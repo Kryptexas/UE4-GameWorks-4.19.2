@@ -136,7 +136,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	UEnum* Enum = GetEnum();
 	if(NULL == Enum)
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_MustHaveValidName", "@@ must have a valid enum defined").ToString()), this);
+		CompilerContext.MessageLog.Error(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_MustHaveValidName", "@@ must have a valid enum defined").ToString(), this);
 		return;
 	}
 
@@ -173,7 +173,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 		const int32 NumericValue = Enum->GetValueByName(*EnumLiteral);
 		if (NumericValue == INDEX_NONE) 
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_InvalidName", "@@ has invalid enum value '%s'").ToString(), *EnumLiteral), this);
+			CompilerContext.MessageLog.Error(*FText::Format(NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_InvalidNameFmt", "@@ has invalid enum value '{0}'"), FText::FromString(EnumLiteral)).ToString(), this);
 			return;
 		}
 		const FString DefaultByteValue = FString::FromInt(NumericValue);

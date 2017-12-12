@@ -1429,10 +1429,10 @@ namespace HLODOutliner
 			else
 			{
 				// Add child item for the new static mesh actor
-				FTreeItemRef ChildItem = MakeShareable(new FStaticMeshActorItem(InActor));
+				FTreeItemRef ChildItem = MakeShared<FStaticMeshActorItem>(const_cast<AActor*>(InActor));
 				AllNodes.Add(ChildItem->AsShared());
 				PendingActions.Emplace(FOutlinerAction::AddItem, ChildItem, *ParentItem);
-			}			
+			}
 
 			// Set build flags according to whether or not this LOD actor is dirty 
 			LODLevelBuildFlags[ParentLODActor->LODLevel - 1] &= !ParentLODActor->IsDirty();

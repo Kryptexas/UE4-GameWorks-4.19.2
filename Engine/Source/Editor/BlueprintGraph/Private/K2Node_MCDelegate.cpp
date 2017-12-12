@@ -41,7 +41,7 @@ void UK2Node_BaseMCDelegate::ValidateNodeDuringCompilation(class FCompilerResult
 	{
 		if(!Property->HasAllPropertyFlags(CPF_BlueprintAssignable))
 		{
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateNotAssignable", "Event Dispatcher is not 'BlueprintAssignable' @@").ToString()), this);
+			MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateNotAssignable", "Event Dispatcher is not 'BlueprintAssignable' @@").ToString(), this);
 		}
 	}
 }
@@ -183,7 +183,7 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 		{
 			if(MultiSelf->LinkedTo.Num() > 1)
 			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateMultiArray", "Event Dispatcher does not accept multi-array-self @@").ToString()), this);
+				CompilerContext.MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateMultiArray", "Event Dispatcher does not accept multi-array-self @@").ToString(), this);
 			}
 			else
 			{
@@ -442,7 +442,7 @@ void UK2Node_CallDelegate::ValidateNodeDuringCompilation(class FCompilerResultsL
 	{
 		if(!Property->HasAllPropertyFlags(CPF_BlueprintCallable))
 		{
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateNotCallable", "Event Dispatcher is not 'BlueprintCallable' @@").ToString()), this);
+			MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateNotCallable", "Event Dispatcher is not 'BlueprintCallable' @@").ToString(), this);
 		}
 	}
 }

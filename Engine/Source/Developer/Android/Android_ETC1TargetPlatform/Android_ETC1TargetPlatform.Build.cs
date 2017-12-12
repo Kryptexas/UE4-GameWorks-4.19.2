@@ -32,7 +32,7 @@ public class Android_ETC1TargetPlatform : ModuleRules
 			}
 		);
 
-        Definitions.Add("WITH_OGGVORBIS=1");
+        PublicDefinitions.Add("WITH_OGGVORBIS=1");
 
 		// compile with Engine
 		if (Target.bCompileAgainstEngine)

@@ -1627,7 +1627,7 @@ void UActorChannel::MoveMappedObjectToUnmapped( const UObject* Object )
 
 	// Find all replicators that are referencing this object, and make sure to mark the references as unmapped
 	// This is so when/if this object is instantiated again (using same network guid), we can re-establish the old references
-	FNetworkGUID NetGuid = Driver->GuidCache->NetGUIDLookup.FindRef( Object );
+	FNetworkGUID NetGuid = Driver->GuidCache->NetGUIDLookup.FindRef( MakeWeakObjectPtr( const_cast<UObject*>( Object ) ) );
 
 	if ( NetGuid.IsValid() )
 	{

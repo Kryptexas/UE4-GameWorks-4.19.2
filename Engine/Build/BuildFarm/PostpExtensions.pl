@@ -94,6 +94,17 @@ sub backIf($;$)
 	}
 }
 
+my $clang_file_line_pattern = 
+	'('							.
+		'(?:[a-zA-Z]:)?'		.	# optional drive letter
+		'[^:]+'					.	# any non-colon character
+	')'							.
+	'(?:'						.
+		'\s*:[\s\d:,]+:'		.	# clang-style   :123:456:
+		'|'						.
+		'\([\s\d:,]+\):'		. 	# msvc-style    (123,456):
+	')'							;
+	
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
 # After an error is processed on a line that line is considered processed
@@ -119,14 +130,14 @@ unshift @::gMatchers, (
     },
     {
         id =>               "clangError",
-        pattern =>          q{([^:]+):[\d:]+ error:},
-        action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
-    },
+        pattern =>          q{\s*}.$clang_file_line_pattern.q{\s*error\s*:},
+		action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("errors"); diagnostic("", "error", backWhile("^(?:$indent).*(?:In (member )?function|In file included from)"), forwardWhile("^($indent |$indent".'}.$clang_file_line_pattern.q{\s*note:| *\$)'))},
+	},
     {
         id =>               "clangWarning",
-        pattern =>          q{([^:]+):[\d:]+ warning:},
-        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In function"), 0)},
-    },
+        pattern =>          q{\s*}.$clang_file_line_pattern.q{\s*warning\s*:},
+		action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("warnings"); diagnostic("", "warning", backWhile("^(?:$indent).*(?:In (member )?function|In file included from)"), forwardWhile("^($indent |$indent".'}.$clang_file_line_pattern.q{\s*note:| *\$)'))},
+	},
     {
         id =>               "ubtFailedToProduceItem",
         pattern =>          q{(ERROR: )?UBT ERROR: Failed to produce item: },
@@ -137,6 +148,11 @@ unshift @::gMatchers, (
         pattern =>          q{\*\*\*\* Changes since last succeeded},
 		action =>           q{$::gCurrentLine += forwardTo('^\\\*', 1);}
     },
+	{
+		id =>				"clangThreadSanitizerWarning",
+		pattern =>			q{^(\s*)WARNING: ThreadSanitizer:},
+        action =>           q{incValue("warnings"); my $prefix = $1; diagnostic("TSan", "warning", 0, forwardWhile("^([ ]*|$prefix  .*|${prefix}SUMMARY:.*)\$"))}
+	},
 	{
 		id =>               "editorLogChannelError",
 		pattern =>          q{^([a-zA-Z_][a-zA-Z0-9_]*):Error: },
@@ -159,8 +175,8 @@ unshift @::gMatchers, (
 	},
 	{
 		id =>				"arxanMissingSymbol",
-		pattern =>			q{guardit: (empty)},
-		action =>			q{incValue("errors"); diagnostic("GuardIT", "error")}
+		pattern =>			q{^\s*Lookup of.*returns:\s*$},
+		action =>			q{ if(logLine($::gCurrentLine + 1) =~ /^\s*\(empty\)\s*$/) { incValue("errors"); diagnostic("GuardIT", "error", 0, 1); } }
 	},
 	{
 		id =>				"ubtFatal",

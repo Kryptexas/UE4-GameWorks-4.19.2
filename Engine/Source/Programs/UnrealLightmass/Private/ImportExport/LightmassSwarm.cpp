@@ -277,7 +277,7 @@ void FLightmassSwarm::SendAlertMessage(	NSwarm::TAlertLevel AlertLevel,
 /**
  * Sends text information to Swarm, using printf-like parameters.
  */
-VARARG_BODY( void, FLightmassSwarm::SendTextMessage, const TCHAR*, VARARG_NONE )
+void FLightmassSwarm::SendTextMessageImpl(const TCHAR* Fmt, ...)
 {
 	int32		BufferSize	= 1024;
 	TCHAR*	Buffer		= NULL;

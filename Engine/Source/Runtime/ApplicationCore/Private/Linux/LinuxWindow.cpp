@@ -799,7 +799,7 @@ void FLinuxWindow::LogInfo()
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsModalWindow: %d"), Definition->IsModalWindow);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsRegularWindow: %d"), Definition->IsRegularWindow);
-	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivationPolicy: %d"), Definition->ActivationPolicy);
+	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivationPolicy: %d"), (int)Definition->ActivationPolicy);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("FocusWhenFirstShown: %d"), Definition->FocusWhenFirstShown);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("SizeWillChangeOften: %d"), Definition->SizeWillChangeOften);
 }

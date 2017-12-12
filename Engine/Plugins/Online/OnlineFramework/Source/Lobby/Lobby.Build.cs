@@ -6,7 +6,7 @@ public class Lobby : ModuleRules
 {
 	public Lobby(ReadOnlyTargetRules Target) : base(Target)
 	{		
-		Definitions.Add("LOBBY_PACKAGE=1");
+		PublicDefinitions.Add("LOBBY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(

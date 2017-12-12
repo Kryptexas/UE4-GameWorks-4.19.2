@@ -8,7 +8,7 @@ public class Bolts : ModuleRules
     {
         Type = ModuleType.External;
 
-        Definitions.Add("WITH_BOLTS=1");
+        PublicDefinitions.Add("WITH_BOLTS=1");
 
 		string BoltsPath = Target.UEThirdPartySourceDirectory + "IOS/Bolts/";
         if (Target.Platform == UnrealTargetPlatform.IOS)

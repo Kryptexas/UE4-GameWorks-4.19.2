@@ -14,6 +14,7 @@
 #include "Containers/LockFreeList.h"
 #include "Containers/ChunkedArray.h"
 #include "Delegates/Delegate.h"
+#include "Templates/Atomic.h"
 
 class FScopeCycleCounter;
 class FThreadStats;
@@ -94,12 +95,11 @@ struct CORE_API FStats
 	static bool HasLoadTimeFileForCommandletToken();
 
 	/** Current game thread stats frame. */
-	static int32 GameThreadStatsFrame;
+	static TAtomic<int32> GameThreadStatsFrame;
 };
 
 #if STATS
 
-MS_ALIGN(8)
 struct TStatIdData
 {
 	FORCEINLINE TStatIdData()
@@ -108,20 +108,21 @@ struct TStatIdData
 	{
 	}
 
-	FORCEINLINE bool IsNone() const
+	bool IsNone() const
 	{
-		return Name.Index == 0 && Name.Number == 0;
+		FMinimalName LocalName = Name.Load(EMemoryOrder::Relaxed);
+		return LocalName.IsNone();
 	}
 
 	/** Name of the active stat; stored as a minimal name to minimize the data size */
-	FMinimalName Name;
+	TAtomic<FMinimalName> Name;
 
 	/** const ANSICHAR* pointer to a string; stored as a uint64 so it doesn't change size and affect TStatIdData alignment between 32 and 64-bit builds) */
 	uint64 AnsiString;
 
 	/** const WIDECHAR* pointer to a string; stored as a uint64 so it doesn't change size and affect TStatIdData alignment between 32 and 64-bit builds) */
 	uint64 WideString;
-} GCC_ALIGN(8);
+};
 
 struct TStatId
 {
@@ -146,14 +147,19 @@ struct TStatId
 		return StatIdPtr;
 	}
 
+	FORCEINLINE FMinimalName GetMinimalName(EMemoryOrder MemoryOrder) const
+	{
+		return StatIdPtr->Name.Load(MemoryOrder);
+	}
+
 	FORCEINLINE FName GetName() const
 	{
 		return MinimalNameToName(StatIdPtr->Name);
 	}
 
-	FORCEINLINE static const FMinimalName* GetStatNone()
+	FORCEINLINE static const TStatIdData& GetStatNone()
 	{
-		return &TStatId_NAME_None.Name;
+		return TStatId_NAME_None;
 	}
 
 	/**
@@ -1285,10 +1291,11 @@ public:
 		if( Packet.ThreadType == EThreadType::Other )
 		{
 			FPlatformMisc::MemoryBarrier();
-			const bool bFrameHasChanged = FStats::GameThreadStatsFrame > CurrentGameFrame;
+			uint64 Frame = FStats::GameThreadStatsFrame;
+			const bool bFrameHasChanged = Frame > CurrentGameFrame;
 			if( bFrameHasChanged )
 			{
-				CurrentGameFrame = FStats::GameThreadStatsFrame;
+				CurrentGameFrame = Frame;
 				Packet.AssignFrame( CurrentGameFrame );
 				return true;
 			}
@@ -1527,10 +1534,17 @@ public:
 	 */
 	FORCEINLINE_STATS void Start( TStatId InStatId, bool bAlways = false )
 	{
-		if( (bAlways && FThreadStats::WillEverCollectData() && InStatId.IsValidStat()) || FThreadStats::IsCollectingData( InStatId ) )
+		FMinimalName StatMinimalName = InStatId.GetMinimalName(EMemoryOrder::Relaxed);
+		if (StatMinimalName.IsNone())
 		{
-			StatId = InStatId.GetName();
-			FThreadStats::AddMessage( StatId, EStatOperation::CycleScopeStart );
+			return;
+		}
+
+		if( (bAlways && FThreadStats::WillEverCollectData()) || FThreadStats::IsCollectingData() )
+		{
+			FName StatName = MinimalNameToName(StatMinimalName);
+			StatId = StatName;
+			FThreadStats::AddMessage( StatName, EStatOperation::CycleScopeStart );
 
 			// Emit named event for active cycle stat.
 			if( GCycleStatsShouldEmitNamedEvents > 0 )
@@ -1675,8 +1689,8 @@ public:
 struct FThreadSafeStaticStatBase
 {
 protected:
-	mutable TStatIdData* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
-	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
+	mutable TAtomic<const TStatIdData*> HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
+	CORE_API const TStatIdData* DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
 template<class TStatData, bool TCompiledIn>
@@ -1684,12 +1698,12 @@ struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 {
 	FORCEINLINE_STATS TStatId GetStatId() const
 	{
-		static_assert(sizeof(HighPerformanceEnable) == sizeof(TStatId), "Unsafe cast requires these to be the same thing.");
-		if (!HighPerformanceEnable)
+		const TStatIdData* LocalHighPerformanceEnable = HighPerformanceEnable.Load(EMemoryOrder::Relaxed);
+		if (!LocalHighPerformanceEnable)
 		{
-			DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetGroupCategory(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );
+			LocalHighPerformanceEnable = DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetGroupCategory(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );
 		}
-		return *(TStatId*)(&HighPerformanceEnable);
+		return TStatId(LocalHighPerformanceEnable);
 	}
 	FORCEINLINE FName GetStatFName() const
 	{

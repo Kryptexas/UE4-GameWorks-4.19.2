@@ -315,7 +315,7 @@ void FOnlineLeaderboardsGameCircle::WriteRowForUIDToReadObject(TSharedRef<const 
 
 		default:
 			{
-				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Game Circle %s"), ColumnMeta.ColumnName);
+				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Game Circle %s"), *ColumnMeta.ColumnName.ToString());
 				break;
 			}
 		}

@@ -10,7 +10,7 @@ public class Vorbis : ModuleRules
 		string VorbisPath = Target.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 
 		PublicIncludePaths.Add(VorbisPath + "include");
-		Definitions.Add("WITH_OGGVORBIS=1");
+		PublicDefinitions.Add("WITH_OGGVORBIS=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{

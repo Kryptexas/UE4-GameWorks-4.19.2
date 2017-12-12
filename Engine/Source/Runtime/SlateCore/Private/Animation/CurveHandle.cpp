@@ -108,7 +108,7 @@ float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction EaseFunction )
 
 		default:
 			// Unrecognized curve easing function type
-			checkf(0, *LOCTEXT("CurveFunction_Error", "Unrecognized curve easing function type [%i] for FCurveHandle").ToString(), (int)EaseFunction);
+			checkf(0, TEXT("Unrecognized curve easing function type [%i] for FCurveHandle"), (int)EaseFunction);
 			break;
 	}
 

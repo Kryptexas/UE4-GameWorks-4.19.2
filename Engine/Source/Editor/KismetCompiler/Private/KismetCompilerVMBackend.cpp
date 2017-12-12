@@ -1876,14 +1876,14 @@ public:
 				//	source nodes and register the set as the Tunnel Instance node chain that's associated with the current instruction offset.
 				//
 				TArray<TWeakObjectPtr<UEdGraphNode>> ExpansionSourceNodes;
-				if (UEdGraphNode* OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(SourceNode))
+				if (const UEdGraphNode* OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(SourceNode))
 				{
 					do
 					{
 						// Map the intermediate tunnel instance node back to its original source and add it to the array.
-						if (UEdGraphNode* ExpansionSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(OuterTunnelInstance)))
+						if (const UEdGraphNode* ExpansionSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(OuterTunnelInstance)))
 						{
-							ExpansionSourceNodes.Add(ExpansionSourceNode);
+							ExpansionSourceNodes.Add(MakeWeakObjectPtr(const_cast<UEdGraphNode*>(ExpansionSourceNode)));
 						}
 						
 						// Continue back up the chain until we run out of expansion source nodes (this ensures that we include any nested expansions).

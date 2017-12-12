@@ -504,31 +504,36 @@ int64 UEnum::GetValueByNameString(const FString& SearchString, EGetByNameFlags F
 	return INDEX_NONE;
 }
 
+bool UEnum::ContainsExistingMax() const
+{
+	if (GetIndexByName(*GenerateFullEnumName(TEXT("MAX")), EGetByNameFlags::CaseSensitive) != INDEX_NONE)
+	{
+		return true;
+	}
+
+	FName MaxEnumItem = *GenerateFullEnumName(*(GenerateEnumPrefix() + TEXT("_MAX")));
+	if (GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive) != INDEX_NONE)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 bool UEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, UEnum::ECppForm InCppForm, bool bAddMaxKeyIfMissing)
 {
 	if (Names.Num() > 0)
 	{
 		RemoveNamesFromMasterList();
 	}
-	Names  = InNames;
+	Names   = InNames;
 	CppForm = InCppForm;
 
 	if (bAddMaxKeyIfMissing)
 	{
-		const FString EnumPrefix = GenerateEnumPrefix();
-		checkSlow(EnumPrefix.Len());
-
-		FName MaxEnumItem      = *GenerateFullEnumName(TEXT("MAX"));
-		int32 MaxEnumItemIndex = GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive);
-
-		if (MaxEnumItemIndex == INDEX_NONE)
+		if (!ContainsExistingMax())
 		{
-			MaxEnumItem      = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
-			MaxEnumItemIndex = GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive);
-		}
-
-		if (MaxEnumItemIndex == INDEX_NONE)
-		{
+			FName MaxEnumItem = *GenerateFullEnumName(*(GenerateEnumPrefix() + TEXT("_MAX")));
 			if (LookupEnumName(MaxEnumItem) != INDEX_NONE)
 			{
 				// the MAX identifier is already being used by another enum

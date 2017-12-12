@@ -68,8 +68,7 @@ enum EPropertyPortFlags
 	/** indicates that non-categorized transient properties should be exported (by default, they would not be) */
 	PPF_IncludeTransient			= 0x00020000,
 
-	/** modifies behavior of UProperty::Identical - indicates that the comparison is between an object and its archetype */
-	PPF_DeltaComparison				= 0x00040000,
+	//								= 0x00040000,
 
 	/** indicates that we're exporting properties for display in the property window. - used to hide EditHide items in collapsed structs */
 	PPF_PropertyWindow				= 0x00080000,

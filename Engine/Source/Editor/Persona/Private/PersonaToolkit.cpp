@@ -27,7 +27,7 @@ static void FindCounterpartAssets(const UObject* InAsset, TWeakObjectPtr<USkelet
 	const USkeleton* CounterpartSkeleton = OutSkeleton.Get();
 	const USkeletalMesh* CounterpartMesh = OutMesh;
 	FPersonaAssetFamily::FindCounterpartAssets(InAsset, CounterpartSkeleton, CounterpartMesh);
-	OutSkeleton = CounterpartSkeleton;
+	OutSkeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(CounterpartSkeleton));
 	OutMesh = const_cast<USkeletalMesh*>(CounterpartMesh);
 }
 

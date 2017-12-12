@@ -11,6 +11,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "PrimaryAssetId.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 struct FCustomPropertyListNode;
 struct FObjectInstancingGraph;
@@ -1526,7 +1527,8 @@ public:
 	template<class UObjectType>
 	void AddReferencedObjects(TArray<UObjectType*>& ObjectArray, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
-		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObject>::Value, "'UObjectType' template parameter to AddReferencedObjects must be derived from UObject");
+		static_assert(sizeof(UObjectType) > 0, "AddReferencedObjects: Elements must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObjectBase>::Value, "AddReferencedObjects: Elements must be pointers to a type derived from UObject");
 		HandleObjectReferences(reinterpret_cast<UObject**>(ObjectArray.GetData()), ObjectArray.Num(), ReferencingObject, ReferencingProperty);
 	}
 
@@ -1538,68 +1540,57 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	void AddReferencedObjects(TSet<UObjectType*>& ObjectSet, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
+		static_assert(sizeof(UObjectType) > 0, "AddReferencedObjects: Elements must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObjectBase>::Value, "AddReferencedObjects: Elements must be pointers to a type derived from UObject");
 		for (auto& Object : ObjectSet)
 		{
 			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
 		}
 	}
 
-private:
-
-	/** Compile time check if a type can be automatically converted to another one */
-	template<class From, class To>
-	class CanConverFromTo
-	{
-		static uint8 Test(...);
-		static uint16 Test(To);
-	public:
-		enum Type
-		{
-			Result = sizeof(Test(From())) - 1
-		};
-	};
-
 	/**
-	* Functions used by AddReferencedObject (TMap version). Adds references to UObjects, ignores value types
-	*/
-	template<class UObjectType>
-	void AddReferencedObjectOrIgnoreValue(UObjectType& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
+	 * Adds references to a map of objects.
+	 *
+	 * @param ObjectArray Referenced objects map.
+	 * @param ReferencingObject Referencing object (if available).
+	 * @param ReferencingProperty Referencing property (if available).
+	 */
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType*, ValueType, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
-	}
-	template<class UObjectType>
-	void AddReferencedObjectOrIgnoreValue(UObjectType*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
-	{
-		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
-	}
-
-public:
-
-	/**
-	* Adds references to a map of objects.
-	*
-	* @param ObjectArray Referenced objects map.
-	* @param ReferencingObject Referencing object (if available).
-	* @param ReferencingProperty Referencing property (if available).
-	*/
-	template <typename TKeyType, typename TValueType, typename TAllocator, typename TKeyFuncs >
-	void AddReferencedObjects(TMapBase<TKeyType, TValueType, TAllocator, TKeyFuncs>& Map, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
-	{
-		static_assert(CanConverFromTo<TKeyType, UObjectBase*>::Result || CanConverFromTo<TValueType, UObjectBase*>::Result, "At least one of TMap template types must be derived from UObject");
+		static_assert(sizeof(KeyType) > 0, "AddReferencedObjects: Keys must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<KeyType, const UObjectBase>::Value, "AddReferencedObjects: Keys must be pointers to a type derived from UObject");
 		for (auto& It : Map)
 		{
-			if (CanConverFromTo<TKeyType, UObjectBase*>::Result)
-			{
-				AddReferencedObjectOrIgnoreValue(It.Key, ReferencingObject, ReferencingProperty);
-			}
-			if (CanConverFromTo<TValueType, UObjectBase*>::Result)
-			{
-				AddReferencedObjectOrIgnoreValue(It.Value, ReferencingObject, ReferencingProperty);
-			}
+			HandleObjectReference(*(UObject**)&It.Key, ReferencingObject, ReferencingProperty);
 		}
 	}
-	
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType, ValueType*, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	{
+		static_assert(sizeof(ValueType) > 0, "AddReferencedObjects: Values must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<ValueType, const UObjectBase>::Value, "AddReferencedObjects: Values must be pointers to a type derived from UObject");
+		for (auto& It : Map)
+		{
+			HandleObjectReference(*(UObject**)&It.Value, ReferencingObject, ReferencingProperty);
+		}
+	}
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType*, ValueType*, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	{
+		static_assert(sizeof(KeyType) > 0, "AddReferencedObjects: Keys must be pointers to a fully-defined type");
+		static_assert(sizeof(ValueType) > 0, "AddReferencedObjects: Values must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<KeyType, const UObjectBase>::Value, "AddReferencedObjects: Keys must be pointers to a type derived from UObject");
+		static_assert(TPointerIsConvertibleFromTo<ValueType, const UObjectBase>::Value, "AddReferencedObjects: Values must be pointers to a type derived from UObject");
+		for (auto& It : Map)
+		{
+			HandleObjectReference(*(UObject**)&It.Key, ReferencingObject, ReferencingProperty);
+			HandleObjectReference(*(UObject**)&It.Value, ReferencingObject, ReferencingProperty);
+		}
+	}
+
 	/**
 	 * If true archetype references should not be added to this collector.
 	 */
@@ -1923,9 +1914,9 @@ struct COREUOBJECT_API FDynamicClassStaticData
 COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
 
 /**
-* FAssetMsg
-* This struct contains functions for asset-related messaging
-**/
+ * FAssetMsg
+ * This struct contains functions for asset-related messaging
+ */
 struct FAssetMsg
 {
 	/** Formats a path for the UE_ASSET_LOG macro */
@@ -1939,15 +1930,15 @@ struct FAssetMsg
 	#define UE_ASSET_LOG(...)
 #else
 	/**
-	* A  macro that outputs a formatted message to log with a canonical reference to an asset if a given logging category is active at a given verbosity level
-	* @param CategoryName name of the logging category
-	* @param Verbosity, verbosity level to test against
-	* @param Asset, Object or asset path to format
-	* @param Format, format text
-	***/
+	 * A macro that outputs a formatted message to log with a canonical reference to an asset if a given logging category is active at a given verbosity level
+	 * @param CategoryName name of the logging category
+	 * @param Verbosity, verbosity level to test against
+	 * @param Asset, Object or asset path to format
+	 * @param Format, format text
+	 */
 	#define UE_ASSET_LOG(CategoryName, Verbosity, Asset, Format, ...) \
 	{ \
-		static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+		static_assert(TIsArrayOrRefOfType<decltype(Format), TCHAR>::Value, "Formatting string must be a TCHAR array."); \
 		static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 		CA_CONSTANT_IF((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY && (ELogVerbosity::Warning & ELogVerbosity::VerbosityMask) <= FLogCategory##CategoryName::CompileTimeVerbosity) \
 		{ \

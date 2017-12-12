@@ -748,7 +748,7 @@ struct FSectionListItem
 		, SectionIndex(InSectionIndex)
 		, IsSectionUsingCloth(InIsSectionUsingCloth)
 		, ThumbnailSize(InThumbnailSize)
-		, Material(InMaterial)
+		, Material(const_cast<UMaterialInterface*>(InMaterial))
 		, MaterialSlotName(InMaterialSlotName)
 		, MaterialSlotIndex(InMaterialSlotIndex)
 		, OriginalMaterialSlotName(InOriginalMaterialSlotName)

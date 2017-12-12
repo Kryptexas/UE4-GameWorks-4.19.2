@@ -343,15 +343,6 @@ public:
  */
 ENGINE_API FString appGetStartupMap(const TCHAR* CommandLine);
 
-/**
- * Get a list of all packages that may be needed at startup, and could be
- * loaded async in the background when doing seek free loading
- *
- * @param PackageNames The output list of package names
- * @param EngineConfigFilename Optional engine config filename to use to lookup the package settings
- */
-ENGINE_API void appGetAllPotentialStartupPackageNames(TArray<FString>& PackageNames, const FString& EngineConfigFilename, bool bIsCreatingHashes);
-
 // Calculate the average frame time by using the stats system.
 inline void CalculateFPSTimings()
 {

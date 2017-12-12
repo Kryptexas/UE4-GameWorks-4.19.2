@@ -12,6 +12,9 @@
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
 #include "Internationalization/TextNamespaceFwd.h"
+#include "Templates/IsValidVariadicFunctionArg.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 class FCustomVersionContainer;
 class ITargetPlatform;
@@ -810,8 +813,19 @@ public:
 
 	virtual void IndicateSerializationMismatch() { }
 
+private:
+	void VARARGS LogfImpl(const TCHAR* Fmt, ...);
+
+public:
 	// Logf implementation for convenience.
-	VARARG_DECL(void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
+	template <typename FmtType, typename... Types>
+	void Logf(const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FArchive::Logf");
+
+		LogfImpl(Fmt, Args...);
+	}
 
 	FORCEINLINE int32 UE4Ver() const
 	{
@@ -874,6 +888,11 @@ public:
 		{
 			return false;
 		}
+	}
+
+	FORCEINLINE bool IsTextFormat() const
+	{
+		return ArIsTextFormat;
 	}
 
 	FORCEINLINE bool WantBinaryPropertySerialization() const
@@ -1375,6 +1394,9 @@ public:
 
 	/** Whether archive is transacting. */
 	uint8 ArIsTransacting : 1;
+
+	/** Whether this archive serializes to a text format. Text format archives should use high level constructs from FStructuredArchive for delimiting data rather than manually seeking through the file. */
+	uint8 ArIsTextFormat : 1;
 
 	/** Whether this archive wants properties to be serialized in binary form instead of tagged. */
 	uint8 ArWantBinaryPropertySerialization : 1;

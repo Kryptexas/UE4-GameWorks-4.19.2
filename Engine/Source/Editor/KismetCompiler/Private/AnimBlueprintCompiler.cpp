@@ -416,7 +416,7 @@ void FAnimBlueprintCompilerContext::ProcessAnimationNode(UAnimGraphNode_Base* Vi
 
 	FEdGraphPinType NodeVariableType;
 	NodeVariableType.PinCategory = UAnimationGraphSchema::PC_Struct;
-	NodeVariableType.PinSubCategoryObject = NodeType;
+	NodeVariableType.PinSubCategoryObject = MakeWeakObjectPtr(const_cast<UScriptStruct*>(NodeType));
 
 	UStructProperty* NewProperty = Cast<UStructProperty>(CreateVariable(FName(*NodeVariableName), NodeVariableType));
 
@@ -1043,7 +1043,7 @@ void FAnimBlueprintCompilerContext::GetLinkedAnimNodes_ProcessAnimNode(UAnimGrap
 		}
 		else
 		{
-			FString ErrorString = FString::Printf(*LOCTEXT("MissingLink", "Missing allocated node for %s while searching for node links - likely due to the node having outstanding errors.").ToString(), *AnimNode->GetName());
+			FString ErrorString = FText::Format(LOCTEXT("MissingLinkFmt", "Missing allocated node for {0} while searching for node links - likely due to the node having outstanding errors."), FText::FromString(AnimNode->GetName())).ToString();
 			MessageLog.Error(*ErrorString);
 		}
 	}
@@ -1095,7 +1095,7 @@ void FAnimBlueprintCompilerContext::ProcessAllAnimationNodes()
 			{
 				if (PrePhysicsRoot != NULL)
 				{
-					MessageLog.Error(*FString::Printf(*LOCTEXT("ExpectedOneFunctionEntry_Error", "Expected only one animation root, but found both @@ and @@").ToString()),
+					MessageLog.Error(*LOCTEXT("ExpectedOneFunctionEntry_Error", "Expected only one animation root, but found both @@ and @@").ToString(),
 						PrePhysicsRoot, Root);
 				}
 				else
@@ -1140,7 +1140,7 @@ void FAnimBlueprintCompilerContext::ProcessAllAnimationNodes()
 	}
 	else
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("ExpectedAFunctionEntry_Error", "Expected an animation root, but did not find one").ToString()));
+		MessageLog.Error(*LOCTEXT("ExpectedAFunctionEntry_Error", "Expected an animation root, but did not find one").ToString());
 	}
 
 	if(CompileOptions.CompileType != EKismetCompileType::SkeletonOnly)

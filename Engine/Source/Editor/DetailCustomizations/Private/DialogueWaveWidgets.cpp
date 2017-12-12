@@ -330,7 +330,7 @@ bool SDialogueVoicePropertyEditor::CanBrowseToAsset()
 
 void SDialogueVoicePropertyEditor::OnBrowseToDialogueVoice()
 {
-	const UDialogueVoice* DialogueVoice = NULL;
+	UDialogueVoice* DialogueVoice = NULL;
 	{
 		UObject* Object = NULL;
 		DialogueVoicePropertyHandle->GetValue(Object);
@@ -340,7 +340,7 @@ void SDialogueVoicePropertyEditor::OnBrowseToDialogueVoice()
 	if( DialogueVoice )
 	{	
 		// Find the item in the content browser
-		GoToAssetInContentBrowser(DialogueVoice);
+		GoToAssetInContentBrowser(MakeWeakObjectPtr(DialogueVoice));
 	}
 }
 

@@ -74,7 +74,7 @@ public class NvCloth : ModuleRules
 		NvClothLibraryMode LibraryMode = GetNvClothLibraryMode(Target.Configuration);
 		string LibrarySuffix = GetNvClothLibrarySuffix(LibraryMode);
 
-		Definitions.Add("WITH_NVCLOTH=1");
+		PublicDefinitions.Add("WITH_NVCLOTH=1");
 
         string NvClothDir = Target.UEThirdPartySourceDirectory + "PhysX3/NvCloth/";
 
@@ -148,7 +148,7 @@ public class NvCloth : ModuleRules
 
             if(LibrarySuffix != "")
             {
-                Definitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
+                PublicDefinitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
             }
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -191,7 +191,7 @@ public class NvCloth : ModuleRules
 
             if (LibrarySuffix != "")
             {
-                Definitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
+                PublicDefinitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
             }
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -218,7 +218,7 @@ public class NvCloth : ModuleRules
 
             if(LibrarySuffix != "")
             {
-                Definitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
+                PublicDefinitions.Add("UE_NVCLOTH_SUFFIX=" + LibrarySuffix);
             }
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -252,10 +252,10 @@ public class NvCloth : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			Definitions.Add("_XBOX_ONE=1");
+			PublicDefinitions.Add("_XBOX_ONE=1");
 
 			// This MUST be defined for XboxOne!
-			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
+			PublicDefinitions.Add("PX_HAS_SECURE_STRCPY=1");
 
 			NvClothLibDir += "/XboxOne/VS2015";
 			PublicLibraryPaths.Add(NvClothLibDir);

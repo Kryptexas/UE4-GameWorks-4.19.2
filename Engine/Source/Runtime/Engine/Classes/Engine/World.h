@@ -64,12 +64,12 @@ template<typename,typename> class TOctree;
  * Misc. Iterator types
  *
  */
-typedef TArray<TAutoWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
-typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
-typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
-typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
+typedef TArray<TWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
+typedef TArray<TWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
+typedef TArray<TWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
+typedef TArray<TWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
-typedef TArray<TAutoWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
+typedef TArray<TWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
 

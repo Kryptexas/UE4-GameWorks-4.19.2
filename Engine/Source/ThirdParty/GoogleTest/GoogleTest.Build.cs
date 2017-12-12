@@ -84,14 +84,14 @@ public class GoogleTest : ModuleRules
         PublicLibraryPaths.Add(LibraryPath);
 
         // The including module will also need these enabled
-        Definitions.Add("WITH_GOOGLE_MOCK=1");
-		Definitions.Add("WITH_GOOGLE_TEST=1");
+        PublicDefinitions.Add("WITH_GOOGLE_MOCK=1");
+		PublicDefinitions.Add("WITH_GOOGLE_TEST=1");
 
-        Definitions.Add("GTEST_HAS_POSIX_RE=0");
+        PublicDefinitions.Add("GTEST_HAS_POSIX_RE=0");
 
         if (Target.LinkType != TargetLinkType.Monolithic)
         {
-            //Definitions.Add("GTEST_LINKED_AS_SHARED_LIBRARY=1");
+            //PublicDefinitions.Add("GTEST_LINKED_AS_SHARED_LIBRARY=1");
         }
     }
 }

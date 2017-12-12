@@ -6,11 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationMetadata, Log, All);
 
 const FString FLocMetadataObject::COMPARISON_MODIFIER_PREFIX = TEXT("*");
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 FLocMetadataValue::~FLocMetadataValue() = default;
-#else
-FLocMetadataValue::~FLocMetadataValue() {}
-#endif
 
 void FLocMetadataValue::ErrorMessage( const FString& InType )
 {

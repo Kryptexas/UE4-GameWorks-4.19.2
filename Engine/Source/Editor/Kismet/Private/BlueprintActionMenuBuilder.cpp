@@ -359,7 +359,7 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 		if (DatabaseAction->IsBindingCompatible(BindingObj))
 		{
 			// add bindings before filtering (in case tests accept/reject based off of this)
-			CompatibleBindings.Add(BindingObj);
+			CompatibleBindings.Add(MakeWeakObjectPtr(const_cast<UObject*>(BindingObj)));
 		}
 
 		// if BoundAction is now "full" (meaning it can take any more 

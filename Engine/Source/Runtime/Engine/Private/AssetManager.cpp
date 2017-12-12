@@ -1773,7 +1773,7 @@ void UAssetManager::OnChunkDownloaded(uint32 ChunkId, bool bSuccess)
 
 FPrimaryAssetData* UAssetManager::GetNameData(const FPrimaryAssetId& PrimaryAssetId, bool bCheckRedirector)
 {
-	return const_cast<FPrimaryAssetData*>(const_cast<const UAssetManager*>(this)->GetNameData(PrimaryAssetId));
+	return const_cast<FPrimaryAssetData*>(AsConst(this)->GetNameData(PrimaryAssetId));
 }
 
 const FPrimaryAssetData* UAssetManager::GetNameData(const FPrimaryAssetId& PrimaryAssetId, bool bCheckRedirector) const

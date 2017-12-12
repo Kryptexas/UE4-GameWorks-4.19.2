@@ -155,7 +155,7 @@ class APawn* FLocalPlayerContext::GetPawn() const
 
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
 {
-	LocalPlayer = InLocalPlayer;
+	LocalPlayer = MakeWeakObjectPtr(const_cast<ULocalPlayer*>(InLocalPlayer));
 }
 
 void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayerController )

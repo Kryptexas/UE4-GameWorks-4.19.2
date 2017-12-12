@@ -37,8 +37,8 @@ public class MayaLiveLinkPlugin : ModuleRules
                 //throw new BuildException( "Couldn't find Autodesk Maya " + MayaVersionString + " in folder '" + MayaInstallFolder + "'.  This version of Maya must be installed for us to find the Maya SDK files." );
 
                 // These are required for Maya headers to compile properly as a DLL
-                Definitions.Add("NT_PLUGIN=1");
-                Definitions.Add("REQUIRE_IOSTREAM=1");
+                PublicDefinitions.Add("NT_PLUGIN=1");
+                PublicDefinitions.Add("REQUIRE_IOSTREAM=1");
 
                 PrivateIncludePaths.Add(Path.Combine(MayaInstallFolder, "include"));
 

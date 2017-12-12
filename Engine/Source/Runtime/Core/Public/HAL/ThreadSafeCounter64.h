@@ -5,8 +5,6 @@
 #include "CoreTypes.h"
 #include "HAL/ThreadSafeCounter.h"
 
-// This class cannot be implemented on platforms that don't define 64bit atomic functions
-#if PLATFORM_HAS_64BIT_ATOMICS
 /** Thread safe counter for 64bit ints */
 class FThreadSafeCounter64
 {
@@ -139,4 +137,3 @@ private:
 	/** Thread-safe counter */
 	volatile int64 Counter;
 };
-#endif

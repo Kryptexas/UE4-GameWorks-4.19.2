@@ -34,7 +34,7 @@
 #pragma comment( lib, "version.lib" )
 #pragma comment( lib, "Shlwapi.lib" )
 
-void FWindowsPlatformCrashContext::AddPlatformSpecificProperties()
+void FWindowsPlatformCrashContext::AddPlatformSpecificProperties() const
 {
 	AddCrashProperty(TEXT("PlatformIsRunningWindows"), 1);
 	// On windows track the crash type

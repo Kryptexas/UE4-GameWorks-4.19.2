@@ -121,7 +121,7 @@ public:
 
 				if (!CompilerContext.GetSchema()->DefaultValueSimpleValidation(LiteralTerm->Type, *LiteralTerm->Name, LiteralTerm->Name, nullptr, FText()))
 				{
-					Context.MessageLog.Error(*FString::Printf(*LOCTEXT("Error_InvalidOptionValue", "Invalid option value '%s' in @@").ToString(), *LiteralTerm->Name), Node);
+					Context.MessageLog.Error(*FText::Format(LOCTEXT("Error_InvalidOptionValueFmt", "Invalid option value '{0}' in @@"), FText::FromString(LiteralTerm->Name)).ToString(), Node);
 					return;
 				}
 				SelectStatement->RHS.Add(LiteralTerm);
@@ -298,16 +298,13 @@ public:
 							SelectionNodeType = IndexPin->PinType.PinCategory.ToString();
 						}
 					}
-					else
-					{
-						SelectionNodeType = TEXT("NONE");
-					}
 					const UEdGraph* OwningGraph = Context.MessageLog.FindSourceObjectTypeChecked<UEdGraph>( SelectNode->GetGraph() );
-					LiteralStringTerm->Name =
-						FString::Printf(*LOCTEXT("SelectNodeIndexWarning", "Graph %s: Selection Node of type %s failed! Out of bounds indexing of the options. There are only %d options available.").ToString(),
-						(OwningGraph) ? *OwningGraph->GetFullName() : TEXT("NONE"),
-						*SelectionNodeType,
-						OptionPins.Num());
+					LiteralStringTerm->Name = FText::Format(
+						LOCTEXT("SelectNodeIndexWarningFmt", "Graph {0}: Selection Node of type {1} failed! Out of bounds indexing of the options. There are only {2} options available."),
+						(OwningGraph) ? FText::FromString(OwningGraph->GetFullName()) : LOCTEXT("SelectNodeIndexWarningNoGraph", "NONE"),
+						(IndexPin) ? FText::FromString(SelectionNodeType) : LOCTEXT("SelectNodeIndexWarningNoPin", "NONE"),
+						OptionPins.Num()
+					).ToString();
 					PrintStatement.RHS.Add(LiteralStringTerm);
 
 					// Hook the IfNot statement's jump target to this statement

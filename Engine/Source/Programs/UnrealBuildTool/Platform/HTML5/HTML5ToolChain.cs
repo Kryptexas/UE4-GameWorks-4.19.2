@@ -90,7 +90,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		string GetSharedArguments_Global(CppConfiguration Configuration, bool bOptimizeForSize, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors)
+		string GetSharedArguments_Global(CppConfiguration Configuration, bool bOptimizeForSize, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors, bool bUseInlining)
 		{
 			string Result = " ";
 //			string Result = " -Werror";
@@ -142,6 +142,11 @@ namespace UnrealBuildTool
 				Result += " -O3"; // favor speed over size
 			}
 
+			if (!bUseInlining)
+			{
+				Result += " -fno-inline-functions";
+			}
+
 			PrintOnce(Configuration, bOptimizeForSize);
 
 			// --------------------------------------------------------------------------------
@@ -189,7 +194,7 @@ namespace UnrealBuildTool
 
 		string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.bOptimizeForSize, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.bOptimizeForSize, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors, CompileEnvironment.bUseInlining);
 
 // no longer needed as of UE4.18
 //			Result += " -Wno-reorder"; // we disable constructor order warnings.
@@ -213,7 +218,7 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.bOptimizeForSize, LinkEnvironment.Architecture, false, false, false, false);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.bOptimizeForSize, LinkEnvironment.Architecture, false, false, false, false, false);
 
 			/* N.B. When editing link flags in this function, UnrealBuildTool does not seem to automatically pick them up and do an incremental
 			 *	relink only of UE4Game.js (at least when building blueprints projects). Therefore after editing, delete the old build
@@ -378,14 +383,7 @@ namespace UnrealBuildTool
 				MatchLineNumber.Length == 0 ||
 				MatchDescription.Length == 0)
 			{
-				// emscripten output match
-				string RegexEmscriptenInfo = @"^INFO:";
-				Match match = Regex.Match(Output, RegexEmscriptenInfo);
-				if ( match.Success ) {
-					Log.TraceInformation(Output);
-				} else {
-					Log.TraceWarning(Output);
-				}
+				Log.TraceInformation(Output);
 				return;
 			}
 

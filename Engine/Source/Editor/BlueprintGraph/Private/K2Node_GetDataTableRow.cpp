@@ -439,10 +439,11 @@ void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& Message
 			const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
 			if (!DataTable->GetRowNames().Contains(CurrentName))
 			{
-				const FString Msg = FString::Printf(
-					*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
-					, *CurrentName.ToString()
-					, *GetFullNameSafe(DataTable));
+				const FString Msg = FText::Format(
+					LOCTEXT("WrongRowNameFmt", "'{0}' row name is not stored in '{1}'. @@"),
+					FText::FromString(CurrentName.ToString()),
+					FText::FromString(GetFullNameSafe(DataTable))
+				).ToString();
 				MessageLog.Error(*Msg, this);
 				return;
 			}

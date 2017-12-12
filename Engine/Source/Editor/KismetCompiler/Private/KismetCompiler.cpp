@@ -4510,7 +4510,7 @@ void FKismetCompilerContext::RegisterCompilerForBP(UClass* BPClass, TFunction<TS
 	CustomCompilerMap.Add(BPClass, FactoryFunction);
 }
 
-void FKismetCompilerContext::MapExpansionPathToTunnelInstance(UEdGraphNode* InnerExpansionNode, UEdGraphNode* OuterTunnelInstance)
+void FKismetCompilerContext::MapExpansionPathToTunnelInstance(const UEdGraphNode* InnerExpansionNode, const UEdGraphNode* OuterTunnelInstance)
 {
 	if (InnerExpansionNode && OuterTunnelInstance)
 	{
@@ -4528,7 +4528,7 @@ void FKismetCompilerContext::MapExpansionPathToTunnelInstance(UEdGraphNode* Inne
 				for (const UEdGraphPin* LinkedTo : OutputPin->LinkedTo)
 				{
 					// Make sure it is valid and hasn't already been mapped (e.g. shared execution paths). Also, avoid mapping tunnel output nodes (not needed).
-					UEdGraphNode* LinkedExpansionNode = LinkedTo->GetOwningNode();
+					const UEdGraphNode* LinkedExpansionNode = LinkedTo->GetOwningNode();
 					if (LinkedExpansionNode
 						&& !MessageLog.GetIntermediateTunnelInstance(LinkedExpansionNode)
 						&& (!LinkedExpansionNode->IsA<UK2Node_Tunnel>() || FBlueprintEditorUtils::IsTunnelInstanceNode(LinkedExpansionNode)))

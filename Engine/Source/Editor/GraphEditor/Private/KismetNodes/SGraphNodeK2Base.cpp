@@ -509,20 +509,20 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 					switch (WatchStatus)
 					{
 					case FKismetDebugUtilities::EWTR_Valid:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingAndValid", "Watching %s\n\t%s").ToString(), *PinName, *WatchText);//@TODO: Print out object being debugged name?
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingAndValidFmt", "Watching {0}\n\t{1}"), FText::FromString(PinName), FText::FromString(WatchText)).ToString();//@TODO: Print out object being debugged name?
 						break;
 
 					case FKismetDebugUtilities::EWTR_NotInScope:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingWhenNotInScope", "Watching %s\n\t(not in scope)").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingWhenNotInScopeFmt", "Watching {0}\n\t(not in scope)"), FText::FromString(PinName)).ToString();
 						break;
 
 					case FKismetDebugUtilities::EWTR_NoProperty:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingUnknownProperty", "Watching %s\n\t(no debug data)").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingUnknownPropertyFmt", "Watching {0}\n\t(no debug data)"), FText::FromString(PinName)).ToString();
 						break;
 
 					default:
 					case FKismetDebugUtilities::EWTR_NoDebugObject:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingNoDebugObject", "Watching %s").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingNoDebugObjectFmt", "Watching {0}"), FText::FromString(PinName)).ToString();
 						break;
 					}
 

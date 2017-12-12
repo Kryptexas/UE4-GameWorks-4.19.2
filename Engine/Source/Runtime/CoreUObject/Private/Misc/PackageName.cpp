@@ -24,6 +24,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogPackageName, Log, All);
 
 FString FPackageName::AssetPackageExtension = TEXT(".uasset");
 FString FPackageName::MapPackageExtension = TEXT(".umap");
+FString FPackageName::TextAssetPackageExtension = TEXT(".uasset.json");
 
 /** Event that is triggered when a new content path is mounted */
 FPackageName::FOnContentPathMountedEvent FPackageName::OnContentPathMountedEvent;
@@ -161,11 +162,34 @@ struct FLongPackagePathsSingleton
 		}
 	}
 
+	// Given a content path ensure it is consistent, specifically with FileManager relative paths 
+	static FString ProcessContentMountPoint(const FString& ContentPath)
+	{
+		FString MountPath = ContentPath;
+
+		// If a relative path is passed, convert to an absolute path 
+		if (FPaths::IsRelative(MountPath))
+		{
+			MountPath = FPaths::ConvertRelativePathToFull(ContentPath);
+
+			// Revert to original path if unable to convert to full path
+			if (MountPath.Len() <= 1)
+			{
+				MountPath = ContentPath;
+				UE_LOG(LogPackageName, Warning, TEXT("Unable to convert mount point relative path: %s"), *ContentPath);
+			}
+		}
+
+		// Convert to a relative path using the FileManager
+		return IFileManager::Get().ConvertToRelativePath(*MountPath);
+	}
+
+
 	// This will insert a mount point at the head of the search chain (so it can overlap an existing mount point and win)
 	void InsertMountPoint(const FString& RootPath, const FString& ContentPath)
-	{
+	{	
 		// Make sure the content path is stored as a relative path, consistent with the other paths we have
-		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath( *ContentPath );
+		FString RelativeContentPath = ProcessContentMountPoint(ContentPath);
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
 		if( !RelativeContentPath.EndsWith( TEXT( "/" ), ESearchCase::CaseSensitive ) )
@@ -179,14 +203,14 @@ struct FLongPackagePathsSingleton
 		MountPointRootPaths.Add( RootPath );
 
 		// Let subscribers know that a new content path was mounted
-		FPackageName::OnContentPathMounted().Broadcast( RootPath, ContentPath );
+		FPackageName::OnContentPathMounted().Broadcast( RootPath, RelativeContentPath);
 	}
 
 	// This will remove a previously inserted mount point
 	void RemoveMountPoint(const FString& RootPath, const FString& ContentPath)
 	{
 		// Make sure the content path is stored as a relative path, consistent with the other paths we have
-		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath(*ContentPath);
+		FString RelativeContentPath = ProcessContentMountPoint(ContentPath);
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
 		if (!RelativeContentPath.EndsWith(TEXT("/"), ESearchCase::CaseSensitive))
@@ -201,8 +225,8 @@ struct FLongPackagePathsSingleton
 			ContentPathToRoot.Remove(Pair);
 			MountPointRootPaths.Remove(RootPath);
 
-			// Let subscribers know that a new content path was mounted
-			FPackageName::OnContentPathDismounted().Broadcast( RootPath, ContentPath );
+			// Let subscribers know that a new content path was unmounted
+			FPackageName::OnContentPathDismounted().Broadcast( RootPath, RelativeContentPath);
 		}
 	}
 
@@ -324,13 +348,28 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 	const bool bContainsDot = LongPackageName.FindChar(TEXT('.'), CharacterIndex);
 	const bool bContainsBackslash = LongPackageName.FindChar(TEXT('\\'), CharacterIndex);
 	const bool bContainsColon = LongPackageName.FindChar(TEXT(':'), CharacterIndex);
-	const bool bResult = !(bContainsDot || bContainsBackslash || bContainsColon);
 
-	if (bResult)
+	if (!(bContainsDot || bContainsBackslash || bContainsColon))
 	{
 		OutPackageName = MoveTemp(LongPackageName);
+		return true;
 	}
-	else if (OutFailureReason != nullptr)
+
+	// if the package name resolution failed and a relative path was provided, convert to an absolute path
+	// as content may be mounted in a different relative path to the one given
+	if (FPaths::IsRelative(InFilename))
+	{
+		FString AbsPath = FPaths::ConvertRelativePathToFull(InFilename);
+		if (!FPaths::IsRelative(AbsPath) && AbsPath.Len() > 1)
+		{
+			if (TryConvertFilenameToLongPackageName(AbsPath, OutPackageName, nullptr))
+			{
+				return true;
+			}
+		}
+	}
+
+	if (OutFailureReason != nullptr)
 	{
 		FString InvalidChars;
 		if (bContainsDot)
@@ -347,7 +386,8 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 		}
 		*OutFailureReason = FString::Printf(TEXT("FilenameToLongPackageName failed to convert '%s'. Attempt result was '%s', but the path contains illegal characters '%s'"), *InFilename, *LongPackageName, *InvalidChars);
 	}
-	return bResult;
+
+	return false;
 }
 
 FString FPackageName::FilenameToLongPackageName(const FString& InFilename)

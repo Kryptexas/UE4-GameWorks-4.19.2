@@ -244,7 +244,7 @@ FText UNiagaraNodeParameterMapBase::GetPinDescriptionText(UEdGraphPin* Pin) cons
 	const FNiagaraVariableMetaData* OldMetaData = Graph->GetMetaData(Var);
 	if (OldMetaData)
 	{
-		ensure(OldMetaData->ReferencerNodes.Contains(TWeakObjectPtr<UObject>(this)));
+		ensure(OldMetaData->ReferencerNodes.Contains(MakeWeakObjectPtr<UObject>(const_cast<UNiagaraNodeParameterMapBase*>(this))));
 		return OldMetaData->Description;
 	}
 	return FText::GetEmpty();

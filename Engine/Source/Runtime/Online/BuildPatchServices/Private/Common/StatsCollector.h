@@ -22,11 +22,7 @@ namespace BuildPatchServices
 	class FStatsCollector
 	{
 	public:
-#if PLATFORM_HAS_64BIT_ATOMICS
 		typedef int64 FAtomicValue;
-#else
-		typedef int32 FAtomicValue;
-#endif
 
 	public:
 		virtual volatile FAtomicValue* CreateStat(const FString& Name, EStatFormat Type, FAtomicValue InitialValue = 0) = 0;

@@ -40,12 +40,12 @@ namespace UnrealBuildTool.Rules
 			bool bHasAdjustSDK = true; //  Directory.Exists(System.IO.Path.Combine(PluginPath, "ThirdParty", "adjust_library"));
             if (bHasAdjustSDK)
             {
-                Definitions.Add("WITH_ADJUST=1");
+                PublicDefinitions.Add("WITH_ADJUST=1");
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "Adjust_UPL.xml")));
             }
             else
             {
-                Definitions.Add("WITH_ADJUST=0");
+                PublicDefinitions.Add("WITH_ADJUST=0");
             }
         }
 	}

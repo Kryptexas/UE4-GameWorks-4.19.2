@@ -1066,7 +1066,7 @@ void FDeferredShadingSceneRenderer::AsyncSortBasePassStaticData(const FVector In
 	for (int32 DrawType = 0; DrawType < EBasePass_MAX; ++DrawType)
 	{
 		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > > >::CreateTask(
-			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassUniformLightMapPolicyDrawList[DrawType]), InViewPosition));
+			nullptr, ENamedThreads::GetRenderThread()).ConstructAndDispatchWhenReady(&(Scene->BasePassUniformLightMapPolicyDrawList[DrawType]), InViewPosition));
 	}
 }
 
@@ -1212,7 +1212,7 @@ public:
 void FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet)
 {
 	FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
-	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
+	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 		.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, ParallelCommandListSet.DrawRenderState);
 
 	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);

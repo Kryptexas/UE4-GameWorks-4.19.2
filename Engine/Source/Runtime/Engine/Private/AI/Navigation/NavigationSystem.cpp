@@ -1473,7 +1473,7 @@ void UNavigationSystem::GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& 
 
 ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProperties& AgentProperties)
 {
-	const UNavigationSystem* ConstThis = const_cast<const UNavigationSystem*>(this);
+	const UNavigationSystem* ConstThis = AsConst(this);
 	return const_cast<ANavigationData*>(ConstThis->GetNavDataForProps(AgentProperties));
 }
 

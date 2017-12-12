@@ -188,7 +188,7 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 TWeakPtr<SDockTab> SLocalizationDashboard::ShowTargetEditor(ULocalizationTarget* const LocalizationTarget)
 {
 	// Create tab if not existent.
-	TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(TWeakObjectPtr<ULocalizationTarget>(LocalizationTarget));
+	TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(MakeWeakObjectPtr(LocalizationTarget));
 
 	if (!TargetEditorDockTab.IsValid())
 	{

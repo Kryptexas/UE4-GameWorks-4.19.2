@@ -165,9 +165,7 @@ void UParty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	UParty* This = CastChecked<UParty>(InThis);
 	check(This);
 
-	TArray<UPartyGameState*> Parties;
-	This->JoinedParties.GenerateValueArray(Parties);
-	Collector.AddReferencedObjects(Parties);
+	Collector.AddReferencedObjects(This->JoinedParties);
 }
 
 void UParty::RegisterIdentityDelegates()

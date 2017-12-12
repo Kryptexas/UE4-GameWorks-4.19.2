@@ -330,7 +330,7 @@ void UK2Node_Event::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mes
 		if (!Function)
 		{
 			// If we are overriding a function, but we can;t find the function we are overriding, that is a compile error
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingEventSig_Error", "Missing Event '%s' for @@").ToString(), *EventReference.GetMemberName().ToString()), this);
+			MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingEventSig_ErrorFmt", "Missing Event '{0}' for @@"), FText::FromString(EventReference.GetMemberName().ToString())).ToString(), this);
 		}
 	}
 	else if (UBlueprint* Blueprint = GetBlueprint())
@@ -673,7 +673,7 @@ void UK2Node_Event::ExpandNode(class FKismetCompilerContext& CompilerContext, UE
 		const FName FunctionName = GetFunctionName();
 		if(FunctionName == NAME_None)
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString()), this);
+			CompilerContext.MessageLog.Error(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString(), this);
 		}
 
 		UK2Node_Self* SelfNode = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this, SourceGraph);

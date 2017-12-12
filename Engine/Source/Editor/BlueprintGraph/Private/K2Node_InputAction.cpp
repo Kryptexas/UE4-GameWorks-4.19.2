@@ -121,7 +121,7 @@ void UK2Node_InputAction::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	GetDefault<UInputSettings>()->GetActionNames(ActionNames);
 	if (!ActionNames.Contains(InputActionName))
 	{
-		MessageLog.Warning(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingInputAction_Warning", "InputAction Event references unknown Action '%s' for @@").ToString(), *InputActionName.ToString()), this);
+		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingInputAction_WarningFmt", "InputAction Event references unknown Action '{0}' for @@"), FText::FromString(InputActionName.ToString())).ToString(), this);
 	}
 }
 

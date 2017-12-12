@@ -2909,10 +2909,10 @@ bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		
 		FNetGuidCacheObject& CacheObject = GuidCache->ObjectLookup.FindOrAdd( PreservedEntry.NetGUID );
 
-		CacheObject.Object = PreservedEntry.Actor;
+		CacheObject.Object = MakeWeakObjectPtr(const_cast<AActor*>(PreservedEntry.Actor));
 		check( CacheObject.Object != NULL );
 		CacheObject.bNoLoad = true;
-		GuidCache->NetGUIDLookup.Add( PreservedEntry.Actor, PreservedEntry.NetGUID );
+		GuidCache->NetGUIDLookup.Add( MakeWeakObjectPtr( const_cast<AActor*>( PreservedEntry.Actor ) ), PreservedEntry.NetGUID );
 	}
 
 	if ( GotoCheckpointArchive->TotalSize() == 0 || GotoCheckpointArchive->TotalSize() == INDEX_NONE )
@@ -3109,7 +3109,7 @@ bool UDemoNetDriver::ShouldReceiveRepNotifiesForObject(UObject* Object) const
 
 void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor const* Actor)
 {
-	UActorChannel const* const* const FoundChannel = ServerConnection->ActorChannels.Find(Actor);
+	UActorChannel const* const* const FoundChannel = ServerConnection->ActorChannels.Find(MakeWeakObjectPtr(const_cast<AActor*>(Actor)));
 	if (FoundChannel != nullptr && *FoundChannel != nullptr)
 	{
 		FNetworkGUID const ActorGUID = (*FoundChannel)->ActorNetGUID;

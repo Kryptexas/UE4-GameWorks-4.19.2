@@ -305,8 +305,8 @@ public:
 	 */
 	FORCEINLINE TSharedRef& operator=( TSharedRef const& InSharedRef )
 	{
-		SharedReferenceCount = InSharedRef.SharedReferenceCount;
-		Object = InSharedRef.Object;
+		TSharedRef Temp = InSharedRef;
+		Swap(Temp, *this);
 		return *this;
 	}
 
@@ -746,8 +746,8 @@ public:
 	 */
 	FORCEINLINE TSharedPtr& operator=( TSharedPtr const& InSharedPtr )
 	{
-		SharedReferenceCount = InSharedPtr.SharedReferenceCount;
-		Object = InSharedPtr.Object;
+		TSharedPtr Temp = InSharedPtr;
+		Swap(Temp, *this);
 		return *this;
 	}
 
@@ -1029,8 +1029,8 @@ public:
 	 */
 	FORCEINLINE TWeakPtr& operator=( TWeakPtr const& InWeakPtr )
 	{
-		Object = InWeakPtr.Pin().Get();
-		WeakReferenceCount = InWeakPtr.WeakReferenceCount;
+		TWeakPtr Temp = InWeakPtr;
+		Swap(Temp, *this);
 		return *this;
 	}
 

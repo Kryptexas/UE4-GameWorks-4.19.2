@@ -1441,7 +1441,7 @@ namespace UnrealBuildTool
 					}
 					catch (Exception Ex)
 					{
-						Log.TraceError("Unable to delete {0} ({1})", DirectoryToDelete, Ex.Message);
+						throw new BuildException(Ex, "Unable to delete {0} ({1})", DirectoryToDelete, Ex.Message);
 					}
 				}
 			}
@@ -1457,7 +1457,7 @@ namespace UnrealBuildTool
 					}
 					catch (Exception Ex)
 					{
-						Log.TraceError("Unable to delete {0} ({1})", FileToDelete, Ex.Message);
+						throw new BuildException(Ex, "Unable to delete {0} ({1})", FileToDelete, Ex.Message);
 					}
 				}
 			}
@@ -1974,6 +1974,30 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Patches the manifests with the new module suffixes from the OnlyModules list.
+		/// </summary>
+		public void PatchModuleManifestsForHotReloadAssembling(List<OnlyModule> OnlyModules)
+		{
+			if (FileReferenceToModuleManifestPairs == null)
+			{
+				return;
+			}
+
+			foreach (KeyValuePair<FileReference, ModuleManifest> FileNameToVersionManifest in FileReferenceToModuleManifestPairs)
+			{
+				foreach (KeyValuePair<string, string> Manifest in FileNameToVersionManifest.Value.ModuleNameToFileName)
+				{
+					string ModuleFilename = Manifest.Value;
+					if (UnrealBuildTool.ReplaceHotReloadFilenameSuffix(ref ModuleFilename, (ModuleName) => UnrealBuildTool.GetReplacementModuleSuffix(OnlyModules, ModuleName)))
+					{
+						FileNameToVersionManifest.Value.ModuleNameToFileName[Manifest.Key] = ModuleFilename;
+						break;
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Writes out the version manifest
 		/// </summary>
 		public void WriteReceipts()
@@ -2052,7 +2076,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the target, appending list of output files and returns building result.
 		/// </summary>
-		public ECompilationResult Build(BuildConfiguration BuildConfiguration, CPPHeaders Headers, List<FileItem> OutputItems, List<UHTModuleInfo> UObjectModules, ISourceFileWorkingSet WorkingSet, ActionGraph ActionGraph)
+		public ECompilationResult Build(BuildConfiguration BuildConfiguration, CPPHeaders Headers, List<FileItem> OutputItems, List<UHTModuleInfo> UObjectModules, ISourceFileWorkingSet WorkingSet, ActionGraph ActionGraph, EHotReload HotReload)
 		{
 			CppPlatform CppPlatform = UEBuildPlatform.GetBuildPlatform(Platform).DefaultCppPlatform;
 			CppConfiguration CppConfiguration = GetCppConfiguration(Configuration);
@@ -2076,7 +2100,7 @@ namespace UnrealBuildTool
 					throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
 				}
 			}
-			else if (BuildConfiguration.bHotReloadFromIDE)
+			else if (HotReload == EHotReload.FromIDE)
 			{
 				AppBinaries = GetFilteredGameModules(AppBinaries);
 				if (AppBinaries.Count == 0)
@@ -2336,7 +2360,7 @@ namespace UnrealBuildTool
 					// Execute the header tool
 					FileReference ModuleInfoFileName = FileReference.Combine(ProjectIntermediateDirectory, GetTargetName() + ".uhtmanifest");
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
-					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(BuildConfiguration, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
+					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(BuildConfiguration, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult, HotReload))
 					{
 						Log.TraceInformation(String.Format("Error: UnrealHeaderTool failed for target '{0}' (platform: {1}, module info: {2}, exit code: {3} ({4})).", GetTargetName(), Platform.ToString(), ModuleInfoFileName, UHTResult.ToString(), (int)UHTResult));
 						return UHTResult;
@@ -2755,7 +2779,7 @@ namespace UnrealBuildTool
 			}
 			foreach(UEBuildPlugin BuildPlugin in BuildPlugins.Where(x => x.Descriptor.PostBuildSteps != null))
 			{
-				AddCustomBuildSteps(ProjectDescriptor.PostBuildSteps, BuildPlugin, PostBuildCommandBatches);
+				AddCustomBuildSteps(BuildPlugin.Descriptor.PostBuildSteps, BuildPlugin, PostBuildCommandBatches);
 			}
 			PostBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PostBuild", PostBuildCommandBatches);
 		}
@@ -2984,9 +3008,22 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private string ByteArrayToString(byte[] InOriginal)
+		{
+			List<string> Bytes = new List<string>();
+			string ArrayString = "";
+
+			foreach (byte Byte in InOriginal)
+			{
+				ArrayString += "0x" + Byte.ToString("X2") + ",";
+			}
+
+			return ArrayString.TrimEnd(',');
+		}
+
 		private List<string> GenerateLinkerFixupsContents(UEBuildBinary ExecutableBinary, CppCompileEnvironment CompileEnvironment, string HeaderFilename, string LinkerFixupsName, List<string> PrivateDependencyModuleNames)
 		{
-			List<string> Result = new List<string>();
+			List<string> Result = new List<string>(); 
 
 			Result.Add("#include \"" + HeaderFilename + "\"");
 
@@ -3011,21 +3048,21 @@ namespace UnrealBuildTool
 			}
 
 			// Write functions for accessing embedded pak signing keys
-			String EncryptionKey;
-			String[] PakSigningKeys;
-			GetEncryptionAndSigningKeys(out EncryptionKey, out PakSigningKeys);
+			EncryptionAndSigning.CryptoSettings CryptoSettings = EncryptionAndSigning.ParseCryptoSettings(ProjectDirectory, Platform);
 			bool bRegisterEncryptionKey = false;
 			bool bRegisterPakSigningKeys = false;
 
-			if (!string.IsNullOrEmpty(EncryptionKey))
+			if (CryptoSettings.IsAnyEncryptionEnabled())
 			{
-				Result.Add("extern void RegisterEncryptionKey(const char*);");
+				Result.Add("typedef void(*TEncryptionKeyFunc)(unsigned char[32]);");
+				Result.Add("extern void RegisterEncryptionKeyCallback(TEncryptionKeyFunc);");
 				bRegisterEncryptionKey = true;
 			}
 
-			if (PakSigningKeys != null && PakSigningKeys.Length == 3 && !string.IsNullOrEmpty(PakSigningKeys[1]) && !string.IsNullOrEmpty(PakSigningKeys[2]))
+			if (CryptoSettings.bEnablePakSigning)
 			{
-				Result.Add("extern void RegisterPakSigningKeys(const char*, const char*);");
+				Result.Add("typedef void(*TSigningKeyFunc)(unsigned char[64], unsigned char[64]);");
+				Result.Add("extern void RegisterSigningKeyCallback(TSigningKeyFunc);");
 				bRegisterPakSigningKeys = true;
 			}
 
@@ -3033,15 +3070,49 @@ namespace UnrealBuildTool
 			{
 				Result.Add("struct FEncryptionAndSigningKeyRegistration");
 				Result.Add("{");
+
+				if (bRegisterPakSigningKeys)
+				{
+					Result.Add("\tstatic void SigningKeyCallback(unsigned char OutExponent[64], unsigned char OutModulus[64])");
+					Result.Add("\t{");
+
+					string PublicExponentString = ByteArrayToString(CryptoSettings.SigningKey.PublicKey.Exponent);
+					string PublicModulusString = ByteArrayToString(CryptoSettings.SigningKey.PublicKey.Modulus);
+
+					Result.Add("\t\tconst unsigned char Exponent[64] = {" + PublicExponentString + "};");
+					Result.Add("\t\tconst unsigned char Modulus[64] = {" + PublicModulusString + "};");
+					Result.Add("\t\tfor (int ByteIndex = 0; ByteIndex < 64; ++ByteIndex)");
+					Result.Add("\t\t{");
+					Result.Add("\t\t\tOutExponent[ByteIndex] = Exponent[ByteIndex];");
+					Result.Add("\t\t\tOutModulus[ByteIndex] = Modulus[ByteIndex];");
+					Result.Add("\t\t}");
+					Result.Add("\t}");
+				}
+
+				if (bRegisterEncryptionKey)
+				{
+					Result.Add("\tstatic void EncryptionKeyCallback(unsigned char OutKey[32])");
+					Result.Add("\t{");
+
+					string KeyArrayString = ByteArrayToString(CryptoSettings.EncryptionKey.Key);
+
+					Result.Add("\t\tconst unsigned char Key[32] = {" + KeyArrayString + "};");
+					Result.Add("\t\tfor (int ByteIndex = 0; ByteIndex < 32; ++ByteIndex)");
+					Result.Add("\t\t{");
+					Result.Add("\t\t\tOutKey[ByteIndex] = Key[ByteIndex];");
+					Result.Add("\t\t}");
+					Result.Add("\t}");
+				}
+
 				Result.Add("\tFEncryptionAndSigningKeyRegistration()");
 				Result.Add("\t{");
 				if (bRegisterEncryptionKey)
 				{
-					Result.Add(string.Format("\t\tRegisterEncryptionKey(\"{0}\");", EncryptionKey));
+					Result.Add(string.Format("\t\tRegisterEncryptionKeyCallback(EncryptionKeyCallback);"));
 				}
 				if (bRegisterPakSigningKeys)
 				{
-					Result.Add(string.Format("\t\tRegisterPakSigningKeys(\"{0}\", \"{1}\");", PakSigningKeys[2], PakSigningKeys[1]));
+					Result.Add(string.Format("\t\tRegisterSigningKeyCallback(SigningKeyCallback);"));
 				}
 				Result.Add("\t}");
 				Result.Add("};");
@@ -4205,59 +4276,6 @@ namespace UnrealBuildTool
 			BuildPlatform.SetUpConfigurationEnvironment(Rules, GlobalCompileEnvironment, GlobalLinkEnvironment);
 		}
 
-		private void GetEncryptionAndSigningKeys(out String AESKey, out String[] PakSigningKeys)
-		{
-			EncryptionAndSigning.ParseEncryptionIni(ProjectDirectory, Platform, out PakSigningKeys, out AESKey);
-
-			if (!String.IsNullOrEmpty(AESKey))
-			{
-				if (AESKey.Length < 32)
-				{
-					Log.TraceError("AES key specified in configs must be at least 32 characters long!");
-					AESKey = String.Empty;
-				}
-			}
-
-			// If we didn't extract any keys from the new ini file setup, try looking for the old keys text file
-			if (PakSigningKeys == null && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
-			{
-				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
-
-				Log.TraceVerbose("Adding signing keys to executable from '{0}'", FullFilename);
-
-				if (File.Exists(FullFilename))
-				{
-					string[] Lines = File.ReadAllLines(FullFilename);
-					List<string> Keys = new List<string>();
-					foreach (string Line in Lines)
-					{
-						if (!string.IsNullOrEmpty(Line))
-						{
-							if (Line.StartsWith("0x"))
-							{
-								Keys.Add(Line.Trim());
-							}
-						}
-					}
-
-					if (Keys.Count == 3)
-					{
-						PakSigningKeys = new String[2];
-						PakSigningKeys[0] = Keys[1];
-						PakSigningKeys[1] = Keys[2];
-					}
-					else
-					{
-						Log.TraceWarning("Contents of signing key file are invalid so will be ignored");
-					}
-				}
-				else
-				{
-					Log.TraceVerbose("Signing key file is missing! Executable will not include signing keys");
-				}
-			}
-		}
-
 		static CppConfiguration GetCppConfiguration(UnrealTargetConfiguration Configuration)
 		{
 			switch (Configuration)
@@ -4293,6 +4311,12 @@ namespace UnrealBuildTool
 					RulesObject.PrivateDependencyModuleNames.AddRange(Module.AdditionalDependencies);
 				}
 			}
+
+			// Make sure include paths don't end in trailing slashes. This can result in enclosing quotes being escaped when passed to command line tools.
+			RemoveTrailingSlashes(RulesObject.PublicIncludePaths);
+			RemoveTrailingSlashes(RulesObject.PublicSystemIncludePaths);
+			RemoveTrailingSlashes(RulesObject.PrivateIncludePaths);
+			RemoveTrailingSlashes(RulesObject.PublicLibraryPaths);
 
 			// Validate rules object
 			if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus)
@@ -4337,6 +4361,18 @@ namespace UnrealBuildTool
 				}
 			}
 			return RulesObject;
+		}
+
+		/// <summary>
+		/// Utility function to remove trailing slashes from a list of paths
+		/// </summary>
+		/// <param name="Paths">List of paths to process</param>
+		private static void RemoveTrailingSlashes(List<string> Paths)
+		{
+			for(int Idx = 0; Idx < Paths.Count; Idx++)
+			{
+				Paths[Idx] = Paths[Idx].TrimEnd('\\');
+			}
 		}
 
 		/// <summary>

@@ -3695,14 +3695,12 @@ UGameViewportClient* UWorld::GetGameViewport() const
 
 FConstControllerIterator UWorld::GetControllerIterator() const
 {
-	auto Result = ControllerList.CreateConstIterator();
-	return (const FConstControllerIterator&)Result;
+	return ControllerList.CreateConstIterator();
 }
 
 FConstPlayerControllerIterator UWorld::GetPlayerControllerIterator() const
 {
-	auto Result = PlayerControllerList.CreateConstIterator();
-	return (const FConstPlayerControllerIterator&)Result;
+	return PlayerControllerList.CreateConstIterator();
 }
 
 APlayerController* UWorld::GetFirstPlayerController() const

@@ -59,7 +59,7 @@ public:
 		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
 		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, ExecTriggeringPin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString(), SwitchNode, ExecTriggeringPin);
 			return;
 		}
 
@@ -67,7 +67,7 @@ public:
 		UEdGraphPin* SelectionPin = SwitchNode->GetSelectionPin();
 		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, SwitchNode->GetPinType()))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, SelectionPin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString(), SwitchNode, SelectionPin);
 			return;
 		}
 

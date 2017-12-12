@@ -52,7 +52,7 @@ static UObject* OculusAssetManager_Impl::FindDeviceMesh(const int32 DeviceID)
 			const FRenderableDevice& RenderableDevice = RenderableDevices[DeviceIndex];
 			if (RenderableDevice.OVRNode == DeviceOVRNode)
 			{
-				DeviceMesh = Cast<UObject>(RenderableDevice.MeshAssetRef.TryLoad());
+				DeviceMesh = RenderableDevice.MeshAssetRef.TryLoad();
 				break;
 			}
 		}

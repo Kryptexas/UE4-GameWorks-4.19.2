@@ -46,7 +46,6 @@
 #include "Misc/PackageName.h"
 #include "Misc/EngineVersion.h"
 #include "UObject/LinkerLoad.h"
-#include "Misc/StartupPackages.h"
 #include "GameMapsSettings.h"
 #include "Materials/MaterialInterface.h"
 #include "Logging/LogScopedCategoryAndVerbosityOverride.h"
@@ -3644,9 +3643,8 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		Ar.Logf( TEXT( "HotReloading %s..." ), *Module );
 		TArray< UPackage*> PackagesToRebind;
 		PackagesToRebind.Add( Package );
-		const bool bWaitForCompletion = true;	// Always wait when hotreload is initiated from the console
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>( "HotReload" );
-		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages( PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar );
+		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages( PackagesToRebind, EHotReloadFlags::WaitForCompletion, Ar );
 	}
 	return true;
 }
@@ -8964,17 +8962,6 @@ FString appGetStartupMap(const TCHAR* CommandLine)
 	return FPaths::GetBaseFilename(URL.Map);
 }
 
-void appGetAllPotentialStartupPackageNames(TArray<FString>& PackageNames, const FString& EngineConfigFilename, bool bIsCreatingHashes)
-{
-	// startup packages from .ini
-	FStartupPackages::GetStartupPackageNames(PackageNames, EngineConfigFilename, bIsCreatingHashes);
-
-	// add the startup map
-	PackageNames.Add(*appGetStartupMap(NULL));
-
-	//@todo-packageloc Handle localized packages.
-}
-
 #if WITH_EDITOR
 FOnSwitchWorldForPIE FScopedConditionalWorldSwitcher::SwitchWorldForPIEDelegate;
 
@@ -13427,7 +13414,7 @@ static void SetupThreadAffinity(const TArray<FString>& Args)
 	}
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
-		TStatId(), NULL, ENamedThreads::RenderThread);
+		TStatId(), NULL, ENamedThreads::GetRenderThread());
 	if (GRHIThread_InternalUseOnly)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(

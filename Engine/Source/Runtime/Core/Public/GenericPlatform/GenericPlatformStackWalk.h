@@ -170,7 +170,7 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	MaxDepth			Entries in BackTrace array
 	 * @param	Context				Optional thread context information
 	 */
-	static void CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr );
+	static uint32 CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr );
 
 	/**
 	 * Walks the stack and appends the human readable string to the passed in one.

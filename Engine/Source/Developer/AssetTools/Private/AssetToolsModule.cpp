@@ -14,7 +14,7 @@ void FAssetToolsModule::StartupModule()
 {
 	ConsoleCommands = new FAssetToolsConsoleCommands(*this);
 
-	AssetToolsPtr = GetDefault<UAssetToolsImpl>();
+	AssetToolsPtr = MakeWeakObjectPtr(const_cast<UAssetToolsImpl*>(GetDefault<UAssetToolsImpl>()));
 
 	// create a message log for the asset tools to use
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");

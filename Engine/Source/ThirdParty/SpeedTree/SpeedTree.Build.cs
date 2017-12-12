@@ -15,8 +15,8 @@ public class SpeedTree : ModuleRules
 		if (bPlatformAllowed &&
 			Target.bCompileSpeedTree)
 		{
-			Definitions.Add("WITH_SPEEDTREE=1");
-			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
+			PublicDefinitions.Add("WITH_SPEEDTREE=1");
+			PublicDefinitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
 			string SpeedTreePath = Target.UEThirdPartySourceDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");

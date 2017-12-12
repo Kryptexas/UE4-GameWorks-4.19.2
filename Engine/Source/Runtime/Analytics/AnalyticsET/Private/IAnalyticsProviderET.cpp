@@ -91,7 +91,7 @@ private:
 					FlushesThisWindow,
 					NumEventsThisWindow,
 					BytesThisWindow,
-					GFrameCounter),
+					(uint64)GFrameCounter),
 					ELogVerbosity::Log, FName(), Now);
 				ResetWindow(Now);
 			}

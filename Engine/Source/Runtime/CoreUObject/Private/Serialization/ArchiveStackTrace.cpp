@@ -181,17 +181,6 @@ void FArchiveStackTrace::Serialize(void* InData, int64 Num)
 
 		int64 CurrentOffset = Tell();
 
-		//if (bCollectCallstacks)
-		//{
-		//	static volatile int32 xx = 0;
-		//	xx++;
-		//}
-		//if (CurrentOffset == 266651 && GetArchiveName() == TEXT("/Game/UI/Frontend/ItemInspect/ItemInspectScreen"))
-		//{
-		//	static volatile int32 xx = 0;
-		//	xx++;
-		//}
-
 		// Walk the stack and dump it to the allocated memory.
 		bool bShouldCollectCallstack = bCollectCallstacks && (DiffMap == nullptr || IsInDiffMap(CurrentOffset)) && !GIgnoreDiffManager.ShouldIgnoreDiff();
 		if (bShouldCollectCallstack)

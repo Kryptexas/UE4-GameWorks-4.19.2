@@ -450,11 +450,11 @@ FString FSequencerEditTool_Movement::TimeToString(float Time, bool IsDelta) cons
 			const float FrameRate = 1.0f / Sequencer.GetFixedFrameInterval();
 			const int32 Frame = SequencerHelpers::TimeToFrame(Time, FrameRate);
 
-			return FString::Printf(IsDelta ? TEXT("[%+d]") : TEXT("%d"), Frame);
+			return IsDelta ? FString::Printf(TEXT("[%+d]"), Frame) : FString::Printf(TEXT("%d"), Frame);
 		}
 	}
 
-	return FString::Printf(IsDelta ? TEXT("[%+.3f]") : TEXT("%.3f"), Time);
+	return IsDelta ? FString::Printf(TEXT("[%+.3f]"), Time) : FString::Printf(TEXT("%.3f"), Time);
 }
 
 const ISequencerHotspot* FSequencerEditTool_Movement::GetDragHotspot() const

@@ -91,7 +91,7 @@ void UK2Node_InputAxisEvent::ValidateNodeDuringCompilation(class FCompilerResult
 	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
 	if (!AxisNames.Contains(InputAxisName))
 	{
-		MessageLog.Warning(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingInputAxisEvent_Warning", "Input Axis Event references unknown Axis '%s' for @@").ToString(), *InputAxisName.ToString()), this);
+		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingInputAxisEvent_WarningFmt", "Input Axis Event references unknown Axis '{0}' for @@"), FText::FromString(InputAxisName.ToString())).ToString(), this);
 	}
 }
 

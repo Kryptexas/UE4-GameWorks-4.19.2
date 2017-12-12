@@ -153,7 +153,7 @@ void DrawViewElementsParallel(
 				{
 					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
-					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
+					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 						.ConstructAndDispatchWhenReady(*CmdList, ParallelCommandListSet.View, ParallelCommandListSet.DrawRenderState, DrawingContext, DPGIndex, bPreFog, Start, Last);
 
 					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent, Last - Start + 1);

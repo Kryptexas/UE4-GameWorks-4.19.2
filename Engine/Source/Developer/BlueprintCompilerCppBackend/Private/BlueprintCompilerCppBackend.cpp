@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackend.h"
 #include "UObject/UnrealType.h"
@@ -806,20 +806,19 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		const bool bInputIsInterface = ContextInterfaceClass->IsChildOf<UInterface>();
 
 		FString ExecuteFormat = TEXT("%s::Execute_%s(%s ");
-		if (bInputIsInterface)
-		{
-			ExecuteFormat.InsertAt(ExecuteFormat.Len()-1, TEXT(".GetObject()"));
-		}
-		else
+		if (!bInputIsInterface)
 		{
 			ContextInterfaceClass = FunctionOwner;
 			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-		}		
+		}
 		
-		Result += FString::Printf(*ExecuteFormat
-			, *FEmitHelper::GetCppName(ContextInterfaceClass)
-			, *FunctionToCallOriginalName
-			, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
+		Result += FString::Printf(
+			TEXT("%s::Execute_%s(%s%s "),
+			*FEmitHelper::GetCppName(ContextInterfaceClass),
+			*FunctionToCallOriginalName,
+			*TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false),
+			bInputIsInterface ? TEXT(".GetObject()") : TEXT("")
+		);
 	}
 	else
 	{

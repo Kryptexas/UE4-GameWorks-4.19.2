@@ -46,6 +46,7 @@
 #include "Rendering/SkeletalMeshVertexBuffer.h"
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "UObject/PropertyPortFlags.h"
+#include "Templates/UniquePtr.h"
 
 #if WITH_EDITOR
 #include "Rendering/SkeletalMeshModel.h"

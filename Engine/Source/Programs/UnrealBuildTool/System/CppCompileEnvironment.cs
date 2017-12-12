@@ -119,6 +119,11 @@ namespace UnrealBuildTool
 		public bool bUseRTTI = false;
 
 		/// <summary>
+		/// Enable inlining.
+		/// </summary>
+		public bool bUseInlining = false;
+
+		/// <summary>
 		/// Use AVX instructions
 		/// </summary>
 		public bool bUseAVX = false;
@@ -345,6 +350,7 @@ namespace UnrealBuildTool
 			PrecompiledHeaderIncludeFilename = Other.PrecompiledHeaderIncludeFilename;
 			PrecompiledHeaderAction = Other.PrecompiledHeaderAction;
 			bUseRTTI = Other.bUseRTTI;
+			bUseInlining = Other.bUseInlining;
 			bUseAVX = Other.bUseAVX;
 			bFasterWithoutUnity = Other.bFasterWithoutUnity;
 			MinSourceFilesForUnityBuildOverride = Other.MinSourceFilesForUnityBuildOverride;

@@ -1255,7 +1255,7 @@ namespace UnrealBuildTool
 
 					if(BuildToolOverride != null)
 					{
-						BuildArguments += BuildToolOverride;
+						BuildArguments += " " + BuildToolOverride;
 					}
 
 					// NMake Build command line

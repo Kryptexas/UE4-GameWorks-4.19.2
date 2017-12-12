@@ -162,7 +162,7 @@ void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseReg
 				NodeSpawner = UBlueprintNodeSpawner::Create(NodeClass);
 				check(NodeSpawner != nullptr);
 
-				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = MakeWeakObjectPtr(const_cast<UBlendSpaceBase*>(BlendSpace));
 				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeBlendSpace, BlendSpacePtr);
 			}	
 			return NodeSpawner;

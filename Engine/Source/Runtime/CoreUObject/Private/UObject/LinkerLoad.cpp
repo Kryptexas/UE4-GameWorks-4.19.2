@@ -780,6 +780,7 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , DependsMapIndex(0)
 , ExportHashIndex(0)
 , bHasSerializedPackageFileSummary(false)
+, bHasSerializedPreloadDependencies(false)
 , bHasFixedUpImportMap(false)
 , bHasFoundExistingExports(false)
 , bHasFinishedInitialization(false)
@@ -1638,7 +1639,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePreloadDependencies()
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FLinkerLoad::SerializePreloadDependencies"), STAT_LinkerLoad_SerializePreloadDependencies, STATGROUP_LinkerLoad);
 
 	// Skip serializing depends map if this is the editor or the data is missing
-	if (Summary.PreloadDependencyCount < 1 || Summary.PreloadDependencyOffset <= 0)
+	if (bHasSerializedPreloadDependencies || Summary.PreloadDependencyCount < 1 || Summary.PreloadDependencyOffset <= 0)
 	{
 		return LINKER_Loaded;
 	}
@@ -1653,6 +1654,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePreloadDependencies()
 		*this << Idx;
 		PreloadDependencies.Add(Idx);
 	}
+
+	bHasSerializedPreloadDependencies = true;
+
 	// Return whether we finished this step and it's safe to start with the next.
 	return !IsTimeLimitExceeded(TEXT("serialize preload dependencies")) ? LINKER_Loaded : LINKER_TimedOut;
 }

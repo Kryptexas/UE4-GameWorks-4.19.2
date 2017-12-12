@@ -154,17 +154,9 @@ struct FMovieSceneTrackImplementationPtr
 	}
 
 	/** Templates are moveable */
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMovieSceneTrackImplementationPtr(FMovieSceneTrackImplementationPtr&&) = default;
 	FMovieSceneTrackImplementationPtr& operator=(FMovieSceneTrackImplementationPtr&&) = default;
-#else
-	FMovieSceneTrackImplementationPtr(FMovieSceneTrackImplementationPtr&& RHS) :  TInlineValue(MoveTemp(RHS)) {}
-	FMovieSceneTrackImplementationPtr& operator=(FMovieSceneTrackImplementationPtr&& RHS)
-	{
-		static_cast<TInlineValue&>(*this) = MoveTemp(RHS);
-		return *this;
-	}
-#endif
+
 	/** Serialize the template */
 	MOVIESCENE_API bool Serialize(FArchive& Ar);
 };

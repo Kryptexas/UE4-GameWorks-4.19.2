@@ -487,10 +487,7 @@ void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, U
 
 void FComponentInstanceDataCache::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	TArray<USceneComponent*> SceneComponents;
-	InstanceComponentTransformToRootMap.GenerateKeyArray(SceneComponents);
-
-	Collector.AddReferencedObjects(SceneComponents);
+	Collector.AddReferencedObjects(InstanceComponentTransformToRootMap);
 
 	for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 	{

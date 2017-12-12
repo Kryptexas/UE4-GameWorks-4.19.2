@@ -88,7 +88,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "UObject/GCObject.h"
 #include "Serialization/AsyncPackage.h"
 #include "Serialization/AsyncLoading.h"
-#include "Misc/StartupPackages.h"
 #include "Misc/NotifyHook.h"
 #include "Misc/RedirectCollector.h"
 #include "UObject/ScriptStackTracker.h"

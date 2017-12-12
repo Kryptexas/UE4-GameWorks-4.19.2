@@ -89,7 +89,7 @@ void UK2Node_LatentGameplayTaskCall::GetMenuActions(FBlueprintActionDatabaseRegi
 			check(NodeSpawner != nullptr);
 			NodeSpawner->NodeClass = NodeClass;
 
-			TWeakObjectPtr<UFunction> FunctionPtr = FactoryFunc;
+			TWeakObjectPtr<UFunction> FunctionPtr = MakeWeakObjectPtr(const_cast<UFunction*>(FactoryFunc));
 			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeFunc, FunctionPtr);
 
 		}

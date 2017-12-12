@@ -664,6 +664,9 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
+	/** Manually add object references to GC */
+	void AddReferencedObjects(UAnimInstance* InAnimInstance, FReferenceCollector& Collector);
+
 private:
 	/** The component to world transform of the component we are running on */
 	FTransform ComponentTransform;

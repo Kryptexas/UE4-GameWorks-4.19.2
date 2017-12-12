@@ -126,7 +126,7 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 {
 	if (InGameplayAbility)
 	{
-		AbilityInstanceNotReplicated = InGameplayAbility;
+		AbilityInstanceNotReplicated = MakeWeakObjectPtr(const_cast<UGameplayAbility*>(InGameplayAbility));
 		AbilityCDO = InGameplayAbility->GetClass()->GetDefaultObject<UGameplayAbility>();
 		AbilityLevel = InGameplayAbility->GetAbilityLevel();
 	}

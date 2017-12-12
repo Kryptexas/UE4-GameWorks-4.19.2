@@ -229,7 +229,7 @@ void UK2Node_DelegateSet::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	// If we are overriding a function, but we can;t find the function we are overriding, that is a compile error
 	if(GetDelegateSignature() == NULL)
 	{
-		MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingDelegateSig_Error", "Unable to find delegate '%s' for @@").ToString(), *DelegatePropertyName.ToString()), this);
+		MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingDelegateSig_ErrorFmt", "Unable to find delegate '{0}' for @@"), FText::FromString(DelegatePropertyName.ToString())).ToString(), this);
 	}
 }
 
@@ -262,7 +262,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 
 	if (SourceGraph != CompilerContext.ConsolidatedEventGraph)
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString()), this);
+		CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString(), this);
 	}
 	else
 	{
@@ -297,7 +297,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 						if( !OldPin )
 						{
 							// If we couldn't find the old pin, the function signature is out of date.  Tell them to reconstruct
-							CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), this);
+							CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString(), this);
 							return;
 						}
 
@@ -308,7 +308,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		}
 		else
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("DelegateSigNotFound_Error", "Set Delegate node @@ unable to find function.").ToString()), this);
+			CompilerContext.MessageLog.Error(*LOCTEXT("DelegateSigNotFound_Error", "Set Delegate node @@ unable to find function.").ToString(), this);
 		}
 	}
 }

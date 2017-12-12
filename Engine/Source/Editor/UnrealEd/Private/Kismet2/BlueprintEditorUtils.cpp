@@ -2936,7 +2936,7 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 		}
 	}
 
-	Dependencies.Remove(InBlueprint);
+	Dependencies.Remove(MakeWeakObjectPtr(const_cast<UBlueprint*>(InBlueprint)));
 }
 
 void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Blueprint)

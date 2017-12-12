@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 
 		/// True if we should include documentation in the generated projects
 		[XmlConfigFile]
-		protected bool bIncludeDocumentation = true;
+		protected bool bIncludeDocumentation = false;
 
 		/// True if all documentation languages should be included in generated projects, otherwise only "INT" will be included
 		bool bAllDocumentationLanguages = false;
@@ -441,8 +441,8 @@ namespace UnrealBuildTool
 			// Parse project generator options
 			bool IncludeAllPlatforms = true;
 			ConfigureProjectFileGeneration( Arguments, ref IncludeAllPlatforms);
-
-			if (bGeneratingGameProjectFiles || UnrealBuildTool.IsEngineInstalled())
+      
+            if (bGeneratingGameProjectFiles || UnrealBuildTool.IsEngineInstalled())
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for project...");
 
@@ -1557,9 +1557,17 @@ namespace UnrealBuildTool
 						// out any state.
 						FileItem.ClearCachedIncludePaths();
 
-						// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
-						// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
-						bSuccess = UnrealBuildTool.RunUBT( BuildConfiguration, NewArguments, CurTarget.UnrealProjectFilePath ) == ECompilationResult.Succeeded;
+						try
+						{
+							// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
+							// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
+							bSuccess = UnrealBuildTool.RunUBT( BuildConfiguration, NewArguments, CurTarget.UnrealProjectFilePath, false ) == ECompilationResult.Succeeded;
+						}
+						catch(Exception Ex)
+						{
+							Progress.LogMessage(LogEventType.Warning, "Exception while generating include data for {0}: {1}", CurTarget.TargetFilePath.GetFileNameWithoutAnyExtensions(), Ex.ToString());
+						}
+
 						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = null;
 
 						if( !bSuccess )
@@ -2462,8 +2470,40 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// For existing project files, just support the default desktop platforms and configurations
-				ProjectTarget.ExtraSupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
+                bool bFoundDevelopmentConfig = false;
+                bool bFoundDebugConfig = false;
+
+                try
+                {
+
+                    // Parse the project and ensure both Development and Debug configurations are present
+                    foreach (var Config in XElement.Load(InProject.ProjectFilePath.FullName).Elements("{http://schemas.microsoft.com/developer/msbuild/2003}PropertyGroup")
+                                           .Where(node => node.Attribute("Condition") != null)
+                                           .Select(node => node.Attribute("Condition").ToString())
+                                           .ToList())
+                    {
+                        if (Config.Contains("Development|"))
+                        {
+                            bFoundDevelopmentConfig = true;
+                        }
+                        else if (Config.Contains("Debug|"))
+                        {
+                            bFoundDebugConfig = true;
+                        }
+                    }
+                }
+                catch
+                {
+                    Trace.TraceError("Unable to parse existing project file {0}", InProject.ProjectFilePath.FullName);
+                }
+
+                if (!bFoundDebugConfig || !bFoundDevelopmentConfig)
+                {
+                    throw new BuildException("Existing C# project {0} must contain a {1} configuration", InProject.ProjectFilePath.FullName, bFoundDebugConfig ? "Development" : "Debug");
+                }
+
+                // For existing project files, just support the default desktop platforms and configurations
+                ProjectTarget.ExtraSupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
 				// Debug and Development only
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Debug);
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Development);

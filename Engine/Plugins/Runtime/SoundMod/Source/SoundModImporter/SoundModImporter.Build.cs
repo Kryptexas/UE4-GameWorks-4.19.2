@@ -29,7 +29,7 @@ public class SoundModImporter : ModuleRules
 				"AssetRegistry"
 			});
 
-		Definitions.AddRange(
+		PublicDefinitions.AddRange(
 			new string[] {
 					"BUILDING_STATIC"
 				}

@@ -1811,7 +1811,7 @@ UAbilitySystemComponent* GetDebugTarget(FASCDebugTargetInfo* Info)
 		if (UAbilitySystemComponent* ASC = *It)
 		{
 			// Make use it belongs to our world and will be valid in a TWeakObjPtr (e.g.  not pending kill)
-			if (ASC->GetWorld() == Info->TargetWorld.Get() && TWeakObjectPtr<UAbilitySystemComponent>(ASC).Get())
+			if (ASC->GetWorld() == Info->TargetWorld.Get() && MakeWeakObjectPtr(ASC).Get())
 			{
 				Info->LastDebugTarget = ASC;
 				if (ASC->AbilityActorInfo->IsLocallyControlledPlayer())

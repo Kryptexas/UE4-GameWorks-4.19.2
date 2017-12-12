@@ -21,8 +21,6 @@ public:
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	VARARG_BODY( bool, YesNof, const TCHAR*, VARARG_NONE );
-
 	virtual bool ReceivedUserCancel() override;
 	virtual void StartSlowTask( const FText& Task, bool bShouldShowCancelButton=false ) override;
 	virtual void FinalizeSlowTask( ) override;

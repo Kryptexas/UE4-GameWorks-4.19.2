@@ -36,7 +36,7 @@ FString USoftClassProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 C
 FString USoftClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	ExtendedTypeText = FString::Printf(TEXT("TSoftClassPtr<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
-	return TEXT("SOFTOBJECT");
+	return TEXT("SOFTCLASS");
 }
 
 FString USoftClassProperty::GetCPPTypeForwardDeclaration() const

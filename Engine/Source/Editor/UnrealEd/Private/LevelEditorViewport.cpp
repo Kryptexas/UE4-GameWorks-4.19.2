@@ -3297,7 +3297,7 @@ void FLevelEditorViewportClient::SetMatineeActorLock(AActor* Actor)
 	ActorLockedByMatinee = Actor;
 }
 
-bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<AActor> InActor) const
+bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<const AActor> InActor) const
 {
 	return (InActor.IsValid() && GetActiveActorLock() == InActor);
 }

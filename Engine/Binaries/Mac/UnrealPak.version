@@ -1,0 +1,11 @@
+{
+	"MajorVersion": 4,
+	"MinorVersion": 19,
+	"PatchVersion": 0,
+	"Changelist": 3796647,
+	"CompatibleChangelist": 0,
+	"IsLicenseeVersion": 0,
+	"IsPromotedBuild": 1,
+	"BranchName": "++UE4+Dev-Core",
+	"BuildId": "3796647"
+}

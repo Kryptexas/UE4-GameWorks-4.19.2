@@ -166,6 +166,13 @@ typedef TMultiMap<FName,FConfigValue> FConfigSectionMap;
 class FConfigSection : public FConfigSectionMap
 {
 public:
+	/**
+	* Check whether the input string is surrounded by quotes
+	*
+	* @param Test The string to check
+	*
+	* @return true if the input string is surrounded by quotes
+	*/
 	static bool HasQuotes( const FString& Test );
 	bool operator==( const FConfigSection& Other ) const;
 	bool operator!=( const FConfigSection& Other ) const;

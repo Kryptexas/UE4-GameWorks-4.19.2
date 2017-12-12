@@ -34,6 +34,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogAssetRegistryGenerator, Log, All);
 
 #define LOCTEXT_NAMESPACE "AssetRegistryGenerator"
 
+#if WITH_EDITOR
+#include "HAL/ThreadHeartBeat.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // Static functions
 FName GetPackageNameFromDependencyPackageName(const FName RawPackageFName)
@@ -437,6 +441,14 @@ void FAssetRegistryGenerator::Initialize(const TArray<FName> &InStartupPackages)
 	StartupPackages.Append(InStartupPackages);
 
 	FAssetRegistrySerializationOptions SaveOptions;
+
+	// If the asset registry is still doing it's background scan, we need to wait for it to finish and tick it so that the results are flushed out
+	while (AssetRegistry.IsLoadingAssets())
+	{
+		AssetRegistry.Tick(-1.0f);
+		FThreadHeartBeat::Get().HeartBeat();
+		FPlatformProcess::SleepNoStats(0.0001f);
+	}
 
 	ensureMsgf(!AssetRegistry.IsLoadingAssets(), TEXT("Cannot initialize asset registry generator while asset registry is still scanning source assets "));
 

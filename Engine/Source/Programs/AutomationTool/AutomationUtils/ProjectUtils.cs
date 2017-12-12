@@ -161,10 +161,8 @@ namespace AutomationTool
 			{
 				foreach (UnrealTargetPlatform ClientPlatform in ClientTargetPlatforms)
 				{
-					String EncryptionKey;
-					String[] SigningKeys;
-					EncryptionAndSigning.ParseEncryptionIni(RawProjectPath.Directory, ClientPlatform, out SigningKeys, out EncryptionKey);
-					if (SigningKeys != null || !string.IsNullOrEmpty(EncryptionKey))
+					EncryptionAndSigning.CryptoSettings Settings = EncryptionAndSigning.ParseCryptoSettings(RawProjectPath.Directory, ClientPlatform);
+					if (Settings.IsAnyEncryptionEnabled() || Settings.bEnablePakSigning)
 					{
 						return true;
 					}
@@ -504,7 +502,8 @@ namespace AutomationTool
 						"System.Xml.dll", 
 						typeof(UnrealBuildTool.PlatformExports).Assembly.Location
 					};
-			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, null, DoNotCompile);
+			List<string> PreprocessorDefinitions = RulesAssembly.GetPreprocessorDefinitions();
+			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, PreprocessorDefinitions, DoNotCompile);
 			var AllCompiledTypes = TargetsDLL.GetTypes();
 			foreach (Type TargetType in AllCompiledTypes)
 			{

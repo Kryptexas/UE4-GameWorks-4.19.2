@@ -251,15 +251,17 @@ public:
 
 	/**
 	* Encrypt ini files inside of the pak file
+	* NOTE: Replaced by the settings inside the cryptokeys system. Kept here for legacy migration purposes.
 	*/
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt ini files inside pak files"))
-	bool bEncryptIniFiles;
+	UPROPERTY(config)
+	bool bEncryptIniFiles_DEPRECATED;
 
 	/**
-	* Encrypt the pak index 
+	* Encrypt the pak index
+	* NOTE: Replaced by the settings inside the cryptokeys system. Kept here for legacy migration purposes.
 	*/
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt the pak index, making it unusable without the required key"))
-	bool bEncryptPakIndex;
+	UPROPERTY(config)
+	bool bEncryptPakIndex_DEPRECATED;
 	
 	/**
 	* Don't include content in any editor folders when cooking.  This can cause issues with missing content in cooked games if the content is being used. 

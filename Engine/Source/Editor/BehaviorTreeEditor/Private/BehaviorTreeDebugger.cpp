@@ -311,7 +311,7 @@ void FBehaviorTreeDebugger::OnTreeStarted(const UBehaviorTreeComponent& OwnerCom
 	if (!TreeInstance.IsValid() && TreeAsset && TreeAsset == &InTreeAsset)
 	{
 		ClearDebuggerState();
-		TreeInstance = &OwnerComp;
+		TreeInstance = MakeWeakObjectPtr(const_cast<UBehaviorTreeComponent*>(&OwnerComp));
 
 		UpdateDebuggerViewOnInstanceChange();
 	}

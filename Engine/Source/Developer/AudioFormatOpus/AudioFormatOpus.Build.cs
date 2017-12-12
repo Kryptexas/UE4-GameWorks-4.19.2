@@ -28,6 +28,6 @@ public class AudioFormatOpus : ModuleRules
 				);
 		}
 
-		Definitions.Add("WITH_OGGVORBIS=1");
+		PublicDefinitions.Add("WITH_OGGVORBIS=1");
 	}
 }

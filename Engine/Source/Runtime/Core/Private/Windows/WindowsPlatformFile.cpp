@@ -725,7 +725,7 @@ public:
 		uint32  WinFlags = FILE_SHARE_READ;
 		uint32  Create = OPEN_EXISTING;
 
-		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING, NULL);
+		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 		// we can't really fail here because this is intended to be an async open
 		return new FWindowsAsyncReadFileHandle(Handle);
 

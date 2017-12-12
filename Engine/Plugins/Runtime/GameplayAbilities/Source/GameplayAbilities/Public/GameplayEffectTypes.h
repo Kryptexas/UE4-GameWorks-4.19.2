@@ -414,7 +414,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Sets the object this effect was created from. */
 	virtual void AddSourceObject(const UObject* NewSourceObject)
 	{
-		SourceObject = NewSourceObject;
+		SourceObject = MakeWeakObjectPtr(const_cast<UObject*>(NewSourceObject));
 		bReplicateSourceObject = NewSourceObject && NewSourceObject->IsSupportedForNetworking();
 	}
 

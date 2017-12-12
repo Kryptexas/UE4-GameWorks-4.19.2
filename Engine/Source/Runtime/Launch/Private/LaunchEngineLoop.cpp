@@ -54,7 +54,6 @@
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
 	#include "Misc/PackageName.h"
-	#include "Misc/StartupPackages.h"
 	#include "UObject/UObjectHash.h"
 	#include "UObject/Package.h"
 	#include "UObject/Linker.h"
@@ -1874,10 +1873,7 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 		// If we don't do this now and the async loading thread is active, then we will attempt to load this module from a thread
-		if (GEventDrivenLoaderEnabled)
-		{
-			FModuleManager::Get().LoadModule("AssetRegistry");
-		}
+		FModuleManager::Get().LoadModule("AssetRegistry");
 #endif
 
 		// Make sure all UObject classes are registered and default properties have been initialized
@@ -2009,13 +2005,6 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 	if ( !LoadStartupModules() )
 	{
 		// At least one startup module failed to load, return 1 to indicate an error
-		return 1;
-	}
-
-	// load up the seek-free startup packages
-	if ( !FStartupPackages::LoadAll() )
-	{
-		// At least one startup package failed to load, return 1 to indicate an error
 		return 1;
 	}
 #endif // WITH_ENGINE
@@ -3126,7 +3115,7 @@ void FEngineLoop::Tick()
 	FGameThreadHitchHeartBeat::Get().FrameStart();
 
 	// Make sure something is ticking the rendering tickables in -onethread mode to avoid leaks/bugs.
-	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended)
+	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		TickRenderingTickables();
 	}

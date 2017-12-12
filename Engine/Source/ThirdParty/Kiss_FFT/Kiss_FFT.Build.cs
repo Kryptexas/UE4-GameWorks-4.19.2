@@ -8,7 +8,7 @@ public class Kiss_FFT : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_KISSFFT=1");
+		PublicDefinitions.Add("WITH_KISSFFT=1");
 
 		// Compile and link with kissFFT
 		string Kiss_FFTPath = Target.UEThirdPartySourceDirectory + "Kiss_FFT/kiss_fft129";

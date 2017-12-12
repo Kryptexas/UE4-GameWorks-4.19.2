@@ -3377,7 +3377,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 					// Never save compiled in packages
 					if (CurPackage->HasAnyPackageFlags(PKG_CompiledIn) == false)
 					{
-						if (UncheckedPackages.Contains(TWeakObjectPtr<UPackage>(CurPackage)))
+						if (UncheckedPackages.Contains(MakeWeakObjectPtr(CurPackage)))
 						{
 							AddPackageItemsUnchecked.Add(CurPackage);
 						}
@@ -3420,9 +3420,9 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 				TArray<UPackage*> UncheckedPackagesRaw;
 				PackagesDialogModule.GetResults( UncheckedPackagesRaw, ECheckBoxState::Unchecked );
 				UncheckedPackages.Empty();
-				for (auto Iter = UncheckedPackagesRaw.CreateIterator(); Iter; ++Iter)
+				for (UPackage* Package : UncheckedPackagesRaw)
 				{
-					UncheckedPackages.Add(TWeakObjectPtr<UPackage>(*Iter));
+					UncheckedPackages.Add(MakeWeakObjectPtr(Package));
 				}
 			}
 			// If the user has responded they don't wish to save, set the response type accordingly

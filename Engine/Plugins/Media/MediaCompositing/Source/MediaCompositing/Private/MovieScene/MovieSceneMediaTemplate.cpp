@@ -95,24 +95,12 @@ struct FMediaTexturePropertyPreAnimatedToken
 	{ }
 
 	/** Manual defaulted functions while we need to support compilers that can't generate/default them for us */
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMediaTexturePropertyPreAnimatedToken(FMediaTexturePropertyPreAnimatedToken&& In) = default;
 	FMediaTexturePropertyPreAnimatedToken& operator=(FMediaTexturePropertyPreAnimatedToken&& In) = default;
 
-#else
-	FMediaTexturePropertyPreAnimatedToken(FMediaTexturePropertyPreAnimatedToken&& In)
-		: PreviousPropertyValue(MoveTemp(In.PreviousPropertyValue))
-		, PropertyBindings(MoveTemp(In.PropertyBindings))
-	{ }
-
-	FMediaTexturePropertyPreAnimatedToken& operator=(FMediaTexturePropertyPreAnimatedToken&& In)
-	{
-		PreviousPropertyValue = MoveTemp(In.PreviousPropertyValue);
-		PropertyBindings = MoveTemp(In.PropertyBindings);
-
-		return *this;
-	}
-#endif
+	/** Non-copyable */
+	FMediaTexturePropertyPreAnimatedToken(const FMediaTexturePropertyPreAnimatedToken&) = delete;
+	FMediaTexturePropertyPreAnimatedToken& operator=(const FMediaTexturePropertyPreAnimatedToken&) = delete;
 
 	/** Virtual destructor. */
 	virtual ~FMediaTexturePropertyPreAnimatedToken() { }

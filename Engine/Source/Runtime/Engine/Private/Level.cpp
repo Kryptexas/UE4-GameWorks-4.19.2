@@ -1034,9 +1034,6 @@ void ULevel::CreateModelComponents()
 
 	SlowTask.EnterProgressFrame(4);
 
-	// Update the model vertices and edges.
-	Model->UpdateVertices();
-
 	Model->InvalidSurfaces = 0;
 
 	// Clear the model index buffers.
@@ -1584,8 +1581,8 @@ ABrush* ULevel::GetDefaultBrush() const
 		// If the second actor is not a brush then it certainly cannot be the builder brush.
 		if (DefaultBrush != nullptr)
 		{
-			checkf(DefaultBrush->GetBrushComponent(), *GetPathName());
-			checkf(DefaultBrush->Brush != nullptr, *GetPathName());
+			checkf(DefaultBrush->GetBrushComponent(), TEXT("%s"), *GetPathName());
+			checkf(DefaultBrush->Brush != nullptr, TEXT("%s"), *GetPathName());
 		}
 	}
 	return DefaultBrush;
@@ -1596,7 +1593,7 @@ AWorldSettings* ULevel::GetWorldSettings(bool bChecked) const
 {
 	if (bChecked)
 	{
-		checkf( WorldSettings != nullptr, *GetPathName() );
+		checkf( WorldSettings != nullptr, TEXT("%s"), *GetPathName() );
 	}
 	return WorldSettings;
 }

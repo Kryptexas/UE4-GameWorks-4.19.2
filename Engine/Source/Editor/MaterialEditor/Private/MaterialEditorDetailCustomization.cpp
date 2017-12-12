@@ -95,13 +95,16 @@ void FMaterialEditorParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHan
 	if (MaterialEditorInstance->ParameterGroups.Num() > 0)
 	{
 		FOnClicked ChildButtonClicked;
+		UObject* LocalEditorInstance = MaterialEditorInstance;
 		if (MaterialEditorInstance->OriginalMaterial)
 		{
-			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, Cast<UMaterialInterface>(MaterialEditorInstance->OriginalMaterial), Cast<UObject>(MaterialEditorInstance));
+			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance,
+				ImplicitConv<UMaterialInterface*>(MaterialEditorInstance->OriginalMaterial), LocalEditorInstance);
 		}
 		if (MaterialEditorInstance->OriginalFunction)
 		{
-			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, Cast<UMaterialFunctionInterface>(MaterialEditorInstance->OriginalFunction), Cast<UMaterialInterface>(MaterialEditorInstance->PreviewMaterial), Cast<UObject>(MaterialEditorInstance));
+			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance,
+				ImplicitConv<UMaterialFunctionInterface*>(MaterialEditorInstance->OriginalFunction), ImplicitConv<UMaterialInterface*>(MaterialEditorInstance->PreviewMaterial), LocalEditorInstance);
 		}
 
 		FDetailWidgetRow& SaveInstanceRow = GroupsCategory.AddCustomRow(LOCTEXT("SaveInstances", "Save Instances"));

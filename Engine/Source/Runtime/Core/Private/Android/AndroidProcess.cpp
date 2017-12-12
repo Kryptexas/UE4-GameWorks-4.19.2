@@ -151,7 +151,7 @@ static void ApplyDefaultThreadAffinity(IConsoleVariable* Var)
 		{
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),
-				TStatId(), NULL, ENamedThreads::RenderThread);
+				TStatId(), NULL, ENamedThreads::GetRenderThread());
 
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),

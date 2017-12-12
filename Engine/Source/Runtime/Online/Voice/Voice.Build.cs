@@ -7,7 +7,7 @@ public class Voice : ModuleRules
 {
 	public Voice(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("VOICE_PACKAGE=1");
+		PublicDefinitions.Add("VOICE_PACKAGE=1");
 
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {

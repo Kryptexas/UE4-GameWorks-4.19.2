@@ -1157,6 +1157,19 @@ public:
 
 		}
 
+		/**
+		 * Moves the state of another allocator into this one.
+		 * Assumes that the allocator is currently empty, i.e. memory may be allocated but any existing elements have already been destructed (if necessary).
+		 * @param Other - The allocator to move the state from.  This allocator should be left in a valid empty state.
+		 */
+		FORCEINLINE void MoveToEmpty(ForAnyElementType& Other)
+		{
+			Super::MoveToEmpty(Other);
+
+			AllocatedSize = Other.AllocatedSize;
+			Other.AllocatedSize = 0;
+		}
+
 		/** Destructor. */
 		~ForAnyElementType()
 		{
@@ -1181,6 +1194,13 @@ public:
 	private:
 		int32 AllocatedSize;
 	};
+};
+
+template <>
+struct TAllocatorTraits<FSlateStatTrackingMemoryAllocator> : TAllocatorTraitsBase<FSlateStatTrackingMemoryAllocator>
+{
+	enum { SupportsMove    = TAllocatorTraits<FDefaultAllocator>::SupportsMove    };
+	enum { IsZeroConstruct = TAllocatorTraits<FDefaultAllocator>::IsZeroConstruct };
 };
 
 typedef TArray<FSlateVertex, FSlateStatTrackingMemoryAllocator> FSlateVertexArray;

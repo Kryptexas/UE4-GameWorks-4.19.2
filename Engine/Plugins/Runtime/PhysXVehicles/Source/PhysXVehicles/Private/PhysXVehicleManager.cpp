@@ -480,14 +480,14 @@ PxVehicleTelemetryData* FPhysXVehicleManager::GetTelemetryData_AssumesLocked()
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #endif //PX_DEBUG_VEHICLE_ON
 
-PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle)
+PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObjectPtr<const UWheeledVehicleMovementComponent> Vehicle)
 {
-	int32 Index = Vehicles.Find(Vehicle);
+	int32 Index = Vehicles.IndexOfByKey(Vehicle);
 
 	if(Index != INDEX_NONE)
 	{
@@ -495,7 +495,7 @@ PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObj
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 

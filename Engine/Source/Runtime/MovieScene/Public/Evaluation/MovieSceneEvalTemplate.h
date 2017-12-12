@@ -233,14 +233,9 @@ struct FMovieSceneEvalTemplatePtr
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	/** Templates are moveable */
 	FMovieSceneEvalTemplatePtr(FMovieSceneEvalTemplatePtr&&) = default;
 	FMovieSceneEvalTemplatePtr& operator=(FMovieSceneEvalTemplatePtr&&) = default;
-#else
-	FMovieSceneEvalTemplatePtr(FMovieSceneEvalTemplatePtr&& RHS) : TInlineValue(MoveTemp(RHS)) {}
-	FMovieSceneEvalTemplatePtr& operator=(FMovieSceneEvalTemplatePtr&& RHS) { static_cast<TInlineValue&>(*this) = MoveTemp(RHS); return *this; }
-#endif
 
 	/** Serialize the template */
 	MOVIESCENE_API bool Serialize(FArchive& Ar);

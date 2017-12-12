@@ -29,11 +29,11 @@ namespace UnrealBuildTool.Rules
 			if (Target.bBuildDeveloperTools || (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test))
 			{
 				PrivateDependencyModuleNames.Add("GameplayDebugger");
-				Definitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
+				PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
 			}
 			else
 			{
-				Definitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
+				PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
 			}
 		}
 	}

@@ -30,7 +30,7 @@ namespace UnrealBuildTool.Rules
 
 			WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 
-			Definitions.Add("WITH_QOSREPORTER=1");
+			PublicDefinitions.Add("WITH_QOSREPORTER=1");
 		}
 	}
 }

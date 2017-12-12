@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshActorItem"
 
-HLODOutliner::FStaticMeshActorItem::FStaticMeshActorItem(const AActor* InStaticMeshActor)
+HLODOutliner::FStaticMeshActorItem::FStaticMeshActorItem(AActor* InStaticMeshActor)
 	: StaticMeshActor(InStaticMeshActor), ID(InStaticMeshActor)
 {
 	Type = ITreeItem::StaticMeshActor;

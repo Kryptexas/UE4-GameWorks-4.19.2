@@ -1449,7 +1449,7 @@ public:
 	FActorEndPlaySignature OnEndPlay;
 	
 	//~ Begin UObject Interface
-	virtual bool CheckDefaultSubobjectsInternal() override;
+	virtual bool CheckDefaultSubobjectsInternal() const override;
 	virtual void PostInitProperties() override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) override;
@@ -2353,7 +2353,7 @@ protected:
 	void ProcessUserConstructionScript();
 
 	/** Checks components for validity, implemented in AActor */
-	bool CheckActorComponents();
+	bool CheckActorComponents() const;
 
 	/** Called after instancing a new Blueprint Component from either a template or cooked data. */
 	void PostCreateBlueprintComponent(UActorComponent* NewActorComp);

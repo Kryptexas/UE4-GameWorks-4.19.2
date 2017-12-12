@@ -200,15 +200,19 @@ void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyH
 		FDetailWidgetRow& SaveInstanceRow = GroupsCategory.AddCustomRow(LOCTEXT("SaveInstances", "Save Instances"));
 		FOnClicked OnChildButtonClicked;
 		FOnClicked OnSiblingButtonClicked;
+		UMaterialInterface* LocalSourceInstance = MaterialEditorInstance->SourceInstance;
+		UObject* LocalEditorInstance = MaterialEditorInstance;
 		if (!MaterialEditorInstance->bIsFunctionPreviewMaterial)
 		{
-			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
-			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, MaterialEditorInstance->SourceInstance->Parent, Cast<UObject>(MaterialEditorInstance));
+			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, LocalSourceInstance, LocalEditorInstance);
+			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, MaterialEditorInstance->SourceInstance->Parent, LocalEditorInstance);
 		}
 		else
 		{
-			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, Cast<UMaterialFunctionInterface>(MaterialEditorInstance->SourceFunction), Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
-			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, Cast<UMaterialFunctionInterface>(MaterialEditorInstance->SourceFunction->Parent), Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
+			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, 
+				ImplicitConv<UMaterialFunctionInterface*>(MaterialEditorInstance->SourceFunction), LocalSourceInstance, LocalEditorInstance);
+			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance,
+				ImplicitConv<UMaterialFunctionInterface*>(MaterialEditorInstance->SourceFunction->Parent), LocalSourceInstance, LocalEditorInstance);
 		}
 		SaveInstanceRow.ValueContent()
 			.HAlign(HAlign_Fill)

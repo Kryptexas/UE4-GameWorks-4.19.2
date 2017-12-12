@@ -100,7 +100,7 @@ void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class U
 		CurValue.Empty();
 	}
 
-	Skeleton = InSkeleton;
+	Skeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(InSkeleton));
 	
 	// create the asset search box
 	ChildSlot

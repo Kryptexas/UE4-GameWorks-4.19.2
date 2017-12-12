@@ -122,14 +122,8 @@ that are directly dependent on other plugins.
 (#ContentInPlugins)
 ## Content in Plugins
 
-Unreal Engine supports plugins that contain Content as well as binary code. This feature is a work in progress.
-
-In order to use Content in a plugin, the 'CanContainContent' setting within the plugin's descriptor must be set to 'true'. Content in 
-plugins is a work-in-progress feature that is not recommended to use yet. More information about this will be available at a later date.
-
-We intend to support allowing content to be included in distributed plugins. This feature is not fully implemented yet, so we do not 
-recommend using it.
-
+Unreal Engine supports plugins that contain Content as well as binary code.  In order to use Content in a plugin, the 'CanContainContent'
+setting within the plugin's descriptor must be set to 'true'.
 
 ## Plugins in your Game Project
 

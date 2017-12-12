@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.cpp: Rendering thread implementation.
@@ -34,7 +34,7 @@ RENDERCORE_API bool GIsThreadedRendering = false;
 RENDERCORE_API bool GUseThreadedRendering = false;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
+	RENDERCORE_API TAtomic<bool> GMainThreadBlockedOnRenderThread;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 static FRunnable* GRenderingThreadRunnable = NULL;
@@ -57,14 +57,13 @@ float GRenderingThreadMaxIdleTickFrequency = 40.f;
 /** Function to stall the rendering thread **/
 static void SuspendRendering()
 {
-	FPlatformAtomics::InterlockedIncrement(&GIsRenderingThreadSuspended);
-	FPlatformMisc::MemoryBarrier();
+	++GIsRenderingThreadSuspended;
 }
 
 /** Function to wait and resume rendering thread **/
 static void WaitAndResumeRendering()
 {
-	while ( GIsRenderingThreadSuspended )
+	while ( GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed) )
 	{
 		// Just sleep a little bit.
 		FPlatformProcess::Sleep( 0.001f ); //@todo this should be a more principled wait
@@ -96,11 +95,11 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 		// GUseThreadedRendering should be set to false after StopRenderingThread call since
 		// otherwise a wrong context could be used.
 		GUseThreadedRendering = false;
-		FPlatformAtomics::InterlockedIncrement( &GIsRenderingThreadSuspended );
+		++GIsRenderingThreadSuspended;
 	}
 	else
 	{
-		if ( GIsRenderingThreadSuspended == 0 )
+		if ( GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed) == 0 )
 		{
 			// First tell the render thread to finish up all pending commands and then suspend its activities.
 			
@@ -113,15 +112,17 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 					STAT_FSimpleDelegateGraphTask_SuspendRendering,
 					STATGROUP_TaskGraphTasks);
 
+				ENamedThreads::Type RenderThread = ENamedThreads::GetRenderThread();
+
 				FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SuspendRendering),
-					GET_STATID(STAT_FSimpleDelegateGraphTask_SuspendRendering), NULL, ENamedThreads::RenderThread);
+					GET_STATID(STAT_FSimpleDelegateGraphTask_SuspendRendering), NULL, RenderThread);
 
 				// Busy wait while Kismet debugging, to avoid opportunistic execution of game thread tasks
 				// If the game thread is already executing tasks, then we have no choice but to spin
 				if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
 				{
-					while (!GIsRenderingThreadSuspended)
+					while (!GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 					{
 						FPlatformProcess::Sleep(0.0f);
 					}
@@ -131,7 +132,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_FSuspendRenderingThread);
 					FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle, ENamedThreads::GameThread);
 				}
-				check(GIsRenderingThreadSuspended);
+				check(GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed));
 			
 				// Now tell the render thread to busy wait until it's resumed
 				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.WaitAndResumeRendering"),
@@ -140,7 +141,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&WaitAndResumeRendering),
-					GET_STATID(STAT_FSimpleDelegateGraphTask_WaitAndResumeRendering), NULL, ENamedThreads::RenderThread);
+					GET_STATID(STAT_FSimpleDelegateGraphTask_WaitAndResumeRendering), NULL, RenderThread);
 			}
 			else
 			{
@@ -150,7 +151,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 		else
 		{
 			// The render-thread is already suspended. Just bump the ref-count.
-			FPlatformAtomics::InterlockedIncrement( &GIsRenderingThreadSuspended );
+			++GIsRenderingThreadSuspended;
 		}
 	}
 }
@@ -161,7 +162,7 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 	if ( bRecreateThread )
 	{
 		GUseThreadedRendering = bUseRenderingThread;
-		FPlatformAtomics::InterlockedDecrement( &GIsRenderingThreadSuspended );
+		--GIsRenderingThreadSuspended;
 		if ( bUseRenderingThread && bWasRenderingThreadRunning )
 		{
 			StartRenderingThread();
@@ -173,14 +174,14 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 
             FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
                 FSimpleDelegateGraphTask::FDelegate::CreateStatic(&FPlatformProcess::SetRealTimeMode),
-				GET_STATID(STAT_FSimpleDelegateGraphTask_SetRealTimeMode), NULL, ENamedThreads::RenderThread
+				GET_STATID(STAT_FSimpleDelegateGraphTask_SetRealTimeMode), NULL, ENamedThreads::GetRenderThread()
 			);
         }
 	}
 	else
 	{
-		// Resume the render thread again. 
-		FPlatformAtomics::InterlockedDecrement( &GIsRenderingThreadSuspended );
+		// Resume the render thread again.
+		--GIsRenderingThreadSuspended;
 	}
 	if (IsAsyncLoadingMultithreaded())
 	{
@@ -300,9 +301,12 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 {
 	LLM_SCOPE(ELLMTag::RenderingThreadMemory);
 
-	ENamedThreads::RenderThread = ENamedThreads::Type(ENamedThreads::ActualRenderingThread);
-	ENamedThreads::RenderThread_Local = ENamedThreads::Type(ENamedThreads::ActualRenderingThread_Local);
-	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RenderThread);
+	ENamedThreads::Type RenderThread = ENamedThreads::Type(ENamedThreads::ActualRenderingThread);
+
+	ENamedThreads::SetRenderThread(RenderThread);
+	ENamedThreads::SetRenderThread_Local(ENamedThreads::Type(ENamedThreads::ActualRenderingThread_Local));
+
+	FTaskGraphInterface::Get().AttachToThread(RenderThread);
 	FPlatformMisc::MemoryBarrier();
 
 	// Inform main thread that the render thread has been attached to the taskgraph and is ready to receive tasks
@@ -323,7 +327,7 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 
 	FCoreDelegates::PostRenderingThreadCreated.Broadcast();
 	check(GIsThreadedRendering);
-	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RenderThread);
+	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(RenderThread);
 	FPlatformMisc::MemoryBarrier();
 	check(!GIsThreadedRendering);
 	FCoreDelegates::PreRenderingThreadDestroyed.Broadcast();
@@ -335,8 +339,8 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 	}
 #endif
 	
-	ENamedThreads::RenderThread = ENamedThreads::GameThread;
-	ENamedThreads::RenderThread_Local = ENamedThreads::GameThread_Local;
+	ENamedThreads::SetRenderThread(ENamedThreads::GameThread);
+	ENamedThreads::SetRenderThread_Local(ENamedThreads::GameThread_Local);
 	FPlatformMisc::MemoryBarrier();
 }
 
@@ -485,7 +489,7 @@ public:
 /**
  * If the rendering thread is in its idle loop (which ticks rendering tickables
  */
-volatile bool GRunRenderingThreadHeartbeat = false;
+TAtomic<bool> GRunRenderingThreadHeartbeat;
 
 FThreadSafeCounter OutstandingHeartbeats;
 /** The rendering thread heartbeat runnable object. */
@@ -510,10 +514,10 @@ public:
 
 	virtual uint32 Run(void)
 	{
-		while(GRunRenderingThreadHeartbeat)
+		while(GRunRenderingThreadHeartbeat.Load(EMemoryOrder::Relaxed))
 		{
 			FPlatformProcess::Sleep(1.f/(4.0f * GRenderingThreadMaxIdleTickFrequency));
-			if (!GIsRenderingThreadSuspended && OutstandingHeartbeats.GetValue() < 4)
+			if (!GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed) && OutstandingHeartbeats.GetValue() < 4)
 			{
 				OutstandingHeartbeats.Increment();
 				ENQUEUE_UNIQUE_RENDER_COMMAND(
@@ -521,7 +525,7 @@ public:
 				{
 					OutstandingHeartbeats.Decrement();
 					// make sure that rendering thread tickables get a chance to tick, even if the render thread is starving
-					if (!GIsRenderingThreadSuspended)
+					if (!GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 					{
 						TickRenderingTickables();
 					}
@@ -760,13 +764,13 @@ void StopRenderingThread()
 
 
 			check( GRenderingThread );
-			check(!GIsRenderingThreadSuspended);
+			check(!GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed));
 
 			// Turn off the threaded rendering flag.
 			GIsThreadedRendering = false;
 
 			{
-				FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RenderThread);
+				FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::GetRenderThread());
 
 				// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
 				// If the game thread is already executing tasks, then we have no choice but to spin
@@ -822,7 +826,7 @@ void CheckRenderingThreadHealth()
 			GLog->FlushThreadedLogs();
 		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
+		TGuardValue<TAtomic<bool>, bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
 		SCOPE_CYCLE_COUNTER(STAT_PumpMessages);
 		FPlatformApplicationMisc::PumpMessages(false);
@@ -855,7 +859,7 @@ void StartRenderCommandFenceBundler()
 		STATGROUP_TaskGraphTasks);
 
 	BundledCompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(&Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-		GET_STATID(STAT_FNullGraphTask_FenceRenderCommandBundled), ENamedThreads::RenderThread);
+		GET_STATID(STAT_FNullGraphTask_FenceRenderCommandBundled), ENamedThreads::GetRenderThread());
 
 	StartBatchedRelease();
 }
@@ -973,7 +977,7 @@ void FRenderCommandFence::BeginFence(bool bSyncToRHIAndGPU)
 				STATGROUP_TaskGraphTasks);
 
 			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::RenderThread);
+				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::GetRenderThread());
 		}
 	}
 }

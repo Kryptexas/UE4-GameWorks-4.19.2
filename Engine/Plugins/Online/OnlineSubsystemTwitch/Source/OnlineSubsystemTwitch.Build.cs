@@ -7,7 +7,7 @@ public class OnlineSubsystemTwitch : ModuleRules
 {
 	public OnlineSubsystemTwitch(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("ONLINESUBSYSTEM_TWITCH_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEM_TWITCH_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
 
 		PrivateIncludePaths.Add("Private");

@@ -584,12 +584,6 @@ TArrayView<ElementType> MakeArrayView(ElementType(&Other)[Size])
 	return TArrayView<ElementType>(Other);
 }
 
-template <typename ElementType, size_t Size>
-TArrayView<const ElementType> MakeArrayView(const ElementType(&Other)[Size])
-{
-	return TArrayView<ElementType>(Other);
-}
-
 template <typename ElementType, typename Allocator>
 TArrayView<ElementType> MakeArrayView(TArray<ElementType, Allocator>& Other)
 {

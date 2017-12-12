@@ -9,7 +9,7 @@ IMPLEMENT_MODULE( FAssetRegistryModule, AssetRegistry );
 
 void FAssetRegistryModule::StartupModule()
 {
-	AssetRegistry = GetDefault<UAssetRegistryImpl>();
+	AssetRegistry = MakeWeakObjectPtr(const_cast<UAssetRegistryImpl*>(GetDefault<UAssetRegistryImpl>()));
 	ConsoleCommands = new FAssetRegistryConsoleCommands(*this);
 }
 

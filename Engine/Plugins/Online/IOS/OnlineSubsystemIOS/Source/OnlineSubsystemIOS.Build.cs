@@ -13,7 +13,7 @@ public class OnlineSubsystemIOS : ModuleRules
                 }
                 );
 
-        Definitions.Add("ONLINESUBSYSTEMIOS_PACKAGE=1");
+        PublicDefinitions.Add("ONLINESUBSYSTEMIOS_PACKAGE=1");
 
 		PrivateDependencyModuleNames.AddRange(
             new string[] { 

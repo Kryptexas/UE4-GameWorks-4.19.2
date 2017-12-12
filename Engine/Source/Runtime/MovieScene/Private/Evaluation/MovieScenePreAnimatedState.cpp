@@ -75,40 +75,6 @@ TPreAnimatedToken<TokenType>::TPreAnimatedToken(TokenType&& InToken)
 	, Token(MoveTemp(InToken))
 {}
 
-#if !PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-template<typename TokenType>
-TPreAnimatedToken<TokenType>::TPreAnimatedToken(TPreAnimatedToken&& RHS)
-	: EntityRefCount(RHS.EntityRefCount)
-	, Token(MoveTemp(RHS.Token))
-{
-}
-template<typename TokenType>
-TPreAnimatedToken<TokenType>& TPreAnimatedToken<TokenType>::operator=(TPreAnimatedToken&& RHS)
-{
-	EntityRefCount = RHS.EntityRefCount;
-	Token = MoveTemp(RHS.Token);
-	return *this;
-}
-
-template<typename TokenType>
-TMovieSceneSavedTokens<TokenType>::TMovieSceneSavedTokens(TMovieSceneSavedTokens&& RHS)
-	: AnimatedEntities(MoveTemp(RHS.AnimatedEntities))
-	, AllAnimatedTypeIDs(MoveTemp(RHS.AllAnimatedTypeIDs))
-	, PreAnimatedTokens(MoveTemp(RHS.PreAnimatedTokens))
-	, Payload(MoveTemp(RHS.Payload))
-{
-}
-template<typename TokenType>
-TMovieSceneSavedTokens<TokenType>& TMovieSceneSavedTokens<TokenType>::operator=(TMovieSceneSavedTokens&& RHS)
-{
-	AnimatedEntities = MoveTemp(RHS.AnimatedEntities);
-	AllAnimatedTypeIDs = MoveTemp(RHS.AllAnimatedTypeIDs);
-	PreAnimatedTokens = MoveTemp(RHS.PreAnimatedTokens);
-	Payload = MoveTemp(RHS.Payload);
-	return *this;
-}
-#endif
-
 template<typename TokenType>
 void TMovieSceneSavedTokens<TokenType>::OnPreAnimated(ECapturePreAnimatedState CaptureState, FMovieSceneAnimTypeID InAnimTypeID, FMovieSceneEvaluationKey AssociatedKey, const ProducerType& Producer, FMovieScenePreAnimatedState& Parent)
 {

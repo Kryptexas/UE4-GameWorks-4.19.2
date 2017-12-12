@@ -271,6 +271,12 @@ private:
 	/** Handler to remove a single ChunkID assignment from a selection of assets */
 	void ExecuteRemoveChunkID(int32 ChunkID);
 
+	/** Handler to export the selected asset(s) to experimental text format */
+	void ExportSelectedAssetsToText();
+
+	/** Handler to check if we can export the selected asset(s) to experimental text format */
+	bool CanExportSelectedAssetsToText() const;
+
 	/** Handler to check to see if a sync to asset tree command is allowed */
 	bool CanExecuteSyncToAssetTree() const;
 

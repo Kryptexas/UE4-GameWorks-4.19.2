@@ -11,7 +11,7 @@ public class Simplygon : ModuleRules
 
 		bOutputPubliclyDistributable = true;
 
-        Definitions.Add("SGDEPRECATED_OFF=1");
+        PublicDefinitions.Add("SGDEPRECATED_OFF=1");
 
         //@third party code BEGIN SIMPLYGON
         //Change the path to make it easier to update Simplygon

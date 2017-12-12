@@ -4535,7 +4535,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 	}
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 	if (IsMultithreaded() && GEventDrivenLoaderEnabled &&
-		ENamedThreads::RenderThread == ENamedThreads::GameThread) // render thread tasks are actually being sent to the game thread.
+		ENamedThreads::GetRenderThread() == ENamedThreads::GameThread) // render thread tasks are actually being sent to the game thread.
 	{
 		// The async loading thread might have queued some render thread tasks (we don't have a render thread yet, so these are actually sent to the game thread)
 		// We need to process them now before we do any postloads.
@@ -6754,6 +6754,8 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 {
 	CheckImageIntegrityAtRuntime();
 
+	checkf(IsInGameThread(), TEXT("Unable to FlushAsyncLoading from any thread other than the game thread."));
+
 	if (IsAsyncLoading())
 	{
 		FAsyncLoadingThread& AsyncThread = FAsyncLoadingThread::Get();
@@ -6895,6 +6897,12 @@ bool IsEventDrivenLoaderEnabledInCookedBuilds()
 		{
 			check(GConfig);
 			GConfig->GetBool(TEXT("/Script/Engine.StreamingSettings"), TEXT("s.EventDrivenLoaderEnabled"), bEventDrivenLoaderEnabled, GEngineIni);
+#if !UE_BUILD_SHIPPING
+			if (FParse::Param(FCommandLine::Get(), TEXT("NOEDL")))
+			{
+				bEventDrivenLoaderEnabled = false;
+			}
+#endif
 		}
 	} EventDrivenLoaderEnabledInCookedBuilds;
 	return EventDrivenLoaderEnabledInCookedBuilds.bEventDrivenLoaderEnabled;

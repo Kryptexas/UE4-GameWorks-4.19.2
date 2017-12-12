@@ -1858,17 +1858,17 @@ TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<U
 	if (Sequencer.IsValid())
 	{
 		// @todo sequencer: this is potentially slow as it traverses the entire tree - there's scope for optimization here
-		for (auto& Node : Sequencer->GetNodeTree()->GetRootNodes())
+		for (const FDisplayNodeRef& Node : Sequencer->GetNodeTree()->GetRootNodes())
 		{
 			Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) {
 				if (InNode.GetType() == ESequencerNode::Track)
 				{
 					FSequencerTrackNode& TrackNode = static_cast<FSequencerTrackNode&>(InNode);
 
-					const auto& AllSections = TrackNode.GetSections();
+					const TArray<TSharedRef<ISequencerSection>>& AllSections = TrackNode.GetSections();
 					for (int32 Index = 0; Index < AllSections.Num(); ++Index)
 					{
-						if (DesiredSections.Contains(TWeakObjectPtr<UMovieSceneSection>(AllSections[Index]->GetSectionObject())))
+						if (DesiredSections.Contains(MakeWeakObjectPtr(AllSections[Index]->GetSectionObject())))
 						{
 							SectionHandles.Emplace(StaticCastSharedRef<FSequencerTrackNode>(TrackNode.AsShared()), Index);
 						}

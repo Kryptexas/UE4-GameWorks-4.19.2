@@ -276,7 +276,7 @@ namespace BlueprintNodeHelpers
 			UWorld* MyWorld = OwnerOb.GetOwner()->GetWorld();
 			if (MyWorld)
 			{
-				MyWorld->GetLatentActionManager().RemoveActionsForObject(&Ob);
+				MyWorld->GetLatentActionManager().RemoveActionsForObject(MakeWeakObjectPtr(const_cast<UObject*>(&Ob)));
 				MyWorld->GetTimerManager().ClearAllTimersForObject(&Ob);
 			}
 		}

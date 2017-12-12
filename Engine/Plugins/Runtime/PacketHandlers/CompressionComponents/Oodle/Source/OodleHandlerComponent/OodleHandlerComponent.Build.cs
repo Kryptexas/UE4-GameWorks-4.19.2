@@ -74,11 +74,11 @@ public class OodleHandlerComponent : ModuleRules
 		{
 	        AddEngineThirdPartyPrivateStaticDependencies(Target, "Oodle");
 	        PublicIncludePathModuleNames.Add("Oodle");
-			Definitions.Add( "HAS_OODLE_SDK=1" );
+			PublicDefinitions.Add( "HAS_OODLE_SDK=1" );
 		}
 		else
 		{
-			Definitions.Add( "HAS_OODLE_SDK=0" );
+			PublicDefinitions.Add( "HAS_OODLE_SDK=0" );
 		}
     }
 }

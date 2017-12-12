@@ -86,21 +86,6 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 	}
 }
 
-VARARG_BODY( bool, FWindowsNativeFeedbackContext::YesNof, const TCHAR*, VARARG_NONE )
-{
-	TCHAR TempStr[4096];
-	GET_VARARGS( TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr)-1, Fmt, Fmt );
-	if( ( GIsClient || GIsEditor ) && ( ( GIsSilent != true ) && ( FApp::IsUnattended() != true ) ) )
-	{
-		FSlowHeartBeatScope SuspendHeartBeat;
-		return( ::MessageBox( NULL, TempStr, *NSLOCTEXT("Core", "Question", "Question").ToString(), MB_YESNO|MB_TASKMODAL ) == IDYES);
-	}
-	else
-	{
-		return false;
-	}
-}
-
 bool FWindowsNativeFeedbackContext::ReceivedUserCancel()
 {
 	FScopeLock Lock(&CriticalSection);

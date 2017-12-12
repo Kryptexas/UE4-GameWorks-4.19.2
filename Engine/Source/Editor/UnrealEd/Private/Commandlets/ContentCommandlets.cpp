@@ -20,7 +20,6 @@
 #include "UObject/MetaData.h"
 #include "Misc/PackageName.h"
 #include "Misc/EngineVersion.h"
-#include "Misc/StartupPackages.h"
 #include "Misc/RedirectCollector.h"
 #include "Engine/EngineTypes.h"
 #include "Materials/Material.h"
@@ -1188,13 +1187,6 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 	{
 		bool bShouldProceedWithRebuild = true;
 
-		static bool bHasLoadedStartupPackages = false;
-		if (bHasLoadedStartupPackages == false)
-		{
-			// make sure all possible script/startup packages are loaded
-			bHasLoadedStartupPackages = FStartupPackages::LoadAll();
-		}
-
 		// Setup the world.
 		World->WorldType = EWorldType::Editor;
 		World->AddToRoot();
@@ -1830,30 +1822,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		{
 			PackagesToFullyLoad = *PackagesToFullyLoadSection;
 		}
-
-		// make sure all possible script/startup packages are loaded
-		FStartupPackages::LoadAll();
-
-		// verify that all startup packages have been loaded
-		if (StartupPackages)
-		{
-			for (FConfigSectionMap::TConstIterator It(*StartupPackages); It; ++It)
-			{
-				if (It.Key() == TEXT("Package"))
-				{
-					PackagesToFullyLoad.Add(*It.Key().ToString(), *It.Value().GetValue());
-					if ( FindPackage(NULL, *It.Value().GetValue()) )
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was loaded"), *It.Value().GetValue());
-					}
-					else
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was not loaded during FStartupPackages::LoadAll..."), *It.Value().GetValue());
-					}
-				}
-			}
-		}
-
+		
 		if (bShouldLoadAllMaps)
 		{
 			TArray<FString> AllPackageFilenames;

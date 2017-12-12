@@ -930,12 +930,10 @@ private:
 			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, ERHIFeatureLevel::Num, true);
 
 			// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
-			for( int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex )
+			// UObject for delegate compatibility
+			for( UObject* Texture : Textures )
 			{
-				// UObject for delegate compatibility
-				UObject* Texture = Textures[TextureIndex];
-
-				FUIAction Action( FExecuteAction::CreateSP( this, &FMaterialItemView::GoToAssetInContentBrowser, TWeakObjectPtr<UObject>(Texture) ) );
+				FUIAction Action( FExecuteAction::CreateSP( this, &FMaterialItemView::GoToAssetInContentBrowser, MakeWeakObjectPtr(Texture) ) );
 
 				MenuBuilder.AddMenuEntry( FText::FromString( Texture->GetName() ), LOCTEXT( "BrowseTexture_ToolTip", "Find this texture in the content browser" ), FSlateIcon(), Action );
 			}

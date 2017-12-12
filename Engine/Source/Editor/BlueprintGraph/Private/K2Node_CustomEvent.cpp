@@ -325,7 +325,7 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 		// if this custom-event is attempting to override a native function, we can't allow that
 		if (!FuncOwner->IsA(UBlueprintGeneratedClass::StaticClass()))
 		{
-			MessageLog.Error(*FString::Printf(*LOCTEXT("NativeFunctionConflict", "@@ name conflicts with a native '%s' function").ToString(), *FuncOwner->GetName()), this);
+			MessageLog.Error(*FText::Format(LOCTEXT("NativeFunctionConflictFmt", "@@ name conflicts with a native '{0}' function"), FText::FromString(FuncOwner->GetName())).ToString(), this);
 		}
 		else 
 		{
@@ -334,7 +334,7 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 			// custom-event, then we want to error (a custom-event shouldn't override something different)
 			if (OverriddenEvent == NULL)
 			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("NonCustomEventOverride", "@@ name conflicts with a '%s' function").ToString(), *FuncOwner->GetName()), this);
+				MessageLog.Error(*FText::Format(LOCTEXT("NonCustomEventOverride", "@@ name conflicts with a '{0}' function"), FText::FromString(FuncOwner->GetName())).ToString(), this);
 			}
 			// else, we assume the user was attempting to override the parent's custom-event
 			// the signatures could still be off, but FKismetCompilerContext::PrecompileFunction() should catch that

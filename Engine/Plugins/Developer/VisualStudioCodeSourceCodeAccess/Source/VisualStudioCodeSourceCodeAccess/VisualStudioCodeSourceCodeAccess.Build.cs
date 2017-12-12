@@ -44,11 +44,11 @@ namespace UnrealBuildTool.Rules
 
 			if (bHasVisualStudioDTE)
 			{
-				Definitions.Add("VSACCESSOR_HAS_DTE=1");
+				PublicDefinitions.Add("VSACCESSOR_HAS_DTE=1");
 			}
 			else
 			{
-				Definitions.Add("VSACCESSOR_HAS_DTE=0");
+				PublicDefinitions.Add("VSACCESSOR_HAS_DTE=0");
 			}
 
 			bBuildLocallyWithSNDBS = true;

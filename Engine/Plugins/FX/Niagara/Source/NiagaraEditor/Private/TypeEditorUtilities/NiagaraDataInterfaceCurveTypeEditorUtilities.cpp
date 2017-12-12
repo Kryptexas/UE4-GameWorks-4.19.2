@@ -36,7 +36,7 @@ TSharedPtr<SWidget> FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::CreateDat
 		return SNew(SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 			.ForegroundColor(FSlateColor::UseForeground())
-			.OnGetMenuContent(this, &FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::GetImportMenuContent, TWeakObjectPtr<UNiagaraDataInterfaceCurveBase>(CurveDataInterface), DataInterfaceChangedHandler)
+			.OnGetMenuContent(this, &FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::GetImportMenuContent, MakeWeakObjectPtr(CurveDataInterface), DataInterfaceChangedHandler)
 			.ButtonContent()
 			[
 				SNew(STextBlock)

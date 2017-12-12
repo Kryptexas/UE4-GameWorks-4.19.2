@@ -37,7 +37,7 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 	// make sure that our string is again correctly formated
 	HostIp = FString::Printf(TEXT("http://%s"),*HostIp);
 
-	FCString::Sprintf(Url, *HostIp);
+	FCString::Strncpy(Url, *HostIp, ARRAY_COUNT(Url));
 
 #if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest();

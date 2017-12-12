@@ -30,7 +30,7 @@ public class MetalRHI : ModuleRules
 
 			if ( bMetalStats )
 			{
-				Definitions.Add("METAL_STATISTICS=1");
+				PublicDefinitions.Add("METAL_STATISTICS=1");
 
 				PrivateIncludePathModuleNames.AddRange(
 					new string[] {

@@ -129,7 +129,8 @@ public:
 	virtual ~FGCObject(void)
 	{
 		// GObjectSerializer will be NULL if this object gets destroyed after the exit purge.
-		if( GGCObjectReferencer )
+		// We also don't want to be removing objects when exiting since some of they may not have been added anyway (see Init())
+		if (GGCObjectReferencer && !GIsRequestingExit)
 		{
 			// Remove this instance from the referencer's list
 			GGCObjectReferencer->RemoveObject(this);

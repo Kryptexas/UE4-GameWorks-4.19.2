@@ -97,7 +97,7 @@ void FNiagaraDataSet::InitGPUFromCPU_RenderThread()
 	auto CalcNewSize = [](int32 ReqNum, int32 CurrNum)
 	{
 		int32 NewSize = AlignArbitrary(ReqNum, GRenderDataBlockSize);
-		int32 ShrinkSize = AlignArbitrary(CurrNum * GGPUBufferShrinkFactor, GRenderDataBlockSize);
+		int32 ShrinkSize = AlignArbitrary(int32(CurrNum * GGPUBufferShrinkFactor), GRenderDataBlockSize);
 		if (ReqNum < ShrinkSize)
 		{
 			NewSize = ShrinkSize;

@@ -14,7 +14,7 @@ struct CORE_API FWindowsPlatformCrashContext : public FGenericCrashContext
 		bIsEnsure = bInIsEnsure;
 	}
 
-	virtual void AddPlatformSpecificProperties() override;
+	virtual void AddPlatformSpecificProperties() const override;
 };
 
 typedef FWindowsPlatformCrashContext FPlatformCrashContext;

@@ -155,7 +155,7 @@ void UAnimGraphNode_PoseBlendNode::GetMenuActions(FBlueprintActionDatabaseRegist
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 
-		TWeakObjectPtr<UPoseAsset> PoseAssetPtr = PoseAsset;
+		TWeakObjectPtr<UPoseAsset> PoseAssetPtr = MakeWeakObjectPtr(const_cast<UPoseAsset*>(PoseAsset));
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, PoseAssetPtr);
 		NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(PoseAsset->GetFName()));
 

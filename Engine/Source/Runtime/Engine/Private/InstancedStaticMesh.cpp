@@ -1123,7 +1123,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			BodySetups.Add(BodySetup);
 			TWeakObjectPtr<UPrimitiveComponent> WeakSelfPtr(this);
 			FBodyInstance::GetComplexPhysicalMaterials(&BodyInstance, WeakSelfPtr, PhysicalMaterials);
-			PhysicalMaterials.Add(FBodyInstance::GetSimplePhysicalMaterial(&BodyInstance, WeakSelfPtr, TWeakObjectPtr<UBodySetup>(BodySetup)));
+			PhysicalMaterials.Add(FBodyInstance::GetSimplePhysicalMaterial(&BodyInstance, WeakSelfPtr, MakeWeakObjectPtr(BodySetup)));
 
 			PhysicsSerializer->CreatePhysicsData(BodySetups, PhysicalMaterials);
 			FBodyInstance::InitStaticBodies(InstanceBodiesSanitized, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);

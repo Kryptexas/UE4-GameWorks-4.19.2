@@ -484,7 +484,7 @@ struct FMarkerSyncData
 };
 
 // Shortcut for the allocator used by animation nodes.
-class FAnimStackAllocator: public TMemStackAllocator<>{};
+typedef TMemStackAllocator<> FAnimStackAllocator;
 
 /** 
  * Structure for all Animation Weight helper functions.

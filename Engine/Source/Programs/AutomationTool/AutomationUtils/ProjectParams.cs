@@ -129,10 +129,15 @@ namespace AutomationTool
 					string CmdLinePlatform = null;
 					foreach (var ParamName in PlatformParamNames)
 					{
-						CmdLinePlatform = Command.ParseParamValue(ParamName);
-						if (!String.IsNullOrEmpty(CmdLinePlatform))
+						string ParamValue = Command.ParseParamValue(ParamName);
+						if (!string.IsNullOrEmpty(ParamValue))
 						{
-							break;
+							if (!string.IsNullOrEmpty(CmdLinePlatform))
+							{
+								CmdLinePlatform += "+";
+							}
+
+							CmdLinePlatform += ParamValue;
 						}
 					}
 
@@ -149,7 +154,7 @@ namespace AutomationTool
 					{
 						// Get all platforms from the param value: Platform_1+Platform_2+...+Platform_k
 						TargetPlatforms = new List<TargetPlatformDescriptor>();
-						var PlatformNames = new List<string>(CmdLinePlatform.Split('+'));
+						var PlatformNames = (new HashSet<string>(CmdLinePlatform.Split('+'))).ToList();
 						foreach (var PlatformName in PlatformNames)
 						{
                             // Look for dependent platforms, Source_1.Dependent_1+Source_2.Dependent_2+Standalone_3
@@ -157,23 +162,27 @@ namespace AutomationTool
 
                             foreach (var SubPlatformName in SubPlatformNames)
                             {
-                                UnrealTargetPlatform NewPlatformType = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformName, true);
-                                // generate all valid platform descriptions for this platform type + cook flavors
-                                List<TargetPlatformDescriptor> PlatformDescriptors = Platform.GetValidTargetPlatforms(NewPlatformType, CookFlavors);
-                                TargetPlatforms.AddRange(PlatformDescriptors);
+								// Need to tolerate cook platform names here, which UFE likes to pass in. (TODO: Not sure if it's right to do that, but it does pass -targetplatform as well)
+                                UnrealTargetPlatform NewPlatformType;
+								if(Enum.TryParse(SubPlatformName, out NewPlatformType))
+								{
+									// generate all valid platform descriptions for this platform type + cook flavors
+									List<TargetPlatformDescriptor> PlatformDescriptors = Platform.GetValidTargetPlatforms(NewPlatformType, CookFlavors);
+									TargetPlatforms.AddRange(PlatformDescriptors);
                                                               
-                                if (SubPlatformName != SubPlatformNames[0])
-                                {
-                                    // This is not supported with cook flavors
-                                    if (!CommandUtils.IsNullOrEmpty(CookFlavors))
-                                    {
-                                        throw new AutomationException("Cook flavors are not supported for dependent platforms!");
-                                    }
+									if (SubPlatformName != SubPlatformNames[0])
+									{
+										// This is not supported with cook flavors
+										if (!CommandUtils.IsNullOrEmpty(CookFlavors))
+										{
+											throw new AutomationException("Cook flavors are not supported for dependent platforms!");
+										}
 
-                                    // We're a dependent platform so add ourselves to the map, pointing to the first element in the list
-                                    UnrealTargetPlatform FirstPlatformType = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformNames[0], true);
-                                    DependentPlatformMap.Add(new TargetPlatformDescriptor(NewPlatformType), new TargetPlatformDescriptor(FirstPlatformType));
-                                }
+										// We're a dependent platform so add ourselves to the map, pointing to the first element in the list
+										UnrealTargetPlatform FirstPlatformType = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformNames[0], true);
+										DependentPlatformMap.Add(new TargetPlatformDescriptor(NewPlatformType), new TargetPlatformDescriptor(FirstPlatformType));
+									}
+								}
                             }
 						}
 					}
@@ -1829,8 +1838,8 @@ namespace AutomationTool
 				ClientCookedTargetsList = null;
 				ServerCookedTargetsList = null;
 				ProgramTargetsList = null;
-				ProjectBinariesPath = null;
-				ProjectGameExePath = null;
+				ProjectPlatformBinariesPaths = null;
+				ProjectExePaths = null;
 			}
 
             List<UnrealTargetPlatform> ClientTargetPlatformTypes = ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
@@ -1998,13 +2007,18 @@ namespace AutomationTool
 				ServerCookedTargetsList = new ParamList<string>();
 			}
 
-			if (String.IsNullOrEmpty(ProjectBinariesPath) || String.IsNullOrEmpty(ProjectGameExePath))
+			if (ProjectPlatformBinariesPaths == null || ProjectExePaths == null)
 			{
-				if ( ClientTargetPlatforms.Count > 0 )
+				ProjectPlatformBinariesPaths = new Dictionary<UnrealTargetPlatform, DirectoryReference>();
+				ProjectExePaths = new Dictionary<UnrealTargetPlatform, FileReference>();
+
+				var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
+
+				foreach (TargetPlatformDescriptor TargetPlatform in ClientTargetPlatforms)
 				{
-					var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
-					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type).FullName;
-					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
+					DirectoryReference BinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, TargetPlatform.Type);
+					ProjectPlatformBinariesPaths[TargetPlatform.Type] = BinariesPath;
+					ProjectExePaths[TargetPlatform.Type] = FileReference.Combine(BinariesPath, GameTarget + Platform.GetExeExtension(TargetPlatform.Type));
 				}
 			}
 		}
@@ -2133,21 +2147,28 @@ namespace AutomationTool
 		public bool IsProgramTarget { get; private set; }
 
 		/// <summary>
-		/// Path where the project's game (or program) binaries are built.
+		/// Path where the project's game (or program) binaries are built for the given target platform.
 		/// </summary>
-		public string ProjectBinariesFolder
+		public DirectoryReference GetProjectBinariesPathForPlatform(UnrealTargetPlatform InPlatform)
 		{
-			get
-			{
-				if (String.IsNullOrEmpty(ProjectBinariesPath))
-				{
-					AutodetectSettings(false);
-				}
-				return ProjectBinariesPath;
-			}
+			DirectoryReference Result = null;
+			ProjectPlatformBinariesPaths.TryGetValue(InPlatform, out Result);
+			return Result;
 		}
-		private string ProjectBinariesPath;
 
+		private Dictionary<UnrealTargetPlatform, DirectoryReference> ProjectPlatformBinariesPaths;
+
+		/// <summary>
+		/// Filename of the target game exe (or program exe) for the given target platform
+		/// </summary>
+		public FileReference GetProjectExeForPlatform(UnrealTargetPlatform InPlatform)
+		{
+			FileReference Result = null;
+			ProjectExePaths.TryGetValue(InPlatform, out Result);
+			return Result;
+		}
+
+		private Dictionary<UnrealTargetPlatform, FileReference> ProjectExePaths;
 
 		/// <summary>
 		/// Get the path to the directory of the version we are basing a diff or a patch on.  
@@ -2230,22 +2251,6 @@ namespace AutomationTool
 		{
 			get { return GenerateRemaster; }
 		}
-
-		/// <summary>
-		/// Filename of the target game exe (or program exe).
-		/// </summary>
-		public string ProjectGameExeFilename
-		{
-			get
-			{
-				if (String.IsNullOrEmpty(ProjectGameExePath))
-				{
-					AutodetectSettings(false);
-				}
-				return ProjectGameExePath;
-			}
-		}
-		private string ProjectGameExePath;
 
 		public List<Platform> ClientTargetPlatformInstances
 		{
@@ -2555,10 +2560,8 @@ namespace AutomationTool
                 CommandUtils.LogLog("RunTimeoutSeconds={0}", RunTimeoutSeconds);
                 CommandUtils.LogLog("CrashIndex={0}", CrashIndex);
 				CommandUtils.LogLog("ProgramTargets={0}", ProgramTargets.ToString());
-                CommandUtils.LogLog("ProjectBinariesFolder={0}", ProjectBinariesFolder);
-				CommandUtils.LogLog("ProjectBinariesPath={0}", ProjectBinariesPath);
-				CommandUtils.LogLog("ProjectGameExeFilename={0}", ProjectGameExeFilename);
-				CommandUtils.LogLog("ProjectGameExePath={0}", ProjectGameExePath);
+				CommandUtils.LogLog("ProjectPlatformBinariesPaths={0}", string.Join(",", ProjectPlatformBinariesPaths));
+				CommandUtils.LogLog("ProjectExePaths={0}", string.Join(",", ProjectExePaths));
 				CommandUtils.LogLog("Distribution={0}", Distribution);
                 CommandUtils.LogLog("Prebuilt={0}", Prebuilt);
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);

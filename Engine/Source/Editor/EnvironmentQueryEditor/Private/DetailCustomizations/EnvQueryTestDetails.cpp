@@ -39,7 +39,7 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 		const UEnvQueryTest* EditedTest = Cast<const UEnvQueryTest>(EditedObjects[i].Get());
 		if (EditedTest)
 		{
-			MyTest = EditedTest;
+			MyTest = MakeWeakObjectPtr(const_cast<UEnvQueryTest*>(EditedTest));
 			break;
 		}
 	}

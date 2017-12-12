@@ -1959,7 +1959,7 @@ bool FNetGUIDCache::SupportsObject( const UObject* Object, const TWeakObjectPtr<
 	}
 
 	// Construct WeakPtr once: either use the passed in one or create a new one.
-	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : TWeakObjectPtr<UObject>(Object);
+	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : MakeWeakObjectPtr<UObject>(const_cast<UObject*>(Object));
 
 	// If we already gave it a NetGUID, its supported.
 	// This should happen for dynamic subobjects.
@@ -2010,7 +2010,7 @@ bool FNetGUIDCache::IsNetGUIDAuthority() const
 FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object, const TWeakObjectPtr<UObject>* WeakObjectPtr)
 {
 	// Construct WeakPtr once: either use the passed in one or create a new one.
-	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : TWeakObjectPtr<UObject>(Object);
+	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : MakeWeakObjectPtr( const_cast<UObject*>( Object ) );
 
 	if ( !Object || !SupportsObject( Object, &WeakObject ) )
 	{
@@ -2055,7 +2055,7 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object, const TWe
 
 FNetworkGUID FNetGUIDCache::GetNetGUID(const UObject* Object) const
 {
-	TWeakObjectPtr<UObject> WeakObj(Object);
+	TWeakObjectPtr<UObject> WeakObj(const_cast<UObject*>(Object));
 
 	if ( !Object || !SupportsObject( Object, &WeakObj ) )
 	{
@@ -2129,7 +2129,7 @@ void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const U
 
 	FNetGuidCacheObject CacheObject;
 
-	CacheObject.Object				= Object;
+	CacheObject.Object				= MakeWeakObjectPtr(const_cast<UObject*>(Object));
 	CacheObject.OuterGUID			= GetOrAssignNetGUID( Object->GetOuter() );
 	CacheObject.PathName			= Object->GetFName();
 	CacheObject.NetworkChecksum		= GetNetworkChecksum( Object );
@@ -2192,19 +2192,19 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const U
 		ObjectLookup.Remove( NetGUID );
 	}
 
-	const FNetworkGUID* ExistingNetworkGUIDPtr = NetGUIDLookup.Find( Object );
+	const FNetworkGUID* ExistingNetworkGUIDPtr = NetGUIDLookup.Find( MakeWeakObjectPtr( const_cast<UObject*>( Object ) ) );
 
 	if ( ExistingNetworkGUIDPtr )
 	{
 		// This shouldn't happen on dynamic guids
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "Changing NetGUID on object %s from <%s:%s> to <%s:%s>" ), Object ? *Object->GetPathName() : TEXT( "NULL" ), *ExistingNetworkGUIDPtr->ToString(), ExistingNetworkGUIDPtr->IsDynamic() ? TEXT("TRUE") : TEXT("FALSE"), *NetGUID.ToString(), NetGUID.IsDynamic() ? TEXT("TRUE") : TEXT("FALSE") );
 		ObjectLookup.Remove( *ExistingNetworkGUIDPtr );
-		NetGUIDLookup.Remove( Object );
+		NetGUIDLookup.Remove( MakeWeakObjectPtr( const_cast<UObject*>( Object ) ) );
 	}
 
 	FNetGuidCacheObject CacheObject;
 
-	CacheObject.Object = Object;
+	CacheObject.Object = MakeWeakObjectPtr(const_cast<UObject*>(Object));
 
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }

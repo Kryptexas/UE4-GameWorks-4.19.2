@@ -15,7 +15,7 @@ namespace UnrealBuildTool.Rules
 				}
             );
 
-			Definitions.AddRange(
+			PublicDefinitions.AddRange(
 				new string[] {
 					"BUILDING_STATIC"
 				}

@@ -24,11 +24,11 @@ public class NVAftermath : ModuleRules
             RuntimeDependencies.Add(new RuntimeDependency(nvDLLPath));
 
             //temporarily disable until codegen issues with struct sizes dealing with this define are resolved.
-            Definitions.Add("NV_AFTERMATH=0");
+            PublicDefinitions.Add("NV_AFTERMATH=0");
         }
 		else
         {
-            Definitions.Add("NV_AFTERMATH=0");
+            PublicDefinitions.Add("NV_AFTERMATH=0");
         }
 	}
 }

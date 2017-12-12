@@ -76,10 +76,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FString&);
 
 	// Callback for accessing pak encryption key, if it exists
-	DECLARE_DELEGATE_RetVal(const ANSICHAR*, FPakEncryptionKeyDelegate);
+	DECLARE_DELEGATE_OneParam(FPakEncryptionKeyDelegate, uint8[32]);
 
 	// Callback for gathering pak signing keys, if they exist
-	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, FString&, FString&);
+	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, uint8[64], uint8[64]);
 
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.

@@ -297,7 +297,8 @@ public class IOSPlatform : Platform
 		Log("Package {0}", Params.RawProjectPath);
 
 		// ensure the ue4game binary exists, if applicable
-		string FullExePath = CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
+		string ProjectGameExeFilename = Params.GetProjectExeForPlatform(UnrealTargetPlatform.IOS).ToString();
+		string FullExePath = CombinePaths(Path.GetDirectoryName(ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath))
 		{
 			LogError("Failed to find game binary " + FullExePath);
@@ -329,7 +330,7 @@ public class IOSPlatform : Platform
             PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
 				Params.ShortProjectName,
 				Params.RawProjectPath.Directory,
-				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
+				CombinePaths(Path.GetDirectoryName(ProjectGameExeFilename), SC.StageExecutables[0]),
 				DirectoryReference.Combine(SC.LocalRoot, "Engine"),
 				Params.Distribution, 
 				"",
@@ -338,8 +339,8 @@ public class IOSPlatform : Platform
 
 			// figure out where to pop in the staged files
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",
-				Path.GetDirectoryName(Params.ProjectGameExeFilename),
-				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));
+				Path.GetDirectoryName(ProjectGameExeFilename),
+				Path.GetFileNameWithoutExtension(ProjectGameExeFilename));
 
 			// delete the old cookeddata
 			InternalUtils.SafeDeleteDirectory(AppDirectory + "/cookeddata", true);
@@ -414,7 +415,7 @@ public class IOSPlatform : Platform
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
-			var ProjectStub = Path.GetFullPath(Params.ProjectGameExeFilename);
+			var ProjectStub = Path.GetFullPath(ProjectGameExeFilename);
 
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
@@ -579,10 +580,10 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot.FullName, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, Params.Team, Params.AutomaticSigning, SchemeName, SchemeConfiguration);
+				CodeSign(Path.GetDirectoryName(ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot.FullName, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, Params.Team, Params.AutomaticSigning, SchemeName, SchemeConfiguration);
 
 				// now generate the ipa
-				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
+				PackageIPA(Path.GetDirectoryName(ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
 			}
 		}
 

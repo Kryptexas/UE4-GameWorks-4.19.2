@@ -987,11 +987,13 @@ FText SAnimViewportToolBar::GetPlaybackMenuLabel() const
 		{
 			if (Viewport.Pin()->IsPlaybackSpeedSelected(i))
 			{
-				Label = FText::FromString(FString::Printf(
-					(i == EAnimationPlaybackSpeeds::Quarter) ? TEXT("x%.2f") : TEXT("x%.1f"), 
-					EAnimationPlaybackSpeeds::Values[i]
-					));
-				break;
+				int32 NumFractionalDigits = (i == EAnimationPlaybackSpeeds::Quarter) ? 2 : 1;
+
+				const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+					.SetMinimumFractionalDigits(NumFractionalDigits)
+					.SetMaximumFractionalDigits(NumFractionalDigits);
+
+				Label = FText::Format(LOCTEXT("AnimViewportPlaybackMenuLabel", "x{0}"), FText::AsNumber(EAnimationPlaybackSpeeds::Values[i], &FormatOptions));
 			}
 		}
 	}

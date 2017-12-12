@@ -14,7 +14,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-            Definitions.Add("WITH_PORTAL_SERVICES=1");
+            PublicDefinitions.Add("WITH_PORTAL_SERVICES=1");
 		}
 	}
 }

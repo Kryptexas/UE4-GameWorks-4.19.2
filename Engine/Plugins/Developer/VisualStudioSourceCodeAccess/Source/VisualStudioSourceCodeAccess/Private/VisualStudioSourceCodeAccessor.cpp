@@ -87,8 +87,8 @@ enum class EAccessVisualStudioResult : uint8
 /** save all open documents in visual studio, when recompiling */
 static void OnModuleCompileStarted(bool bIsAsyncCompile)
 {
-	FVisualStudioSourceCodeAccessModule& VisualStudioSourceCodeAccessModule = FModuleManager::LoadModuleChecked<FVisualStudioSourceCodeAccessModule>(TEXT("VisualStudioSourceCodeAccess"));
-	VisualStudioSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
 }
 
 int32 GetVisualStudioVersionForCompiler()
@@ -1288,6 +1288,8 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
 				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
 			}
+
+			FPaths::MakeStandardFilename(CachedSolutionPath);
 		}
 	}
 	return CachedSolutionPath;

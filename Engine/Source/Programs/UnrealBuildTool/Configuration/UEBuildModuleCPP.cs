@@ -128,11 +128,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public readonly DirectoryReference GeneratedCodeDirectory;
 
-		/// <summary>
-		/// The preprocessor definitions used to compile this module's private implementation.
-		/// </summary>
-		HashSet<string> Definitions;
-
 		/// When set, allows this module to report compiler definitions and include paths for Intellisense
 		IntelliSenseGatherer IntelliSenseGatherer;
 
@@ -309,8 +304,12 @@ namespace UnrealBuildTool
 				SourceFilesToBuild.CopyFrom(SourceFilesFound);
 			}
 
-			Definitions = HashSetFromOptionalEnumerableStringParameter(InRules.Definitions);
-			foreach (string Def in Definitions)
+			foreach (string Def in PublicDefinitions)
+			{
+				Log.TraceVerbose("Compile Env {0}: {1}", Name, Def);
+			}
+
+			foreach (string Def in Rules.PrivateDefinitions)
 			{
 				Log.TraceVerbose("Compile Env {0}: {1}", Name, Def);
 			}
@@ -1072,7 +1071,8 @@ namespace UnrealBuildTool
 			// Override compile environment
 			Result.bFasterWithoutUnity = Rules.bFasterWithoutUnity;
 			Result.bOptimizeCode = ShouldEnableOptimization(Rules.OptimizeCode, Target.Configuration, bIsEngineModule);
-			Result.bUseRTTI = Rules.bUseRTTI || Target.bForceEnableRTTI; 
+			Result.bUseRTTI = Rules.bUseRTTI || Target.bForceEnableRTTI;
+			Result.bUseInlining = Target.bUseInlining;
 			Result.bUseAVX = Rules.bUseAVX;
 			Result.bEnableBufferSecurityChecks = Rules.bEnableBufferSecurityChecks;
 			Result.MinSourceFilesForUnityBuildOverride = Rules.MinSourceFilesForUnityBuildOverride;
@@ -1125,8 +1125,9 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Add the module's private definitions.
-			Result.Definitions.AddRange(Definitions);
+			// Add the module's public and private definitions.
+			Result.Definitions.AddRange(PublicDefinitions);
+			Result.Definitions.AddRange(Rules.PrivateDefinitions);
 
 			// Setup the compile environment for the module.
 			SetupPrivateCompileEnvironment(Result.IncludePaths.UserIncludePaths, Result.IncludePaths.SystemIncludePaths, Result.Definitions, Result.AdditionalFrameworks);
@@ -1186,7 +1187,7 @@ namespace UnrealBuildTool
 			}
 
 			// Add the module's private definitions.
-			CompileEnvironment.Definitions.AddRange(Definitions);
+			CompileEnvironment.Definitions.AddRange(PublicDefinitions);
 
 			// Find all the modules that are part of the public compile environment for this module.
 			List<UEBuildModule> Modules = new List<UEBuildModule>();

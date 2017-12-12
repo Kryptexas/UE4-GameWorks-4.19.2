@@ -10,7 +10,7 @@ public class SteamController : ModuleRules
         string SteamVersion = "Steamv139";
         bool bSteamSDKFound = Directory.Exists(Target.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 
-        Definitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
+        PublicDefinitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
 
         PrivateIncludePathModuleNames.Add("TargetPlatform");
 

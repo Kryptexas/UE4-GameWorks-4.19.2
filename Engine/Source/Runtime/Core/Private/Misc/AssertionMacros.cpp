@@ -211,7 +211,7 @@ void FDebug::LogFormattedMessageWithCallstack(const FName& LogName, const ANSICH
 //warning: May be called at library startup time.
 //
 
-VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line))
+void FDebug::LogAssertFailedMessageImpl(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Fmt, ...)
 {
 	// Ignore this assert if we're already forcibly shutting down because of a critical error.
 	if( !GIsCriticalError )
@@ -249,7 +249,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	if( bShouldCrash )
 	{
 		// Just trigger a regular assertion which will crash via GError->Logf()
-		FDebug::LogAssertFailedMessage( Expr, File, Line, Msg );
+		FDebug::LogAssertFailedMessage( Expr, File, Line, TEXT("%s"), Msg );
 		return;
 	}
 

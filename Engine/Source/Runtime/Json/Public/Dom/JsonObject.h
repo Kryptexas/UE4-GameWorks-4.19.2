@@ -118,7 +118,7 @@ public:
 	 */
 	FORCEINLINE int32 GetIntegerField(const FString& FieldName) const
 	{
-		return FMath::TruncToInt(GetNumberField(FieldName));
+		return (int32)GetNumberField(FieldName);
 	}
 
 	/** Get the field named FieldName as a number. Returns false if it doesn't exist or cannot be converted. */

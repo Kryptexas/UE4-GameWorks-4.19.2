@@ -50,11 +50,11 @@ public class Launch : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Mac)))
 		{
 			PrivateDependencyModuleNames.Add("LauncherCheck");
-			Definitions.Add("WITH_LAUNCHERCHECK=1");
+			PublicDefinitions.Add("WITH_LAUNCHERCHECK=1");
 		}
 		else
 		{
-			Definitions.Add("WITH_LAUNCHERCHECK=0");
+			PublicDefinitions.Add("WITH_LAUNCHERCHECK=0");
 		}
 
 		if (Target.Type != TargetType.Server)

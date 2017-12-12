@@ -797,7 +797,7 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 
 void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationActor)
 {
-	DestinationActor = InDestinationActor;
+	DestinationActor = MakeWeakObjectPtr(const_cast<AActor*>(InDestinationActor));
 	DestinationAgent = Cast<const INavAgentInterface>(InDestinationActor);
 	
 	const AActor* OwnerActor = GetOwner();

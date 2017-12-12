@@ -22,6 +22,7 @@
 #include "Engine/Engine.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "Misc/CompilationResult.h"
 #include "EditorEngine.generated.h"
 
 class AMatineeActor;
@@ -614,6 +615,9 @@ public:
 
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
+	/** Whether or not the editor is currently compiling */
+	bool bIsCompiling;
 
 private:
 
@@ -2583,6 +2587,12 @@ private:
 
 	/** Called when all PIE instances have been successfully logged in */
 	virtual void OnLoginPIEAllComplete();
+
+	/** Called when a recompilation of a module is beginning */
+	void OnModuleCompileStarted(bool bIsAsyncCompile);
+
+	/** Called when a recompilation of a module is ending */
+	void OnModuleCompileFinished(const FString& CompilationOutput, ECompilationResult::Type CompilationResult, bool bShowLog);
 
 public:
 	/** Creates a pie world from the default entry map, used by clients that connect to a PIE server */

@@ -14,6 +14,6 @@ public class Sockets : ModuleRules
 				"SandboxFile"
 			});
 
-		Definitions.Add("SOCKETS_PACKAGE=1");
+		PublicDefinitions.Add("SOCKETS_PACKAGE=1");
 	}
 }

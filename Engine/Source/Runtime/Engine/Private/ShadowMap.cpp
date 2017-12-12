@@ -132,38 +132,11 @@ struct FShadowMapAllocationGroup
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FShadowMapAllocationGroup(FShadowMapAllocationGroup&&) = default;
 	FShadowMapAllocationGroup& operator=(FShadowMapAllocationGroup&&) = default;
 
 	FShadowMapAllocationGroup(const FShadowMapAllocationGroup&) = delete; // non-copy-able
 	FShadowMapAllocationGroup& operator=(const FShadowMapAllocationGroup&) = delete;
-#else
-	FShadowMapAllocationGroup(FShadowMapAllocationGroup&& other)
-		: Allocations(MoveTemp(other.Allocations))
-		, TextureOuter(other.TextureOuter)
-		, Bounds(other.Bounds)
-		, ShadowmapFlags(other.ShadowmapFlags)
-		, TotalTexels(other.TotalTexels)
-	{
-	}
-
-	FShadowMapAllocationGroup& operator=(FShadowMapAllocationGroup&& other)
-	{
-		Allocations = MoveTemp(other.Allocations);
-		TextureOuter = other.TextureOuter;
-		Bounds = other.Bounds;
-		ShadowmapFlags = other.ShadowmapFlags;
-		TotalTexels = other.TotalTexels;
-
-		return *this;
-	}
-
-private:
-	FShadowMapAllocationGroup(const FShadowMapAllocationGroup&); // non-copy-able
-	FShadowMapAllocationGroup& operator=(const FShadowMapAllocationGroup&);
-public:
-#endif
 
 	TArray<TUniquePtr<FShadowMapAllocation>, TInlineAllocator<1>> Allocations;
 

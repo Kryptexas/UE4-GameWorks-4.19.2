@@ -6,7 +6,7 @@ public class HTTP : ModuleRules
 {
     public HTTP(ReadOnlyTargetRules Target) : base(Target)
     {
-        Definitions.Add("HTTP_PACKAGE=1");
+        PublicDefinitions.Add("HTTP_PACKAGE=1");
 
         PrivateIncludePaths.AddRange(
             new string[] {
@@ -45,16 +45,16 @@ public class HTTP : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_SSL=0");
-			Definitions.Add("WITH_LIBCURL=0");
+			PublicDefinitions.Add("WITH_SSL=0");
+			PublicDefinitions.Add("WITH_LIBCURL=0");
 		}
 
 		if (bWithCurl)
 		{
-			Definitions.Add("CURL_ENABLE_DEBUG_CALLBACK=1");
+			PublicDefinitions.Add("CURL_ENABLE_DEBUG_CALLBACK=1");
 			if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 			{
-				Definitions.Add("CURL_ENABLE_NO_TIMEOUTS_OPTION=1");
+				PublicDefinitions.Add("CURL_ENABLE_NO_TIMEOUTS_OPTION=1");
 			}
 		}
 

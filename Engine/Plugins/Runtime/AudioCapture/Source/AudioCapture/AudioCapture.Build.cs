@@ -32,8 +32,8 @@ namespace UnrealBuildTool.Rules
             if (Target.Platform == UnrealTargetPlatform.Win32 ||
                 Target.Platform == UnrealTargetPlatform.Win64)
             {
-                Definitions.Add("WITH_RTAUDIO=1");
-                Definitions.Add("WITH_AUDIOCAPTURE=1");
+                PublicDefinitions.Add("WITH_RTAUDIO=1");
+                PublicDefinitions.Add("WITH_AUDIOCAPTURE=1");
 
                 // Allow us to use direct sound
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectSound");
@@ -41,7 +41,7 @@ namespace UnrealBuildTool.Rules
             else
             {
                 // Not supported on this platform
-                Definitions.Add("WITH_AUDIOCAPTURE=0");
+                PublicDefinitions.Add("WITH_AUDIOCAPTURE=0");
             }
         }
     }

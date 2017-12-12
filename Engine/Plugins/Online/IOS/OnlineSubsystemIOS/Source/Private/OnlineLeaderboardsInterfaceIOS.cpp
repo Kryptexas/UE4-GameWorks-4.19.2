@@ -129,7 +129,7 @@ bool FOnlineLeaderboardsIOS::ReadLeaderboardCompletionDelegate(NSArray* players,
                             
                                 default:
                                 {
-                                    UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from GameCenter %s"), ColumnMeta.ColumnName);
+                                    UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from GameCenter %s"), *ColumnMeta.ColumnName.ToString());
                                     break;
                                 }
                             }

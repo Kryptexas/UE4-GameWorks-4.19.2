@@ -2521,17 +2521,20 @@ float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator&
 void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UAnimInstance* This = CastChecked<UAnimInstance>(InThis);
-	if (This)
+
+	// go through all montage instances, and update them
+	// and make sure their weight is updated properly
+	for (int32 I=0; I<This->MontageInstances.Num(); ++I)
 	{
-		// go through all montage instances, and update them
-		// and make sure their weight is updated properly
-		for (int32 I=0; I<This->MontageInstances.Num(); ++I)
+		if( This->MontageInstances[I] )
 		{
-			if( This->MontageInstances[I] )
-			{
-				This->MontageInstances[I]->AddReferencedObjects(Collector);
-			}
+			This->MontageInstances[I]->AddReferencedObjects(Collector);
 		}
+	}
+
+	if (This->AnimInstanceProxy)
+	{
+		This->AnimInstanceProxy->AddReferencedObjects(This, Collector);
 	}
 
 	Super::AddReferencedObjects(This, Collector);

@@ -22,6 +22,14 @@ struct FKeyPair
 		Ar << Pair.PrivateKey.Modulus;
 		return Ar;
 	}
+
+	bool IsValid() const
+	{
+		return !PrivateKey.Exponent.IsZero()
+			&& !PrivateKey.Modulus.IsZero()
+			&& !PublicKey.Exponent.IsZero()
+			&& !PublicKey.Modulus.IsZero();
+	}
 };
 
 /**

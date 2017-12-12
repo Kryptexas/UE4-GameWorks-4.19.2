@@ -280,6 +280,16 @@ public:
 		return MapPackageExtension;
 	}
 
+	/**
+	* Returns the file extension for packages containing text assets.
+	*
+	* @return	file extension for textasset packages ( dot included )
+	*/
+	static FORCEINLINE const FString& GetTextAssetPackageExtension()
+	{
+		return TextAssetPackageExtension;
+	}
+
 	/** 
 	 * Returns whether the passed in extension is a valid package 
 	 * extension. Extensions with and without trailing dots are supported.
@@ -432,6 +442,7 @@ private:
 
 	static FString AssetPackageExtension;
 	static FString MapPackageExtension;
+	static FString TextAssetPackageExtension;
 	/**
 	 * Internal function used to rename filename to long package name.
 	 *

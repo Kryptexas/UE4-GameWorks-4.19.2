@@ -158,7 +158,7 @@ namespace Algo
 	template <typename RangeType, typename ValueType, typename ProjectionType>
 	FORCEINLINE int32 UpperBoundBy(RangeType& Range, const ValueType& Value, ProjectionType Projection)
 	{
-		return AlgoImpl::UpperBoundInternal(GetData(Range), GetNum(Range), Value, Projection);
+		return AlgoImpl::UpperBoundInternal(GetData(Range), GetNum(Range), Value, Projection, TLess<>());
 	}
 
 	/**

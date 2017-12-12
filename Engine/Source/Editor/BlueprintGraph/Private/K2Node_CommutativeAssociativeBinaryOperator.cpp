@@ -140,11 +140,13 @@ void UK2Node_CommutativeAssociativeBinaryOperator::AllocateDefaultPins()
 	else
 	{
 		const UClass* FunctionParentClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
-		Message_Error(FString::Printf(
-			*LOCTEXT("NoFunction_Error", "CommutativeAssociativeBinaryOperator has no function: '%s' class: '%s'").ToString(), 
-			*FunctionReference.GetMemberName().ToString(),
-			(FunctionParentClass ? *FunctionParentClass->GetName() : TEXT("None"))
-			));
+		Message_Error(
+			FText::Format(
+				LOCTEXT("NoFunction_ErrorFmt", "CommutativeAssociativeBinaryOperator has no function: '{0}' class: '{1}'"),
+				FText::FromString(FunctionReference.GetMemberName().ToString()),
+				FunctionParentClass ? FText::FromString(FunctionParentClass->GetName()) : LOCTEXT("NoFunction_ErrorNone", "None")
+			).ToString()
+		);
 	}
 }
 

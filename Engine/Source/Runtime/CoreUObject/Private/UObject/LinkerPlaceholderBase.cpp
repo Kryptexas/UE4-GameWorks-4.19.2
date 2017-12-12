@@ -560,7 +560,7 @@ int32 TLinkerImportPlaceholder<UClass>::ResolvePropertyReferences(UClass* Replac
 		}
 		else
 		{
-			checkf(TEXT("Unhandled property type: %s"), *Property->GetClass()->GetName());
+			checkf(false, TEXT("Unhandled property type: %s"), *Property->GetClass()->GetName());
 		}
 	}
 
@@ -599,7 +599,7 @@ int32 TLinkerImportPlaceholder<UFunction>::ResolvePropertyReferences(UFunction* 
 		}
 		else
 		{
-			checkf(TEXT("Unhandled property type: %s"), *Property->GetClass()->GetName());
+			checkf(false, TEXT("Unhandled property type: %s"), *Property->GetClass()->GetName());
 		}
 	}
 

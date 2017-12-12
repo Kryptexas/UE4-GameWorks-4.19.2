@@ -456,6 +456,11 @@ public:
 	CORE_API bool Serialize(FArchive& Ar);
 
 	/**
+	* Serializes this date and time for network transmission
+	*/
+	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	/**
 	 * Returns the RFC 1123 string representation of the FDateTime.
 	 *
 	 * The resulting string assumes that the FDateTime is in UTC.

@@ -307,7 +307,7 @@ namespace UnrealBuildTool
 					Arguments.Add("/Os");
 
 					// Allow inline method expansion unless E&C support is requested
-					if (!CompileEnvironment.bSupportEditAndContinue)
+					if (!CompileEnvironment.bSupportEditAndContinue && CompileEnvironment.bUseInlining)
 					{
 						Arguments.Add("/Ob2");
 					}
@@ -1069,7 +1069,7 @@ namespace UnrealBuildTool
 			if (!WindowsPlatform.bCompileWithClang && CompileEnvironment.bPrintTimingInfo)
 			{
 				// Force MSVC
-				SharedArguments.Add("/Bt+");
+				SharedArguments.Add("/Bt+ /d2cgsummary");
 			}
 
 			// Add preprocessor definitions to the argument list.

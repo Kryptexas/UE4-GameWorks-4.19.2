@@ -4,6 +4,9 @@
 
 #include "CoreTypes.h"
 #include "HAL/PlatformMisc.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArrayOrRefOfType.h"
+#include "Templates/IsValidVariadicFunctionArg.h"
 #include "VarArgs.h"
 
 namespace ELogVerbosity
@@ -36,8 +39,19 @@ struct CORE_API FDebug
 	static void DumpStackTraceToLog();
 
 #if DO_CHECK || DO_GUARD_SLOW
+private:
+	static void VARARGS LogAssertFailedMessageImpl(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Fmt, ...);
+
+public:
 	/** Failed assertion handler.  Warning: May be called at library startup time. */
-	VARARG_DECL(static void, static void, VARARG_NONE, LogAssertFailedMessage, VARARG_NONE, const TCHAR*, VARARG_EXTRA(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line), VARARG_EXTRA(Expr, File, Line));
+	template <typename FmtType, typename... Types>
+	static void LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FDebug::LogAssertFailedMessage");
+
+		LogAssertFailedMessageImpl(Expr, File, Line, Fmt, Args...);
+	}
 	
 	/**
 	 * Called when an 'ensure' assertion fails; gathers stack data and generates and error report.
@@ -258,21 +272,12 @@ namespace UE4Asserts_Private
 	Low level error macros
 ----------------------------------------------------------------------------*/
 
-struct FTCharArrayTester
-{
-	template <uint32 N>
-	static char (&Func(const TCHAR(&)[N]))[2];
-	static char (&Func(...))[1];
-};
-
-#define IS_TCHAR_ARRAY(expr) (sizeof(FTCharArrayTester::Func(expr)) == 2)
-
 /** low level fatal error handler. */
 CORE_API void VARARGS LowLevelFatalErrorHandler(const ANSICHAR* File, int32 Line, const TCHAR* Format=TEXT(""), ... );
 
 #define LowLevelFatalError(Format, ...) \
 	{ \
-		static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+		static_assert(TIsArrayOrRefOfType<decltype(Format), TCHAR>::Value, "Formatting string must be a TCHAR array."); \
 		LowLevelFatalErrorHandler(__FILE__, __LINE__, Format, ##__VA_ARGS__); \
 		_DebugBreakAndPromptForRemote(); \
 		FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \

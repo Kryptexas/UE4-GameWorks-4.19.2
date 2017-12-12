@@ -953,7 +953,7 @@ int32 FString::ParseIntoArrayWS( TArray<FString>& OutArray, const TCHAR* pchExtr
 {
 	// default array of White Spaces, the last entry can be replaced with the optional pchExtraDelim string
 	// (if you want to split on white space and another character)
-	static const TCHAR* WhiteSpace[] = 
+	const TCHAR* WhiteSpace[] = 
 	{
 		TEXT(" "),
 		TEXT("\t"),
@@ -1301,7 +1301,7 @@ FString FString::ConvertTabsToSpaces (const int32 InSpacesPerTab)
 // This starting size catches 99.97% of printf calls - there are about 700k printf calls per level
 #define STARTING_BUFFER_SIZE		512
 
-VARARG_BODY( FString, FString::Printf, const TCHAR*, VARARG_NONE )
+FString FString::PrintfImpl(const TCHAR* Fmt, ...)
 {
 	int32		BufferSize	= STARTING_BUFFER_SIZE;
 	TCHAR	StartingBuffer[STARTING_BUFFER_SIZE];

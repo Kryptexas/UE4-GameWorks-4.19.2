@@ -1408,7 +1408,7 @@ void FLightmassExporter::WriteBaseMeshInstanceData( int32 Channel, int32 MeshInd
 	AActor* ComponentOwner = Mesh->Component->GetOwner();
 	if (ComponentOwner && ComponentOwner->GetLevel())
 	{
-		const ULevel* MeshLevel = Mesh->Component->GetOwner()->GetLevel();
+		ULevel* MeshLevel = Mesh->Component->GetOwner()->GetLevel();
 		MeshInstanceData.LevelGuid = *LevelGuids.FindKey(MeshLevel);
 		bFoundLevel = true;
 	}

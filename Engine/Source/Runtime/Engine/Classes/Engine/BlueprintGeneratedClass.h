@@ -320,7 +320,7 @@ public:
 
 		if (const FDebuggingInfoForSingleFunction* DebugInfoPtr = PerFunctionLineNumbers.Find(InFunction))
 		{
-			if (const FInt32Range* ValuePtr = DebugInfoPtr->PureNodeScriptCodeRangeMap.Find(SourceNode))
+			if (const FInt32Range* ValuePtr = DebugInfoPtr->PureNodeScriptCodeRangeMap.Find(MakeWeakObjectPtr(const_cast<UEdGraphNode*>(SourceNode))))
 			{
 				Result = *ValuePtr;
 			}
@@ -382,7 +382,7 @@ public:
 	// Looks thru the debugging data for any class variables associated with the node (e.g., temporary variables or timelines)
 	UProperty* FindClassPropertyForNode(const UEdGraphNode* Node) const
 	{
-		return DebugObjectToPropertyMap.FindRef(Node);
+		return DebugObjectToPropertyMap.FindRef(MakeWeakObjectPtr(const_cast<UEdGraphNode*>(Node)));
 	}
 
 	// Adds a debug record for a source node and destination in the bytecode of a specified function

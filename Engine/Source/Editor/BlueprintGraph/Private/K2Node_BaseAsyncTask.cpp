@@ -298,9 +298,13 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 	CallCreateProxyObjectNode->AllocateDefaultPins();
 	if (CallCreateProxyObjectNode->GetTargetFunction() == nullptr)
 	{
-		const FString ClassName = ProxyFactoryClass ? ProxyFactoryClass->GetName() : LOCTEXT("MissingClassString", "Unknown Class").ToString();
-		const FString RawMessage = LOCTEXT("AsyncTaskError", "BaseAsyncTask: Missing function %s from class %s for async task @@").ToString();
-		const FString FormattedMessage = FString::Printf(*RawMessage, *ProxyFactoryFunctionName.GetPlainNameString(), *ClassName);
+		const FText ClassName = ProxyFactoryClass ? FText::FromString(ProxyFactoryClass->GetName()) : LOCTEXT("MissingClassString", "Unknown Class");
+		const FString FormattedMessage = FText::Format(
+			LOCTEXT("AsyncTaskErrorFmt", "BaseAsyncTask: Missing function {0} from class {1} for async task @@"),
+			FText::FromString(ProxyFactoryFunctionName.GetPlainNameString()),
+			ClassName
+		).ToString();
+
 		CompilerContext.MessageLog.Error(*FormattedMessage, this);
 		return;
 	}

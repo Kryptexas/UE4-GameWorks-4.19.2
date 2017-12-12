@@ -345,7 +345,7 @@ void RecompileGameplayAbilitiesEditor(const TArray<FString>& Args)
 			PackagesToRebind.Add( Package );
 		}
 
-		HotReload->RebindPackages(PackagesToRebind, TArray<FName>(), true, *GLog);
+		HotReload->RebindPackages(PackagesToRebind, EHotReloadFlags::WaitForCompletion, *GLog);
 	}
 
 	GWarn->EndSlowTask();

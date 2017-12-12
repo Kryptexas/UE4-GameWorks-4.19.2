@@ -10,8 +10,8 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include <windows.h>
-#include "../../../Runtime/Launch/Resources/Version.h"
-#include "../../../Runtime/Launch/Resources/Windows/resource.h"
+#include "Runtime/Launch/Resources/Version.h"
+#include "Runtime/Launch/Resources/Windows/resource.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS

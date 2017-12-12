@@ -101,7 +101,7 @@ void FRenderResource::InitResourceFromPossiblyParallelRendering()
 
 			static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 			{
-				return ENamedThreads::RenderThread_Local;
+				return ENamedThreads::GetRenderThread_Local();
 			}
 
 			static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }

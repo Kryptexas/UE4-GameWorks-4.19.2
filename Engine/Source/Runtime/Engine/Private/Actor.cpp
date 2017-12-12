@@ -141,7 +141,7 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
-bool AActor::CheckDefaultSubobjectsInternal()
+bool AActor::CheckDefaultSubobjectsInternal() const
 {
 	bool Result = Super::CheckDefaultSubobjectsInternal();
 	if (Result)
@@ -151,7 +151,7 @@ bool AActor::CheckDefaultSubobjectsInternal()
 	return Result;
 }
 
-bool AActor::CheckActorComponents()
+bool AActor::CheckActorComponents() const
 {
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 

@@ -10,6 +10,6 @@ public class TP_Vehicle : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysXVehicles", "HeadMountedDisplay" });
 
-		Definitions.Add("HMD_MODULE_INCLUDED=1");
+		PublicDefinitions.Add("HMD_MODULE_INCLUDED=1");
 	}
 }

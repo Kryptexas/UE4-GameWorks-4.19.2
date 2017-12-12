@@ -141,19 +141,21 @@ FSimpleMulticastDelegate& FCoreDelegates::GetOutOfMemoryDelegate()
 
 FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;
 
-void RegisterEncryptionKey(const char* InEncryptionKey)
+typedef void(*TSigningKeyFunc)(uint8[64], uint8[64]);
+typedef void(*TEncryptionKeyFunc)(unsigned char[32]);
+
+void RegisterSigningKeyCallback(TSigningKeyFunc InCallback)
 {
-	FCoreDelegates::GetPakEncryptionKeyDelegate().BindLambda([InEncryptionKey]() { return InEncryptionKey; });
+	FCoreDelegates::GetPakSigningKeysDelegate().BindLambda([InCallback](uint8 OutExponent[64], uint8 OutModulus[64])
+	{
+		InCallback(OutExponent, OutModulus);
+	});
 }
 
-void RegisterPakSigningKeys(const char* InExponent, const char* InModulus)
+void RegisterEncryptionKeyCallback(TEncryptionKeyFunc InCallback)
 {
-	static FString Exponent(ANSI_TO_TCHAR(InExponent));
-	static FString Modulus(ANSI_TO_TCHAR(InModulus));
-
-	FCoreDelegates::GetPakSigningKeysDelegate().BindLambda([](FString& OutExponent, FString& OutModulus)
+	FCoreDelegates::GetPakEncryptionKeyDelegate().BindLambda([InCallback](uint8 OutKey[32])
 	{
-		OutExponent = Exponent;
-		OutModulus = Modulus;
+		InCallback(OutKey);
 	});
 }

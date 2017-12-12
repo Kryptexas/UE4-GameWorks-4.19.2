@@ -236,7 +236,7 @@ FGenericCrashContext::FGenericCrashContext()
 	CrashContextIndex = StaticCrashContextIndex++;
 }
 
-void FGenericCrashContext::SerializeContentToBuffer()
+void FGenericCrashContext::SerializeContentToBuffer() const
 {
 	TCHAR CrashGUID[CrashGUIDLength];
 	GetUniqueCrashName(CrashGUID, CrashGUIDLength);
@@ -381,14 +381,14 @@ const bool FGenericCrashContext::IsFullCrashDumpOnEnsure() const
 	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
 }
 
-void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )
+void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename ) const
 {
 	SerializeContentToBuffer();
 	// Use OS build-in functionality instead.
 	FFileHelper::SaveStringToFile( CommonBuffer, Filename, FFileHelper::EEncodingOptions::AutoDetect );
 }
 
-void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue )
+void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue ) const
 {
 	CommonBuffer += TEXT( "<" );
 	CommonBuffer += PropertyName;
@@ -403,24 +403,24 @@ void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TC
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-void FGenericCrashContext::AddPlatformSpecificProperties()
+void FGenericCrashContext::AddPlatformSpecificProperties() const
 {
 	// Nothing really to do here. Can be overridden by the platform code.
 	// @see FWindowsPlatformCrashContext::AddPlatformSpecificProperties
 }
 
-void FGenericCrashContext::AddHeader()
+void FGenericCrashContext::AddHeader() const
 {
 	CommonBuffer += TEXT( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" ) LINE_TERMINATOR;
 	BeginSection( TEXT("FGenericCrashContext") );
 }
 
-void FGenericCrashContext::AddFooter()
+void FGenericCrashContext::AddFooter() const
 {
 	EndSection( TEXT( "FGenericCrashContext" ) );
 }
 
-void FGenericCrashContext::BeginSection( const TCHAR* SectionName )
+void FGenericCrashContext::BeginSection( const TCHAR* SectionName ) const
 {
 	CommonBuffer += TEXT( "<" );
 	CommonBuffer += SectionName;
@@ -428,7 +428,7 @@ void FGenericCrashContext::BeginSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-void FGenericCrashContext::EndSection( const TCHAR* SectionName )
+void FGenericCrashContext::EndSection( const TCHAR* SectionName ) const
 {
 	CommonBuffer += TEXT( "</" );
 	CommonBuffer += SectionName;

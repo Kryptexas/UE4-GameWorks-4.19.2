@@ -1567,7 +1567,7 @@ struct FLoadObjectsFromAssetRegistryHelper
 				TObjectType* Object = LoadObject<TObjectType>(NULL, *AssetPath, NULL, 0, NULL);
 				if (Object)
 				{
-					Collection.Add( TWeakObjectPtr<TObjectType>(Object) );
+					Collection.Add( MakeWeakObjectPtr(Object) );
 				}
 			}
 		}

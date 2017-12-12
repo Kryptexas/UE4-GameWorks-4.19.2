@@ -339,22 +339,6 @@ struct FParmsAndReturnProperties
 	{
 	}
 
-	#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-		FParmsAndReturnProperties(FParmsAndReturnProperties&&) = default;
-		FParmsAndReturnProperties(const FParmsAndReturnProperties&) = default;
-		FParmsAndReturnProperties& operator=(FParmsAndReturnProperties&&) = default;
-		FParmsAndReturnProperties& operator=(const FParmsAndReturnProperties&) = default;
-
-	#else
-
-		FParmsAndReturnProperties(      FParmsAndReturnProperties&& Other) : Parms(MoveTemp(Other.Parms)), Return(MoveTemp(Other.Return)) {}
-		FParmsAndReturnProperties(const FParmsAndReturnProperties&  Other) : Parms(         Other.Parms ), Return(         Other.Return ) {}
-		FParmsAndReturnProperties& operator=(      FParmsAndReturnProperties&& Other) { Parms = MoveTemp(Other.Parms); Return = MoveTemp(Other.Return); return *this; }
-		FParmsAndReturnProperties& operator=(const FParmsAndReturnProperties&  Other) { Parms =          Other.Parms ; Return =          Other.Return ; return *this; }
-
-	#endif
-
 	bool HasParms() const
 	{
 		return Parms.Num() || Return;
@@ -3033,8 +3017,15 @@ void FNativeClassHeaderGenerator::ExportEnum(FOutputDevice& Out, UEnum* Enum)
 {
 	// Export FOREACH macro
 	Out.Logf( TEXT("#define FOREACH_ENUM_%s(op) "), *Enum->GetName().ToUpper() );
-	for (int32 i = 0; i < Enum->NumEnums() - 1; i++)
+	bool bHasExistingMax = Enum->ContainsExistingMax();
+	int64 MaxEnumVal = bHasExistingMax ? Enum->GetMaxEnumValue() : 0;
+	for (int32 i = 0; i < Enum->NumEnums(); i++)
 	{
+		if (bHasExistingMax && Enum->GetValueByIndex(i) == MaxEnumVal)
+		{
+			continue;
+		}
+
 		const FString QualifiedEnumValue = Enum->GetNameByIndex(i).ToString();
 		Out.Logf( TEXT("\\\r\n\top(%s) "), *QualifiedEnumValue );
 	}

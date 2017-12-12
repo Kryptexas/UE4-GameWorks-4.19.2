@@ -26,7 +26,7 @@ void UK2Node_EnumLiteral::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	Super::ValidateNodeDuringCompilation(MessageLog);
 	if (!Enum)
 	{
-		MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "EnumLiteral_NullEnumError", "Undefined Enum in @@").ToString()), this);
+		MessageLog.Error(*NSLOCTEXT("K2Node", "EnumLiteral_NullEnumError", "Undefined Enum in @@").ToString(), this);
 	}
 }
 
@@ -125,7 +125,7 @@ void UK2Node_EnumLiteral::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 	{
 		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, InEnum);
 		check(NodeSpawner != nullptr);
-		TWeakObjectPtr<UEnum> NonConstEnumPtr = InEnum;
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = MakeWeakObjectPtr(const_cast<UEnum*>(InEnum));
 		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(GetMenuActions_Utils::SetNodeEnum, NonConstEnumPtr);
 
 		return NodeSpawner;

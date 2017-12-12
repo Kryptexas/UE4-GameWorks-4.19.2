@@ -439,7 +439,7 @@ protected:
 	/**
 	 * Maps the nodes in an intermediate tunnel expansion path back to the owning tunnel instance node.
 	 */
-	void MapExpansionPathToTunnelInstance(UEdGraphNode* InnerExpansionNode, UEdGraphNode* OuterTunnelInstance);
+	void MapExpansionPathToTunnelInstance(const UEdGraphNode* InnerExpansionNode, const UEdGraphNode* OuterTunnelInstance);
 
 	/**
 	* Processes an intermediate tunnel expansion boundary.

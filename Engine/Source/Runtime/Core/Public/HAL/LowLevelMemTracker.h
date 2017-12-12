@@ -4,6 +4,7 @@
 
 #include "CoreTypes.h"
 #include "ScopeLock.h"
+#include "Templates/Atomic.h"
 
 
 // this is currently incompatible with PLATFORM_USES_FIXED_GMalloc_CLASS, because this ends up being included way too early
@@ -331,7 +332,7 @@ private:
 
 	uint64 ProgramSize;
 
-	bool bIsDisabled;
+	TAtomic<bool> bIsDisabled;
 
 	bool ActiveSets[(int32)ELLMTagSet::Max];
 

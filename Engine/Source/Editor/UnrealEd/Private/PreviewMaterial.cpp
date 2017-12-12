@@ -1040,7 +1040,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			ParameterValue.SortPriority = 0;
 			SourceInstance->GetParameterSortPriority(ParameterInfo, ParameterValue.SortPriority);
 			
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 		SourceInstance->GetAllMaterialLayersParameterInfo(OutParameterInfo, Guids);
 		// Copy Static Material Layers Parameters

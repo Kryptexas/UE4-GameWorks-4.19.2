@@ -410,7 +410,7 @@ void USkeleton::ClearCacheData()
 
 int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 {
-	const int32* IndexPtr = SkelMesh2LinkupCache.Find(InSkelMesh);
+	const int32* IndexPtr = SkelMesh2LinkupCache.Find(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)));
 	int32 LinkupIndex = INDEX_NONE;
 
 	if ( IndexPtr == NULL )
@@ -430,7 +430,7 @@ int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 
 void USkeleton::RemoveLinkup(const USkeletalMesh* InSkelMesh)
 {
-	SkelMesh2LinkupCache.Remove(InSkelMesh);
+	SkelMesh2LinkupCache.Remove(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)));
 }
 
 int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
@@ -506,7 +506,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 
 	int32 NewIndex = LinkupCache.Add(NewMeshLinkup);
 	check (NewIndex != INDEX_NONE);
-	SkelMesh2LinkupCache.Add(InSkelMesh, NewIndex);
+	SkelMesh2LinkupCache.Add(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)), NewIndex);
 
 	return NewIndex;
 }

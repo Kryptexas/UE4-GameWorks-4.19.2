@@ -701,7 +701,7 @@ void FShaderResource::InitRHI()
 			TArray<uint32> StreamStrides;
 			int32 RasterizedStream = -1;
 			SpecificType->GetStreamOutElements(ElementList, StreamStrides, RasterizedStream);
-			checkf(ElementList.Num(), *FString::Printf(TEXT("Shader type %s was given GetStreamOutElements implementation that had no elements!"), SpecificType->GetName()));
+			checkf(ElementList.Num(), TEXT("Shader type %s was given GetStreamOutElements implementation that had no elements!"), SpecificType->GetName());
 
 			//@todo - not using the cache
 			GeometryShader = FShaderCodeLibrary::CreateGeometryShaderWithStreamOutput((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode, ElementList, StreamStrides.Num(), StreamStrides.GetData(), RasterizedStream);
@@ -720,7 +720,7 @@ void FShaderResource::InitRHI()
 
 	if (Target.Frequency != SF_Geometry)
 	{
-		checkf(!SpecificType, *FString::Printf(TEXT("Only geometry shaders can use GetStreamOutElements, shader type %s"), SpecificType->GetName()));
+		checkf(!SpecificType, TEXT("Only geometry shaders can use GetStreamOutElements, shader type %s"), SpecificType->GetName());
 	}
 
 	if (!FPlatformProperties::HasEditorOnlyData())

@@ -1556,6 +1556,12 @@ void FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked( )
 
 bool FInternalPlayWorldCommandCallbacks::PlayInViewport_CanExecute()
 {
+	// Disallow PIE when compiling in the editor
+	if (GEditor->bIsCompiling)
+	{
+		return false;
+	}
+
 	// Allow PIE if we don't already have a play session or the play session is simulate in editor (which we can toggle to PIE)
 	return (!GEditor->bIsPlayWorldQueued && !HasPlayWorld() && !GEditor->IsLightingBuildCurrentlyRunning() ) || GUnrealEd->bIsSimulatingInEditor;
 }

@@ -99,8 +99,8 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 				{
 					const FString DelegateName = DelegateNode->GetPropertyName().ToString();
 
-					*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Bad_delegate_connection_named", "A connected delegate (%s) has an incompatible signature - has that delegate changed?").ToString(),
-						*DelegateName);
+					*OutMsg = FText::Format(NSLOCTEXT("K2Node", "Bad_delegate_connection_named_fmt", "A connected delegate ({0}) has an incompatible signature - has that delegate changed?"),
+						FText::FromString(DelegateName)).ToString();
 				}
 				else
 				{
@@ -126,8 +126,8 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 				SelfPinName = UEdGraphSchema_K2::PN_Self.ToString();
 			}
 
-			*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Class_not_found", "Unable to determine context for the selected function/event: '%s' - make sure the target '%s' pin is properly set up.").ToString(),
-				*FunctionName.ToString(), *SelfPinName);
+			*OutMsg = FText::Format(NSLOCTEXT("K2Node", "Class_not_found_fmt", "Unable to determine context for the selected function/event: '{0}' - make sure the target '{1}' pin is properly set up."),
+				FText::FromString(FunctionName.ToString()), FText::FromString(SelfPinName)).ToString();
 		}
 		return false;
 	}
@@ -139,8 +139,8 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	{
 		if (OutMsg)
 		{
-			*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Function_not_found", "Unable to find the selected function/event: '%s' - has it been deleted?").ToString(),
-				*FunctionName.ToString());
+			*OutMsg = FText::Format(NSLOCTEXT("K2Node", "Function_not_found_fmt", "Unable to find the selected function/event: '{0}' - has it been deleted?"),
+				FText::FromString(FunctionName.ToString())).ToString();
 
 		}
 		return false;
@@ -149,8 +149,8 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	{
 		if (OutMsg)
 		{
-			*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Function_not_compatible", "The function/event '%s' does not match the necessary signature - has the delegate or function/event changed?").ToString(),
-				*FunctionName.ToString());
+			*OutMsg = FText::Format(NSLOCTEXT("K2Node", "Function_not_compatible_fmt", "The function/event '{0}' does not match the necessary signature - has the delegate or function/event changed?"),
+				FText::FromString(FunctionName.ToString())).ToString();
 		}
 		return false;
 	}
@@ -158,8 +158,7 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	{
 		if (OutMsg)
 		{
-			*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Function_cannot_be_used_in_delegate", "The selected function/event is not bindable - is the function/event pure or latent?").ToString(),
-				*FunctionName.ToString());
+			*OutMsg = NSLOCTEXT("K2Node", "Function_cannot_be_used_in_delegate", "The selected function/event is not bindable - is the function/event pure or latent?").ToString();
 		}
 		return false;
 	}
@@ -174,8 +173,8 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 			{
 				if(OutMsg)
 				{
-					*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "WrongDelegateAuthorityOnly", "The selected function/event ('%s') is not compatible with this delegate (the delegate is server-only) - try marking the function/event AuthorityOnly.").ToString(),
-						*FunctionName.ToString());
+					*OutMsg = FText::Format(NSLOCTEXT("K2Node", "WrongDelegateAuthorityOnlyFmt", "The selected function/event ('{0}') is not compatible with this delegate (the delegate is server-only) - try marking the function/event AuthorityOnly."),
+						FText::FromString(FunctionName.ToString())).ToString();
 				}
 				return false;
 			}

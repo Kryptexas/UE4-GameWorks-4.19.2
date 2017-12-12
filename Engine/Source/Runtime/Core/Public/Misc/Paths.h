@@ -570,4 +570,9 @@ private:
 		static FCriticalSection Lock;
 		return &Lock; 
 	}
+
+#if WITH_EDITOR
+	/** RootPrefix used by IsRelative(). Static to minimise string allocations. */
+	static FString RootPrefix;
+#endif // WITH_EDITOR
 };

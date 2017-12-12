@@ -283,7 +283,7 @@ FNiagaraEventHandlerMergeAdapter::FNiagaraEventHandlerMergeAdapter(const UNiagar
 
 void FNiagaraEventHandlerMergeAdapter::Initialize(const UNiagaraEmitter& InEmitter, const FNiagaraEventScriptProperties* InEventScriptProperties, FNiagaraEventScriptProperties* InEditableEventScriptProperties, UNiagaraNodeOutput* InOutputNode)
 {
-	Emitter = &InEmitter;
+	Emitter = MakeWeakObjectPtr(const_cast<UNiagaraEmitter*>(&InEmitter));
 
 	EventScriptProperties = InEventScriptProperties;
 	EditableEventScriptProperties = InEditableEventScriptProperties;

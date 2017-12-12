@@ -1024,14 +1024,19 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
-		// Don't wait -- we want compiling to happen asynchronously
-		const bool bWaitForCompletion = false;
-		HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
+		// We want compiling to happen asynchronously
+		HotReloadSupport.DoHotReloadFromEditor(EHotReloadFlags::None);
 	}
 }
 
 bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 {
+	// We can't recompile while in PIE
+	if (GEditor->bIsPlayWorldQueued || GEditor->PlayWorld)
+	{
+		return false;
+	}
+
 	// We're not able to recompile if a compile is already in progress!
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);

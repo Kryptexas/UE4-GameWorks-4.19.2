@@ -6,7 +6,7 @@ public class Party : ModuleRules
 {
 	public Party(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("PARTY_PACKAGE=1");
+		PublicDefinitions.Add("PARTY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(

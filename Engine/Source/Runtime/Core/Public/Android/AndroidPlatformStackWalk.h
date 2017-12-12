@@ -16,7 +16,7 @@ struct CORE_API FAndroidPlatformStackWalk : public FGenericPlatformStackWalk
 	typedef FGenericPlatformStackWalk Parent;
 
 	static void ProgramCounterToSymbolInfo(uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo);
-	static void CaptureStackBackTrace(uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr);
+	static uint32 CaptureStackBackTrace(uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr);
 };
 
 typedef FAndroidPlatformStackWalk FPlatformStackWalk;

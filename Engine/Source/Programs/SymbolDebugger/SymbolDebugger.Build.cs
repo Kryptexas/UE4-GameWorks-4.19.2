@@ -28,6 +28,6 @@ public class SymbolDebugger : ModuleRules
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 
 		// Need database support!
-		Definitions.Add("WITH_DATABASE_SUPPORT=1");
+		PublicDefinitions.Add("WITH_DATABASE_SUPPORT=1");
 	}
 }

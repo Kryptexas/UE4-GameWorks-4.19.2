@@ -114,7 +114,7 @@ void FSkeletalMeshRenderData::Cache(USkeletalMesh* Owner)
 
 void FSkeletalMeshRenderData::SyncUVChannelData(const TArray<FSkeletalMaterial>& ObjectData)
 {
-	TSharedPtr< TArray<FMeshUVChannelInfo> > UpdateData = TSharedPtr< TArray<FMeshUVChannelInfo> >(new TArray<FMeshUVChannelInfo>);
+	TUniquePtr< TArray<FMeshUVChannelInfo> > UpdateData = MakeUnique< TArray<FMeshUVChannelInfo> >();
 	UpdateData->Empty(ObjectData.Num());
 
 	for (const FSkeletalMaterial& SkeletalMaterial : ObjectData)
@@ -122,13 +122,10 @@ void FSkeletalMeshRenderData::SyncUVChannelData(const TArray<FSkeletalMaterial>&
 		UpdateData->Add(SkeletalMaterial.UVChannelData);
 	}
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		SyncUVChannelData,
-		FSkeletalMeshRenderData*, This, this,
-		TSharedPtr< TArray<FMeshUVChannelInfo> >, Data, UpdateData,
-		{
-			FMemory::Memswap(&This->UVChannelDataPerMaterial, Data.Get(), sizeof(TArray<FMeshUVChannelInfo>));
-		});
+	ENQUEUE_RENDER_COMMAND(SyncUVChannelData)([this, UpdateData = MoveTemp(UpdateData)](FRHICommandListImmediate& RHICmdList)
+	{
+		FMemory::Memswap(&UVChannelDataPerMaterial, UpdateData.Get(), sizeof(TArray<FMeshUVChannelInfo>));
+	});
 }
 
 #endif // WITH_EDITOR

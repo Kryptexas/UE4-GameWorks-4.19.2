@@ -146,7 +146,7 @@ void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, U
 							SNew(SButton)
 							.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 							.HAlign(HAlign_Center)
-							.OnClicked(this, &FBlueprintVarActionDetails::HandleAddOrViewEventForVariable, EventName, PropertyName, TWeakObjectPtr<UClass>(PropertyClass))
+							.OnClicked(this, &FBlueprintVarActionDetails::HandleAddOrViewEventForVariable, EventName, PropertyName, MakeWeakObjectPtr(PropertyClass))
 							.ForegroundColor(FSlateColor::UseForeground())
 							[
 								SNew(SWidgetSwitcher)

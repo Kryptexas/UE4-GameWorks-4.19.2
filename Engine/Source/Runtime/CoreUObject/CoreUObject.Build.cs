@@ -23,6 +23,7 @@ public class CoreUObject : ModuleRules
 
 		PrivateDependencyModuleNames.Add("Projects");
 		PrivateDependencyModuleNames.Add("ApplicationCore");
+        PrivateDependencyModuleNames.Add("Json");
 
 	}
 

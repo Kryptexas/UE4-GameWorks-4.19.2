@@ -440,7 +440,7 @@ public:
 		bIsVarBool = bInIsVarBool;
 
 		check(InOwningScope);
-		VariableSource = InOwningScope;
+		VariableSource = MakeWeakObjectPtr(const_cast<UStruct*>(InOwningScope));
 	}
 
 	// Simple type info

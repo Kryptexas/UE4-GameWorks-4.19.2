@@ -148,6 +148,14 @@
 	#define WITH_HOT_RELOAD (!IS_MONOLITHIC && !UE_BUILD_SHIPPING && !UE_BUILD_TEST && !UE_GAME && !UE_SERVER)
 #endif
 
+/**
+* Whether we include support for text archive formats. Disabling support allows de-virtualizing archive calls
+* and eliminating string constants for field names.
+*/
+#ifndef WITH_TEXT_ARCHIVE_SUPPORT
+	#define WITH_TEXT_ARCHIVE_SUPPORT WITH_EDITORONLY_DATA
+#endif
+
 /*----------------------------------------------------------------------------
 	Optional bridge options coming from UBT, do not modify directly!
 	If UBT doesn't set the value, it is assumed to be 0, and we set that here.

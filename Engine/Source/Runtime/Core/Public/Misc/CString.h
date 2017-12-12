@@ -7,6 +7,9 @@
 #include "Misc/AssertionMacros.h"
 #include "Misc/Char.h"
 #include "HAL/PlatformString.h"
+#include "Templates/IsValidVariadicFunctionArg.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 #define MAX_SPRINTF 1024
 
@@ -326,16 +329,35 @@ struct TCString
 	 */
 	static FORCEINLINE CharType* Strtok( CharType* TokenString, const CharType* Delim, CharType** Context );
 
+private:
+	static int32 VARARGS SprintfImpl(CharType* Dest, const CharType* Fmt, ...);
+	static int32 VARARGS SnprintfImpl(CharType* Dest, int32 DestSize, const CharType* Fmt, ...);
+
+public:
 	/** 
 	* Standard string formatted print. 
 	* @warning: make sure code using FCString::Sprintf allocates enough (>= MAX_SPRINTF) memory for the destination buffer
 	*/
-	VARARG_DECL( static inline int32, static inline int32, return, Sprintf, VARARG_NONE, const CharType*, VARARG_EXTRA(CharType* Dest), VARARG_EXTRA(Dest) );
+	template <typename FmtType, typename... Types>
+	static int32 Sprintf(CharType* Dest, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, CharType>::Value, "Formatting string must be a literal string of the same character type as template.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to TCString::Sprintf");
+
+		return SprintfImpl(Dest, Fmt, Args...);
+	}
 
 	/** 
 	 * Safe string formatted print. 
 	 */
-	VARARG_DECL( static inline int32, static inline int32, return, Snprintf, VARARG_NONE, const CharType*, VARARG_EXTRA(CharType* Dest) VARARG_EXTRA(int32 DestSize), VARARG_EXTRA(Dest) VARARG_EXTRA(DestSize) );
+	template <typename FmtType, typename... Types>
+	static int32 Snprintf(CharType* Dest, int32 DestSize, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, CharType>::Value, "Formatting string must be a literal string of the same character type as template.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to TCString::Snprintf");
+
+		return SnprintfImpl(Dest, DestSize, Fmt, Args...);
+	}
 
 	/**
 	* Helper function to write formatted output using an argument list
@@ -816,16 +838,16 @@ bool TCString<WIDECHAR>::IsPureAnsi(const WIDECHAR* Str)
 }
 
 
-template <> inline
-VARARG_BODY( int32, TCString<WIDECHAR>::Sprintf, const CharType*, VARARG_EXTRA(CharType* Dest) )
+template <>
+inline int32 TCString<WIDECHAR>::SprintfImpl(CharType* Dest, const CharType* Fmt, ...)
 {
 	int32	Result = -1;
 	GET_VARARGS_RESULT_WIDE( Dest, MAX_SPRINTF, MAX_SPRINTF-1, Fmt, Fmt, Result );
 	return Result;
 }
 
-template <> inline
-VARARG_BODY( int32, TCString<WIDECHAR>::Snprintf, const CharType*, VARARG_EXTRA(CharType* Dest) VARARG_EXTRA(int32 DestSize) )
+template <>
+inline int32 TCString<WIDECHAR>::SnprintfImpl(CharType* Dest, int32 DestSize, const CharType* Fmt, ...)
 {
 	int32	Result = -1;
 	GET_VARARGS_RESULT_WIDE( Dest, DestSize, DestSize-1, Fmt, Fmt, Result );
@@ -846,16 +868,16 @@ template <> FORCEINLINE bool TCString<ANSICHAR>::IsPureAnsi(const CharType* Str)
 	return true;
 }
 
-template <> inline
-VARARG_BODY( int32, TCString<ANSICHAR>::Sprintf, const CharType*, VARARG_EXTRA(CharType* Dest) )
+template <>
+inline int32 TCString<ANSICHAR>::SprintfImpl(CharType* Dest, const CharType* Fmt, ...)
 {
 	int32	Result = -1;
 	GET_VARARGS_RESULT_ANSI( Dest, MAX_SPRINTF, MAX_SPRINTF-1, Fmt, Fmt, Result );
 	return Result;
 }
 
-template <> inline
-VARARG_BODY( int32, TCString<ANSICHAR>::Snprintf, const CharType*, VARARG_EXTRA(CharType* Dest) VARARG_EXTRA(int32 DestSize) )
+template <>
+inline int32 TCString<ANSICHAR>::SnprintfImpl(CharType* Dest, int32 DestSize, const CharType* Fmt, ...)
 {
 	int32	Result = -1;
 	GET_VARARGS_RESULT_ANSI( Dest, DestSize, DestSize-1, Fmt, Fmt, Result );

@@ -70,7 +70,7 @@ public:
 
 	virtual void PerformRequest() = 0;
 
-	virtual void WaitCompletionImpl(float TimeLimitSeconds) override
+	virtual void WaitCompletionImpl(float TimeLimitSeconds) override TSAN_SAFE
 	{
 		if (Task)
 		{

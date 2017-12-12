@@ -30,7 +30,7 @@ public class FBX : ModuleRules
 				PublicAdditionalLibraries.Add("libfbxsdk.lib");
 
 				// We are using DLL versions of the FBX libraries
-				Definitions.Add("FBXSDK_SHARED");
+				PublicDefinitions.Add("FBXSDK_SHARED");
 
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/libfbxsdk.dll"));
 			}
@@ -64,7 +64,7 @@ public class FBX : ModuleRules
 			PublicAdditionalLibraries.Add(LibDir + "/libfbxsdk.a");
 			/* There is a bug in fbxarch.h where is doesn't do the check
 			 * for clang under linux */
-			Definitions.Add("FBXSDK_COMPILER_CLANG");
+			PublicDefinitions.Add("FBXSDK_COMPILER_CLANG");
 
 			// libfbxsdk has been built against libstdc++ and as such needs this library
 			PublicAdditionalLibraries.Add("stdc++");

@@ -178,6 +178,11 @@ static void CheckLongSectionNames(const TCHAR* Section, const FConfigFile* File)
 
 bool FConfigSection::HasQuotes( const FString& Test )
 {
+	if (Test.Len() < 2)
+	{
+		return false;
+	}
+
 	return Test.Left(1) == TEXT("\"") && Test.Right(1) == TEXT("\"");
 }
 

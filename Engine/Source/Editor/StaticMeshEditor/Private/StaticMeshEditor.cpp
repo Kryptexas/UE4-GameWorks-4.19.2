@@ -1136,7 +1136,7 @@ void FStaticMeshEditor::RegenerateLODComboList()
 		LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
 		for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
 		{
-			LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );
+			LODLevels.Add( MakeShared<FString>( FText::Format( LOCTEXT("LODLevel_IDFmt", "LOD Level {0}"), LODLevelID ).ToString() ) );
 		}
 
 		if( LODLevelCombo.IsValid() )

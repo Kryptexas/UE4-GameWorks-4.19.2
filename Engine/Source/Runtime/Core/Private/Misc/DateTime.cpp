@@ -181,6 +181,13 @@ bool FDateTime::Serialize(FArchive& Ar)
 }
 
 
+bool FDateTime::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << *this;
+	bOutSuccess = true;
+	return true;
+}
+
 FString FDateTime::ToHttpDate() const
 {
 	FString DayStr;

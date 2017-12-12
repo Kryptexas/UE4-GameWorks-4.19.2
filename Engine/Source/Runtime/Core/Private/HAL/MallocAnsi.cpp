@@ -36,7 +36,8 @@ void* FMallocAnsi::Malloc( SIZE_T Size, uint32 Alignment )
 	IncrementTotalMallocCalls();
 
 #if !UE_BUILD_SHIPPING
-	if (MaxSingleAlloc != 0 && Size > MaxSingleAlloc)
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && Size > LocalMaxSingleAlloc)
 	{
 		FPlatformMemory::OnOutOfMemory(Size, Alignment);
 		return nullptr;
@@ -73,7 +74,8 @@ void* FMallocAnsi::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 	IncrementTotalReallocCalls();
 
 #if !UE_BUILD_SHIPPING
-	if (MaxSingleAlloc != 0 && NewSize > MaxSingleAlloc)
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && NewSize > LocalMaxSingleAlloc)
 	{
 		FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
 		return nullptr;

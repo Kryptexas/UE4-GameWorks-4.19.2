@@ -5,6 +5,7 @@
 #include "Containers/Array.h"
 #include "HAL/CriticalSection.h"
 #include "HAL/Runnable.h"
+#include "Templates/Atomic.h"
 #include "Templates/SharedPointer.h"
 
 #include "IMediaTicker.h"
@@ -55,7 +56,7 @@ private:
 	FCriticalSection CriticalSection;
 
 	/** Holds a flag indicating that the thread is stopping. */
-	bool Stopping;
+	TAtomic<bool> Stopping;
 
 	/** Collection of tickable objects. */
 	TArray<TWeakPtr<IMediaTickable, ESPMode::ThreadSafe>> Tickables;

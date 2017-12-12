@@ -103,7 +103,7 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 {
 	if (SourceGraph != CompilerContext.ConsolidatedEventGraph)
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString()), this);
+		CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString(), this);
 		return;
 	}
 

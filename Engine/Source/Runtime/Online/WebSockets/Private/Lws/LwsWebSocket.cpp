@@ -417,9 +417,10 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 	{
 		if (!UpgradeHeader.IsEmpty())
 		{
-			// FIXME: Should probably use strcat but libws suggests snprintf (https://libwebsockets.org/lws-api-doc-master/html/)
 			char** WriteableString = reinterpret_cast<char**>(Data);
-			*WriteableString += FCStringAnsi::Snprintf(*WriteableString, Length, TCHAR_TO_ANSI(*UpgradeHeader));
+			auto UpgradeHeaderAnsi = StringCast<ANSICHAR>(*UpgradeHeader);
+			FCStringAnsi::Strncpy(*WriteableString, UpgradeHeaderAnsi.Get(), Length);
+			*WriteableString += UpgradeHeaderAnsi.Length();
 		}
 		break;
 	}

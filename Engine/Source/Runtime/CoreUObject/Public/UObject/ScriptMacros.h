@@ -81,6 +81,9 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 #define P_GET_SOFTOBJECT(ObjectType,ParamName)		PARAM_PASSED_BY_VAL(ParamName, USoftObjectProperty, ObjectType)
 #define P_GET_SOFTOBJECT_REF(ObjectType,ParamName)	PARAM_PASSED_BY_REF(ParamName, USoftObjectProperty, ObjectType)
 
+#define P_GET_SOFTCLASS(ObjectType,ParamName)		PARAM_PASSED_BY_VAL(ParamName, USoftClassProperty, ObjectType)
+#define P_GET_SOFTCLASS_REF(ObjectType,ParamName)	PARAM_PASSED_BY_REF(ParamName, USoftClassProperty, ObjectType)
+
 #define P_GET_ARRAY(ElementType,ParamName)			ElementType ParamName[(MAX_VARIABLE_SIZE/sizeof(ElementType))+1];		Stack.StepCompiledIn<UProperty>(ParamName);
 #define P_GET_ARRAY_REF(ElementType,ParamName)		ElementType ParamName##Temp[(MAX_VARIABLE_SIZE/sizeof(ElementType))+1]; ElementType* ParamName = Stack.StepCompiledInRef<UProperty, ElementType*>(ParamName##Temp);
 

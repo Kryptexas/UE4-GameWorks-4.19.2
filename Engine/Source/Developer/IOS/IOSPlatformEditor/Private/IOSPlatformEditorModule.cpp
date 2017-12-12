@@ -62,7 +62,7 @@ class FIOSPlatformEditorModule
 
 			{
 				static FName NAME_SF_METAL(TEXT("SF_METAL"));
-				const UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_SF_METAL);
+				UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_SF_METAL);
 				SettingsModule->RegisterSettings("Project", "Platforms", "iOSMetalQuality",
 					LOCTEXT("IOSMetalQualitySettingsName", "iOS Material Quality"),
 					LOCTEXT("IOSMetalQualitySettingsDescription", "Settings for iOS material quality"),

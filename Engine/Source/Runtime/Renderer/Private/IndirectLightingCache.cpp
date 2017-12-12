@@ -435,7 +435,7 @@ void FIndirectLightingCache::StartUpdateCachePrimitivesTask(FScene* Scene, FScen
 void FIndirectLightingCache::FinalizeCacheUpdates(FScene* Scene, FSceneRenderer& Renderer, FILCUpdatePrimTaskData& TaskData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateIndirectLightingCacheFinalize);	
-	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::RenderThread_Local);
+	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::GetRenderThread_Local());
 	FinalizeUpdateInternal_RenderThread(Scene, Renderer, TaskData.OutBlocksToUpdate, TaskData.OutTransitionsOverTimeToUpdate);
 }
 

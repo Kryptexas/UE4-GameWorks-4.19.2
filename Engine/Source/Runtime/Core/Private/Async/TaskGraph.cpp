@@ -47,8 +47,8 @@ static int32 GNumWorkerThreadsToIgnore = 0;
 
 namespace ENamedThreads
 {
-	CORE_API Type RenderThread = ENamedThreads::GameThread; // defaults to game and is set and reset by the render thread itself
-	CORE_API Type RenderThread_Local = ENamedThreads::GameThread_Local; // defaults to game local and is set and reset by the render thread itself
+	CORE_API TAtomic<Type> FRenderThreadStatics::RenderThread(ENamedThreads::GameThread); // defaults to game and is set and reset by the render thread itself
+	CORE_API TAtomic<Type> FRenderThreadStatics::RenderThread_Local(ENamedThreads::GameThread_Local); // defaults to game local and is set and reset by the render thread itself
 	CORE_API int32 bHasBackgroundThreads = CREATE_BACKGROUND_TASK_THREADS;
 	CORE_API int32 bHasHighPriorityThreads = CREATE_HIPRI_TASK_THREADS;
 }
@@ -599,7 +599,7 @@ public:
 			StallStatId = GET_STATID(STAT_TaskGraph_GameStalls);
 			bCountAsStall = true;
 		}
-		else if (ThreadId == ENamedThreads::RenderThread)
+		else if (ThreadId == ENamedThreads::GetRenderThread())
 		{
 			if (QueueIndex > 0)
 			{
@@ -1767,9 +1767,10 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 	{
 		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RHIThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
-	if (ENamedThreads::RenderThread != ENamedThreads::GameThread)
+	ENamedThreads::Type RenderThread = ENamedThreads::GetRenderThread();
+	if (RenderThread != ENamedThreads::GameThread)
 	{
-		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RenderThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(RenderThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
 	if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::AudioThread))
 	{

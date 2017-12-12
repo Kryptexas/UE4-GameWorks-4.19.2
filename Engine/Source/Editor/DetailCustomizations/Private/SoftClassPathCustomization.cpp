@@ -64,7 +64,7 @@ const UClass* FSoftClassPathCustomization::OnGetClass() const
 	if(!Class || Class->GetPathName() != ClassName)
 	{
 		Class = FEditorClassUtils::GetClassFromString(ClassName);
-		CachedClassPtr = Class;
+		CachedClassPtr = MakeWeakObjectPtr(const_cast<UClass*>(Class));
 	}
 	return Class;
 }
@@ -73,6 +73,6 @@ void FSoftClassPathCustomization::OnSetClass(const UClass* NewClass)
 {
 	if (PropertyHandle->SetValueFromFormattedString((NewClass) ? NewClass->GetPathName() : "None") == FPropertyAccess::Result::Success)
 	{
-		CachedClassPtr = NewClass;
+		CachedClassPtr = MakeWeakObjectPtr(const_cast<UClass*>(NewClass));
 	}
 }

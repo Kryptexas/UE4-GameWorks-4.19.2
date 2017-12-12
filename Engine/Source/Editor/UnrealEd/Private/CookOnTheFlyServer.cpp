@@ -6217,12 +6217,12 @@ public:
 
 };
 
-// sue chefs away!!
+// sous chefs away!!
 void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArray<FName>& TargetPlatformNames, const FString& ExtraCmdParams)
 {
 	SCOPE_TIMER(StartingChildCookers);
 	// create a comprehensive list of all the files we need to cook
-	// then get the packages with least dependencies and give them to some sue chefs to handle
+	// then get the packages with least dependencies and give them to some sous chefs to handle
 	
 	check(!IsChildCooker());
 

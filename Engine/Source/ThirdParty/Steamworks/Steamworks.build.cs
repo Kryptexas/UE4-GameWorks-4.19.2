@@ -12,8 +12,8 @@ public class Steamworks : ModuleRules
 		string SteamVersion = "v139";
 		Type = ModuleType.External;
 
-		Definitions.Add("STEAM_SDK_VER=TEXT(\"1.39\")");
-		Definitions.Add("STEAM_SDK_VER_PATH=TEXT(\"Steam" + SteamVersion + "\")");
+		PublicDefinitions.Add("STEAM_SDK_VER=TEXT(\"1.39\")");
+		PublicDefinitions.Add("STEAM_SDK_VER_PATH=TEXT(\"Steam" + SteamVersion + "\")");
 
 		string SdkBase = Target.UEThirdPartySourceDirectory + "Steamworks/Steam" + SteamVersion + "/sdk";
 		if (!Directory.Exists(SdkBase))

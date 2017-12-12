@@ -30,12 +30,12 @@ public class NetworkFile : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
-			Definitions.Add("ENABLE_HTTP_FOR_NF=1");
+			PublicDefinitions.Add("ENABLE_HTTP_FOR_NF=1");
 			PrivateDependencyModuleNames.Add("HTML5JS");
 		}
 		else
 		{
-			Definitions.Add("ENABLE_HTTP_FOR_NF=0");
+			PublicDefinitions.Add("ENABLE_HTTP_FOR_NF=0");
 		}
 	}
 }

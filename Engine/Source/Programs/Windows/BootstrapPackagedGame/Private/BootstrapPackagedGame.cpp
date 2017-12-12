@@ -173,8 +173,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, TCHAR* CmdLine
 
 	// Create a full command line for the program to run
 	WCHAR* BaseArgs = ReadResourceString(hInstance, MAKEINTRESOURCE(IDI_EXEC_ARGS));
-	WCHAR* ChildCmdLine = new WCHAR[wcslen(BaseDirectory) + wcslen(ExecFile) + wcslen(BaseArgs) + wcslen(CmdLine) + 20];
-	wsprintf(ChildCmdLine, L"\"%s\\%s\" %s %s", BaseDirectory, ExecFile, BaseArgs, CmdLine);
+	size_t ChildCmdLineLength = wcslen(BaseDirectory) + wcslen(ExecFile) + wcslen(BaseArgs) + wcslen(CmdLine) + 20;
+	WCHAR* ChildCmdLine = new WCHAR[ChildCmdLineLength];
+	swprintf(ChildCmdLine, ChildCmdLineLength, L"\"%s\\%s\" %s %s", BaseDirectory, ExecFile, BaseArgs, CmdLine);
 	delete[] BaseArgs;
 	delete[] ExecFile;
 

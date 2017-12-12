@@ -388,11 +388,15 @@ void FDesktopPlatformWindows::EnumerateEngineInstallations(TMap<FString, FString
 
 bool FDesktopPlatformWindows::IsSourceDistribution(const FString &RootDir)
 {
-	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release.
-	FString GenerateProjectFilesPath = RootDir / TEXT("GenerateProjectFiles.bat");
-	if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
+	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release. Guard it against a check for Build.version to skip it in newer engine versions.
+	FString BuildVersionPath = RootDir / TEXT("Engine/Build/Build.version");
+	if (!IFileManager::Get().FileExists(*BuildVersionPath))
 	{
-		return true;
+		FString GenerateProjectFilesPath = RootDir / TEXT("GenerateProjectFiles.bat");
+		if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
+		{
+			return true;
+		}
 	}
 
 	// Otherwise use the default test

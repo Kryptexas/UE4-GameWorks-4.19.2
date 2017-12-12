@@ -639,12 +639,12 @@ void SDetailsView::SetObjectArrayPrivate(const TArray< TWeakObjectPtr< UObject >
 	}
 	else if(DetailsViewArgs.bAllowMultipleTopLevelObjects)
 	{
-		Title = FString::Printf(*NSLOCTEXT("PropertyView", "MultipleToLevelObjectsSelected", "%i selected").ToString(), GetNumObjects());
+		Title = FText::Format(NSLOCTEXT("PropertyView", "MultipleToLevelObjectsSelectedFmt", "{0} selected"), GetNumObjects()).ToString();
 	}
 	else
 	{
 		FObjectPropertyNode* RootPropertyNode = RootPropertyNodes[0]->AsObjectNode();
-		Title = FString::Printf( *NSLOCTEXT("PropertyView", "MultipleSelected", "%s (%i selected)").ToString(), *RootPropertyNode->GetObjectBaseClass()->GetName(), RootPropertyNode->GetNumObjects() );
+		Title = FText::Format( NSLOCTEXT("PropertyView", "MultipleSelected", "{0} ({1} selected)"), FText::FromString(RootPropertyNode->GetObjectBaseClass()->GetName()), RootPropertyNode->GetNumObjects() ).ToString();
 	}
 
 	OnObjectArrayChanged.ExecuteIfBound(Title, InObjects);

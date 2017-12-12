@@ -1006,5 +1006,5 @@ FORCEINLINE bool FPathFindingResult::IsPartial() const
 
 FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NavData)
 {
-	NavigationDataUsed = NavData;
+	NavigationDataUsed = MakeWeakObjectPtr(const_cast<ANavigationData*>(NavData));
 }

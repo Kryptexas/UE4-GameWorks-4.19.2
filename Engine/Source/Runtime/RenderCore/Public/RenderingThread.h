@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "Async/TaskGraphInterfaces.h"
+#include "Templates/Atomic.h"
 
 class FRHICommandListImmediate;
 
@@ -34,10 +35,10 @@ extern RENDERCORE_API void SetRHIThreadEnabled(bool bEnableDedicatedThread, bool
 	static FORCEINLINE void CheckNotBlockedOnRenderThread() {}
 #else // #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Whether the main thread is currently blocked on the rendering thread, e.g. a call to FlushRenderingCommands. */
-	extern RENDERCORE_API bool GMainThreadBlockedOnRenderThread;
+	extern RENDERCORE_API TAtomic<bool> GMainThreadBlockedOnRenderThread;
 
 	/** Asserts if called from the main thread when the main thread is blocked on the rendering thread. */
-	static FORCEINLINE void CheckNotBlockedOnRenderThread() { ensure(!GMainThreadBlockedOnRenderThread || !IsInGameThread()); }
+	static FORCEINLINE void CheckNotBlockedOnRenderThread() { ensure(!GMainThreadBlockedOnRenderThread.Load(EMemoryOrder::Relaxed) || !IsInGameThread()); }
 #endif // #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 
@@ -130,8 +131,8 @@ public:
 	// All render commands run on the render thread
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		check(!GIsThreadedRendering || ENamedThreads::RenderThread != ENamedThreads::GameThread);
-		return ENamedThreads::RenderThread;
+		check(!GIsThreadedRendering || ENamedThreads::GetRenderThread() != ENamedThreads::GameThread);
+		return ENamedThreads::GetRenderThread();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode()
@@ -293,7 +294,7 @@ FORCEINLINE_DEBUGGABLE void EnqueueUniqueRenderCommand(LAMBDA& Lambda)
 		if(ShouldExecuteOnRenderThread()) \
 		{ \
 			CheckNotBlockedOnRenderThread(); \
-			check(ENamedThreads::GameThread != ENamedThreads::RenderThread); \
+			check(ENamedThreads::GameThread != ENamedThreads::GetRenderThread()); \
 			TGraphTask<EURCMacro_##TypeName>::CreateTask().ConstructAndDispatchWhenReady(); \
 		} \
 		else \

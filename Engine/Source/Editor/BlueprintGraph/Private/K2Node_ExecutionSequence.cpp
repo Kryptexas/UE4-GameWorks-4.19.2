@@ -32,12 +32,12 @@ public:
 		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
 		if ((ExecTriggeringPin == nullptr) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedPinType))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForExecSeq_Error", "@@ must have a valid execution pin @@").ToString()), Node, ExecTriggeringPin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("NoValidExecutionPinForExecSeq_Error", "@@ must have a valid execution pin @@").ToString(), Node, ExecTriggeringPin);
 			return;
 		}
 		else if (ExecTriggeringPin->LinkedTo.Num() == 0)
 		{
-			CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("NodeNeverExecuted_Warning", "@@ will never be executed").ToString()), Node);
+			CompilerContext.MessageLog.Warning(*LOCTEXT("NodeNeverExecuted_Warning", "@@ will never be executed").ToString(), Node);
 			return;
 		}
 

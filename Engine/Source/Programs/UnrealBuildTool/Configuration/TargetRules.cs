@@ -458,6 +458,12 @@ namespace UnrealBuildTool
 		public bool bForceEnableExceptions = false;
 
 		/// <summary>
+		/// Enable inlining for all modules.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bUseInlining = true;
+
+		/// <summary>
 		/// Enable exceptions for all modules.
 		/// </summary>
 		public bool bForceEnableObjCExceptions = false;
@@ -1648,6 +1654,11 @@ namespace UnrealBuildTool
 		public bool bForceEnableRTTI
 		{
 			get { return Inner.bForceEnableRTTI; }
+		}
+
+		public bool bUseInlining
+		{
+			get { return Inner.bUseInlining; }
 		}
 
 		public bool bWithServerCode

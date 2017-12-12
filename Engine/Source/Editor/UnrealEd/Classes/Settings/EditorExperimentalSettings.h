@@ -124,6 +124,10 @@ public:
 	/** Enables the ability to bake materials inside of the Static Mesh and Skeletal Mesh Editor, and for static mesh instances. */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bAssetMaterialBaking;
+
+	/** Enables in-editor support for text asset formats */
+	//UPROPERTY(EditAnywhere, config, Category = Core)
+	bool bTextAssetFormatSupport;
 	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

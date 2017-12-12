@@ -9,6 +9,8 @@
 #include "Misc/ScopeLock.h"
 #include "Templates/ScopedPointer.h"
 #include "UniquePtr.h"
+#include "BigInt.h"
+#include "AES.h"
 
 class FChunkCacheWorker;
 class IAsyncReadFileHandle;
@@ -1001,12 +1003,12 @@ public:
 	/**
 	* Helper function for accessing pak encryption key
 	*/
-	static const ANSICHAR* GetPakEncryptionKey();
+	static void GetPakEncryptionKey(FAES::FAESKey& OutKey);
 
 	/**
 	* Helper function for accessing pak signing keys
 	*/
-	static void GetPakSigningKeys(FString& OutExponent, FString& OutModulus);
+	static void GetPakSigningKeys(FEncryptionKey& OutKey);
 
 	/**
 	 * Constructor.

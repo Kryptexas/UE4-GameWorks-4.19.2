@@ -35,7 +35,7 @@ namespace HLODOutliner
 		mutable TWeakObjectPtr<ALODActor> LODActor;
 		mutable FTreeItemID ID;
 
-		FLODActorItem(const ALODActor* InLODActor);
+		explicit FLODActorItem(ALODActor* InLODActor);
 
 		//~ Begin ITreeItem Interface.
 		virtual bool CanInteract() const override;

@@ -10,10 +10,10 @@ public class OnlineSubsystemSteam : ModuleRules
 		string SteamVersion = "Steamv139";
 		bool bSteamSDKFound = Directory.Exists(Target.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 
-		Definitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
-		Definitions.Add("WITH_STEAMWORKS=" + (bSteamSDKFound ? "1" : "0"));
+		PublicDefinitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
+		PublicDefinitions.Add("WITH_STEAMWORKS=" + (bSteamSDKFound ? "1" : "0"));
 
-		Definitions.Add("ONLINESUBSYSTEMSTEAM_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEMSTEAM_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(

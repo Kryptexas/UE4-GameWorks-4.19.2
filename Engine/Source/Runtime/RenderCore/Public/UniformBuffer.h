@@ -12,6 +12,7 @@
 #include "RHI.h"
 #include "RenderingThread.h"
 #include "RenderResource.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 class FShaderUniformBufferParameter;
 template<typename TBufferStruct> class TShaderUniformBufferParameter;
@@ -665,7 +666,7 @@ private:
 		static TArray<FUniformBufferStruct::FMember> zzGetMembersBefore(zzNextMemberId##MemberName) \
 		{ \
 			static_assert(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 1 || zzMemberId##MemberName::HasDeclaredResource == 0, "All resources must be declared last for " #MemberName "."); \
-			static_assert(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 0 || IS_TCHAR_ARRAY(OptionalShaderType), "No shader type for " #MemberName "."); \
+			static_assert(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 0 || TIsArrayOrRefOfType<decltype(OptionalShaderType), TCHAR>::Value, "No shader type for " #MemberName "."); \
 			/* Route the member enumeration on to the function for the member following this. */ \
 			TArray<FUniformBufferStruct::FMember> OutMembers = zzGetMembersBefore(zzMemberId##MemberName()); \
 			/* Add this member. */ \

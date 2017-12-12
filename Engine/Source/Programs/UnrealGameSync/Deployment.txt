@@ -90,7 +90,7 @@ which references a location in Perforce where zipped binaries are kept for each 
 
 Note that the same restrictions are enforced with zipped editor binaries as local builds - UnrealGameSync will not allow you to sync any changelist,
 even a content changelist, *after* a code change unless there are matching binaries for it. It will allow you to sync content-only changes using previously
-submitted binaries as long as there are no *.cpp, *.h, *.cs, *.usf, *.ush files are modified.
+submitted binaries as long as there are no *.cpp, *.h, *.cs, *.usf, *.ush, *.uproject, *.uplugin files are modified.
 
 This functionality does not require use of a database, but reads the matching corresponding changelist for each submitted zip from the changelist 
 description (it should start with the tag "[CL 12345678]"). 

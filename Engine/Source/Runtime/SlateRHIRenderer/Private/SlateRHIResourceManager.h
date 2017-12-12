@@ -30,7 +30,7 @@ class FSceneInterface;
  */
 struct FMaterialKey
 {
-	TWeakObjectPtr<UMaterialInterface>	Material;
+	TWeakObjectPtr<const UMaterialInterface> Material;
 	int32 MaskKey;
 
 	FMaterialKey(const UMaterialInterface* InMaterial, int32 InMaskKey)
@@ -38,9 +38,9 @@ struct FMaterialKey
 		, MaskKey(InMaskKey)
 	{}
 
-	bool operator==(const FMaterialKey& Other) const
+	friend bool operator==(const FMaterialKey& Lhs, const FMaterialKey& Rhs)
 	{
-		return Material == Other.Material && MaskKey == Other.MaskKey;
+		return Lhs.Material == Rhs.Material && Lhs.MaskKey == Rhs.MaskKey;
 	}
 
 	friend uint32 GetTypeHash(const FMaterialKey& Key)

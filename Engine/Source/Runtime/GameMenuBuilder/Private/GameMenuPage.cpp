@@ -50,7 +50,7 @@ bool FGameMenuPage::InitialiseRootMenu(APlayerController* InPCOwner, const FStri
 		SAssignNew(RootMenuPageWidget, SGameMenuPageWidget)
 			.MenuStyle(&FGameMenuBuilderStyle::Get().GetWidgetStyle<FGameMenuStyle>(*InStyleName))
 			.Cursor(EMouseCursor::Default)
-			.PCOwner(TWeakObjectPtr<APlayerController>(InPCOwner));
+			.PCOwner(MakeWeakObjectPtr(InPCOwner));
 
 		InGameViewport->AddViewportWidgetContent(
 			SNew(SWeakWidget)

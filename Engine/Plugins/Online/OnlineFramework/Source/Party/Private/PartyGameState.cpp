@@ -78,9 +78,7 @@ void UPartyGameState::OnShutdown()
 	UPartyGameState* This = CastChecked<UPartyGameState>(InThis);
 	check(This);
 
-	TArray<UPartyMemberState*> PartyMembers;
-	This->PartyMembersState.GenerateValueArray(PartyMembers);
-	Collector.AddReferencedObjects(PartyMembers);
+	Collector.AddReferencedObjects(This->PartyMembersState);
 }
 
 void UPartyGameState::RegisterFrontendDelegates()

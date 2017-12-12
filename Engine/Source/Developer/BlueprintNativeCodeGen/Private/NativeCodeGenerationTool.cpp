@@ -165,7 +165,7 @@ struct FGeneratedCodeData
 			const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *FullHeaderFilename);
 			if (!bHeaderSaved)
 			{
-				ErrorString += FString::Printf(*LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details. %s\n").ToString(), *Obj->GetPathName());
+				ErrorString += FText::Format(LOCTEXT("HeaderNotSavedFmt", "Header file wasn't saved. Check log for details. {0}\n"), FText::FromString(Obj->GetPathName())).ToString();
 			}
 			else
 			{
@@ -179,7 +179,7 @@ struct FGeneratedCodeData
 				const bool bCppSaved = FFileHelper::SaveStringToFile(*CppSource, *NewCppFilename);
 				if (!bCppSaved)
 				{
-					ErrorString += FString::Printf(*LOCTEXT("CppNotSaved", "Cpp file wasn't saved. Check log for details. %s\n").ToString(), *Obj->GetPathName());
+					ErrorString += FText::Format(LOCTEXT("CppNotSavedFmt", "Cpp file wasn't saved. Check log for details. {0}\n"), FText::FromString(Obj->GetPathName())).ToString();
 				}
 				else
 				{

@@ -218,7 +218,7 @@ private:
 	{
 		if (const AActor* Actor = ActorPtr.Get())
 		{
-			return FClassIconFinder::FindIconForActor(Actor);
+			return FClassIconFinder::FindIconForActor(const_cast<AActor*>(Actor));
 		}
 		else
 		{

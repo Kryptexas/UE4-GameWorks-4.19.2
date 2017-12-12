@@ -93,10 +93,7 @@ bool FChunkCacheWorker::Init()
 
 void FChunkCacheWorker::SetupDecryptionKey()
 {
-	FString PakSigningKeyExponent, PakSigningKeyModulus;
-	FPakPlatformFile::GetPakSigningKeys(PakSigningKeyExponent, PakSigningKeyModulus);
-	DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
-	DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
+	FPakPlatformFile::GetPakSigningKeys(DecryptionKey);
 
 	// Public key should never be zero at this point.
 	UE_CLOG(DecryptionKey.Exponent.IsZero() || DecryptionKey.Modulus.IsZero(), LogPakFile, Fatal, TEXT("Invalid decryption key detected"));

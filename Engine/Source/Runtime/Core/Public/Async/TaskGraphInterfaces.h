@@ -21,6 +21,7 @@
 #include "Templates/RefCounting.h"
 #include "Containers/LockFreeFixedSizeAllocator.h"
 #include "Misc/MemStack.h"
+#include "Templates/Atomic.h"
 
 #if !defined(STATS)
 #error "STATS must be defined as either zero or one."
@@ -106,8 +107,39 @@ namespace ENamedThreads
 		AnyBackgroundThreadNormalTask = AnyThread | BackgroundThreadPriority | NormalTaskPriority,
 		AnyBackgroundHiPriTask = AnyThread | BackgroundThreadPriority | HighTaskPriority,
 	};
-	extern CORE_API Type RenderThread; // this is not an enum, because if there is no render thread, this is just the game thread.
-	extern CORE_API Type RenderThread_Local; // this is not an enum, because if there is no render thread, this is just the game thread.
+
+	struct FRenderThreadStatics
+	{
+	private:
+		// These are private to prevent direct access by anything except the friend functions below
+		static CORE_API TAtomic<Type> RenderThread;
+		static CORE_API TAtomic<Type> RenderThread_Local;
+
+		friend Type GetRenderThread();
+		friend Type GetRenderThread_Local();
+		friend void SetRenderThread(Type Thread);
+		friend void SetRenderThread_Local(Type Thread);
+	};
+
+	FORCEINLINE Type GetRenderThread()
+	{
+		return FRenderThreadStatics::RenderThread.Load(EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE Type GetRenderThread_Local()
+	{
+		return FRenderThreadStatics::RenderThread_Local.Load(EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE void SetRenderThread(Type Thread)
+	{
+		FRenderThreadStatics::RenderThread.Store(Thread, EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE void SetRenderThread_Local(Type Thread)
+	{
+		FRenderThreadStatics::RenderThread_Local.Store(Thread, EMemoryOrder::Relaxed);
+	}
 
 	// these allow external things to make custom decisions based on what sorts of task threads we are running now.
 	// this are bools to allow runtime tuning.
@@ -796,7 +828,7 @@ private:
 			FScopeCycleCounter Scope(Task.GetStatId(), true); 
 			Task.DoTask(CurrentThread, Subsequents);
 			Task.~TTask();
-			checkThreadGraph(ENamedThreads::GetThreadIndex(CurrentThread) <= ENamedThreads::RenderThread || FMemStack::Get().IsEmpty()); // you must mark and pop memstacks if you use them in tasks! Named threads are excepted.
+			checkThreadGraph(ENamedThreads::GetThreadIndex(CurrentThread) <= ENamedThreads::GetRenderThread() || FMemStack::Get().IsEmpty()); // you must mark and pop memstacks if you use them in tasks! Named threads are excepted.
 		}
 		
 		TaskConstructed = false;

@@ -40,7 +40,6 @@
 #include "SynthBenchmark.h"
 
 #include "SceneViewExtension.h"
-#include "Misc/HotReloadInterface.h"
 #include "Engine/LocalPlayer.h"
 #include "Slate/SGameLayerManager.h"
 #include "Components/SkyLightComponent.h"
@@ -895,7 +894,7 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 
 bool UGameEngine::ShouldDoAsyncEndOfFrameTasks() const
 {
-	return FApp::ShouldUseThreadingForPerformance() && ENamedThreads::RenderThread != ENamedThreads::GameThread && !!GDoAsyncEndOfFrameTasks;
+	return FApp::ShouldUseThreadingForPerformance() && ENamedThreads::GetRenderThread() != ENamedThreads::GameThread && !!GDoAsyncEndOfFrameTasks;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1173,13 +1172,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	if ((GSlowFrameLoggingThreshold > 0.0f) && (DeltaSeconds > GSlowFrameLoggingThreshold))
 	{
 		UE_LOG(LogEngine, Log, TEXT("Slow GT frame detected (GT frame %u, delta time %f s)"), GFrameCounter - 1, DeltaSeconds);
-	}
-
-	// Tick the module manager
-	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
-	if(HotReload != nullptr)
-	{
-		HotReload->Tick();
 	}
 
 	if (IsRunningDedicatedServer())

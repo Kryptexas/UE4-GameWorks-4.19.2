@@ -78,7 +78,7 @@ void FMetaNavMeshPath::Initialize(const FVector& AgentLocation)
 		UE_VLOG(GetSourceActor(), LogNavigation, Log, TEXT("Initializing meta path, Waypoints:%d GoalActor:%s"),
 			Waypoints.Num(), *GetNameSafe(GetGoalActor()));
 
-		PathGoal = GetGoalActor();
+		PathGoal = MakeWeakObjectPtr(const_cast<AActor*>(GetGoalActor()));
 		PathGoalTetherDistance = GetGoalActorTetherDistance();
 		DisableGoalActorObservation();
 

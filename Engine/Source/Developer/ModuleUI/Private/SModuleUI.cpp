@@ -284,8 +284,7 @@ FReply SModuleUI::FModuleListItem::OnRecompileClicked()
 		if( PackagesToRebind.Num() > 0 )
 		{
 			// Perform a hot reload
-			const bool bWaitForCompletion = true;			
-			ECompilationResult::Type Result = HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog);
+			ECompilationResult::Type Result = HotReloadSupport.RebindPackages(PackagesToRebind, EHotReloadFlags::WaitForCompletion, *GLog);
 		}
 		else
 		{

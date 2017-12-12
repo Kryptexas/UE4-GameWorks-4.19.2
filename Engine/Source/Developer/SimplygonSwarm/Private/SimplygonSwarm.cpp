@@ -65,7 +65,7 @@ static const TCHAR* SG_UE_INTEGRATION_REV = TEXT("#SG_UE_INTEGRATION_REV");
 #define MAX_UPLOAD_PART_SIZE_MB  1024
 #define MAX_UPLOAD_PART_SIZE_BYTES ( MAX_UPLOAD_PART_SIZE_MB * 1024 * 1024 ) 
 
-static const TCHAR* SHADING_NETWORK_TEMPLATE = TEXT("<SimplygonShadingNetwork version=\"1.0\">\n\t<ShadingTextureNode ref=\"node_0\" name=\"ShadingTextureNode\">\n\t\t<DefaultColor0>\n\t\t\t<DefaultValue>1 1 1 1</DefaultValue>\n\t\t</DefaultColor0>\n\t\t<TextureName>%s</TextureName>\n\t\t<TextureLevelName>%s</TextureLevelName>\n\t\t<UseSRGB>%d</UseSRGB>\n\t\t<TileU>1.000000</TileU>\n\t\t<TileV>1.000000</TileV>\n\t</ShadingTextureNode>\n</SimplygonShadingNetwork>");
+static const TCHAR SHADING_NETWORK_TEMPLATE[] = TEXT("<SimplygonShadingNetwork version=\"1.0\">\n\t<ShadingTextureNode ref=\"node_0\" name=\"ShadingTextureNode\">\n\t\t<DefaultColor0>\n\t\t\t<DefaultValue>1 1 1 1</DefaultValue>\n\t\t</DefaultColor0>\n\t\t<TextureName>%s</TextureName>\n\t\t<TextureLevelName>%s</TextureLevelName>\n\t\t<UseSRGB>%d</UseSRGB>\n\t\t<TileU>1.000000</TileU>\n\t\t<TileV>1.000000</TileV>\n\t</ShadingTextureNode>\n</SimplygonShadingNetwork>");
 
 ssf::pssfMeshData CreateSSFMeshDataFromRawMesh(const FRawMesh& InRawMesh, TArray<FBox2D> InTextureBounds, TArray<FVector2D> InTexCoords);
 
@@ -503,7 +503,7 @@ private:
 	void SaveSPL(FString InSplText, FString InOutputFilePath)
 	{
 		FArchive* SPLFile = IFileManager::Get().CreateFileWriter(*InOutputFilePath);
-		SPLFile->Logf(*InSplText);
+		SPLFile->Logf(TEXT("%s"), *InSplText);
 		SPLFile->Close();
 	}
 

@@ -345,6 +345,11 @@ namespace UnrealBuildTool
 				Result += " -O0";
 			}
 
+			if (!CompileEnvironment.bUseInlining)
+			{
+				Result += " -fno-inline-functions";
+			}
+
 			// Create DWARF format debug info if wanted,
 			if (CompileEnvironment.bCreateDebugInfo)
 			{

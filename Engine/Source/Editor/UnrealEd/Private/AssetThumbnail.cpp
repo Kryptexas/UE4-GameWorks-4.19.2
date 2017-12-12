@@ -258,7 +258,7 @@ public:
 	void UpdateThumbnailClass()
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
-		ThumbnailClass = FClassIconFinder::GetIconClassForAssetData(AssetData, &bIsClassType);
+		ThumbnailClass = MakeWeakObjectPtr(const_cast<UClass*>(FClassIconFinder::GetIconClassForAssetData(AssetData, &bIsClassType)));
 	}
 
 	FSlateColor GetHintBackgroundColor() const

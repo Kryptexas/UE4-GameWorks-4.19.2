@@ -72,7 +72,7 @@ void FAssetTypeActions_ForceFeedbackEffect::AssetsActivated( const TArray<UObjec
 			{
 				// Only target the first valid sound cue
 				TArray<TWeakObjectPtr<UForceFeedbackEffect>> EffectList;
-				EffectList.Add(TWeakObjectPtr<UForceFeedbackEffect>(TargetEffect));
+				EffectList.Add(MakeWeakObjectPtr(TargetEffect));
 				if (IsEffectPlaying(EffectList))
 				{
 					ExecuteStopEffect(EffectList);
@@ -138,7 +138,7 @@ void FAssetTypeActions_ForceFeedbackEffect::StopEffect()
 TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(const FAssetData& AssetData) const
 {
 	TArray<TWeakObjectPtr<UForceFeedbackEffect>> EffectList;
-	EffectList.Add(TWeakObjectPtr<UForceFeedbackEffect>((UForceFeedbackEffect*)AssetData.GetAsset()));
+	EffectList.Add(MakeWeakObjectPtr((UForceFeedbackEffect*)AssetData.GetAsset()));
 
 	auto OnGetDisplayBrushLambda = [this, EffectList]() -> const FSlateBrush*
 	{

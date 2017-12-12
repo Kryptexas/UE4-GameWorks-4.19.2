@@ -523,7 +523,7 @@ void FDeferredShadingSceneRenderer::FinishOcclusion(FRHICommandListImmediate& RH
 void ServiceLocalQueue()
 {
 	SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Render_ServiceLocalQueue);
-	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GetRenderThread_Local());
 }
 
 // @return 0/1

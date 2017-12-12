@@ -8,7 +8,7 @@ public class FreeType2 : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_FREETYPE=1");
+		PublicDefinitions.Add("WITH_FREETYPE=1");
 
 		string FreeType2Path;
 		string FreeType2LibPath;

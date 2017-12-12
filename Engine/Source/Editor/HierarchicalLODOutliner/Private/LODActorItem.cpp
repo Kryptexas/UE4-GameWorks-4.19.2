@@ -11,8 +11,9 @@
 
 #define LOCTEXT_NAMESPACE "LODActorItem"
 
-HLODOutliner::FLODActorItem::FLODActorItem(const ALODActor* InLODActor)
-	: LODActor(InLODActor), ID(InLODActor)
+HLODOutliner::FLODActorItem::FLODActorItem(ALODActor* InLODActor)
+	: LODActor(InLODActor)
+	, ID(InLODActor)
 {
 	Type = ITreeItem::HierarchicalLODActor;
 }

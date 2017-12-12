@@ -302,7 +302,7 @@ JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeLoginComplete(JNIEnv*
 	FString AccessToken = FString(UTF8_TO_TCHAR(charsAccessToken));
 	jenv->ReleaseStringUTFChars(accessToken, charsAccessToken);
 
-	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeLoginComplete Response: %d Token: %s"), LoginResponse, *AccessToken);
+	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeLoginComplete Response: %d Token: %s"), (int)LoginResponse, *AccessToken);
 
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessFacebookLogin"), STAT_FSimpleDelegateGraphTask_ProcessFacebookLogin, STATGROUP_TaskGraphTasks);
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(

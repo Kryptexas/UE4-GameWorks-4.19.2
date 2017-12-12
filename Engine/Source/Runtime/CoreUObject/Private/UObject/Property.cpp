@@ -250,6 +250,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase2<FDateT
 		WithExportTextItem = true,
 		WithImportTextItem = true,
 		WithSerializer = true,
+		WithNetSerializer = true,
 		WithZeroConstructor = true,
 		WithIdenticalViaEquality = true,
 	};

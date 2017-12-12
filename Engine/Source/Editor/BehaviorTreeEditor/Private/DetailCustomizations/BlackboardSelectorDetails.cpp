@@ -107,13 +107,13 @@ void FBlackboardSelectorDetails::CacheBlackboardData()
 	MyStructProperty->GetOuterObjects(MyObjects);
 	for (int32 ObjectIdx = 0; ObjectIdx < MyObjects.Num(); ObjectIdx++)
 	{
-		const UBlackboardData* BlackboardAsset = FindBlackboardAsset(MyObjects[ObjectIdx]);
+		UBlackboardData* BlackboardAsset = const_cast<UBlackboardData*>(FindBlackboardAsset(MyObjects[ObjectIdx]));
 		if (BlackboardAsset)
 		{
 			CachedBlackboardAsset = BlackboardAsset;
 
 			TArray<FName> ProcessedNames;
-			for (UBlackboardData* It = (UBlackboardData*)BlackboardAsset; It; It = It->Parent)
+			for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 			{
 				for (int32 KeyIdx = 0; KeyIdx < It->Keys.Num(); KeyIdx++)
 				{

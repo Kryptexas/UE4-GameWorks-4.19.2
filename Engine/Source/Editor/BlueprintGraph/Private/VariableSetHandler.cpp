@@ -128,7 +128,7 @@ void FKCHandler_VariableSet::GenerateAssigments(FKismetFunctionContext& Context,
 		}
 		else
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("ExpectedOnlyInputPins_Error", "Expected only input pins on @@ but found @@").ToString()), Node, Pin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("ExpectedOnlyInputPins_Error", "Expected only input pins on @@ but found @@").ToString(), Node, Pin);
 		}
 	}
 }

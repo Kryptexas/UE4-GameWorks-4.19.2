@@ -8,6 +8,16 @@ rem ## The discovered path is set to the MSBUILD_EXE environment variable on suc
 
 set MSBUILD_EXE=
 
+rem ## Try to get the MSBuild 15 path using vswhere (see https://github.com/Microsoft/vswhere)
+if not exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" goto no_vswhere
+for /f "delims=" %%i in ('"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath') do (
+	if exist "%%i\MSBuild\15.0\Bin\MSBuild.exe" (
+		set MSBUILD_EXE="%%i\MSBuild\15.0\Bin\MSBuild.exe"
+		goto Succeeded
+	)
+)
+:no_vswhere
+
 rem ## Check for MSBuild 15. This is installed alongside Visual Studio 2017, so we get the path relative to that.
 
 call :ReadInstallPath Microsoft\VisualStudio\SxS\VS7 15.0 MSBuild\15.0\bin\MSBuild.exe

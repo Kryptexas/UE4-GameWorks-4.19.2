@@ -379,9 +379,23 @@ namespace UnrealBuildTool
 		public List<string> PublicDelayLoadDLLs = new List<string>();
 
 		/// <summary>
-		/// Additional compiler definitions for this module
+		/// Accessor for the PublicDefinitions list
 		/// </summary>
-		public List<string> Definitions = new List<string>();
+		[Obsolete("The 'Definitions' property has been deprecated. Please use 'PublicDefinitions' instead.")]
+		public List<string> Definitions
+		{
+			get { return PublicDefinitions; }
+		}
+
+		/// <summary>
+		/// Private compiler definitions for this module
+		/// </summary>
+		public List<string> PrivateDefinitions = new List<string>();
+
+		/// <summary>
+		/// Public compiler definitions for this module
+		/// </summary>
+		public List<string> PublicDefinitions = new List<string>();
 
 		/// <summary>
 		/// Addition modules this module may require at run-time 
@@ -507,11 +521,11 @@ namespace UnrealBuildTool
 			if (Target.bCompilePhysX == true)
 			{
 				PrivateDependencyModuleNames.Add("PhysX");
-				Definitions.Add("WITH_PHYSX=1");
+				PublicDefinitions.Add("WITH_PHYSX=1");
 			}
 			else
 			{
-				Definitions.Add("WITH_PHYSX=0");
+				PublicDefinitions.Add("WITH_PHYSX=0");
 			}
 
 			if (Target.bCompileAPEX == true)
@@ -522,18 +536,18 @@ namespace UnrealBuildTool
 				}
 
 				PrivateDependencyModuleNames.Add("APEX");
-				Definitions.Add("WITH_APEX=1");
-				Definitions.Add("WITH_APEX_CLOTHING=1");
-				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
-				Definitions.Add("WITH_PHYSX_COOKING=1");  // APEX currently relies on cooking even at runtime
+				PublicDefinitions.Add("WITH_APEX=1");
+				PublicDefinitions.Add("WITH_APEX_CLOTHING=1");
+				PublicDefinitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
+				PublicDefinitions.Add("WITH_PHYSX_COOKING=1");  // APEX currently relies on cooking even at runtime
 
 			}
 			else
 			{
-				Definitions.Add("WITH_APEX=0");
-				Definitions.Add("WITH_APEX_CLOTHING=0");
-				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor && Target.bCompilePhysX ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				PublicDefinitions.Add("WITH_APEX=0");
+				PublicDefinitions.Add("WITH_APEX_CLOTHING=0");
+				PublicDefinitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
+				PublicDefinitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor && Target.bCompilePhysX ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)
@@ -544,12 +558,12 @@ namespace UnrealBuildTool
 				}
 
 				PrivateDependencyModuleNames.Add("NvCloth");
-                Definitions.Add("WITH_NVCLOTH=1");
+                PublicDefinitions.Add("WITH_NVCLOTH=1");
 
 			}
 			else
 			{
-				Definitions.Add("WITH_NVCLOTH=0");
+				PublicDefinitions.Add("WITH_NVCLOTH=0");
 			}
 		}
 

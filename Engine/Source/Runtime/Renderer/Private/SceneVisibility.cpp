@@ -1149,7 +1149,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitivesCombine);
 
 			//wait for them all so we don't start modifying the prim histories while the gather is running
-			FTaskGraphInterface::Get().WaitUntilTasksComplete(TaskWaitArray, ENamedThreads::RenderThread_Local);			
+			FTaskGraphInterface::Get().WaitUntilTasksComplete(TaskWaitArray, ENamedThreads::GetRenderThread_Local());
 
 #if QUERY_SANITY_CHECK
 			{
@@ -2988,7 +2988,7 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 	if (SortEvents.Num())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AsyncSortBasePassStaticData_Wait);
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(SortEvents, ENamedThreads::RenderThread);
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(SortEvents, ENamedThreads::GetRenderThread());
 	}
 
 	if (ViewFamily.EngineShowFlags.DynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))

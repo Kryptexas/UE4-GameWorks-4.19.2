@@ -246,7 +246,7 @@ public:
 
 	static TWeakObjectPtr<T> MakeNullPtr()
 	{
-		return TWeakObjectPtr<T>(NULL);
+		return nullptr;
 	}
 
 	static TWeakObjectPtr<T> NullableItemTypeConvertToItemType( const TWeakObjectPtr<T>& InPtr )

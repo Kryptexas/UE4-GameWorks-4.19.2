@@ -63,6 +63,12 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
 	}
 
+#if defined(__has_feature)
+	#if __has_feature(thread_sanitizer)
+		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
+	#endif
+#endif
+
 	switch (AllocatorToUse)
 	{
 	case EMemoryAllocatorToUse::Ansi:

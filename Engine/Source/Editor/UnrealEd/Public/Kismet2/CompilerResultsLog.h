@@ -115,7 +115,7 @@ protected:
 	FString SourcePath;
 
 	// Map to track intermediate tunnel nodes back to the intermediate expansion tunnel instance.
-	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelNodeToTunnelInstanceMap;
+	TMap<TWeakObjectPtr<const UEdGraphNode>, TWeakObjectPtr<const UEdGraphNode>> IntermediateTunnelNodeToTunnelInstanceMap;
 
 public:
 	FCompilerResultsLog(bool bIsCompatibleWithEvents = true);
@@ -252,14 +252,14 @@ public:
 	void NotifyIntermediatePinCreation(UEdGraphPin* NewObject, UEdGraphPin* SourceObject);
 
 	/** Update the expansion map to note that Node was expanded from OuterTunnelInstance, both the node and tunnel instance should be intermediate nodes */
-	void NotifyIntermediateTunnelNode(UEdGraphNode* Node, UEdGraphNode* OuterTunnelInstance);
+	void NotifyIntermediateTunnelNode(const UEdGraphNode* Node, const UEdGraphNode* OuterTunnelInstance);
 
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);
 	UObject const* FindSourceObject(UObject const* PossiblyDuplicatedObject) const;
 
 	/** Returns the intermediate tunnel instance that generated the node */
-	UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const;
+	const UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const;
 
 	/** Returns a int32 used to uniquely identify an action for the latent action manager */
 	int32 CalculateStableIdentifierForLatentActionManager( const UEdGraphNode* Node );

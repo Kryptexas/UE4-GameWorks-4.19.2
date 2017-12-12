@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.cpp: Scene rendering.
@@ -533,12 +533,13 @@ void FParallelCommandListSet::Dispatch(bool bHighPriority)
 	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	check(CommandLists.Num() == Events.Num());
 	check(CommandLists.Num() == NumAlloc);
+	ENamedThreads::Type RenderThread_Local = ENamedThreads::GetRenderThread_Local();
 	if (bSpewBalance)
 	{
 		// finish them all
 		for (auto& Event : Events)
 		{
-			FTaskGraphInterface::Get().WaitUntilTaskCompletes(Event, ENamedThreads::RenderThread_Local);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(Event, RenderThread_Local);
 		}
 		// spew sizes
 		int32 Index = 0;
@@ -590,7 +591,7 @@ void FParallelCommandListSet::Dispatch(bool bHighPriority)
 	Snapshot = nullptr;
 	Events.Reset();
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FParallelCommandListSet_Dispatch_ServiceLocalQueue);
-	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(RenderThread_Local);
 }
 
 FParallelCommandListSet::~FParallelCommandListSet()
@@ -653,8 +654,9 @@ void FParallelCommandListSet::WaitForTasksInternal()
 	}
 	if (WaitOutstandingTasks.Num())
 	{
-		check(!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local));
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(WaitOutstandingTasks, ENamedThreads::RenderThread_Local);
+		ENamedThreads::Type RenderThread_Local = ENamedThreads::GetRenderThread_Local();
+		check(!FTaskGraphInterface::Get().IsThreadProcessingTasks(RenderThread_Local));
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(WaitOutstandingTasks, RenderThread_Local);
 	}
 }
 
@@ -2548,7 +2550,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::RenderThread_Local;
+		return ENamedThreads::GetRenderThread_Local();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -2562,12 +2564,12 @@ public:
 void FSceneRenderer::DelayWaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
 	FGraphEventArray& WaitOutstandingTasks = RHICmdList.GetRenderThreadTaskArray();
-	FGraphEventRef ClearSnapshotsAndDeleteSceneRendererTask = TGraphTask<FClearSnapshotsAndDeleteSceneRendererTask>::CreateTask(&WaitOutstandingTasks, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(SceneRenderer);
+	FGraphEventRef ClearSnapshotsAndDeleteSceneRendererTask = TGraphTask<FClearSnapshotsAndDeleteSceneRendererTask>::CreateTask(&WaitOutstandingTasks, ENamedThreads::GetRenderThread()).ConstructAndDispatchWhenReady(SceneRenderer);
 
 	WaitOutstandingTasks.Empty();
 	WaitOutstandingTasks.Add(ClearSnapshotsAndDeleteSceneRendererTask);
 
-	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local); 
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GetRenderThread_Local()); 
 }
 
 void FSceneRenderer::UpdatePrimitivePrecomputedLightingBuffers()

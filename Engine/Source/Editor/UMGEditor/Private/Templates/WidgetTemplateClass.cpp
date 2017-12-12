@@ -20,7 +20,7 @@ FWidgetTemplateClass::FWidgetTemplateClass()
 }
 
 FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
-	: WidgetClass(InWidgetClass)
+	: WidgetClass(InWidgetClass.Get())
 {
 	Name = WidgetClass->GetDisplayNameText();
 

@@ -6,7 +6,7 @@ public class ImageDownload : ModuleRules
 {
 	public ImageDownload(ReadOnlyTargetRules Target) : base(Target)
     {
-        Definitions.Add("IMAGEDOWNLOAD_PACKAGE=1");
+        PublicDefinitions.Add("IMAGEDOWNLOAD_PACKAGE=1");
 
         PrivateDependencyModuleNames.AddRange(
 			new string[] { 

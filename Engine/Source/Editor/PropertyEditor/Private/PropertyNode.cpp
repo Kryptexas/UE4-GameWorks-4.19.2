@@ -1586,11 +1586,6 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 				{
 					PortFlags |= PPF_DeepCompareInstances;
 				}
-				// Use PPF_DeltaComparison for instanced objects
-				else
-				{
-					PortFlags |= PPF_DeltaComparison;
-				}
 			}
 
 			if ( ValueTracker.GetPropertyValueAddress() == NULL || ValueTracker.GetPropertyDefaultAddress() == NULL )
@@ -1704,11 +1699,6 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 					if (ObjectProperty)
 					{
 						PortFlags |= PPF_DeepCompareInstances;
-					}
-					// Use PPF_DeltaComparison for instanced objects
-					else
-					{
-						PortFlags |= PPF_DeltaComparison;
 					}
 				}
 

@@ -21,7 +21,7 @@
 void SSettingsSectionHeader::Construct(const FArguments& InArgs, const UObject* InSettingsObject, ISettingsEditorModelPtr InModel, TSharedPtr<IDetailsView> InDetailsView)
 {
 	Model = InModel;
-	SettingsObject = InSettingsObject;
+	SettingsObject = MakeWeakObjectPtr(const_cast<UObject*>(InSettingsObject));
 	SettingsSection = Model->GetSectionFromSectionObject(InSettingsObject);
 	DetailsView = InDetailsView;
 

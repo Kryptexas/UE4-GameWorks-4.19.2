@@ -271,7 +271,7 @@ bool UGameplayCueManager::HandleMissingGameplayCue(UGameplayCueSet* OwningSet, s
 	{
 		// Not loaded: start async loading and call when loaded
 		StreamableManager.RequestAsyncLoad(CueData.GameplayCueNotifyObj, FStreamableDelegate::CreateUObject(this, &UGameplayCueManager::OnMissingCueAsyncLoadComplete, 
-			CueData.GameplayCueNotifyObj, TWeakObjectPtr<UGameplayCueSet>(OwningSet), CueData.GameplayCueTag, TWeakObjectPtr<AActor>(TargetActor), EventType, Parameters));
+			CueData.GameplayCueNotifyObj, TWeakObjectPtr<UGameplayCueSet>(OwningSet), CueData.GameplayCueTag, MakeWeakObjectPtr(TargetActor), EventType, Parameters));
 
 		ABILITY_LOG(Display, TEXT("GameplayCueNotify %s was not loaded when GameplayCue was invoked. Starting async loading."), *CueData.GameplayCueNotifyObj.ToString());
 	}

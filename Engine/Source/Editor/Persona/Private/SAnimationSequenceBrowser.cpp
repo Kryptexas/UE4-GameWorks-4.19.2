@@ -424,11 +424,11 @@ void SAnimationSequenceBrowser::OnApplyCompression(TArray<FAssetData> SelectedAs
 	if ( SelectedAssets.Num() > 0 )
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()) )
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()) )
 			{
-				AnimSequences.Add( TWeakObjectPtr<UAnimSequence>(AnimSequence) );
+				AnimSequences.Add( MakeWeakObjectPtr(AnimSequence) );
 			}
 		}
 
@@ -442,12 +442,12 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 	if (SelectedAssets.Num() > 0)
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()))
 			{
 				// we only shows anim sequence that belong to this skeleton
-				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+				AnimSequences.Add(MakeWeakObjectPtr(AnimSequence));
 			}
 		}
 
@@ -481,12 +481,12 @@ void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> Sel
 	if(SelectedAssets.Num() > 0)
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()))
 			{
 				// we only shows anim sequence that belong to this skeleton
-				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+				AnimSequences.Add(MakeWeakObjectPtr(AnimSequence));
 			}
 		}
 

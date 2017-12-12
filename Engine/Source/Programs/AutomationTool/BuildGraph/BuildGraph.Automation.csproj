@@ -32,7 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DocumentationFile>..\..\..\..\Binaries\DotNET\AutomationScripts\BuildGraph.Automation.xml</DocumentationFile>
+    <DocumentationFile>BuildGraph.Automation.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">

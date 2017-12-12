@@ -100,7 +100,7 @@ public:
 	* @return Pointer to the allocated memory.
 	* @see Free
 	*/
-	TLinkPtr Pop()
+	TLinkPtr Pop() TSAN_SAFE
 	{
 		FThreadLocalCache& TLS = GetTLS();
 
@@ -133,7 +133,7 @@ public:
 		TLink* ResultP = FLockFreeLinkPolicy::DerefLink(TLS.PartialBundle);
 		TLS.PartialBundle = TLinkPtr(UPTRINT(ResultP->Payload));
 		TLS.NumPartial--;
-		checkLockFreePointerList(TLS.NumPartial >= 0 && ((!!TLS.NumPartial) == (!!TLS.PartialBundle)));
+		//checkLockFreePointerList(TLS.NumPartial >= 0 && ((!!TLS.NumPartial) == (!!TLS.PartialBundle)));
 		ResultP->Payload = nullptr;
 		checkLockFreePointerList(!ResultP->DoubleNext.GetPtr() && !ResultP->SingleNext);
 		return Result;
@@ -145,7 +145,7 @@ public:
 	* @param Item The item to free.
 	* @see Allocate
 	*/
-	void Push(TLinkPtr Item)
+	void Push(TLinkPtr Item) TSAN_SAFE
 	{
 		FThreadLocalCache& TLS = GetTLS();
 		if (TLS.NumPartial >= NUM_PER_BUNDLE)
@@ -210,7 +210,7 @@ void FLockFreeLinkPolicy::FreeLockFreeLink(FLockFreeLinkPolicy::TLinkPtr Item)
 	GLockFreeLinkAllocator.Push(Item);
 }
 
-FLockFreeLinkPolicy::TLinkPtr FLockFreeLinkPolicy::AllocLockFreeLink()
+FLockFreeLinkPolicy::TLinkPtr FLockFreeLinkPolicy::AllocLockFreeLink() TSAN_SAFE
 {
 	FLockFreeLinkPolicy::TLinkPtr Result = GLockFreeLinkAllocator.Pop();
 	// this can only really be a mem stomp

@@ -14,7 +14,7 @@ public:
 	DRAG_DROP_OPERATOR_TYPE(FActorDragDropOp, FDecoratedDragDropOp)
 
 	/** Actor that we are dragging */
-	TArray< TWeakObjectPtr<AActor> >	Actors;
+	TArray< TWeakObjectPtr< AActor > > Actors;
 
 	void Init(const TArray< TWeakObjectPtr<AActor> >& InActors)
 	{
@@ -36,7 +36,7 @@ public:
 		else if(Actors.Num() == 1)
 		{
 			// Find icon for actor
-			AActor* TheActor = Actors[0].Get();
+			const AActor* TheActor = Actors[0].Get();
 			CurrentHoverText = FText::FromString(TheActor->GetActorLabel());
 		}
 		else

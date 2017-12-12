@@ -410,14 +410,14 @@ public class Engine : ModuleRules
 		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
-			Definitions.Add("WITH_RECAST=1");
+			PublicDefinitions.Add("WITH_RECAST=1");
 		}
 		else
 		{
 			// Because we test WITH_RECAST in public Engine header files, we need to make sure that modules
 			// that import this also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
-			Definitions.Add("WITH_RECAST=0");
+			PublicDefinitions.Add("WITH_RECAST=0");
 		}
 /*
 		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, System.IO.DirectoryReference.FromFile(Target.ProjectFile), Target.Platform);
@@ -425,15 +425,15 @@ public class Engine : ModuleRules
 		Ini.GetBool("/Script/Engine.RendererSettings", "bGPUParticlesLocalVFOnly", out bLocalVectorFieldOnly);
 		if (bLocalVectorFieldOnly)
 		{
-			Definitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
+			PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
 		}
 		else
 		{
-			Definitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=0");
+			PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=0");
 		}
 */
 
-		Definitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
+		PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
 
 		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
     if (Target.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)

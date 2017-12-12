@@ -416,11 +416,11 @@ FString FName::NameToDisplayString( const FString& InDisplayName, const bool bIs
 
 
 // Static variables.
-FNameEntry*	FName::NameHashHead[FNameDefs::NameHashBucketCount];
-FNameEntry*	FName::NameHashTail[FNameDefs::NameHashBucketCount];
-int32		FName::NameEntryMemorySize;
-int32		FName::NumAnsiNames;
-int32		FName::NumWideNames;
+TAtomic<FNameEntry*> FName::NameHashHead[FNameDefs::NameHashBucketCount];
+TAtomic<FNameEntry*> FName::NameHashTail[FNameDefs::NameHashBucketCount];
+int32                FName::NameEntryMemorySize;
+int32                FName::NumAnsiNames;
+int32                FName::NumWideNames;
 
 
 /*-----------------------------------------------------------------------------
@@ -809,9 +809,13 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 	if (OutIndex < 0)
 	{
 		// Try to find the name in the hash.
-		for( FNameEntry* Hash=NameHashHead[iHash]; Hash; Hash=Hash->HashNext )
+		FNameEntry* Hash = NameHashHead[iHash].Load(EMemoryOrder::Relaxed);
+		while (Hash)
 		{
-			FPlatformMisc::Prefetch( Hash->HashNext );
+			FNameEntry* NextHash = Hash->HashNext.Load(EMemoryOrder::Relaxed);
+
+			FPlatformMisc::Prefetch( NextHash );
+
 			// Compare the passed in string
 			if( Hash->IsEqual( InName, ComparisonMode ) )
 			{
@@ -835,6 +839,8 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 				check(OutIndex >= 0);
 				return true;
 			}
+
+			Hash = NextHash;
 		}
 
 		// Didn't find name.
@@ -846,10 +852,11 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 	}
 	// acquire the lock
 	FScopeLock ScopeLock(GetCriticalSection());
+	FNameEntry* OldHashHead = NameHashHead[iHash].Load(EMemoryOrder::Relaxed);
 	if (OutIndex < 0)
 	{
 		// Try to find the name in the hash. AGAIN...we might have been adding from a different thread and we just missed it
-		for( FNameEntry* Hash=NameHashHead[iHash]; Hash; Hash=Hash->HashNext )
+		for (FNameEntry* Hash = OldHashHead; Hash; Hash = Hash->HashNext.Load(EMemoryOrder::Relaxed))
 		{
 			// Compare the passed in string
 			if( Hash->IsEqual( InName, ComparisonMode ) )
@@ -861,8 +868,7 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 			}
 		}
 	}
-	FNameEntry* OldHashHead=NameHashHead[iHash];
-	FNameEntry* OldHashTail=NameHashTail[iHash];
+	FNameEntry* OldHashTail = NameHashTail[iHash].Load(EMemoryOrder::Relaxed);
 	TNameEntryArray& Names = GetNames();
 	if (OutIndex < 0)
 	{
@@ -882,23 +888,23 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 		checkSlow(!OldHashTail);
 
 		// atomically assign the new head as other threads may be reading it
-		if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&NameHashHead[iHash], NewEntry, OldHashHead) != OldHashHead) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
+		if (!NameHashHead[iHash].CompareExchange(OldHashHead, NewEntry)) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
 		{
 			check(0); // someone changed this while we were changing it
 		}
-		NameHashTail[iHash] = NewEntry; // We can non-atomically assign the tail since it's only ever read while locked
 	}
 	else
 	{
 		checkSlow(OldHashTail);
 
 		// atomically update the linked list as other threads may be reading it
-		if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&OldHashTail->HashNext, NewEntry, nullptr) != nullptr) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
+		FNameEntry* Expected = nullptr;
+		if (!OldHashTail->HashNext.CompareExchange(Expected, NewEntry)) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
 		{
 			check(0); // someone changed this while we were changing it
 		}
-		NameHashTail[iHash] = NewEntry; // We can non-atomically assign the tail since it's only ever read while locked
 	}
+	NameHashTail[iHash].Store(NewEntry, EMemoryOrder::Relaxed); // We can non-atomically assign the tail since it's only ever read while locked
 	check(OutIndex >= 0);
 	return true;
 }
@@ -991,14 +997,7 @@ void FName::StaticInit()
 
 	check(GetIsInitialized() == false);
 	check((FNameDefs::NameHashBucketCount&(FNameDefs::NameHashBucketCount-1)) == 0);
-	GetIsInitialized() = 1;
-
-	// Init the name hash.
-	for (int32 HashIndex = 0; HashIndex < FNameDefs::NameHashBucketCount; HashIndex++)
-	{
-		NameHashHead[HashIndex] = nullptr;
-		NameHashTail[HashIndex] = nullptr;
-	}
+	GetIsInitialized() = true;
 
 	{
 		FScopeLock ScopeLock(GetCriticalSection());
@@ -1018,9 +1017,11 @@ void FName::StaticInit()
 	// Verify no duplicate names.
 	for (int32 HashIndex = 0; HashIndex < FNameDefs::NameHashBucketCount; HashIndex++)
 	{
-		for (FNameEntry* Hash = NameHashHead[HashIndex]; Hash; Hash = Hash->HashNext)
+		FNameEntry* Hash = NameHashHead[HashIndex].Load(EMemoryOrder::Relaxed);
+		while (Hash)
 		{
-			for (FNameEntry* Other = Hash->HashNext; Other; Other = Other->HashNext)
+			FNameEntry* NextHash = Hash->HashNext.Load(EMemoryOrder::Relaxed);
+			for (FNameEntry* Other = NextHash; Other; Other = Other->HashNext.Load(EMemoryOrder::Relaxed))
 			{
 				if (FCString::Stricmp(*Hash->GetPlainNameString(), *Other->GetPlainNameString()) == 0)
 				{
@@ -1037,6 +1038,8 @@ void FName::StaticInit()
 					}
 				}
 			}
+
+			Hash = NextHash;
 		}
 	}
 	// check that the MAX_NETWORKED_HARDCODED_NAME define is correctly set
@@ -1068,12 +1071,16 @@ void FName::DisplayHash( FOutputDevice& Ar )
 	int32 UsedBins=0, NameCount=0, MemUsed = 0;
 	for( int32 i=0; i<FNameDefs::NameHashBucketCount; i++ )
 	{
-		if( NameHashHead[i] != NULL ) UsedBins++;
-		for( FNameEntry *Hash = NameHashHead[i]; Hash; Hash=Hash->HashNext )
+		if (FNameEntry* Hash = NameHashHead[i].Load(EMemoryOrder::Relaxed))
 		{
-			NameCount++;
-			// Count how much memory this entry is using
-			MemUsed += FNameEntry::GetSize( Hash->GetNameLength(), Hash->IsWide() );
+			++UsedBins;
+
+			for (; Hash; Hash = Hash->HashNext.Load(EMemoryOrder::Relaxed))
+			{
+				NameCount++;
+				// Count how much memory this entry is using
+				MemUsed += FNameEntry::GetSize( Hash->GetNameLength(), Hash->IsWide() );
+			}
 		}
 	}
 	Ar.Logf( TEXT("Hash: %i names, %i/%i hash bins, Mem in bytes %i"), NameCount, UsedBins, FNameDefs::NameHashBucketCount, MemUsed);
@@ -1364,7 +1371,7 @@ FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index)
 	FNameEntry* NameEntry = GNameEntryPoolAllocator.Allocate( NameEntrySize );
 	FName::NameEntryMemorySize += NameEntrySize;
 	FPlatformAtomics::InterlockedExchange(&NameEntry->Index, (Index << NAME_INDEX_SHIFT) | (FNameInitHelper<TCharType>::GetIndexShiftValue()));
-	FPlatformAtomics::InterlockedExchangePtr((void**)&NameEntry->HashNext, nullptr);
+	NameEntry->HashNext.Store(nullptr, EMemoryOrder::Relaxed);
 	FNameInitHelper<TCharType>::SetNameString(NameEntry, Name, NameLen);
 	IncrementNameCount<TCharType>();
 	return NameEntry;

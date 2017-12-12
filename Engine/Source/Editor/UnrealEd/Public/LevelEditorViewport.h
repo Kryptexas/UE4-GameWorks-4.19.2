@@ -255,7 +255,7 @@ public:
 	/**
 	 * Check to see if this actor is locked by the viewport
 	 */
-	bool IsActorLocked(const TWeakObjectPtr<AActor> InActor) const;
+	bool IsActorLocked(const TWeakObjectPtr<const AActor> InActor) const;
 
 	/**
 	 * Check to see if any actor is locked by the viewport

@@ -65,7 +65,7 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 	UFunction* Function = CallFunctionNode ? CallFunctionNode->GetTargetFunction() : nullptr;
 	if (!CanBeCalledByMathExpression(Function))
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("WrongFunction_Error", "Function '%s' cannot be called inside Math Expression @@ - @@").ToString(), *GetNameSafe(Function)), CallFunctionNode, &MENode);
+		CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("WrongFunction_ErrorFmt", "Function '{0}' cannot be called inside Math Expression @@ - @@"), FText::FromString(GetNameSafe(Function))).ToString(), CallFunctionNode, &MENode);
 		return nullptr;
 	}
 
@@ -133,7 +133,7 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 			}
 			else
 			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("FindPinParameter_Error", "Could not find a pin for the parameter %s of %s on @@").ToString(), *GetNameSafe(Property), *GetNameSafe(Function)), CallFunctionNode);
+				CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("FindPinParameter_ErrorFmt", "Could not find a pin for the parameter {0} of {1} on @@"), FText::FromString(GetNameSafe(Property)), FText::FromString(GetNameSafe(Function))).ToString(), CallFunctionNode);
 			}
 		}
 	}

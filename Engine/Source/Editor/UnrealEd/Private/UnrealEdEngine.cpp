@@ -1282,9 +1282,11 @@ void UUnrealEdEngine::RegisterComponentVisualizer(FName ComponentClassName, TSha
 	}
 }
 
-
 void UUnrealEdEngine::UnregisterComponentVisualizer(FName ComponentClassName)
 {
+	TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(ComponentClassName);
+	VisualizersForSelection.RemoveAll([&Visualizer](const auto& CachedComponentVisualizer) { return CachedComponentVisualizer.Visualizer == Visualizer; });
+
 	ComponentVisualizerMap.Remove(ComponentClassName);
 }
 

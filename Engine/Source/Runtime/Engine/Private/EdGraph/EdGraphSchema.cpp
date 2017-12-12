@@ -827,7 +827,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 				{
 					MenuBuilder->AddWidget(NodeCommentBox, FText::GetEmpty() );
 				}
-				TWeakObjectPtr<UEdGraphNode> SelectedNodeWeakPtr = InGraphNode;
+				TWeakObjectPtr<UEdGraphNode> SelectedNodeWeakPtr = MakeWeakObjectPtr(const_cast<UEdGraphNode*>(InGraphNode));
 
 				FText NodeCommentText;
 				if ( UEdGraphNode* SelectedNode = SelectedNodeWeakPtr.Get() )

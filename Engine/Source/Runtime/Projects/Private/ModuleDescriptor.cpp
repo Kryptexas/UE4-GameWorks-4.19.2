@@ -493,13 +493,14 @@ void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, co
 
 bool FModuleDescriptor::CheckModuleCompatibility(const TArray<FModuleDescriptor>& Modules, bool bGameModules, TArray<FString>& OutIncompatibleFiles)
 {
+	FModuleManager& ModuleManager = FModuleManager::Get();
+
 	bool bResult = true;
-	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	for (const FModuleDescriptor& Module : Modules)
 	{
-		const FModuleDescriptor &Module = Modules[Idx];
-		if (Module.IsCompiledInCurrentConfiguration() && !FModuleManager::Get().IsModuleUpToDate(Module.Name))
+		if (Module.IsCompiledInCurrentConfiguration() && !ModuleManager.IsModuleUpToDate(Module.Name))
 		{
-			OutIncompatibleFiles.Add(FModuleManager::GetCleanModuleFilename(Module.Name, bGameModules));
+			OutIncompatibleFiles.Add(ModuleManager.GetCleanModuleFilename(Module.Name, bGameModules));
 			bResult = false;
 		}
 	}

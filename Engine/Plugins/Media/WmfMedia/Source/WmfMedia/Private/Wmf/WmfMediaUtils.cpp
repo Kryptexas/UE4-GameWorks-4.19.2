@@ -760,7 +760,14 @@ namespace WmfMedia
 		for (int32 CharIndex = 0; CharIndex < 4; ++CharIndex)
 		{
 			const unsigned char C = Fourcc & 0xff;
-			Result += FString::Printf(TChar<char>::IsPrint(C) ? TEXT("%c") : TEXT("[%d]"), C);
+			if (TChar<char>::IsPrint(C))
+			{
+				Result += FString::Printf(TEXT("%c"), C);
+			}
+			else
+			{
+				Result += FString::Printf(TEXT("[%d]"), C);
+			}
 			Fourcc >>= 8;
 		}
 

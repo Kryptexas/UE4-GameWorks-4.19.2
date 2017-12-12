@@ -398,7 +398,7 @@ bool FLowLevelMemTracker::IsEnabled()
 
 FLowLevelMemTracker::FLowLevelMemTracker()
 	: bFirstTimeUpdating(true)
-	, bIsDisabled(false)		// must start off enabled because alllocations happen before the command line enables/disables us
+	, bIsDisabled(false)		// must start off enabled because allocations happen before the command line enables/disables us
 	, bCanEnable(true)
 	, bCsvWriterEnabled(false)
 	, bInitialisedTrackers(false)

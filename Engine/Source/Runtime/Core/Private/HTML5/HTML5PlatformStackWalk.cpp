@@ -109,11 +109,11 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 	}
 }
 
-void FHTML5PlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace,uint32 MaxDepth,void* Context)
+uint32 FHTML5PlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace,uint32 MaxDepth,void* Context)
 {
 	if (MaxDepth < 1)
 	{
-		return;
+		return 0;
 	}
 
 	--MaxDepth;
@@ -126,6 +126,7 @@ void FHTML5PlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace,uint32 Max
 	}
 
 	BackTrace[SP] = 0;
+	return SP;
 }
 
 int32 FHTML5PlatformStackWalk::GetStackBackTraceString(char* OutputString, int32 MaxLen)

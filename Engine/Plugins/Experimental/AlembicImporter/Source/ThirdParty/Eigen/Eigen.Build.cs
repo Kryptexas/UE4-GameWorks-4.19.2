@@ -12,6 +12,6 @@ public class Eigen : ModuleRules
            PublicIncludePaths.Add( ModuleDirectory + "/Eigen/" );
         }
 
-        Definitions.Add("EIGEN_MPL2_ONLY");
+        PublicDefinitions.Add("EIGEN_MPL2_ONLY");
     }
 }

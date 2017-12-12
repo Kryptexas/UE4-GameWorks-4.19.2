@@ -40,42 +40,10 @@ public:
 		checkSlow(Owner);
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TTransArray(TTransArray&&) = default;
 	TTransArray(const TTransArray&) = default;
 	TTransArray& operator=(TTransArray&&) = default;
 	TTransArray& operator=(const TTransArray&) = default;
-
-#else
-
-	FORCEINLINE TTransArray(const TTransArray& Other)
-		: Super((const Super&)Other)
-		, Owner(Other.Owner)
-	{
-	}
-
-	FORCEINLINE TTransArray& operator=(const TTransArray& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		Owner         = Other.Owner;
-		return *this;
-	}
-
-	FORCEINLINE TTransArray(TTransArray&& Other)
-		: Super((TTransArray&&)Other)
-		, Owner(Other.Owner)
-	{
-	}
-
-	FORCEINLINE TTransArray& operator=(TTransArray&& Other)
-	{
-		(Super&)*this = (Super&&)Other;
-		Owner         = Other.Owner;
-		return *this;
-	}
-
-#endif
 
 	// Add, Insert, Remove, Empty interface.
 	int32 AddUninitialized( int32 Count=1 )

@@ -10,7 +10,7 @@
 
 void UPersonaPreviewSceneAnimationController::InitializeView(UPersonaPreviewSceneDescription* SceneDescription, IPersonaPreviewScene* PreviewScene) const
 {
-	PreviewScene->SetPreviewAnimationAsset(Cast<UAnimationAsset>(Animation.LoadSynchronous()));
+	PreviewScene->SetPreviewAnimationAsset(Animation.LoadSynchronous());
 }
 
 void UPersonaPreviewSceneAnimationController::UninitializeView(UPersonaPreviewSceneDescription* SceneDescription, IPersonaPreviewScene* PreviewScene) const

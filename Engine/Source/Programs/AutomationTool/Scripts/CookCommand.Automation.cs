@@ -266,9 +266,6 @@ public partial class Project : CommandUtils
 				}
 				else
 				{
-					// Delete cooked data (if any) as it may be incomplete / corrupted.
-					Log("Cook failed. Deleting cooked data.");
-					CleanupCookedData(PlatformsToCook.ToList(), Params);
 					throw new AutomationException(ExitCode.Error_UnknownCookFailure, Ex, "Cook failed.");
 				}
 			}
@@ -281,9 +278,6 @@ public partial class Project : CommandUtils
                 }
                 catch ( Exception Ex )
                 {
-                    // Delete cooked data (if any) as it may be incomplete / corrupted.
-                    Log("Cook failed. Deleting cooked data.");
-                    CleanupCookedData(PlatformsToCook.ToList(), Params);
                     throw new AutomationException(ExitCode.Error_UnknownCookFailure, Ex, "Cook failed.");
                 }
             }
