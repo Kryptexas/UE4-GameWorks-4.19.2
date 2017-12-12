@@ -48,6 +48,8 @@ void UK2Node_Composite::AllocateDefaultPins()
 			}
 		}
 	}
+
+	CacheWildcardPins();
 }
 
 void UK2Node_Composite::DestroyNode()

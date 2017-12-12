@@ -103,7 +103,7 @@ public:
 	void Initialize()
 	{
 		StructData = MakeShareable(new FStructOnScope(UserDefinedStruct.Get()));
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		UserDefinedStruct.Get()->InitializeDefaultValue(StructData->GetStructMemory());
 		StructData->SetPackage(UserDefinedStruct->GetOutermost());
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -155,7 +155,7 @@ public:
 			DetailsView->SetObject(UserDefinedStruct.Get());
 		}
 
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		UserDefinedStruct.Get()->InitializeDefaultValue(StructData->GetStructMemory());
 	}
 
 	// FNotifyHook interface

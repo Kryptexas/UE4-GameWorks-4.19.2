@@ -581,6 +581,7 @@ public:
 
 	ENGINE_API static bool AreOrphanPinsEnabled();
 
+	ENGINE_API static void SanitizePinsPostUndoRedo();
 private:
 	/** Private Constructor. Create pins using CreatePin since all pin instances are managed by TSharedPtr. */
 	UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinGuid);

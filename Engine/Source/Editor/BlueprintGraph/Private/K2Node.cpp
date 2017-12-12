@@ -843,6 +843,31 @@ void UK2Node::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) con
 	}
 }
 
+FString UK2Node::GetPinMetaData(FName InPinName, FName InKey)
+{
+	UEdGraphPin* Pin = FindPin(InPinName);
+
+	// For split pins check the struct's metadata
+	if (Pin && Pin->ParentPin && Pin->ParentPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+	{
+		FName NewPinPropertyName = FName(*Pin->PinName.ToString().RightChop(Pin->ParentPin->PinName.ToString().Len() + 1));
+
+		UStruct* StructType = Cast<UStruct>(Pin->ParentPin->PinType.PinSubCategoryObject.Get());
+		if (StructType)
+		{
+			for (TFieldIterator<UProperty> It(StructType); It; ++It)
+			{
+				const UProperty* Property = *It;
+				if (Property && Property->GetFName() == NewPinPropertyName)
+				{
+					return Property->GetMetaData(InKey);
+				}
+			}
+		}
+	}
+	return FString();
+}
+
 void UK2Node::RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEdGraphPin*>& InNewPins)
 {
 	TArray<UEdGraphPin*> OrphanedOldPins;

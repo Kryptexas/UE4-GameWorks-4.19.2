@@ -2578,6 +2578,14 @@ public:
 	 */
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
 
+	/**
+	 * Initializes the ClassReps and NetFields arrays used by replication.
+	 * For classes that are loaded, this needs to happen in PostLoad to
+	 * ensure all replicated UFunctions have been serialized. For native classes,
+	 * this should happen in Link. Also needs to happen after blueprint compiliation.
+	 */
+	void SetUpRuntimeReplicationData();
+
 private:
 	#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 		// For UObjectBaseUtility

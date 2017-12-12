@@ -1943,6 +1943,8 @@ bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice&
 	{
 		bool bHasNetFields = false;
 
+		ensureMsgf(!ClassIt->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("UNetDriver::HandleNetDumpServerRPCCommand: %s has flag RF_NeedPostLoad. NetFields and ClassReps will be incorrect!"), *GetFullNameSafe(*ClassIt));
+
 		for ( int32 i = 0; i < ClassIt->NetFields.Num(); i++ )
 		{
 			UFunction * Function = Cast<UFunction>( ClassIt->NetFields[i] );

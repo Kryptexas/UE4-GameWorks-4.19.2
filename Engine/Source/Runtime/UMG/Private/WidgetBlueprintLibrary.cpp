@@ -49,11 +49,6 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 	{
 		UserWidget = CreateWidget<UUserWidget>(OwningPlayer, WidgetType);
 	}
-
-	if (UserWidget)
-	{
-		UserWidget->SetFlags(RF_StrongRefOnFrame);
-	}
 	return UserWidget;
 }
 
@@ -67,11 +62,6 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 	else
 	{
 		DragDropOperation = NewObject<UDragDropOperation>();
-	}
-
-	if (DragDropOperation)
-	{
-		DragDropOperation->SetFlags(RF_StrongRefOnFrame);
 	}
 	return DragDropOperation;
 }

@@ -2679,17 +2679,6 @@ bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames,
 	return bCompleteMatchFound;
 }
 
-void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr)
-{
-	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
-	{
-		if (!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), RawPtr))
-		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetPathName());
-		}
-	}
-}
-
 void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult)
 {
 	UProperty* NodeProperty = GetProperty();
@@ -2815,10 +2804,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 							Object->InstanceSubobjectTemplates();
 							break;
 						}
-						if (ElementToInitialize >= 0)
-						{
-							AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
-						}
 					}
 				}	// End Array
 
@@ -2850,11 +2835,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 							check(false);	// Duplicate not supported on sets
 							break;
 						}
-
-						if (ElementToInitialize >= 0)
-						{
-							AdditionalInitializationUDS(SetProperty->ElementProp, SetHelper.GetElementPtr(ElementToInitialize));
-						}
 					}
 				}	// End Set
 				else if (MapProperty)
@@ -2884,14 +2864,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 						case EPropertyArrayChangeType::Duplicate:
 							check(false);	// Duplicate is not supported for maps
 							break;
-						}
-
-						if (ElementToInitialize >= 0)
-						{
-							uint8* PairPtr = MapHelper.GetPairPtr(ElementToInitialize);
-
-							AdditionalInitializationUDS(MapProperty->KeyProp, MapProperty->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-							AdditionalInitializationUDS(MapProperty->ValueProp, MapProperty->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
 						}
 					}
 				}	// End Map

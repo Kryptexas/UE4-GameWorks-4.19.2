@@ -378,13 +378,16 @@ static int32 SetDescendantIsEditorOnly(USceneComponent const* SceneComponentObje
 	// recursively alter the bIsEditorOnly flag for children and deeper descendants 
 	for (USceneComponent* ChildSceneComponent : AttachedChildren)
 	{
-		if (!ChildSceneComponent->bIsEditorOnly)
+		if (ChildSceneComponent != nullptr)
 		{
-			ChildSceneComponent->Modify();
-			ChildSceneComponent->bIsEditorOnly = true;
-			++NumDescendantsChanged;
+			if (!ChildSceneComponent->bIsEditorOnly)
+			{
+				ChildSceneComponent->Modify();
+				ChildSceneComponent->bIsEditorOnly = true;
+				++NumDescendantsChanged;
+			}
+			NumDescendantsChanged += SetDescendantIsEditorOnly(ChildSceneComponent);
 		}
-		NumDescendantsChanged += SetDescendantIsEditorOnly(ChildSceneComponent);
 	}
 
 	return NumDescendantsChanged;
@@ -841,43 +844,44 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 			{
 				// Cache our AttachParent
 				USceneComponent* CachedAttachParent = GetAttachParent();
-				check(CachedAttachParent != nullptr);
-
-				// Find the our position in its AttachParent's child array
-				const TArray<USceneComponent*>& AttachSiblings = CachedAttachParent->GetAttachChildren();
-				int32 Index = AttachSiblings.Find(this);
-				check(Index != INDEX_NONE);
-
-				// Detach from parent
-				DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-
-				// Find an appropriate child node to promote to this node's position in the hierarchy
-				if (AttachedChildren.Num() > 0)
+				if (ensureMsgf(CachedAttachParent != nullptr, TEXT("Deleting a non-root scene component with no AttachParent: %s"), *GetFullName()))
 				{
-					// Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
-					USceneComponent* const * FindResult =
-						AttachedChildren.FindByPredicate([Owner](USceneComponent* Child){ return Child != nullptr && !Child->IsEditorOnly(); });
+					// Find the our position in its AttachParent's child array
+					const TArray<USceneComponent*>& AttachSiblings = CachedAttachParent->GetAttachChildren();
+					int32 Index = AttachSiblings.Find(this);
+					check(Index != INDEX_NONE);
 
-					if (FindResult != nullptr)
+					// Detach from parent
+					DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+
+					// Find an appropriate child node to promote to this node's position in the hierarchy
+					if (AttachedChildren.Num() > 0)
 					{
-						ChildToPromote = *FindResult;
+						// Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
+						USceneComponent* const * FindResult =
+							AttachedChildren.FindByPredicate([Owner](USceneComponent* Child) { return Child != nullptr && !Child->IsEditorOnly(); });
+
+						if (FindResult != nullptr)
+						{
+							ChildToPromote = *FindResult;
+						}
+						else
+						{
+							// Default to first child node
+							check(AttachedChildren[0] != nullptr);
+							ChildToPromote = AttachedChildren[0];
+						}
 					}
-					else
+
+					if (ChildToPromote != nullptr)
 					{
-						// Default to first child node
-						check(AttachedChildren[0] != nullptr);
-						ChildToPromote = AttachedChildren[0];
+						// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
+						ChildToPromote->AttachToComponent(CachedAttachParent, FAttachmentTransformRules::KeepWorldTransform);
+						CachedAttachParent->AttachChildren.Remove(ChildToPromote);
+
+						Index = FMath::Clamp<int32>(Index, 0, AttachSiblings.Num());
+						CachedAttachParent->AttachChildren.Insert(ChildToPromote, Index);
 					}
-				}
-
-				if (ChildToPromote != nullptr)
-				{
-					// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
-					ChildToPromote->AttachToComponent(CachedAttachParent, FAttachmentTransformRules::KeepWorldTransform);
-					CachedAttachParent->AttachChildren.Remove(ChildToPromote);
-
-					Index = FMath::Clamp<int32>(Index, 0, AttachSiblings.Num());
-					CachedAttachParent->AttachChildren.Insert(ChildToPromote, Index);
 				}
 			}
 
@@ -885,13 +889,14 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 			TArray<USceneComponent*> AttachChildrenLocalCopy(AttachedChildren);
 			for (USceneComponent* Child : AttachChildrenLocalCopy)
 			{
-				check(Child != nullptr);
-
-				// Note: This will internally call Modify(), so we don't need to call it here
-				Child->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-				if (Child != ChildToPromote)
+				if (ensure(Child))
 				{
-					Child->AttachToComponent(ChildToPromote, FAttachmentTransformRules::KeepWorldTransform);
+					// Note: This will internally call Modify(), so we don't need to call it here
+					Child->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+					if (Child != ChildToPromote)
+					{
+						Child->AttachToComponent(ChildToPromote, FAttachmentTransformRules::KeepWorldTransform);
+					}
 				}
 			}
 		}

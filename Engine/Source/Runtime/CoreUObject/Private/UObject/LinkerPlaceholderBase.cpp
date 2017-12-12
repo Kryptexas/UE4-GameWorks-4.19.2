@@ -234,8 +234,6 @@ FScopedPlaceholderContainerTracker::~FScopedPlaceholderContainerTracker()
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 }
 
-#if WITH_EDITOR
-
 FScopedPlaceholderRawContainerTracker::FScopedPlaceholderRawContainerTracker(void* InData)
 	:Data(InData)
 {
@@ -249,8 +247,6 @@ FScopedPlaceholderRawContainerTracker::~FScopedPlaceholderRawContainerTracker()
 	check(StackTop == Data);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 }
-
-#endif
 
 //------------------------------------------------------------------------------
 FScopedPlaceholderPropertyTracker::FScopedPlaceholderPropertyTracker(const UStructProperty* InIntermediateProperty)

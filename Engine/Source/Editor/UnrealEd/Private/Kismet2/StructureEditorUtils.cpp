@@ -480,6 +480,21 @@ FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* 
 	return VarDesc ? VarDesc->FriendlyName : FString();
 }
 
+UProperty* FStructureEditorUtils::GetPropertyByDisplayName(const UUserDefinedStruct* Struct, FString DisplayName)
+{
+	if (Struct)
+	{
+		for (const FStructVariableDescription& VarDesc : GetVarDesc(Struct))
+		{
+			if (VarDesc.FriendlyName == DisplayName)
+			{
+				return FindField<UProperty>(Struct, VarDesc.VarName);
+			}
+		}
+	}
+	return nullptr;
+}
+
 bool FStructureEditorUtils::UserDefinedStructEnabled()
 {
 	static FBoolConfigValueHelper UseUserDefinedStructure(TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"));
@@ -493,71 +508,6 @@ void FStructureEditorUtils::RecreateDefaultInstanceInEditorData(UUserDefinedStru
 	{
 		StructEditorData->RecreateDefaultInstance();
 	}
-}
-
-bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
-{
-	bool bResult = true;
-	if (Struct && StructData)
-	{
-		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
-		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
-		if (DefaultInstance)
-		{
-			Struct->CopyScriptStruct(StructData, DefaultInstance);
-		}
-		else
-		{
-			bResult = false;
-		}
-	}
-	
-	return bResult;
-}
-
-bool FStructureEditorUtils::DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
-{
-	bool bDiffers = false;
-	if (Struct && StructData)
-	{
-		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
-		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
-		if (DefaultInstance)
-		{
-			const int32 PortFlags = PPF_None;
-			bDiffers = !Struct->CompareScriptStruct(StructData, DefaultInstance, PortFlags);
-		}
-	}
-	return bDiffers;
-}
-
-bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Property, uint8* PropertyData)
-{
-	bool bResult = true;
-
-	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
-	{
-		if (const UUserDefinedStruct* InnerStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct))
-		{
-			bResult &= Fill_MakeStructureDefaultValue(InnerStruct, PropertyData);
-		}
-	}
-	else if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(Property))
-	{
-		StructProperty = Cast<const UStructProperty>(ArrayProp->Inner);
-		const UUserDefinedStruct* InnerStruct = StructProperty ? Cast<const UUserDefinedStruct>(StructProperty->Struct) : NULL;
-		if(InnerStruct)
-		{
-			FScriptArrayHelper ArrayHelper(ArrayProp, PropertyData);
-			for (int32 Index = 0; Index < ArrayHelper.Num(); ++Index)
-			{
-				uint8* const ValuePtr = ArrayHelper.GetRawPtr(Index);
-				bResult &= Fill_MakeStructureDefaultValue(InnerStruct, ValuePtr);
-			}
-		}
-	}
-
-	return bResult;
 }
 
 void FStructureEditorUtils::CompileStructure(UUserDefinedStruct* Struct)

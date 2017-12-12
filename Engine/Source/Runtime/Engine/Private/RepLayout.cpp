@@ -2971,6 +2971,8 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 
 	Parents.Empty();
 
+	ensureMsgf(!InObjectClass->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("FRepLayout::InitFromObjectClass: %s has not. NetFields and ClassReps will be incorrect!"), *GetFullNameSafe(InObjectClass));
+
 	for ( int32 i = 0; i < InObjectClass->ClassReps.Num(); i++ )
 	{
 		UProperty * Property	= InObjectClass->ClassReps[i].Property;

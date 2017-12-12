@@ -804,9 +804,13 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 						BP->GeneratedClass->ClassDefaultObject == nullptr || 
 						BP->GeneratedClass->ClassDefaultObject->GetClass() != BP->GeneratedClass);
 				// default value propagation occurs in ReinstaneBatch, CDO will be created via CompileFunctions call:
-				if(BP->GeneratedClass)
+				if(BP->ParentClass)
 				{
-					BP->GeneratedClass->ClassDefaultObject = nullptr;
+					if(BP->GeneratedClass)
+					{
+						BP->GeneratedClass->ClassDefaultObject = nullptr;
+					}
+
 					// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
 					BP->bDisplayCompilePIEWarning = true;
 		
@@ -894,6 +898,11 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 						CompiledBlueprintsToSave.Add(BP);
 					}
 				}
+			}
+
+			if(BP->GeneratedClass)
+			{
+				BP->GeneratedClass->SetUpRuntimeReplicationData();
 			}
 
 			ensure(BP->GeneratedClass == nullptr || BP->GeneratedClass->ClassDefaultObject->GetClass() == *(BP->GeneratedClass));

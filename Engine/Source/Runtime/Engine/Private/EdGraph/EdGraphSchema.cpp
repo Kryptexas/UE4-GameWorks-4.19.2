@@ -693,7 +693,15 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	check(Pin != nullptr);
 	if (Pin->PinFriendlyName.IsEmpty())
 	{
-		ResultPinName = FText::FromName(Pin->PinName);
+		// We don't want to display "None" for no name
+		if (Pin->PinName.IsNone())
+		{
+			return FText::GetEmpty();
+		}
+		else
+		{
+			ResultPinName = FText::FromName(Pin->PinName);
+		}
 	}
 	else
 	{

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma  once
 
 #include "CoreMinimal.h"
@@ -321,7 +321,7 @@ struct FNonativeComponentData;
 
 struct FEmitDefaultValueHelper
 {
-	static void GenerateGetDefaultValue(const UUserDefinedStruct* Struct, FEmitterLocalContext& EmitterContext);
+	static void GenerateUserStructConstructor(const UUserDefinedStruct* Struct, FEmitterLocalContext& EmitterContext);
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 

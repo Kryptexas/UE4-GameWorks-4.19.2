@@ -4612,21 +4612,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 #if WITH_EDITOR
 				// In the editor we need to find any assets and add them to list for later callback
-				UPackage* LoadedPackage = Package->GetLoadedPackage();
-
-				if (LoadedPackage)
-				{
-					TArray<UObject*> TopLevelObjects;
-					GetObjectsWithOuter(LoadedPackage, TopLevelObjects, false);
-
-					for (UObject* TopLevelObject : TopLevelObjects)
-					{
-						if (TopLevelObject->IsAsset())
-						{
-							LoadedAssets.Add(TopLevelObject);
-						}
-					}
-				}
+				Package->GetLoadedAssets(LoadedAssets);
 #endif
 				// We don't need the package anymore
 				PackagesToDelete.AddUnique(Package);
@@ -5360,6 +5346,19 @@ void FAsyncPackage::FlushObjectLinkerCache()
 		}
 	}
 }
+
+#if WITH_EDITOR 
+void FAsyncPackage::GetLoadedAssets(TArray<FWeakObjectPtr>& AssetList)
+{
+	for (UObject* Obj : PackageObjLoaded)
+	{
+		if (Obj && !Obj->IsPendingKill() && Obj->IsAsset())
+		{
+			AssetList.Add(Obj);
+		}
+	}
+}
+#endif
 
 /**
  * Gives up time slice if time limit is enabled.

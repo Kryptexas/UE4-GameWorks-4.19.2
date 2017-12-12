@@ -5038,6 +5038,10 @@ bool UEditorEngine::Exec_Transaction(const TCHAR* Str, FOutputDevice& Ar)
 
 void UEditorEngine::BroadcastPostUndo(const FString& Context, UObject* PrimaryObject, bool bUndoSuccess )
 {
+	// This sanitization code can be removed once blueprint ::Conform(ImplementedEvents/ImplementedInterfaces) 
+	// functions have been fixed. For the time being it improves editor stability, though:
+	UEdGraphPin::SanitizePinsPostUndoRedo();
+
 	for (auto UndoIt = UndoClients.CreateIterator(); UndoIt; ++UndoIt)
 	{
 		FEditorUndoClient* Client = *UndoIt;
@@ -5050,6 +5054,10 @@ void UEditorEngine::BroadcastPostUndo(const FString& Context, UObject* PrimaryOb
 
 void UEditorEngine::BroadcastPostRedo(const FString& Context, UObject* PrimaryObject, bool bRedoSuccess )
 {
+	// This sanitization code can be removed once blueprint ::Conform(ImplementedEvents/ImplementedInterfaces) 
+	// functions have been fixed. For the time being it improves editor stability, though:
+	UEdGraphPin::SanitizePinsPostUndoRedo();
+
 	for (auto UndoIt = UndoClients.CreateIterator(); UndoIt; ++UndoIt)
 	{
 		FEditorUndoClient* Client = *UndoIt;

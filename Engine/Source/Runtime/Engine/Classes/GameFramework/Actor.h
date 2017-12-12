@@ -847,9 +847,9 @@ public:
 	 * @param NewRotation		The new rotation for the Actor.
 	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
 	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
-	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
-	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
-	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 * @param Teleport			How we teleport the physics state (if physics collision is enabled for this object).
+	 *							If equal to ETeleportType::TeleportPhysics, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If equal to ETeleportType::None, physics velocity is updated based on the change in position (affecting ragdoll parts).
 	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the rotation was successfully set.
@@ -3167,22 +3167,43 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 
 #define HIDE_ACTOR_TRANSFORM_FUNCTIONS() private: \
 	FTransform GetTransform() const { return Super::GetTransform(); } \
+	FTransform GetActorTransform() const { return Super::GetActorTransform(); } \
 	FVector GetActorLocation() const { return Super::GetActorLocation(); } \
 	FRotator GetActorRotation() const { return Super::GetActorRotation(); } \
 	FQuat GetActorQuat() const { return Super::GetActorQuat(); } \
 	FVector GetActorScale() const { return Super::GetActorScale(); } \
-	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr) { return Super::SetActorLocation(NewLocation, bSweep, OutSweepHitResult); } \
-	bool SetActorRotation(FRotator NewRotation) { return Super::SetActorRotation(NewRotation); } \
-	bool SetActorRotation(const FQuat& NewRotation) { return Super::SetActorRotation(NewRotation); } \
-	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult); } \
-	bool SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult); } \
+	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorTransform(NewTransform, bSweep, OutSweepHitResult, Teleport); } \
+	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorLocation(NewLocation, bSweep, OutSweepHitResult, Teleport); } \
+	bool SetActorRotation(FRotator NewRotation, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorRotation(NewRotation, Teleport); } \
+	bool SetActorRotation(const FQuat& NewRotation, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorRotation(NewRotation, Teleport); } \
+	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult, Teleport); } \
+	bool SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult, Teleport); } \
 	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) override { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
 	virtual FVector GetVelocity() const override { return Super::GetVelocity(); } \
 	float GetHorizontalDistanceTo(AActor* OtherActor)  { return Super::GetHorizontalDistanceTo(OtherActor); } \
 	float GetVerticalDistanceTo(AActor* OtherActor)  { return Super::GetVerticalDistanceTo(OtherActor); } \
 	float GetDotProductTo(AActor* OtherActor) { return Super::GetDotProductTo(OtherActor); } \
 	float GetHorizontalDotProductTo(AActor* OtherActor) { return Super::GetHorizontalDotProductTo(OtherActor); } \
-	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); }
-
-
-
+	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); } \
+	float GetSquaredDistanceTo(const AActor* OtherActor) { return Super::GetSquaredDistanceTo(OtherActor); } \
+	FVector GetActorForwardVector() const { return Super::GetActorForwardVector(); } \
+	FVector GetActorUpVector() const { return Super::GetActorUpVector(); } \
+	FVector GetActorRightVector() const { return Super::GetActorRightVector(); } \
+	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const { return Super::GetActorBounds(bOnlyCollidingComponents, Origin, BoxExtent); } \
+	void SetActorScale3D(FVector NewScale3D) { Super::SetActorScale3D(NewScale3D); } \
+	FVector GetActorScale3D() const { return Super::GetActorScale3D(); } \
+	void SetActorRelativeScale3D(FVector NewRelativeScale) { Super::SetActorRelativeScale3D(NewRelativeScale); } \
+	FVector GetActorRelativeScale3D() const { return Super::GetActorRelativeScale3D(); } \
+	FTransform ActorToWorld() const { return Super::ActorToWorld(); } \
+	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorWorldOffset(DeltaLocation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorWorldRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorWorldRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorWorldTransform(DeltaTransform, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorLocalOffset(DeltaLocation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorLocalRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorLocalRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::AddActorLocalTransform(NewTransform, bSweep, OutSweepHitResult, Teleport); } \
+	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::SetActorRelativeLocation(NewRelativeLocation, bSweep, OutSweepHitResult, Teleport); } \
+	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::SetActorRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::SetActorRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult, Teleport); } \
+	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None) { Super::SetActorRelativeTransform(NewRelativeTransform, bSweep, OutSweepHitResult, Teleport); }

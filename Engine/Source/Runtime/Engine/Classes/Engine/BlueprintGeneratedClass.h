@@ -67,6 +67,9 @@ public:
 	// Map from source node (impure) to pure node script code range
 	TMap< TWeakObjectPtr<UEdGraphNode>, FInt32Range > PureNodeScriptCodeRangeMap;
 
+	// Reverse map from code offset to outer expansion (tunnel instance) source nodes
+	TMap< int32, TArray<TWeakObjectPtr<UEdGraphNode> > > LineNumberToTunnelInstanceSourceNodesMap;
+
 public:
 	FDebuggingInfoForSingleFunction()
 	{
@@ -326,6 +329,16 @@ public:
 		return Result;
 	}
 
+	const TArray<TWeakObjectPtr<UEdGraphNode> >* FindExpansionSourceNodesFromCodeLocation(UFunction* Function, int32 CodeOffset) const
+	{
+		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
+		{
+			return pFuncInfo->LineNumberToTunnelInstanceSourceNodesMap.Find(CodeOffset);
+		}
+
+		return nullptr;
+	}
+
 	// Finds the breakpoint injection site(s) in bytecode if any were associated with the given node
 	void FindBreakpointInjectionSites(UEdGraphNode* Node, TArray<uint8*>& InstallSites) const
 	{
@@ -373,7 +386,7 @@ public:
 	}
 
 	// Adds a debug record for a source node and destination in the bytecode of a specified function
-	void RegisterNodeToCodeAssociation(UEdGraphNode* SourceNode, UFunction* InFunction, int32 CodeOffset, bool bBreakpointSite)
+	void RegisterNodeToCodeAssociation(UEdGraphNode* SourceNode, const TArray<TWeakObjectPtr<UEdGraphNode> >& ExpansionSourceNodes, UFunction* InFunction, int32 CodeOffset, bool bBreakpointSite)
 	{
 		//@TODO: Nasty expansion behavior during compile time
 		if (bBreakpointSite)
@@ -384,6 +397,11 @@ public:
 
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
 		PerFuncInfo.LineNumberToSourceNodeMap.Add(CodeOffset, SourceNode);
+
+		if (ExpansionSourceNodes.Num() > 0)
+		{
+			PerFuncInfo.LineNumberToTunnelInstanceSourceNodesMap.Add(CodeOffset, ExpansionSourceNodes);
+		}
 	}
 
 	void RegisterPureNodeScriptCodeRange(UEdGraphNode* SourceNode, UFunction* InFunction, FInt32Range InPureNodeScriptCodeRange)

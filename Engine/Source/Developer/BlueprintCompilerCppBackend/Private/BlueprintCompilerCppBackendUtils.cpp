@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "Misc/App.h"
@@ -40,6 +40,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		}
 	}
 
+	UUserDefinedStruct* ActualUserStruct = Cast<UUserDefinedStruct>(Dependencies.GetActualStruct());
 	UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());
 	UClass* OriginalActualClass = Dependencies.FindOriginalClass(ActualClass);
 	UClass* OuterClass = Object ? Cast<UClass>(Object->GetOuter()) : nullptr;	// SCS component templates will have an Outer that equates to their owning BPGC; since they're not currently DSOs, we have to special-case them.
@@ -257,6 +258,15 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 				, *ClassString()
 				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
 		}
+	}
+
+	if (ActualUserStruct)
+	{
+		// For user structs, the default action of loading is unsafe so call the wrapper function
+		return FString::Printf(TEXT("CastChecked<%s>(FConvertedBlueprintsDependencies::LoadObjectForStructConstructor(%s::StaticStruct(),TEXT(\"%s\")), ECastCheckedType::NullAllowed)")
+			, *ClassString()
+			, *FEmitHelper::GetCppName(ActualUserStruct)
+			, *GetPathNameSafe(Object).ReplaceCharWithEscapedChar());			
 	}
 
 	return FString{};
@@ -1104,7 +1114,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;")
 					, *LocalStructNativeName
 					, *StructName
-					, AsUDS ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
+					, FEmitHelper::EmptyDefaultConstructor(StructType)));
 				if (AsUDS)
 				{
 					EmitterContext.StructsWithDefaultValuesUsed.Add(AsUDS);

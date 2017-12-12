@@ -128,8 +128,11 @@ void FActorTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, 
 {
 	if (Target && !Target->IsPendingKillOrUnreachable())
 	{
-		FScopeCycleCounterUObject ActorScope(Target);
-		Target->TickActor(DeltaTime*Target->CustomTimeDilation, TickType, *this);	
+		if (TickType != LEVELTICK_ViewportsOnly || Target->ShouldTickIfViewportsOnly())
+		{
+			FScopeCycleCounterUObject ActorScope(Target);
+			Target->TickActor(DeltaTime*Target->CustomTimeDilation, TickType, *this);
+		}
 	}
 }
 
@@ -809,15 +812,17 @@ float AActor::GetActorTickInterval() const
 
 bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	if (NewOuter)
+	const bool bRenameTest = ((Flags & REN_Test) != 0);
+
+	if (!bRenameTest && NewOuter)
 	{
 		RegisterAllActorTickFunctions(false, true); // unregister all tick functions
 		UnregisterAllComponents();
 	}
 
-	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
+	const bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
-	if (NewOuter && NewOuter->IsA<ULevel>())
+	if (!bRenameTest && NewOuter && NewOuter->IsA<ULevel>())
 	{
 		UWorld* World = NewOuter->GetWorld();
 		if (World && World->bIsWorldInitialized)
@@ -857,14 +862,10 @@ void AActor::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunct
 	//root of tick hierarchy
 
 	// Non-player update.
-	const bool bShouldTick = ((TickType!=LEVELTICK_ViewportsOnly) || ShouldTickIfViewportsOnly());
-	if(bShouldTick)
+	// If an Actor has been Destroyed or its level has been unloaded don't execute any queued ticks
+	if (!IsPendingKill() && GetWorld())
 	{
-		// If an Actor has been Destroyed or its level has been unloaded don't execute any queued ticks
-		if (!IsPendingKill() && GetWorld())
-		{
-			Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
-		}
+		Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
 	}
 }
 

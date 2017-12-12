@@ -167,6 +167,8 @@ const FClassNetCache* FClassNetCacheMgr::GetClassNetCache( const UClass* Class )
 
 	if ( !Result )
 	{
+		ensureMsgf(!Class->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("FClassNetCacheMgr::GetClassNetCache: %s has flag RF_NeedPostLoad. NetFields and ClassReps will be incorrect!"), *GetFullNameSafe(Class));
+
 		Result					= ClassFieldIndices.Add( Class, new FClassNetCache( Class ) );
 		Result->Super			= NULL;
 		Result->FieldsBase		= 0;

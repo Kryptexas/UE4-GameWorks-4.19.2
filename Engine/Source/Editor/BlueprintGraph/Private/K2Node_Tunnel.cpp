@@ -264,6 +264,20 @@ UObject* UK2Node_Tunnel::GetJumpTargetForDoubleClick() const
 	return TargetNode;
 }
 
+void UK2Node_Tunnel::CacheWildcardPins()
+{
+	WildcardPins.Reset();
+
+	for (UEdGraphPin* Pin : Pins)
+	{
+		// for each of the wildcard pins...
+		if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		{
+			WildcardPins.Add(Pin);
+		}
+	}
+}
+
 void UK2Node_Tunnel::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	Super::ReallocatePinsDuringReconstruction(OldPins);
@@ -271,44 +285,57 @@ void UK2Node_Tunnel::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 	// determine if all wildcard pins are unlinked.
 	// if they are, we should revert them all back to wildcard status
 	bool bAllWildcardsAreUnlinked = true;
-	for (auto PinIt = Pins.CreateConstIterator(); PinIt; PinIt++)
+	for (UEdGraphPin* Pin : WildcardPins)
 	{
-		// for each of the wildcard pins...
-		UEdGraphPin* const Pin = *PinIt;
-		if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		// find it in the old pins array (where it might not be a wildcard)
+		// and see if it's unlinked
+		for (UEdGraphPin* OldPin : OldPins)
 		{
-			// find it in the old pins array (where it might not be a wildcard)
-			// and see if it's unlinked
-			for (auto OldPinIt = OldPins.CreateConstIterator(); OldPinIt; OldPinIt++)
+			if (OldPin->PinName == Pin->PinName)
 			{
-				UEdGraphPin const* const OldPin = *OldPinIt;
-				if (OldPin->PinName == Pin->PinName)
+				TFunction<bool(UEdGraphPin*)> IsPinLinked = [&IsPinLinked](UEdGraphPin* InPin)
 				{
-					if (OldPin->LinkedTo.Num() > 0)
+					if (InPin->LinkedTo.Num() > 0)
 					{
-						bAllWildcardsAreUnlinked = false;
-						break;
+						return true;
 					}
+					for (UEdGraphPin* SubPin : InPin->SubPins)
+					{
+						if (IsPinLinked(SubPin))
+						{
+							return true;
+						}
+					}
+					return false;
+				};
+				if (IsPinLinked(OldPin))
+				{
+					bAllWildcardsAreUnlinked = false;
+					break;
 				}
 			}
+		}
+		if (bAllWildcardsAreUnlinked == false)
+		{
+			break;
 		}
 	}
 
 	if (bAllWildcardsAreUnlinked == false)
 	{
 		// Copy pin types from old pins for wildcard pins
-		for (auto PinIt = Pins.CreateConstIterator(); PinIt; PinIt++)
+		for (UEdGraphPin* const Pin : WildcardPins)
 		{
-			UEdGraphPin* const Pin = *PinIt;
+			// Only change the type if it is still a wildcard
 			if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 			{
 				// find it in the old pins and copy the type
-				for (auto OldPinIt = OldPins.CreateConstIterator(); OldPinIt; OldPinIt++)
+				for (UEdGraphPin const* const OldPin : OldPins)
 				{
-					UEdGraphPin const* const OldPin = *OldPinIt;
 					if (OldPin->PinName == Pin->PinName)
 					{
 						Pin->PinType = OldPin->PinType;
+						break;
 					}
 				}
 			}

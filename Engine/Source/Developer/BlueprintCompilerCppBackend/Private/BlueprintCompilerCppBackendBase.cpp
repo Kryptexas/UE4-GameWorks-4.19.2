@@ -835,7 +835,8 @@ FString FBlueprintCompilerCppBackendBase::GenerateArgList(const FEmitterLocalCon
 		}
 		else
 		{
-			if (ArgProperty->HasAnyPropertyFlags(CPF_OutParm))
+			if (ArgProperty->HasAnyPropertyFlags(CPF_OutParm)
+				&& !ArgProperty->HasAnyPropertyFlags(CPF_ConstParm))
 			{
 				ArgListStr += TEXT("/*out*/ ");
 			}
@@ -1014,7 +1015,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 		EmitterContext.Header.AddLine(TEXT("GENERATED_BODY()"));
 		EmitStructProperties(EmitterContext, SourceStruct);
 
-		FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, EmitterContext);
+		FEmitDefaultValueHelper::GenerateUserStructConstructor(SourceStruct, EmitterContext);
 
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));

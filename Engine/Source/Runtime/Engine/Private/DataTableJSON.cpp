@@ -445,11 +445,6 @@ bool FDataTableImporterJSON::ReadRow(const TSharedRef<FJsonObject>& InParsedTabl
 	DataTable->RowStruct->InitializeStruct(RowData);
 	// And be sure to call DestroyScriptStruct later
 
-	if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
-	{
-		UDStruct->InitializeDefaultValue(RowData);
-	}
-
 	// Add to row map
 	DataTable->RowMap.Add(RowName, RowData);
 

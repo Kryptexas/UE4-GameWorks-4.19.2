@@ -20,17 +20,29 @@
 #include "KismetCompiler.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
 
 #define LOCTEXT_NAMESPACE "StructureCompiler"
 
 struct FUserDefinedStructureCompilerInner
 {
-	static void ClearStructReferencesInBP(UBlueprint* FoundBlueprint, TSet<UBlueprint*>& BlueprintsToRecompile)
+	struct FBlueprintUserStructData
 	{
-		bool bAlreadyProcessed = false;
-		BlueprintsToRecompile.Add(FoundBlueprint, &bAlreadyProcessed);
-		if (!bAlreadyProcessed)
+		TArray<uint8> SkeletonCDOData;
+		TArray<uint8> GeneratedCDOData;
+	};
+
+	static void ClearStructReferencesInBP(UBlueprint* FoundBlueprint, TMap<UBlueprint*, FBlueprintUserStructData>& BlueprintsToRecompile)
+	{
+		if (!BlueprintsToRecompile.Contains(FoundBlueprint))
 		{
+			FBlueprintUserStructData& BlueprintData = BlueprintsToRecompile.Add(FoundBlueprint);
+
+			// Write CDO data to temp archive
+			//FObjectWriter SkeletonMemoryWriter(FoundBlueprint->SkeletonGeneratedClass->GetDefaultObject(), BlueprintData.SkeletonCDOData);
+			//FObjectWriter MemoryWriter(FoundBlueprint->GeneratedClass->GetDefaultObject(), BlueprintData.GeneratedCDOData);
+
 			for (UFunction* Function : TFieldRange<UFunction>(FoundBlueprint->GeneratedClass, EFieldIteratorFlags::ExcludeSuper))
 			{
 				Function->Script.Empty();
@@ -41,7 +53,7 @@ struct FUserDefinedStructureCompilerInner
 
 	static void ReplaceStructWithTempDuplicate(
 		UUserDefinedStruct* StructureToReinstance, 
-		TSet<UBlueprint*>& BlueprintsToRecompile,
+		TMap<UBlueprint*, FBlueprintUserStructData>& BlueprintsToRecompile,
 		TArray<UUserDefinedStruct*>& ChangedStructs)
 	{
 		if (StructureToReinstance)
@@ -62,6 +74,7 @@ struct FUserDefinedStructureCompilerInner
 			DuplicatedStruct->Status = EUserDefinedStructureStatus::UDSS_Duplicate;
 			DuplicatedStruct->SetFlags(RF_Transient);
 			DuplicatedStruct->AddToRoot();
+
 			CastChecked<UUserDefinedStructEditorData>(DuplicatedStruct->EditorData)->RecreateDefaultInstance();
 
 			for (UStructProperty* StructProperty : TObjectRange<UStructProperty>(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill))
@@ -72,8 +85,8 @@ struct FUserDefinedStructureCompilerInner
 					{
 						if (UBlueprint* FoundBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy))
 						{
-							StructProperty->Struct = DuplicatedStruct;
 							ClearStructReferencesInBP(FoundBlueprint, BlueprintsToRecompile);
+							StructProperty->Struct = DuplicatedStruct;
 						}
 					}
 					else if (UUserDefinedStruct* OwnerStruct = Cast<UUserDefinedStruct>(StructProperty->GetOwnerStruct()))
@@ -86,7 +99,12 @@ struct FUserDefinedStructureCompilerInner
 						if (bValidStruct)
 						{
 							ChangedStructs.AddUnique(OwnerStruct);
-							StructProperty->Struct = DuplicatedStruct;
+
+							if (FStructureEditorUtils::FStructEditorManager::ActiveChange != FStructureEditorUtils::EStructureEditorChangeInfo::DefaultValueChanged)
+							{
+								// Don't change this for a default value only change, it won't get correctly replaced later
+								StructProperty->Struct = DuplicatedStruct;
+							}
 						}
 					}
 					else
@@ -275,7 +293,6 @@ struct FUserDefinedStructureCompilerInner
 		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FStructureEditorUtils::GetTooltip(Struct));
 
 		UUserDefinedStructEditorData* EditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
-		Struct->SetSuperStruct(EditorData->NativeBase);	
 
 		CreateVariables(Struct, K2Schema, MessageLog);
 
@@ -377,7 +394,7 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			ChangedStructs.Add(Struct);
 		}
 
-		TSet<UBlueprint*> BlueprintsToRecompile;
+		TMap<UBlueprint*, FUserDefinedStructureCompilerInner::FBlueprintUserStructData> BlueprintsToRecompile;
 		for (int32 StructIdx = 0; StructIdx < ChangedStructs.Num(); ++StructIdx)
 		{
 			UUserDefinedStruct* ChangedStruct = ChangedStructs[StructIdx];
@@ -441,6 +458,9 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 					{
 						BlueprintsThatHaveBeenRecompiled.Add(FoundBlueprint);
 						BlueprintsToRecompile.Remove(FoundBlueprint);
+
+						// Reapply CDO data
+
 						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(FoundBlueprint);
 					}
 					Node->ReconstructNode();
@@ -448,9 +468,9 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			}
 		}
 
-		for (UBlueprint* BlueprintToRecompile : BlueprintsToRecompile)
+		for (TPair<UBlueprint*, FUserDefinedStructureCompilerInner::FBlueprintUserStructData>& Pair : BlueprintsToRecompile)
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintToRecompile);
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Pair.Key);
 		}
 
 		for (UUserDefinedStruct* ChangedStruct : ChangedStructs)
@@ -459,25 +479,6 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			{
 				FStructureEditorUtils::BroadcastPostChange(ChangedStruct);
 				ChangedStruct->MarkPackageDirty();
-			}
-		}
-	}
-}
-
-void FUserDefinedStructureCompilerUtils::DefaultUserDefinedStructs(UObject* Object, FCompilerResultsLog& MessageLog)
-{
-	if (Object && FStructureEditorUtils::UserDefinedStructEnabled())
-	{
-		for (TFieldIterator<UProperty> It(Object->GetClass()); It; ++It)
-		{
-			if (const UProperty* Property = (*It))
-			{
-				uint8* Mem = Property->ContainerPtrToValuePtr<uint8>(Object);
-				if (!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Property, Mem))
-				{
-					MessageLog.Warning(*FString::Printf(*LOCTEXT("MakeStructureDefaultValue_Error", "MakeStructureDefaultValue parsing error. Object: %s, Property: %s").ToString(),
-						*Object->GetName(), *Property->GetName()));
-				}
 			}
 		}
 	}

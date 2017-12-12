@@ -832,10 +832,6 @@ public:
 					{
 						UE_LOG(LogK2Compiler, Error, TEXT("Unsupported static array. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
 					}
-					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
-					{
-						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
-					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
 					Struct->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, nullptr, PPF_None, GLog, GetPathNameSafe(StructProperty));
@@ -1859,8 +1855,45 @@ public:
 				const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
 				const bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
 
+				// If the intermediate node was the result of a tunnel expansion (e.g. macro/composite), gather the chain of tunnel instance
+				// source nodes that were expanded to eventually include the node. This information is used to construct a lookup table that's
+				// used to help determine whether or not the current instruction pointer maps back to a tunnel instance node in a source graph.
+				// For example:
+				//
+				//	A (Macro instance node in top-level source graph)
+				//	|
+				//	+- [...expansion of A...] + B (Composite node in A's macro source graph)
+				//	   |
+				//	   +- [...expansion of B...] + C (Macro instance node in B's collapsed child subgraph)
+				//	      |
+				//        +- [...expansion of C...]
+				//
+				//  The intermediate exec nodes in each expansion set will map back to C through MessageLog.GetIntermediateTunnelInstance().
+				//	Thus, if SourceNode was created as the result of a tunnel instance expansion, it will map back to an outer Tunnel Instance
+				//	node. If the Tunnel Instance node itself was created as the result of a tunnel instance expansion, it will map back to
+				//	another outer Tunnel Instance node as well. This will continue until we run out of Tunnel Instance nodes. The set of Tunnel
+				//	Instance nodes that we find constitutes the full expansion hierarchy. We then map the hierarchy back to their matching
+				//	source nodes and register the set as the Tunnel Instance node chain that's associated with the current instruction offset.
+				//
+				TArray<TWeakObjectPtr<UEdGraphNode>> ExpansionSourceNodes;
+				if (UEdGraphNode* OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(SourceNode))
+				{
+					do
+					{
+						// Map the intermediate tunnel instance node back to its original source and add it to the array.
+						if (UEdGraphNode* ExpansionSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(OuterTunnelInstance)))
+						{
+							ExpansionSourceNodes.Add(ExpansionSourceNode);
+						}
+						
+						// Continue back up the chain until we run out of expansion source nodes (this ensures that we include any nested expansions).
+						OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(OuterTunnelInstance);
+
+					} while (OuterTunnelInstance);
+				}
+
 				// Register the debug information for the node.
-				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, FunctionContext.Function, Offset, bBreakpointSite);
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, ExpansionSourceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)

@@ -132,6 +132,60 @@ bool FBlueprintSupport::IsDeferredDependencyPlaceholder(UObject* LoadedObj)
 		LoadedObj->IsA<ULinkerPlaceholderExportObject>() );
 }
 
+void FBlueprintSupport::RegisterDeferredDependenciesInStruct(const UStruct* Struct, void* StructData)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (GEventDrivenLoaderEnabled)
+	{
+		return;
+	}
+
+	for (TPropertyValueIterator<const UObjectProperty> It(Struct, StructData); It; ++It)
+	{
+		const UObjectProperty* Property = It.Key();
+		void* PropertyValue = (void*)It.Value();
+		UObject* ObjectValue = *((UObject**)PropertyValue);
+		
+		ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(ObjectValue);
+		ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(ObjectValue);
+
+		if (PlaceholderVal == nullptr && PlaceholderClass == nullptr)
+		{
+			continue;
+		}
+
+		// Create a stack of property trackers to deal with any outer Struct Properties
+		TArray<const UProperty*> PropertyChain;
+		It.GetPropertyChain(PropertyChain);
+		TIndirectArray<FScopedPlaceholderPropertyTracker> PlaceholderStack;
+
+		// Iterate property chain in reverse order as we need to start with parent
+		for (int32 PropertyIndex = PropertyChain.Num() - 1; PropertyIndex >= 0; PropertyIndex--)
+		{
+			if (const UStructProperty* StructProperty = Cast<UStructProperty>(PropertyChain[PropertyIndex]))
+			{
+				PlaceholderStack.Add(new FScopedPlaceholderPropertyTracker(StructProperty));
+			}
+		}
+		
+		if (PlaceholderVal)
+		{
+			PlaceholderVal->AddReferencingPropertyValue(Property, PropertyValue);
+		}
+		else 
+		{
+			PlaceholderClass->AddReferencingPropertyValue(Property, PropertyValue);
+		}
+
+		// Specifically destroy entries in reverse order they were added, to simulate unrolling a code stack
+		for (int32 StackIndex = PlaceholderStack.Num() - 1; StackIndex >= 0; StackIndex--)
+		{
+			PlaceholderStack.RemoveAt(StackIndex);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
 bool FBlueprintSupport::IsInBlueprintPackage(UObject* LoadedObj)
 {
 	UPackage* Pkg = LoadedObj->GetOutermost();
@@ -2582,6 +2636,17 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 			DynamicClass->UsedAssets.Add(nullptr);
 		}
 	}
+}
+
+UObject* FConvertedBlueprintsDependencies::LoadObjectForStructConstructor(UScriptStruct* ScriptStruct, const TCHAR* ObjectPath)
+{
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		// Find Object should work here as the blueprints have scheduled it for load
+		return FindObject<UObject>(nullptr, ObjectPath);
+	}
+
+	return LoadObject<UObject>(nullptr, ObjectPath);
 }
 
 bool FBlueprintDependencyData::ContainsDependencyData(TArray<FBlueprintDependencyData>& Assets, int16 ObjectRefIndex)

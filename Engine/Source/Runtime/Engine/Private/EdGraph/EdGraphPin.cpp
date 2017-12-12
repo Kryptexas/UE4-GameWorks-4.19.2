@@ -18,6 +18,10 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+#if WITH_EDITOR
+extern UNREALED_API UEditorEngine* GEditor;
+#endif
+
 class FPinDeletionQueue : 
 #if WITH_EDITOR
 	public FTickableEditorObject
@@ -70,6 +74,60 @@ private:
 	TArray<UEdGraphPin*> PinsToDelete;
 
 };
+
+struct FGraphConnectionSanitizer
+{
+	void AddCorruptGraph(UEdGraph* CorruptGraph);
+	void SanitizeConnectionsForCorruptGraphs();
+
+	TArray<UEdGraph*> CorruptGraphs;
+} GraphConnectionSanitizer;
+
+void FGraphConnectionSanitizer::AddCorruptGraph(UEdGraph* CorruptGraph)
+{
+	CorruptGraphs.Add(CorruptGraph);
+}
+
+void FGraphConnectionSanitizer::SanitizeConnectionsForCorruptGraphs()
+{
+	for(UEdGraph* CorruptGraph : CorruptGraphs)
+	{
+		// validate all links for nodes in this graph:
+		for(UEdGraphNode* Node : CorruptGraph->Nodes)
+		{
+			TArray<UEdGraphPin*>& NodePins = Node->Pins;
+			for(int32 I = NodePins.Num() - 1; I >= 0; --I )
+			{
+				UEdGraphPin* CurrentPin = NodePins[I];
+				// check for null or assymetry:
+				if(CurrentPin == nullptr)
+				{
+					NodePins.RemoveAtSwap(I);
+				}
+				else
+				{
+					TArray<UEdGraphPin*>& PinLinkedTo = CurrentPin->LinkedTo;
+					for( int32 J = PinLinkedTo.Num() - 1; J >= 0; --J )
+					{
+						UEdGraphPin* CurrentLinkedToPin = PinLinkedTo[J];
+						if(CurrentLinkedToPin == nullptr)
+						{
+							PinLinkedTo.RemoveAtSwap(J);
+						}
+						else
+						{
+							if(!CurrentLinkedToPin->LinkedTo.Contains(CurrentPin))
+							{
+								PinLinkedTo.RemoveAtSwap(J);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	CorruptGraphs.Empty();
+}
 
 //#define TRACK_PINS
 
@@ -194,14 +252,10 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 				PinSubCategoryMemberReference.MemberParent = Signature->GetOwnerClass();
 				PinSubCategoryObject = NULL;
 			}
-			else
-			{
-				ensure(true);
-			}
 		}
 	}
 
-	bool bIsConstBool = false;
+	bool bIsConstBool = bIsConst;
 
 	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_PINTYPE_CONST)
 	{
@@ -1668,7 +1722,7 @@ void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin, bool bStrictValidatio
 					// When in the middle of a transaction the LinkedTo lists will be in an 
 					// indeterminate state. After PostEditUndo runs we could validate LinkedTo
 					// coherence.
-					ensureAlways(GIsTransacting || Pin->LinkedTo.Contains(ReferencingPin));
+					ensureAlways(Pin->LinkedTo.Contains(ReferencingPin) || GEditor->Trans->IsObjectTransacting(Pin->GetOwningNode()));
 #else
 					ensureAlways(Pin->LinkedTo.Contains(ReferencingPin));
 #endif//WITH_EDITOR
@@ -1708,6 +1762,24 @@ void UEdGraphPin::SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef
 
 	if (Ar.IsLoading())
 	{
+		if(Ar.IsTransacting() && ResolveType == EPinResolveType::LinkedTo)
+		{
+			if(ArrayNum < ArrayRef.Num())
+			{
+				for(int32 I = ArrayRef.Num() - 1; I >=0 ; --I)
+				{
+					if( !ArrayRef[I]->bWasTrashed &&
+#if WITH_EDITOR
+						!GEditor->Trans->IsObjectTransacting(ArrayRef[I]->GetOwningNode()) &&
+#endif
+						ArrayRef[I]->LinkedTo.Contains(RequestingPin) )
+					{
+						ArrayRef[I]->LinkedTo.Remove(RequestingPin);
+					}
+				}
+			}
+		}
+
 		ArrayRef.SetNum(ArrayNum);
 	}
 
@@ -1726,7 +1798,6 @@ void UEdGraphPin::SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef
 #if WITH_EDITOR
 			// More complexity to handle asymmetry in the transaction buffer. If our peer node is not in the transaction
 			// then we need to take ownership of the entire connection and clear both LinkedTo Arrays:
-			extern UNREALED_API UEditorEngine* GEditor;
 			for (int32 I = 0; I < Pin->LinkedTo.Num(); ++I)
 			{
 				UEdGraphPin* Peer = Pin->LinkedTo[I];
@@ -1808,16 +1879,17 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 				{
 					check(RequestingPin);
 #if WITH_EDITOR
-					extern UNREALED_API UEditorEngine* GEditor;
 					if(Ar.IsTransacting() && !GEditor->Trans->IsObjectTransacting(LocalOwningNode))
 					{
 						/* 
-							Two possibilities:
+							Three possibilities:
 
 							1. This transaction did not alter this node's LinkedTo list, and also did not
 								alter ExistingPin's
 							2. This transaction has altered this node's LinkedTo list, but did not alter
 								ExistingPin's
+							3. Mutations to connections have been made outside the transaction system, corrupting
+								the transaction buffer
 
 							In case 2 we need to make sure that the LinkedTo connection is symmetrical, but
 							in the case of 1 we have to assume that there is already a connection in ExistingPin.
@@ -1827,20 +1899,35 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 
 						check(ResolveType == EPinResolveType::LinkedTo);
 
-						check(ExistingPin && *ExistingPin); // the transaction buffer is corrupt
-						FGuid RequestingPinId = RequestingPin->PinId;
-						UEdGraphPin** LinkedTo = (*ExistingPin)->LinkedTo.FindByPredicate([&RequestingPinId, RequestingPin](const UEdGraphPin* Pin) { return Pin == RequestingPin && Pin->PinId == RequestingPinId; });
-						if (LinkedTo)
+						if(ExistingPin && *ExistingPin)
 						{
-							// case 1:
-							PinRef = *ExistingPin;
+							FGuid RequestingPinId = RequestingPin->PinId;
+							UEdGraphPin** LinkedTo = (*ExistingPin)->LinkedTo.FindByPredicate([&RequestingPinId, RequestingPin](const UEdGraphPin* Pin) { return Pin == RequestingPin && Pin->PinId == RequestingPinId; });
+							if (LinkedTo)
+							{
+								// case 1:
+								PinRef = *ExistingPin;
+								ensureAlways(!(*ExistingPin)->LinkedTo.Contains(PinRef) || GEditor->Trans->IsObjectTransacting((*ExistingPin)->GetOwningNode()));
+							}
+							else
+							{
+								// case 2:
+								TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
+								UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx, true));
+								bRetVal = false;
+							}
 						}
 						else
 						{
-							// case 2:
-							TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
-							UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx, true));
+							// case 3:
+							UE_LOG(LogBlueprint, Warning, TEXT("Pin link in transaction buffer is corrupt - this occurs because node mutations are not recorded in the transaction buffer. Node links will be lost"));
+							PinRef = nullptr;
 							bRetVal = false;
+
+							// After the transaction is complete, we'll want to fix any asymmetries in 
+							// pin links, this will be somewhat costly, but a small hitch is much
+							// better than crashing:
+							GraphConnectionSanitizer.AddCorruptGraph(LocalOwningNode->GetGraph());
 						}
 					}
 					else
@@ -2008,6 +2095,11 @@ bool UEdGraphPin::AreOrphanPinsEnabled()
 	return (GCVarDisableOrphanPins == 0);
 }
 
+void UEdGraphPin::SanitizePinsPostUndoRedo()
+{
+	ensure(PinHelpers::UnresolvedPins.Num() == 0);
+	GraphConnectionSanitizer.SanitizeConnectionsForCorruptGraphs();
+}
 
 /////////////////////////////////////////////////////
 // UEdGraphPin

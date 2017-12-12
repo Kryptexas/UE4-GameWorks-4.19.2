@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "K2Node_EditablePinBase.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node_Tunnel.generated.h"
 
 UCLASS()
@@ -17,11 +18,11 @@ class BLUEPRINTGRAPH_API UK2Node_Tunnel : public UK2Node_EditablePinBase
 	
 	// The output pins of this tunnel node came from the input pins of OutputSourceNode
 	UPROPERTY()
-	class UK2Node_Tunnel* OutputSourceNode;
+	UK2Node_Tunnel* OutputSourceNode;
 
 	// The input pins of this tunnel go to the output pins of InputSinkNode
 	UPROPERTY()
-	class UK2Node_Tunnel* InputSinkNode;
+	UK2Node_Tunnel* InputSinkNode;
 
 	// Whether this node is allowed to have inputs
 	UPROPERTY()
@@ -71,6 +72,13 @@ protected:
 	* @param bInAllWildcardPinsUnlinked	TRUE if all wildcard pins were unlinked
 	*/
 	virtual void PostFixupAllWildcardPins(bool bInAllWildcardPinsUnlinked) {}
+
+	// Utility function that subclasses must call after allocating their default pins
+	void CacheWildcardPins();
+
+	// Cache of the pins that were created as wildcards
+	TArray<UEdGraphPin*> WildcardPins;
+
 public:
 	// The input pins of this tunnel go to the output pins of InputSinkNode (can be NULL).
 	virtual UK2Node_Tunnel* GetInputSink() const;

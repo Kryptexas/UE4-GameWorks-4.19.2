@@ -538,8 +538,6 @@ public:
 	void PropagateContainerPropertyChange(UObject* ModifiedObject, const FString& OriginalContainerContent,
 		EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult = nullptr);
 
-	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
-
 	/** Broadcasts when a property value changes */
 	DECLARE_EVENT(FPropertyNode, FPropertyValueChangedEvent);
 	FPropertyValueChangedEvent& OnPropertyValueChanged() { return PropertyValueChangedEvent; }

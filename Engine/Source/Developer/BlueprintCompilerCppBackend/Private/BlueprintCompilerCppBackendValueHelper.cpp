@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
@@ -133,32 +133,28 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	}
 }
 
-void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* Struct, FEmitterLocalContext& Context)
+void FEmitDefaultValueHelper::GenerateUserStructConstructor(const UUserDefinedStruct* Struct, FEmitterLocalContext& Context)
 {
 	check(Struct);
 	const FString StructName = FEmitHelper::GetCppName(Struct);
 
 	// Declaration
-	Context.Header.AddLine(FString::Printf(TEXT("static %s GetDefaultValue();"), *StructName));
+	Context.Header.AddLine(FString::Printf(TEXT("%s();"), *StructName));
 
 	// Definition
-	Context.Body.AddLine(FString::Printf(TEXT("%s %s::GetDefaultValue()"), *StructName, *StructName));
+	Context.Body.AddLine(FString::Printf(TEXT("%s::%s()"), *StructName, *StructName));
 	Context.Body.AddLine(TEXT("{"));
 
 	Context.Body.IncreaseIndent();
-	Context.Body.AddLine(FString::Printf(TEXT("FStructOnScope StructOnScope(%s::StaticStruct());"), *StructName));
-	Context.Body.AddLine(FString::Printf(TEXT("%s& DefaultData__ = *((%s*)StructOnScope.GetStructMemory());"), *StructName, *StructName));
 	{
 		TGuardValue<FCodeText*> OriginalDefaultTarget(Context.DefaultTarget, &Context.Body);
 		FStructOnScope StructData(Struct);
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
-		FStructOnScope RawDefaultStructOnScope(Struct);
+		FUserStructOnScopeIgnoreDefaults RawDefaultStructOnScope(Struct);
 		for (auto Property : TFieldRange<const UProperty>(Struct))
 		{
-			OuterGenerate(Context, Property, TEXT("DefaultData__"), StructData.GetStructMemory(), RawDefaultStructOnScope.GetStructMemory(), EPropertyAccessOperator::Dot);
+			OuterGenerate(Context, Property, TEXT(""), StructData.GetStructMemory(), RawDefaultStructOnScope.GetStructMemory(), EPropertyAccessOperator::None);
 		}
 	}
-	Context.Body.AddLine(TEXT("return DefaultData__;"));
 	Context.Body.DecreaseIndent();
 
 	Context.Body.AddLine(TEXT("}"));

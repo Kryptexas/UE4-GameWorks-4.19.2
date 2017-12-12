@@ -1268,7 +1268,6 @@ void FPropertyValueImpl::AddChild()
 					{
 						FScriptArrayHelper	ArrayHelper(Array, Addr);
 						Index = ArrayHelper.AddValue();
-						FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(Index));
 					}
 					else if (Set)
 					{
@@ -1276,7 +1275,6 @@ void FPropertyValueImpl::AddChild()
 						Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
 						SetHelper.Rehash();
 
-						FPropertyNode::AdditionalInitializationUDS(Set->ElementProp, SetHelper.GetElementPtr(Index));
 					}
 					else if (Map)
 					{
@@ -1285,8 +1283,6 @@ void FPropertyValueImpl::AddChild()
 						MapHelper.Rehash();
 
 						uint8* PairPtr = MapHelper.GetPairPtr(Index);
-						FPropertyNode::AdditionalInitializationUDS(Map->KeyProp, Map->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-						FPropertyNode::AdditionalInitializationUDS(Map->ValueProp, Map->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
 					}
 
 					ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), Index);
@@ -1531,8 +1527,6 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		}
 
 		ArrayHelper.InsertValues(Index, 1 );
-
-		FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
 
 		//set up indices for the coming events
 		TArray< TMap<FString,int32> > ArrayIndicesPerObject;
@@ -1859,8 +1853,6 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 
 			ArrayHelper.InsertValues(Index, 1);
 
-			FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
-
 			//set up indices for the coming events
 			TArray< TMap<FString, int32> > ArrayIndicesPerObject;
 			for (int32 ObjectIndex = 0; ObjectIndex < ReadAddresses.Num(); ++ObjectIndex)
@@ -1933,8 +1925,6 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 
 						FScriptArrayHelper	ArrayHelper(Array, Addr);
 						Index = ArrayHelper.AddValue();
-						FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(Index));
-						
 
 						ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), Index);
 					}

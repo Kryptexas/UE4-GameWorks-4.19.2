@@ -13,54 +13,6 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintEditorSettings.h"
 
-namespace
-{
-	// Attempt to find a tunnel instance node in the given source graph that matches the given target graph.
-	// @TODO - This is a potential performance issue as it's a linear/recursive search. We used to map nested
-	// Macro Instances to code offsets through the debug data, and search only the mapped set, but the solution
-	// only worked for Macro Instance nodes. Consider reusing that solution and extending it to include Composites.
-	static UEdGraphNode* FindMatchingTunnelInstanceNode(const UEdGraph* InGraph, const UEdGraph* TargetGraph)
-	{
-		// Gather up all tunnel nodes in the given source graph.
-		TArray<UK2Node_Tunnel*> TunnelNodes;
-		InGraph->GetNodesOfClass(TunnelNodes);
-		for (UEdGraphNode* TunnelNode : TunnelNodes)
-		{
-			// Check all tunnel instance nodes for a match against the associated tunnel instance graph.
-			if (UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(TunnelNode))
-			{
-				const UEdGraph* MacroGraph = MacroInstanceNode->GetMacroGraph();
-				if (TargetGraph == MacroGraph)
-				{
-					// The current macro source graph matches up with the target graph context.
-					return MacroInstanceNode;
-				}
-				else if(UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(MacroGraph, TargetGraph))
-				{
-					// We recursively found a tunnel instance node nested inside the macro source graph that matches up with the target graph context.
-					return TunnelInstanceNode;
-				}
-			}
-			else if (UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(TunnelNode))
-			{
-				if (TargetGraph == CompositeNode->BoundGraph)
-				{
-					// The current composite source graph matches up with the target graph context.
-					return CompositeNode;
-				}
-				else if(UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(CompositeNode->BoundGraph, TargetGraph))
-				{
-					// We recursively found a tunnel instance node nested inside the composite source graph that matches up with the target graph context.
-					return TunnelInstanceNode;
-				}
-			}
-		}
-
-		// No matching tunnel instance node could be found within the given source graph.
-		return nullptr;
-	}
-};
-
 /////////////////////////////////////////////////////
 // FKismetConnectionDrawingPolicy
 
@@ -112,10 +64,48 @@ void FKismetConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWid
 	FConnectionDrawingPolicy::Draw(InPinGeometries, ArrangedNodes);
 }
 
-bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
+UBlueprint* FKismetConnectionDrawingPolicy::GetTargetBlueprint() const
+{
+	// Start out with the current graph Blueprint context.
+	if (UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraph(GraphObj))
+	{
+		// Macro library Blueprints have no associated "active" object debugging context, so we need to determine which one to use from the call stack.
+		if (TargetBP->BlueprintType == BPTYPE_MacroLibrary)
+		{
+			// Walk backwards through the stack trace (check the most recent sample first) until we find a Blueprint context with the expansion and a valid "active" object for debugging.
+			const TSimpleRingBuffer<FKismetTraceSample>& TraceStack = FKismetDebugUtilities::GetTraceStack();
+			for (int32 i = TraceStack.Num() - 1; i >= 0 && !TargetBP->GetObjectBeingDebugged(); --i)
+			{
+				const FKismetTraceSample& Sample = TraceStack(i);
+				if (UObject* TestObject = Sample.Context.Get())
+				{
+					if (UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TestObject->GetClass()))
+					{
+						// Check to see if the current instruction maps back to the Macro library source graph; if it does, this Blueprint contains an expansion of the Macro source graph.
+						const FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
+						if (UEdGraphNode* Node = DebugData.FindSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset, /*bAllowImpreciseHit=*/ false))
+						{
+							if (GraphObj == Node->GetGraph())
+							{
+								// Switch the target Blueprint to the context containing the expansion of the current Macro source graph in the Macro library.
+								TargetBP = CastChecked<UBlueprint>(TargetClass->ClassGeneratedBy);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return TargetBP;
+	}
+
+	return nullptr;
+}
+
+bool FKismetConnectionDrawingPolicy::CanBuildRoadmap(UBlueprint* TargetBP) const
 {
 	UObject* ActiveObject = nullptr;
-	if (UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraph(GraphObj))
+	if (TargetBP)
 	{
 		ActiveObject = TargetBP->GetObjectBeingDebugged();
 	}
@@ -123,25 +113,25 @@ bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
 	return ActiveObject != nullptr;
 }
 
+bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
+{
+	return CanBuildRoadmap(GetTargetBlueprint());
+}
+
 void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 {
 	LatestTimeDiscovered = 0.0;
 
+	UBlueprint* TargetBP = GetTargetBlueprint();
+	
 	// Only do highlighting in PIE or SIE
-	if (!CanBuildRoadmap())
+	if (!CanBuildRoadmap(TargetBP))
 	{
 		return;
 	}
 
-	UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraphChecked(GraphObj);
 	UObject* ActiveObject = TargetBP->GetObjectBeingDebugged();
 	check(ActiveObject); // Due to CanBuildRoadmap
-
-	// Redirect the target Blueprint when debugging with a macro graph visible
-	if (TargetBP->BlueprintType == BPTYPE_MacroLibrary)
-	{
-		TargetBP = Cast<UBlueprint>(ActiveObject->GetClass()->ClassGeneratedBy);
-	}
 
 	TArray<UEdGraphNode*> SequentialNodesInGraph;
 	TArray<double> SequentialNodeTimes;
@@ -171,11 +161,23 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 							SequentialNodeTimes.Add(Sample.ObservationTime);
 							SequentialExecPinsInGraph.Add(AssociatedPin);
 						}
-						else if (UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(GraphObj, Node->GetGraph()))
+						else if (const TArray<TWeakObjectPtr<UEdGraphNode> >* ExpansionSourceNodes = DebugData.FindExpansionSourceNodesFromCodeLocation(Sample.Function.Get(), Sample.Offset))
 						{
-							SequentialNodesInGraph.Add(TunnelInstanceNode);
-							SequentialNodeTimes.Add(Sample.ObservationTime);
-							SequentialExecPinsInGraph.Add(AssociatedPin);
+							// Attempt to find an outer expansion (tunnel instance) source node that may have also been mapped to the sample code offset.
+							for (TWeakObjectPtr<UEdGraphNode> ExpansionSourceNodePtr : *ExpansionSourceNodes)
+							{
+								if (UEdGraphNode* TunnelInstanceNode = ExpansionSourceNodePtr.Get())
+								{
+									if (GraphObj == TunnelInstanceNode->GetGraph())
+									{
+										SequentialNodesInGraph.Add(TunnelInstanceNode);
+										SequentialNodeTimes.Add(Sample.ObservationTime);
+										SequentialExecPinsInGraph.Add(AssociatedPin);
+
+										break;
+									}
+								}
+							}
 						}
 					}
 				}

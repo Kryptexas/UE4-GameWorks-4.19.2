@@ -60,11 +60,6 @@ uint8* FDataTableEditorUtils::AddRow(UDataTable* DataTable, FName RowName)
 	DataTable->RowStruct->InitializeStruct(RowData);
 	// And be sure to call DestroyScriptStruct later
 
-	if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
-	{
-		UDStruct->InitializeDefaultValue(RowData);
-	}
-
 	// Add to row map
 	DataTable->RowMap.Add(RowName, RowData);
 	BroadcastPostChange(DataTable, EDataTableChangeInfo::RowList);
@@ -189,7 +184,7 @@ bool FDataTableEditorUtils::DiffersFromDefault(UDataTable* DataTable, FName RowN
 
 		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
 		{
-			bDiffers = UDStruct->DiffersFromDefaultValue(RowData);
+			return !UDStruct->CompareScriptStruct(RowData, UDStruct->GetDefaultInstance(), PPF_None);
 		}
 	}
 

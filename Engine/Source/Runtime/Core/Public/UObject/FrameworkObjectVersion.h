@@ -110,6 +110,9 @@ struct CORE_API FFrameworkObjectVersion
 		// FMaterialInput and FEdGraphPin store their name as FName instead of FString
 		PinsStoreFName,
 
+		// User defined structs store their default instance, which is used for initializing instances
+		UserDefinedStructsStoreDefaultInstance,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

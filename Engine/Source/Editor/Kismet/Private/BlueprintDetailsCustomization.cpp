@@ -839,16 +839,14 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				check(EntryNodes.Num() > 0);
 
 				const UStructProperty* PotentialUDSProperty = Cast<const UStructProperty>(VariableProperty);
-				//UDS requires default data even when the LocalVariable value is empty
-				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
-
+				
 				UK2Node_FunctionEntry* FuncEntry = EntryNodes[0];
 				for (const FBPVariableDescription& LocalVar : FuncEntry->LocalVariables)
 				{
 					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
 					{
 						// Only set the default value if there is one
-						if(bUDSProperty || !LocalVar.DefaultValue.IsEmpty())
+						if(!LocalVar.DefaultValue.IsEmpty())
 						{
 							FBlueprintEditorUtils::PropertyValueFromString(VariableProperty, LocalVar.DefaultValue, StructData->GetStructMemory());
 						}

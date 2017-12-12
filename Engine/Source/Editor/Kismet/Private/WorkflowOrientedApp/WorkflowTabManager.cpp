@@ -47,7 +47,7 @@ bool FTabInfo::PayloadMatches(TSharedPtr<FTabPayload> A, TSharedPtr<FTabPayload>
 	}
 }
 
-void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory/* = true*/, bool bSpawnNewTab/* = true*/)
+void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory/* = true*/, bool bPrevTabMatches/* = false*/)
 {
 	// If the tab is not new, save the current history.
 	if(CurrentHistoryIndex >= 0 && bInSaveHistory)
@@ -75,7 +75,7 @@ void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNo
 	CurrentHistoryIndex = History.Num() - 1;
 
 	// Evoke the history
-	InHistoryNode->EvokeHistory(AsShared(), bSpawnNewTab);
+	InHistoryNode->EvokeHistory(AsShared(), bPrevTabMatches);
 	InHistoryNode->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 }
 
@@ -496,13 +496,17 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 	}
 	else if(InOpenCause == OpenNewDocument || InOpenCause == CreateHistoryEvent)
 	{
+		TSharedPtr< FTabInfo > TabInfo;
 		TSharedPtr<SDockTab> Tab;
+		bool bPrevTabMatches = false;
 
 		// If the current tab matches we'll re-use it.
 		TSharedPtr<FTabInfo> LastEditedTabInfoPinned = LastEditedTabInfo.Pin();
 		if(LastEditedTabInfoPinned.IsValid() && LastEditedTabInfoPinned->PayloadMatches(InPayload))
 		{
-			Tab = LastEditedTabInfoPinned->GetTab().Pin();
+			TabInfo = LastEditedTabInfoPinned;
+			Tab = TabInfo->GetTab().Pin();
+			bPrevTabMatches = true;
 		}
 		else
 		{
@@ -512,13 +516,14 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 			{
 				if ((*ListIt)->PayloadMatches(InPayload))
 				{
-					Tab = (*ListIt)->GetTab().Pin();
-					TabManager->DrawAttention( Tab.ToSharedRef() );
+					TabInfo = (*ListIt);
+					Tab = TabInfo->GetTab().Pin();
+					TabManager->DrawAttention( TabInfo->GetTab().Pin().ToSharedRef() );
 				}
 			}
 		}
 		
-		if(!Tab.IsValid())
+		if(!TabInfo.IsValid())
 		{
 			// If no tab was found with the payload
 			Tab = OpenNewTab(InPayload, OpenNewDocument);
@@ -526,7 +531,7 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 		else if(InOpenCause == CreateHistoryEvent)
 		{
 			TSharedPtr<FDocumentTabFactory> Factory = FindSupportingFactory(InPayload.ToSharedRef());
-			LastEditedTabInfoPinned->AddTabHistory(Factory->CreateTabHistoryNode(InPayload), true, true);
+			TabInfo->AddTabHistory(Factory->CreateTabHistoryNode(InPayload), true, true);
 		}
 		
 		return Tab;

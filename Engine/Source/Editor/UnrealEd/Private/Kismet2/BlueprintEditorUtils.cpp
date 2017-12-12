@@ -1407,6 +1407,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			if (Blueprint->GeneratedClass)
 			{
 				FBlueprintEditorUtils::RecreateClassMetaData(Blueprint, Blueprint->GeneratedClass, true);
+				Blueprint->GeneratedClass->SetUpRuntimeReplicationData();
 			}
 
 			// Flag data only blueprints as being up-to-date
@@ -8055,7 +8056,6 @@ bool FBlueprintEditorUtils::PropertyValueFromString_Direct(const UProperty* Prop
 			const int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
 			StructProperty->InitializeValue(DirectValue);
 			ensure(1 == StructProperty->ArrayDim);
-			bParseSucceeded = FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(Struct), DirectValue);
 
 			FStringOutputDevice ImportError;
 			const TCHAR* EndOfParsedBuff = StructProperty->ImportText(StrValue.IsEmpty() ? TEXT("()") : *StrValue, DirectValue, PPF_SerializedAsImportText, nullptr, &ImportError);

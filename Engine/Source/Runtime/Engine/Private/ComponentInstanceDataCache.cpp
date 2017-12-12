@@ -136,7 +136,7 @@ public:
 		InComponent->GetUCSModifiedProperties(PropertiesToSkip);
 
 		UClass* Class = InComponent->GetClass();
-		Class->SerializeTaggedProperties(*this, (uint8*)InComponent, Class, nullptr);
+		Class->SerializeTaggedProperties(*this, (uint8*)InComponent, Class, (uint8*)InComponent->GetArchetype());
 	}
 
 	virtual bool ShouldSkipProperty(const UProperty* InProperty) const override

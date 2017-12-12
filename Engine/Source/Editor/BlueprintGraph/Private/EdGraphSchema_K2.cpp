@@ -6795,8 +6795,19 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin, const bool bNotify) const
 
 void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 {
-	UEdGraphNode* GraphNode = Pin->GetOwningNode();
 	UEdGraphPin* ParentPin = Pin->ParentPin;
+
+	if (ParentPin == nullptr)
+	{
+		if (Pin->SubPins.Num() > 0)
+		{
+			RecombinePin(Pin->SubPins[0]);
+		}
+
+		return;
+	}
+
+	UEdGraphNode* GraphNode = Pin->GetOwningNode();
 
 	GraphNode->Modify();
 	ParentPin->Modify();
