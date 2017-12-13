@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+#if PLATFORM_WINDOWS
 #pragma once
 #include "OVR_Audio.h"
 #include "XAudio2Device.h"
@@ -58,3 +58,5 @@ private:
 
 	FCriticalSection ParamCriticalSection;
 };
+
+#endif // #if PLATFORM_WINDOWS

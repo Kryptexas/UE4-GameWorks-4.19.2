@@ -2660,6 +2660,124 @@ UAnimMontage* FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName Slo
 	return PlayingMontage;
 }
 
+UAnimMontage* FAnimMontageInstance::SetSequencerMontagePosition(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, int32& InOutInstanceId, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping)
+{
+	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+	if (AnimInst)
+	{
+		UAnimMontage* PlayingMontage = nullptr;
+		FAnimMontageInstance* MontageInstanceToUpdate = AnimInst->GetMontageInstanceForID(InOutInstanceId);
+
+		if (!MontageInstanceToUpdate)
+		{
+			PlayingMontage = UAnimMontage::CreateSlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
+			if (PlayingMontage)
+			{
+				AnimInst->Montage_Play(PlayingMontage, 1.f, EMontagePlayReturnType::MontageLength, 0.f, false);
+				MontageInstanceToUpdate = AnimInst->GetActiveInstanceForMontage(PlayingMontage);
+			}
+		}
+
+		if (MontageInstanceToUpdate)
+		{
+			InOutInstanceId = MontageInstanceToUpdate->GetInstanceID();
+
+			// ensure full weighting to this instance
+			MontageInstanceToUpdate->Blend.SetDesiredValue(Weight);
+			MontageInstanceToUpdate->Blend.SetAlpha(Weight);
+			MontageInstanceToUpdate->SetPosition(InPosition);
+			return PlayingMontage;
+		}
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid animation configuration when attempting to set animation possition with : %s"), *InAnimSequence->GetName());
+	}
+
+	return nullptr;
+}
+
+UAnimMontage* FAnimMontageInstance::PreviewSequencerMontagePosition(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, int32& InOutInstanceId, UAnimSequenceBase* InAnimSequence, float InPosition, float Weight, bool bLooping, bool bFireNotifies)
+{
+	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+	if (AnimInst)
+	{
+		FAnimMontageInstance* MontageInstanceToUpdate = AnimInst->GetMontageInstanceForID(InOutInstanceId);
+		float PreviousPosition = (MontageInstanceToUpdate) ? MontageInstanceToUpdate->GetPosition() : InPosition;
+
+		UAnimMontage* PlayingMontage = SetSequencerMontagePosition(SlotName, SkeletalMeshComponent, InOutInstanceId, InAnimSequence, InPosition, Weight, bLooping);
+		if (PlayingMontage)
+		{
+			// we have to get it again in case if this is new
+			MontageInstanceToUpdate = AnimInst->GetMontageInstanceForID(InOutInstanceId);
+			// since we don't advance montage in the tick, we manually have to handle notifies
+			MontageInstanceToUpdate->HandleEvents(PreviousPosition, InPosition, NULL);
+			if (!bFireNotifies)
+			{
+				AnimInst->NotifyQueue.Reset(SkeletalMeshComponent);
+			}
+
+			return PlayingMontage;
+		}
+	}
+
+	return nullptr;
+}
+
+UAnimMontage* UAnimMontage::CreateSlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount, float BlendOutTriggerTime, float InTimeToStartMontageAt)
+{
+	// create temporary montage and play
+	bool bValidAsset = Asset && !Asset->IsA(UAnimMontage::StaticClass());
+	if (!bValidAsset)
+	{
+		// user warning
+		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimationAsDynamicMontage: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
+		return nullptr;
+	}
+
+	if (SlotNodeName == NAME_None)
+	{
+		// user warning
+		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
+		return nullptr;
+	}
+
+	USkeleton* AssetSkeleton = Asset->GetSkeleton();
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return nullptr;
+	}
+
+	// now play
+	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
+	NewMontage->SetSkeleton(AssetSkeleton);
+
+	// add new track
+	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
+	NewTrack.SlotName = SlotNodeName;
+	FAnimSegment NewSegment;
+	NewSegment.AnimReference = Asset;
+	NewSegment.AnimStartTime = 0.f;
+	NewSegment.AnimEndTime = Asset->SequenceLength;
+	NewSegment.AnimPlayRate = 1.f;
+	NewSegment.StartPos = 0.f;
+	NewSegment.LoopingCount = LoopCount;
+	NewMontage->SequenceLength = NewSegment.GetLength();
+	NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
+
+	FCompositeSection NewSection;
+	NewSection.SectionName = TEXT("Default");
+	NewSection.SetTime(0.0f);
+
+	// add new section
+	NewMontage->CompositeSections.Add(NewSection);
+	NewMontage->BlendIn.SetBlendTime(BlendInTime);
+	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
+	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
+	return NewMontage;
+}
+
 bool FAnimMontageInstance::CanUseMarkerSync() const
 {
 	// for now we only allow non-full weight and when blending out

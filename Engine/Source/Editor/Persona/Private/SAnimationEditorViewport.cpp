@@ -388,7 +388,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 
 	// Load the view mode from config
-	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->ViewportConfigs[InViewportIndex].ViewModeIndex);
+	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->GetAssetEditorOptions(AssetEditorToolkitPtr.Pin()->GetEditorName()).ViewportConfigs[InViewportIndex].ViewModeIndex);
 	UpdateShowFlagForMeshEdges();
 
 
@@ -1675,7 +1675,7 @@ void SAnimationEditorViewportTabBody::SetWindStrength(float SliderPos)
 	RefreshViewport();
 }
 
-float SAnimationEditorViewportTabBody::GetWindStrengthSliderValue() const
+TOptional<float> SAnimationEditorViewportTabBody::GetWindStrengthSliderValue() const
 {
 	return GetPreviewScene()->GetWindStrength();
 }

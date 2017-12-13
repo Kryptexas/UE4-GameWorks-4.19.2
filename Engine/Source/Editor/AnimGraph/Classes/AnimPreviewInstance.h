@@ -53,6 +53,7 @@ public:
 	virtual void Update(float DeltaSeconds) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
+	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate) override;
 
 	void ResetModifiedBone(bool bCurveController = false);
 

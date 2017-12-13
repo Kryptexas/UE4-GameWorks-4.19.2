@@ -117,7 +117,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 		SetRealtime(false,true); // We are PIE, don't start in realtime mode
 	}
 
-	ViewFOV = FMath::Clamp<float>(ConfigOption->ViewportConfigs[ViewportIndex].ViewFOV, FOVMin, FOVMax);
+	ViewFOV = FMath::Clamp<float>(ConfigOption->GetAssetEditorOptions(InAssetEditorToolkit->GetEditorName()).ViewportConfigs[ViewportIndex].ViewFOV, FOVMin, FOVMax);
 
 	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
@@ -252,7 +252,7 @@ void FAnimationViewportClient::SetCameraFollowMode(EAnimationViewportCameraFollo
 
 	if(bCanFollow && InCameraFollowMode != EAnimationViewportCameraFollowMode::None)
 	{
-		ConfigOption->SetViewCameraFollow(InCameraFollowMode, InBoneName, ViewportIndex);
+		ConfigOption->SetViewCameraFollow(AssetEditorToolkitPtr.Pin()->GetEditorName(), InCameraFollowMode, InBoneName, ViewportIndex);
 
 		CameraFollowMode = InCameraFollowMode;
 		CameraFollowBoneName = InBoneName;
@@ -285,7 +285,7 @@ void FAnimationViewportClient::SetCameraFollowMode(EAnimationViewportCameraFollo
 	}
 	else
 	{
-		ConfigOption->SetViewCameraFollow(EAnimationViewportCameraFollowMode::None, NAME_None, ViewportIndex);
+		ConfigOption->SetViewCameraFollow(AssetEditorToolkitPtr.Pin()->GetEditorName(), EAnimationViewportCameraFollowMode::None, NAME_None, ViewportIndex);
 
 		CameraFollowMode = EAnimationViewportCameraFollowMode::None;
 		CameraFollowBoneName = NAME_None;
@@ -465,9 +465,10 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 	}
 
 	// set camera mode if need be (we need to do this here as focus on draw can take us out of orbit mode)
-	if(ConfigOption->ViewportConfigs[ViewportIndex].CameraFollowMode != CameraFollowMode)
+	FAssetEditorOptions& Options = ConfigOption->GetAssetEditorOptions(AssetEditorToolkitPtr.Pin()->GetEditorName());
+	if(Options.ViewportConfigs[ViewportIndex].CameraFollowMode != CameraFollowMode)
 	{
-		SetCameraFollowMode(ConfigOption->ViewportConfigs[ViewportIndex].CameraFollowMode, ConfigOption->ViewportConfigs[ViewportIndex].CameraFollowBoneName);
+		SetCameraFollowMode(Options.ViewportConfigs[ViewportIndex].CameraFollowMode, Options.ViewportConfigs[ViewportIndex].CameraFollowBoneName);
 	}
 }
 
@@ -1001,7 +1002,7 @@ void FAnimationViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	FEditorViewportClient::SetViewMode(InViewModeIndex);
 
-	ConfigOption->SetViewModeIndex(InViewModeIndex, ViewportIndex);
+	ConfigOption->SetViewModeIndex(AssetEditorToolkitPtr.Pin()->GetEditorName(), InViewModeIndex, ViewportIndex);
 }
 
 void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType)

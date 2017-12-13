@@ -133,8 +133,6 @@ namespace Audio
 		int32 GetNumChannelsForSubmixFormat(const ESubmixChannelFormat InSubmixChannelType) const;
 		ESubmixChannelFormat GetSubmixChannelFormatForNumChannels(const int32 InNumChannels) const;
 
-		// Get ambisonics mixer, if one is available
-		TAmbisonicsMixerPtr GetAmbisonicsMixer() { return AmbisonicsMixer; };
 		uint32 GetNewUniqueAmbisonicsStreamID();
 
 		// Returns the channel array for the given submix channel type
@@ -184,9 +182,6 @@ namespace Audio
 
 		/** Channel type arrays for submix channel types. */
 		TMap<ESubmixChannelFormat, TArray<EAudioMixerChannel::Type>> ChannelArrays;
-
-		/* This devices ambisonics pointer, if one exists */
-		TAmbisonicsMixerPtr AmbisonicsMixer;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;

@@ -278,7 +278,7 @@ namespace HLODOutliner
 				.DefaultTooltip(LOCTEXT("ReducedTriangleCountToolTip", "Reduced Number of Triangles in a LOD Mesh"))
 				.FillWidth(0.2f)
 				+ SHeaderRow::Column("ReductionPercentage")
-				.DefaultLabel(LOCTEXT("ReductionPercentage", "% Reduction"))
+				.DefaultLabel(LOCTEXT("ReductionPercentage", "% Retained"))
 				.DefaultTooltip(LOCTEXT("ReductionPercentageToolTip", "Percentage of Triangle Reduction in a LOD Mesh"))
 				.FillWidth(0.1f)
 				+ SHeaderRow::Column("Level")

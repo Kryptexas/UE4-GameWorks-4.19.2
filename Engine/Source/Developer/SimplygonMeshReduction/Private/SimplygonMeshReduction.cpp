@@ -172,6 +172,11 @@ public:
 		return VersionString;
 	}
 
+	virtual FString GetName() override 
+	{
+		return FString("SimplygonMeshReduction");
+	}
+
 	virtual void Reduce(
 		FRawMesh& OutReducedMesh,
 		float& OutMaxDeviation,

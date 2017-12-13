@@ -49,6 +49,7 @@ bool FReverbSettings::operator==(const FReverbSettings& Other) const
 {
 	return (bApplyReverb == Other.bApplyReverb
 			&& ReverbEffect == Other.ReverbEffect
+			&& ReverbPluginEffect == Other.ReverbPluginEffect
 			&& Volume == Other.Volume
 			&& FadeTime == Other.FadeTime);
 }

@@ -1016,11 +1016,13 @@ static void ExportMaterialPropertyTexture(const FString &BMPFilename, UMaterialI
 
 	if (bIsValidMaterial)
 	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		// render the material to a texture to export as a bmp
 		if (!FMaterialUtilities::ExportMaterialProperty(Material, MatProp, OutputBMP, OutSize ))
 		{
 			bIsValidMaterial = false;
-		}
+		}		
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// make invalid textures a solid red

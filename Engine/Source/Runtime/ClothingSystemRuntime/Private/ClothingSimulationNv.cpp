@@ -87,7 +87,7 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 		TArray<FVector> SkinnedNormals;
 		TArray<NvClothSupport::ClothTri> Tris;
 		TArray<NvClothSupport::ClothQuad> Quads;
-		TArray<float> InvMasses;
+		TArray<float> InvMasses = PhysMesh.InverseMasses;
 
 		const int32 NumVerts = PhysMesh.Vertices.Num();
 		const int32 NumTriangles = PhysMesh.Indices.Num() / 3;
@@ -180,6 +180,9 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 		NewCloth->setTranslation(U2PVector(RootBoneWorldTransform.GetTranslation()));
 		NewCloth->setRotation(U2PQuat(RootBoneWorldTransform.GetRotation()));
 		NewCloth->clearInertia();
+
+		// Set the fluid density scale correctly for our units (Nv using metres, UE using centimetres)
+		NewCloth->setFluidDensity(1.0f / NvClothSupport::Constants::UnitConversionScaleCube);
 
 		// Keep track of our asset
 		NewActor.AssetCreatedFrom = Asset;
@@ -361,6 +364,17 @@ void FClothingSimulationNv::ApplyClothConfig(FClothConfig &Config, FClothingActo
 		{
 			LodCloth->setDragCoefficient(Config.WindDragCoefficient);
 			LodCloth->setLiftCoefficient(Config.WindLiftCoefficient);
+		}
+		else
+		{
+			LodCloth->setDragCoefficient(0.0f);
+			LodCloth->setLiftCoefficient(0.0f);
+		}
+
+		if(InActor.WindMethod == EClothingWindMethod::Legacy && Config.WindMethod == EClothingWindMethod::Accurate)
+		{
+			// Need to clear out particle accelerations here otherwise legacy wind effects will stay applied
+			LodCloth->clearParticleAccelerations();
 		}
 
 		LodCloth->setSolverFrequency(Config.SolverFrequency);
@@ -577,7 +591,7 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 			CurrentCloth->setConvexes(NvClothSupport::CreateRange(Scratch.ConvexMasks), 0, CurrentCloth->getNumConvexes());
 		}
 
-		Actor.UpdateWind(NvContext, RootBoneWorldTransform.InverseTransformVector(NvContext->WindVelocity));
+		Actor.UpdateWind(NvContext, NvContext->WindVelocity);
 		Actor.UpdateAnimDrive(NvContext);
 	}
 
@@ -1074,7 +1088,7 @@ void FClothingSimulationNv::DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComp
 
 				const FLinearColor LineColor = MaxDist0 < SMALL_NUMBER && MaxDist1 < SMALL_NUMBER ? FColor::Magenta : FColor::White;
 
-				PDI->DrawLine(Start, End, LineColor, SDPG_World, 0.05f, 0.5f);
+				PDI->DrawLine(Start, End, LineColor, SDPG_World, 0.0f , 0.001f);
 			}
 		}
 	}
@@ -1105,7 +1119,7 @@ void FClothingSimulationNv::DebugDraw_Normals(USkeletalMeshComponent* OwnerCompo
 			FVector Position = RootBoneTransform.TransformPosition(P2UVector(Particles[ParticleIndex]));
 			FVector Normal = RootBoneTransform.TransformVector(Normals[ParticleIndex]);
 
-			PDI->DrawLine(Position, Position + Normal * 20.0f, FLinearColor::White, SDPG_World, 0.2f);
+			PDI->DrawLine(Position, Position + Normal * 20.0f, FLinearColor::White, SDPG_World, 0.0f, 0.001f);
 		}
 	}
 }
@@ -1154,9 +1168,9 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 					for(float Angle = AngleIncrement; Angle <= 360.0f; Angle += AngleIncrement)  // iterate over unit circle about capsule's major axis (which is orientation.AxisZ)
 					{
 						FVector VertexCurrent = CapsuleOrientation.RotateVector(FVector(FMath::Cos(FMath::DegreesToRadians(Angle))*ScaleXY, FMath::Sin(FMath::DegreesToRadians(Angle))*ScaleXY, OffsetZ));
-						PDI->DrawLine(Center0 + VertexCurrent  * Sphere0.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // capsule side segment between spheres
-						PDI->DrawLine(Center0 + VertexPrevious * Sphere0.Radius, Center0 + VertexCurrent * Sphere0.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S0
-						PDI->DrawLine(Center1 + VertexPrevious * Sphere1.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S1
+						PDI->DrawLine(Center0 + VertexCurrent  * Sphere0.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.0f, 0.001f);  // capsule side segment between spheres
+						PDI->DrawLine(Center0 + VertexPrevious * Sphere0.Radius, Center0 + VertexCurrent * Sphere0.Radius, FColor::Cyan, SDPG_World, 0.0f, 0.001f);  // cap-circle segment on sphere S0
+						PDI->DrawLine(Center1 + VertexPrevious * Sphere1.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.0f, 0.001f);  // cap-circle segment on sphere S1
 						VertexPrevious = VertexCurrent;
 					}
 				}
@@ -1175,7 +1189,7 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 				FTransform SphereTransform(BoneMatrix);
 				SphereTransform.SetTranslation(ActualPosition);
 
-				DrawWireSphere(PDI, SphereTransform, FColor::Cyan, Sphere.Radius, 12, SDPG_World, 0.2f);
+				DrawWireSphere(PDI, SphereTransform, FColor::Cyan, Sphere.Radius, 12, SDPG_World, 0.0f, 0.001f);
 			}
 			else
 			{
@@ -1184,7 +1198,7 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 				FTransform SphereTransform;
 				SphereTransform.SetTranslation(ActualPosition);
 
-				DrawWireSphere(PDI, SphereTransform, FColor::Red, Sphere.Radius, 12, SDPG_World, 0.2f);
+				DrawWireSphere(PDI, SphereTransform, FColor::Red, Sphere.Radius, 12, SDPG_World, 0.0f, 0.001f);
 			}
 		}
 	}
@@ -1238,14 +1252,14 @@ void FClothingSimulationNv::DebugDraw_Backstops(USkeletalMeshComponent* OwnerCom
 				FVector Start = Position;
 				FVector End = Start + Normal * BackstopDistance;
 
-				PDI->DrawLine(Start, End, FColor::Red, SDPG_World, 0.2f);
+				PDI->DrawLine(Start, End, FColor::Red, SDPG_World, 0.0f, 0.001f);
 			}
 			else if(BackstopDistance < 0.0f)
 			{
 				FVector Start = Position;
 				FVector End = Start + Normal * BackstopDistance;
 
-				PDI->DrawLine(Start, End, FColor::Blue, SDPG_World, 0.2f);
+				PDI->DrawLine(Start, End, FColor::Blue, SDPG_World, 0.0f, 0.001f);
 			}
 			else
 			{
@@ -1280,7 +1294,7 @@ void FClothingSimulationNv::DebugDraw_MaxDistances(USkeletalMeshComponent* Owner
 			const FVector& Normal = RootBoneTransform.TransformVector(Actor.SkinnedPhysicsMeshNormals[VertIndex]);
 			const float& MaxDistance = MeshData.MaxDistances[VertIndex];
 
-			PDI->DrawLine(Position, Position + Normal * MaxDistance, FColor::White, SDPG_World, 0.2f);
+			PDI->DrawLine(Position, Position + Normal * MaxDistance, FColor::White, SDPG_World, 0.0f, 0.001f);
 		}
 	}
 }
@@ -1323,7 +1337,7 @@ void FClothingSimulationNv::DebugDraw_SelfCollision(USkeletalMeshComponent* Owne
 		for(int32 SelfColIdx = 0; SelfColIdx < PhysMesh.SelfCollisionIndices.Num(); ++SelfColIdx)
 		{
 			FVector ParticlePosition = RootBoneTransform.TransformPosition(P2UVector(Particles[PhysMesh.SelfCollisionIndices[SelfColIdx]]));
-			DrawWireSphere(PDI, ParticlePosition, FColor::White, SelfCollisionThickness, 8, SDPG_World, 0.2f);
+			DrawWireSphere(PDI, ParticlePosition, FColor::White, SelfCollisionThickness, 8, SDPG_World, 0.0f, 0.001f);
 		}
 	}
 }
@@ -1358,7 +1372,7 @@ void FClothingSimulationNv::DebugDraw_AnimDrive(USkeletalMeshComponent* OwnerCom
 				FVector Start = RootBoneTransform.TransformPosition(SkinnedPositions[Indices[BaseIndex + SubIndex]]);
 				FVector End = RootBoneTransform.TransformPosition(SkinnedPositions[Indices[BaseIndex + NextIndex]]);
 
-				PDI->DrawLine(Start, End, FLinearColor(0.6f, 0.6f, 0.6f, 0.1f), SDPG_World);
+				PDI->DrawLine(Start, End, FLinearColor(0.6f, 0.6f, 0.6f, 0.1f), SDPG_World, 0.0f, 0.001f);
 			}
 		}
 	}
@@ -1456,6 +1470,9 @@ void FClothingActorNv::UpdateWind(FClothingSimulationContextNv* InContext, const
 
 		case EClothingWindMethod::Legacy:
 		{
+			const FTransform RootBoneWorldTransform = InContext->BoneTransforms[AssetCreatedFrom->ReferenceBoneIndex] * InContext->ComponentToWorld;
+			const FVector TransformedWindVelocity = RootBoneWorldTransform.InverseTransformVector(InWindVelocity);
+
 			TArray<FVector>& ParticleVelocities = Scratch.ParticleVelocities;
 			CalculateParticleVelocities(ParticleVelocities);
 
@@ -1467,7 +1484,7 @@ void FClothingActorNv::UpdateWind(FClothingSimulationContextNv* InContext, const
 			for(int32 AccelerationIndex = 0; AccelerationIndex < NumAccelerations; ++AccelerationIndex)
 			{
 				const FVector& Velocity = ParticleVelocities[AccelerationIndex];
-				FVector VelocityDelta = (InWindVelocity * 2500.0f - Velocity);
+				FVector VelocityDelta = (TransformedWindVelocity * 2500.0f - Velocity);
 
 				if(MaxDistances[AccelerationIndex] > 0.0f && !VelocityDelta.IsZero())
 				{
@@ -1486,7 +1503,7 @@ void FClothingActorNv::UpdateWind(FClothingSimulationContextNv* InContext, const
 
 		case EClothingWindMethod::Accurate:
 		{
-			const physx::PxVec3 PxWindVelocity = U2PVector(InWindVelocity);
+			const physx::PxVec3 PxWindVelocity = U2PVector(InWindVelocity * NvClothSupport::Constants::UnitConversionScale);
 			LodData[CurrentLodIndex].Cloth->setWindVelocity((PxWindVelocity));
 		}
 		break;

@@ -69,12 +69,21 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	, DefaultBoneDrawSelection(1)
 	, bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons(true)
 {
-	for(FViewportConfigOptions& ViewportConfig : ViewportConfigs)
+	AssetEditorOptions.AddUnique(FAssetEditorOptions(TEXT("SkeletonEditor")));
+	AssetEditorOptions.AddUnique(FAssetEditorOptions(TEXT("SkeletalMeshEditor")));
+	AssetEditorOptions.AddUnique(FAssetEditorOptions(TEXT("AnimationEditor")));
+	AssetEditorOptions.AddUnique(FAssetEditorOptions(TEXT("AnimationBlueprintEditor")));
+	AssetEditorOptions.AddUnique(FAssetEditorOptions(TEXT("PhysicsAssetEditor")));
+
+	for(FAssetEditorOptions& EditorOptions : AssetEditorOptions)
 	{
-		ViewportConfig.ViewModeIndex = VMI_Lit;
-		ViewportConfig.ViewFOV = 53.43f;
-		ViewportConfig.CameraFollowMode = EAnimationViewportCameraFollowMode::None;
-		ViewportConfig.CameraFollowBoneName = NAME_None;
+		for(FViewportConfigOptions& ViewportConfig : EditorOptions.ViewportConfigs)
+		{
+			ViewportConfig.ViewModeIndex = VMI_Lit;
+			ViewportConfig.ViewFOV = 53.43f;
+			ViewportConfig.CameraFollowMode = EAnimationViewportCameraFollowMode::None;
+			ViewportConfig.CameraFollowBoneName = NAME_None;
+		}
 	}
 
 	SectionTimingNodeColor = FLinearColor(0.0f, 1.0f, 0.0f);
@@ -100,35 +109,18 @@ void UPersonaOptions::SetHighlightOrigin( bool bInHighlightOrigin )
 	SaveConfig();
 }
 
-void UPersonaOptions::SetGridSize( int32 InGridSize )
-{
-	GridSize = InGridSize;
-	SaveConfig();
-}
-
-void UPersonaOptions::SetViewModeIndex( EViewModeIndex InViewModeIndex, int32 InViewportIndex )
+void UPersonaOptions::SetViewModeIndex( FName InContext, EViewModeIndex InViewModeIndex, int32 InViewportIndex )
 {
 	check(InViewportIndex >= 0 && InViewportIndex < 4);
 
-	ViewportConfigs[InViewportIndex].ViewModeIndex = InViewModeIndex;
-	SaveConfig();
-}
-
-void UPersonaOptions::SetShowFloor( bool bInShowFloor )
-{
-	bShowFloor = bInShowFloor;
+	FAssetEditorOptions& Options = GetAssetEditorOptions(InContext);
+	Options.ViewportConfigs[InViewportIndex].ViewModeIndex = InViewModeIndex;
 	SaveConfig();
 }
 
 void UPersonaOptions::SetAutoAlignFloorToMesh(bool bInAutoAlignFloorToMesh)
 {
 	bAutoAlignFloorToMesh = bInAutoAlignFloorToMesh;
-	SaveConfig();
-}
-
-void UPersonaOptions::SetShowSky( bool bInShowSky )
-{
-	bShowSky = bInShowSky;
 	SaveConfig();
 }
 
@@ -144,20 +136,22 @@ void UPersonaOptions::SetUseAudioAttenuation( bool bInUseAudioAttenuation )
 	SaveConfig();
 }
 
-void UPersonaOptions::SetViewFOV( float InViewFOV, int32 InViewportIndex )
+void UPersonaOptions::SetViewFOV( FName InContext, float InViewFOV, int32 InViewportIndex )
 {
 	check(InViewportIndex >= 0 && InViewportIndex < 4);
 
-	ViewportConfigs[InViewportIndex].ViewFOV = InViewFOV;
+	FAssetEditorOptions& Options = GetAssetEditorOptions(InContext);
+	Options.ViewportConfigs[InViewportIndex].ViewFOV = InViewFOV;
 	SaveConfig();
 }
 
-void UPersonaOptions::SetViewCameraFollow( EAnimationViewportCameraFollowMode InCameraFollowMode, FName InCameraFollowBoneName, int32 InViewportIndex )
+void UPersonaOptions::SetViewCameraFollow( FName InContext, EAnimationViewportCameraFollowMode InCameraFollowMode, FName InCameraFollowBoneName, int32 InViewportIndex )
 {
 	check(InViewportIndex >= 0 && InViewportIndex < 4);
 
-	ViewportConfigs[InViewportIndex].CameraFollowMode = InCameraFollowMode;
-	ViewportConfigs[InViewportIndex].CameraFollowBoneName = InCameraFollowBoneName;
+	FAssetEditorOptions& Options = GetAssetEditorOptions(InContext);
+	Options.ViewportConfigs[InViewportIndex].CameraFollowMode = InCameraFollowMode;
+	Options.ViewportConfigs[InViewportIndex].CameraFollowBoneName = InCameraFollowBoneName;
 	SaveConfig();
 }
 
@@ -196,4 +190,22 @@ void UPersonaOptions::SetBranchingPointTimingNodeColor(const FLinearColor& InCol
 {
 	BranchingPointTimingNodeColor = InColor;
 	SaveConfig();
+}
+
+FAssetEditorOptions& UPersonaOptions::GetAssetEditorOptions(const FName& InContext)
+{
+	FAssetEditorOptions* FoundOptions = AssetEditorOptions.FindByPredicate([InContext](const FAssetEditorOptions& InOptions)
+	{
+		return InOptions.Context == InContext;
+	});
+
+	if(!FoundOptions)
+	{
+		AssetEditorOptions.Add(FAssetEditorOptions(InContext));
+		return AssetEditorOptions.Last();
+	}
+	else
+	{
+		return *FoundOptions;
+	}
 }

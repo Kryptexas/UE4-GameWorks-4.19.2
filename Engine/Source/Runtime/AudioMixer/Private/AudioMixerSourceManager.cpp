@@ -132,6 +132,8 @@ namespace Audio
 			SourceInfo.bIsDebugMode = false;
 			SourceInfo.bOutputToBusOnly = false;
 			SourceInfo.bIsVorbis = false;
+			SourceInfo.bIsBypassingLPF = false;
+			SourceInfo.bIsBypassingLPF = false;
 
 			SourceInfo.NumInputChannels = 0;
 			SourceInfo.NumPostEffectChannels = 0;
@@ -354,6 +356,8 @@ namespace Audio
 		SourceInfo.bHasStarted = false;
 		SourceInfo.bIsDebugMode = false;
 		SourceInfo.bOutputToBusOnly = false;
+		SourceInfo.bIsBypassingLPF = false;
+		SourceInfo.bIsBypassingHPF = false;
 		SourceInfo.DebugName = FString();
 		SourceInfo.NumInputChannels = 0;
 		SourceInfo.NumPostEffectChannels = 0;
@@ -478,6 +482,7 @@ namespace Audio
 			SourceInfo.bIsLastBuffer = false;
 			SourceInfo.bUseHRTFSpatializer = InitParams.bUseHRTFSpatialization;
 			SourceInfo.bIsVorbis = InitParams.bIsVorbis;
+			SourceInfo.AudioComponentID = InitParams.AudioComponentID;
 
 			SourceInfo.BufferQueueListener = InitParams.BufferQueueListener;
 
@@ -1313,6 +1318,7 @@ namespace Audio
 			AudioPluginInputData.AudioBuffer = &SourceInfo.SourceBuffer;
 			AudioPluginInputData.SpatializationParams = SourceSpatParams;
 			AudioPluginInputData.NumChannels = SourceInfo.NumInputChannels;
+			AudioPluginInputData.AudioComponentId = SourceInfo.AudioComponentID;
 
 			SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
 			SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
@@ -1537,8 +1543,39 @@ namespace Audio
 
 					int32 SampleIndex = SourceInfo.NumInputChannels * Frame;
 
-					SourceInfo.LowPassFilter.ProcessAudio(&PreDistanceAttenBufferPtr[SampleIndex], &PostDistanceAttenBufferPtr[SampleIndex]);
-					SourceInfo.HighPassFilter.ProcessAudio(&PostDistanceAttenBufferPtr[SampleIndex], &PostDistanceAttenBufferPtr[SampleIndex]);
+					// Apply filters, if necessary.
+					if (LPFFreq < MAX_FILTER_FREQUENCY)
+					{
+						//If we stopped processing the low pass filter, we need to clear the filter's memory to prevent pops.
+						if (SourceInfo.bIsBypassingLPF)
+						{
+							SourceInfo.LowPassFilter.ClearMemory();
+							SourceInfo.bIsBypassingLPF = false;
+						}
+
+						SourceInfo.LowPassFilter.ProcessAudio(&PreDistanceAttenBufferPtr[SampleIndex], &PostDistanceAttenBufferPtr[SampleIndex]);
+					}
+					else
+					{
+						SourceInfo.bIsBypassingLPF = true;
+						FMemory::Memcpy(&PostDistanceAttenBufferPtr[SampleIndex], &PreDistanceAttenBufferPtr[SampleIndex], SourceInfo.NumInputChannels * sizeof(float));
+					}
+
+					if (HPFFreq > 0.0f)
+					{
+						//If we stopped processing the low pass filter, we need to clear the filter's memory to prevent pops.
+						if (SourceInfo.bIsBypassingHPF)
+						{
+							SourceInfo.HighPassFilter.Reset();
+							SourceInfo.bIsBypassingHPF = false;
+						}
+
+						SourceInfo.HighPassFilter.ProcessAudio(&PostDistanceAttenBufferPtr[SampleIndex], &PostDistanceAttenBufferPtr[SampleIndex]);
+					}
+					else
+					{
+						SourceInfo.bIsBypassingHPF = true;
+					}
 				}
 
 				// Reset the volume and LPF param interpolations

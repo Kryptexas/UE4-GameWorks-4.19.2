@@ -829,7 +829,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 	FIntPoint MaxSize = MaterialProxy->FindMaxTextureSize(InMaterial);
 	FIntPoint OutSize = MaxSize;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, MaxSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint& OutSize, TArray<FColor>& OutBMP)
@@ -845,7 +847,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	OutSize = MaterialProxy->FindMaxTextureSize(InMaterial);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, OutSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, TArray<FColor>& OutBMP, FIntPoint& OutSize)
@@ -861,7 +865,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	OutSize = MaterialProxy->FindMaxTextureSize(InMaterial);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, OutSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP)
@@ -877,12 +883,16 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	FIntPoint OutSize;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, InSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterial(UWorld* InWorld, UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ExportMaterial(InMaterial, OutFlattenMaterial);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache)
@@ -891,7 +901,9 @@ bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, FFlatten
 	TArray<FVector2D> EmptyTexCoords;
 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	ExportMaterial(MaterialData, OutFlattenMaterial, ProxyCache);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	return true;
 }
 
@@ -914,7 +926,9 @@ bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, const FR
 	MaterialData.LightMap = LightMap;
 	MaterialData.ShadowMap = ShadowMap;
 	MaterialData.Buffer = Buffer;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	ExportMaterial(MaterialData, OutFlattenMaterial, ProxyCache);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	return true;
 }
@@ -2510,31 +2524,42 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	FIntPoint Size;
 	// Compile shaders and render flatten material.
 	Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	RenderMaterialPropertyToTexture(InMaterialData, MP_BaseColor, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse));
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 	if (bRenderMetallic)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic);
-		RenderMaterialPropertyToTexture(InMaterialData, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic));
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		RenderMaterialPropertyToTexture(InMaterialData, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, 
+			OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 	}	
 	if (bRenderSpecular)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Specular, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 	}
 	if (bRenderRoughness)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Roughness, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 	}
 	if (bRenderNormal)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Normal);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Normal, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 	}
 	else
@@ -2547,22 +2572,28 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 
 	if (bRenderOpacityMask)
 	{
-		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
-		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
-		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
+		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, Size);
 	}
 	if (bRenderOpacity)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
 		// Number of blend modes, let's UMaterial decide whether it wants this property
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Opacity, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 	}
 	if (bRenderEmissive)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive);
 		// PF_FloatRGBA is here to be able to render and read HDR image using ReadFloat16Pixels()
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_EmissiveColor, false, PF_FloatRGBA, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.EmissiveScale = InMaterialData.EmissiveScale;
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, Size);
 	}	

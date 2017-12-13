@@ -108,11 +108,21 @@ void FMergeActorsModule::StartupModule()
 	// Register built-in merging tools straight away
 	ensure(RegisterMergeActorsTool(MakeUnique<FMeshMergingTool>()));
 
+	
 	IMeshReductionManagerModule& MeshReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
 	if (MeshReductionModule.GetMeshMergingInterface() != nullptr)
 	{
-		// Only register MeshProxyTool if Simplygon is available
-		ensure(RegisterMergeActorsTool(MakeUnique<FMeshProxyTool>()));
+		// Choose the correct UI.  This isn't ideal.
+		if (MeshReductionModule.GetMeshMergingInterface()->GetName().Equals(FString("ProxyLODMeshMerging")))
+		{
+			// Our Native tool
+			ensure(RegisterMergeActorsTool(MakeUnique<FMeshProxyTool>()));
+		}
+		else
+		{
+			// This is the Simplygon tool
+			ensure(RegisterMergeActorsTool(MakeUnique<FThirdPartyMeshProxyTool>()));
+		}
 	}
 }
 

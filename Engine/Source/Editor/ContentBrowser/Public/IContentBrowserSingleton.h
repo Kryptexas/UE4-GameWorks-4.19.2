@@ -201,6 +201,9 @@ struct FAssetPickerConfig
 	/** The delegate that fires when a folder is right clicked and a context menu is requested */
 	FOnGetFolderContextMenu OnGetFolderContextMenu;
 
+	/** Called to see if it is valid to get a custom asset tool tip */
+	FOnIsAssetValidForCustomToolTip OnIsAssetValidForCustomToolTip;
+
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 

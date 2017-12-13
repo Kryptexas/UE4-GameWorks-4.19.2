@@ -623,6 +623,11 @@ public:
 
 	const TArray<FListener>& GetListeners() const { check(IsInAudioThread()); return Listeners; }
 
+	/**
+	 * Get ambisonics mixer, if one is available
+	 */
+	TAmbisonicsMixerPtr GetAmbisonicsMixer() { return AmbisonicsMixer; };
+
 	/** 
 	 * Returns the currently applied reverb effect if there is one.
 	 */
@@ -1417,6 +1422,9 @@ public:
 
 	/** 3rd party occlusion interface. */
 	TAudioOcclusionPtr OcclusionInterface;
+
+	/* This devices ambisonics pointer, if one exists */
+	TAmbisonicsMixerPtr AmbisonicsMixer;
 
 	/** 3rd party listener observers registered to this audio device. */
 	TArray<TAudioPluginListenerPtr> PluginListeners;

@@ -39,7 +39,10 @@ struct CORE_API FAnimPhysObjectVersion
 		FixupBadBlendProfileReferences,
 		// Allowing multiple audio plugin settings
 		AllowMultipleAudioPluginSettings,
-
+		// Change RetargetSource reference to SoftObjectPtr
+		ChangeRetargetSourceReferenceToSoftObjectPtr,
+		// Save editor only full pose for pose asset 
+		SaveEditorOnlyFullPoseForPoseAsset,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

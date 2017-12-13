@@ -11,6 +11,7 @@
 #include "ObjectEditorUtils.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "BodySetupDetails"
 
@@ -23,6 +24,8 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Customize collision section
 	{
+		static const FName CollisionCategoryName(TEXT("Collision"));
+
 		if ( DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance))->IsValidHandle() )
 		{
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
@@ -48,8 +51,6 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			uint32 NumChildren = 0;
 			BodyInstanceHandler->GetNumChildren(NumChildren);
 
-			static const FName CollisionCategoryName(TEXT("Collision"));
-
 			// add all properties of this now - after adding 
 			for (uint32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex)
 			{
@@ -61,6 +62,39 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 				}
 			}
 		}
+
+		CollisionReponseHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, CollisionReponse));
+		TWeakPtr<IPropertyHandle> WeakCollisionReponseHandle = CollisionReponseHandle;
+
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(CollisionCategoryName);
+		DetailCategoryBuilder.AddProperty(CollisionReponseHandle)
+		.CustomWidget()
+		.NameContent()
+		[
+			CollisionReponseHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([WeakCollisionReponseHandle]() 
+			{
+				uint8 Value = 0;
+				if(WeakCollisionReponseHandle.IsValid() && WeakCollisionReponseHandle.Pin()->GetValue(Value) == FPropertyAccess::Success)
+				{
+					return (Value == EBodyCollisionResponse::BodyCollision_Enabled) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				}
+
+				return ECheckBoxState::Undetermined;
+			})
+			.OnCheckStateChanged_Lambda([WeakCollisionReponseHandle](ECheckBoxState InCheckBoxState)
+			{
+				if(WeakCollisionReponseHandle.IsValid())
+				{
+					uint8 Value = InCheckBoxState == ECheckBoxState::Checked ? EBodyCollisionResponse::BodyCollision_Enabled : EBodyCollisionResponse::BodyCollision_Disabled;
+					WeakCollisionReponseHandle.Pin()->SetValue(Value);
+				}
+			})
+		];
 	}
 }
 

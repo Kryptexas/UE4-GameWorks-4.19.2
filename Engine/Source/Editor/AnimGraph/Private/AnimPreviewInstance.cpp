@@ -44,6 +44,21 @@ FAnimNode_ModifyBone* FAnimPreviewInstanceProxy::FindModifiedBone(const FName& I
 	);
 }
 
+void FAnimPreviewInstanceProxy::SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate)
+{
+	// reinitialize pose blend node for pose assets
+	// this is necessary because sometimes in the editor, we add pose then list of pose changes, but 
+	// this node continue use previous information
+	// @todo: should we initialize all nodes?
+	if (NewAsset && NewAsset->IsA(UPoseAsset::StaticClass()))
+	{
+		FAnimationInitializeContext Context(this);
+		PoseBlendNode.Initialize_AnyThread(Context);
+	}
+
+	FAnimSingleNodeInstanceProxy::SetAnimationAsset(NewAsset, MeshComponent, bIsLooping, InPlayRate);
+}
+
 FAnimNode_ModifyBone& FAnimPreviewInstanceProxy::ModifyBone(const FName& InBoneName, bool bCurveController)
 {
 	FAnimNode_ModifyBone* SingleBoneController = FindModifiedBone(InBoneName, bCurveController);

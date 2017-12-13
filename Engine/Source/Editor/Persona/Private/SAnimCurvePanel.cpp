@@ -776,7 +776,6 @@ FReply SAnimCurvePanel::DuplicateTrack(USkeleton::AnimCurveUID Uid)
 			{
 				Sequence->Modify();
 				Sequence->MarkRawDataAsModified();
-				Sequence->PostEditChange();
 				UpdatePanel();
 
 				return FReply::Handled();
@@ -811,7 +810,6 @@ void SAnimCurvePanel::DeleteAllTracks()
 	Sequence->Modify(true);
 	Sequence->RawCurveData.DeleteAllCurveData();
 	Sequence->MarkRawDataAsModified();
-	Sequence->PostEditChange();
 	UpdatePanel();
 }
 
@@ -1224,7 +1222,6 @@ void SAnimCurvePanel::AddMetadataEntry(USkeleton::AnimCurveUID Uid)
 		Curve->FloatCurve.AddKey(0.0f, 1.0f);
 		Curve->SetCurveTypeFlag(AACF_Metadata, true);
 		RefreshPanel();
-		Sequence->PostEditChange();
 	}
 }
 
@@ -1346,7 +1343,6 @@ void SAnimCurvePanel::AddVariableCurve(USkeleton::AnimCurveUID CurveUid)
 	ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUid, NewName));
 	Sequence->RawCurveData.AddCurveData(NewName);
 	Sequence->MarkRawDataAsModified();
-	Sequence->PostEditChange();
 	UpdatePanel();
 }
 

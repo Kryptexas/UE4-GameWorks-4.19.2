@@ -220,6 +220,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
 	OnAssetSelected = InArgs._OnAssetSelected;
+	OnAssetSelectionChanged = InArgs._OnAssetSelectionChanged;
 	OnAssetsActivated = InArgs._OnAssetsActivated;
 	OnGetAssetContextMenu = InArgs._OnGetAssetContextMenu;
 	OnGetFolderContextMenu = InArgs._OnGetFolderContextMenu;
@@ -227,6 +228,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	OnFindInAssetTreeRequested = InArgs._OnFindInAssetTreeRequested;
 	OnAssetRenameCommitted = InArgs._OnAssetRenameCommitted;
 	OnAssetTagWantsToBeDisplayed = InArgs._OnAssetTagWantsToBeDisplayed;
+	OnIsAssetValidForCustomToolTip = InArgs._OnIsAssetValidForCustomToolTip;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
@@ -3474,6 +3476,7 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 			.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip)
 			.OnAssetToolTipClosing(OnAssetToolTipClosing);
@@ -3561,6 +3564,7 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 			.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
 			.OnAssetToolTipClosing( OnAssetToolTipClosing );
@@ -3606,6 +3610,7 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 				.HighlightText( HighlightedText )
 				.OnAssetsOrPathsDragDropped(this, &SAssetView::OnAssetsOrPathsDragDropped)
 				.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped)
+				.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 				.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 				.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
 				.OnAssetToolTipClosing( OnAssetToolTipClosing )
@@ -3816,10 +3821,12 @@ void SAssetView::AssetSelectionChanged( TSharedPtr< struct FAssetViewItem > Asse
 		if ( AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder )
 		{
 			OnAssetSelected.ExecuteIfBound(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data);
+			OnAssetSelectionChanged.ExecuteIfBound(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data, SelectInfo);
 		}
 		else
 		{
 			OnAssetSelected.ExecuteIfBound(FAssetData());
+			OnAssetSelectionChanged.ExecuteIfBound(FAssetData(), SelectInfo);
 		}
 	}
 }

@@ -14,6 +14,7 @@ class UClothingAsset;
 class UPhysicsAsset;
 struct FClothPhysicalMeshData;
 struct FSkelMeshSection;
+class UClothingSimulationInteractor;
 
 namespace nvidia
 {
@@ -316,7 +317,7 @@ enum class EClothingWindMethod : uint8
 	// Use updated wind calculation for NvCloth based solved taking into account
 	// drag and lift, this will require those properties to be correctly set in
 	// the clothing configuration
-	Accurate UMETA(Hidden)
+	Accurate
 };
 
 /** Holds initial, asset level config for clothing actors. */
@@ -548,7 +549,8 @@ public:
 	// End UObject Interface //////////////////////////////////////////////////
 
 #if WITH_EDITOR
-	void HandlePhysicsAssetChange();
+	void ReregisterComponentsUsingClothing();
+	void ForEachInteractorUsingClothing(TFunction<void (UClothingSimulationInteractor*)> Func);
 #endif
 
 	/** 

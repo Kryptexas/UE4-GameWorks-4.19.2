@@ -72,11 +72,13 @@ public:
 				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
 				.WidthOverride(100.0f)
 				[
-					SNew(SSpinBox<float>)
+					SNew(SNumericEntryBox<float>)
 					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
 					.ToolTipText(LOCTEXT("WindStrength_ToolTip", "Change wind strength"))
 					.MinValue(0)
-					.MaxValue(1)
+					.AllowSpin(true)
+					.MinSliderValue(0)
+					.MaxSliderValue(2)
 					.Value(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetWindStrengthSliderValue)
 					.OnValueChanged(SSpinBox<float>::FOnValueChanged::CreateSP(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetWindStrength))
 				]
@@ -85,21 +87,6 @@ public:
 	}
 
 protected:
-	/** Callback function for decreasing size */
-	FReply OnDecreaseWindStrength()
-	{
-		const float DeltaValue = 0.1f;
-		AnimViewportPtr.Pin()->SetWindStrength( AnimViewportPtr.Pin()->GetWindStrengthSliderValue() - DeltaValue );
-		return FReply::Handled();
-	}
-
-	/** Callback function for increasing size */
-	FReply OnIncreaseWindStrength()
-	{
-		const float DeltaValue = 0.1f;
-		AnimViewportPtr.Pin()->SetWindStrength( AnimViewportPtr.Pin()->GetWindStrengthSliderValue() + DeltaValue );
-		return FReply::Handled();
-	}
 
 	/** Callback function which determines whether this widget is enabled */
 	bool IsWindEnabled() const
@@ -451,22 +438,22 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 		InMenuBuilder.AddSubMenu(
 			LOCTEXT("CameraFollowModeLabel", "Camera Follow Mode"),
 			LOCTEXT("CameraFollowModeTooltip", "Set various camera follow modes"),
-			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InMenuBuilder)
+			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InSubMenuBuilder)
 			{
-				InMenuBuilder.BeginSection("AnimViewportCameraFollowMode", LOCTEXT("ViewMenu_CameraFollowModeLabel", "Camera Follow Mode"));
+				InSubMenuBuilder.BeginSection("AnimViewportCameraFollowMode", LOCTEXT("ViewMenu_CameraFollowModeLabel", "Camera Follow Mode"));
 				{
-					InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
+					InSubMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 
-					InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowNone);
-					InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowBounds);
+					InSubMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowNone);
+					InSubMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowBounds);
 
-					InMenuBuilder.PopCommandList();
+					InSubMenuBuilder.PopCommandList();
 				}
-				InMenuBuilder.EndSection();
+				InSubMenuBuilder.EndSection();
 		
-				InMenuBuilder.BeginSection("AnimViewportCameraFollowBone", FText());
+				InSubMenuBuilder.BeginSection("AnimViewportCameraFollowBone", FText());
 				{
-					InMenuBuilder.AddWidget(
+					InSubMenuBuilder.AddWidget(
 						SNew(SBox)
 						.MaxDesiredHeight(400.0f)
 						[
@@ -487,8 +474,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 						FText(), 
 						true);
 				}
-				InMenuBuilder.EndSection();
-				
+				InSubMenuBuilder.EndSection();
 			}),
 			false,
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.CameraFollow")
@@ -1110,7 +1096,7 @@ void SAnimViewportToolBar::OnFOVValueChanged( float NewValue )
 	ViewportClient.FOVAngle = NewValue;
 
 	FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)(ViewportClient);
-	AnimViewportClient.ConfigOption->SetViewFOV(NewValue, AnimViewportClient.GetViewportIndex());
+	AnimViewportClient.ConfigOption->SetViewFOV(AnimViewportClient.GetAssetEditorToolkit()->GetEditorName(), NewValue, AnimViewportClient.GetViewportIndex());
 
 	ViewportClient.ViewFOV = NewValue;
 	ViewportClient.Invalidate();

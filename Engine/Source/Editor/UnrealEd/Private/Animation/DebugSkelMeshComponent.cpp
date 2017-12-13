@@ -62,7 +62,10 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 				BoundingBox += GetBoneMatrix((int32)RequiredBoneIndex).GetOrigin();
 			}
 
-			Result = Result + FBoxSphereBounds(BoundingBox);
+			if (BoundingBox.IsValid)
+			{
+				Result = Result + FBoxSphereBounds(BoundingBox);
+			}			
 		}
 
 		if ( SkeletalMesh )
@@ -71,7 +74,10 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 		}
 	}
 
-	Result = Result + CachedClothBounds;
+	if (!FMath::IsNearlyZero(CachedClothBounds.SphereRadius))
+	{
+		Result = Result + CachedClothBounds;
+	}	
 
 	return Result;
 }

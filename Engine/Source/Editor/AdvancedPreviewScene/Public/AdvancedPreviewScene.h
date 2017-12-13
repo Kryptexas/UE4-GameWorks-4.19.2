@@ -60,7 +60,7 @@ protected:
 	void BindCommands();
 
 	/** Toggle the sky sphere on and off */
-	void HandleToggleSky();
+	void HandleToggleEnvironment();
 
 	/** Toggle the floor mesh on and off */
 	void HandleToggleFloor();

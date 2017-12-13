@@ -376,7 +376,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 	{
 		//Custom payload case
 		OwningComponent = CustomPayload->GetOwningComponent().Get();
-		if(OwningComponent->bMultiBodyOverlap)
+		if(OwningComponent && OwningComponent->bMultiBodyOverlap)
 		{
 			OutResult.Item = CustomPayload->GetItemIndex();
 			OutResult.BoneName = CustomPayload->GetBoneName();

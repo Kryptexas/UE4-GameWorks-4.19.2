@@ -32,6 +32,9 @@ class SComboButton;
 class UFactory;
 struct FPropertyChangedEvent;
 
+/** Delegate called when selection changed. Provides more context than FOnAssetSelected */
+DECLARE_DELEGATE_TwoParams(FOnAssetSelectionChanged, const FAssetData& /*InAssetData*/, ESelectInfo::Type /*InSelectInfo*/);
+
 /**
  * A widget to display a list of filtered assets
  */
@@ -69,6 +72,9 @@ public:
 		/** Called to when an asset is selected */
 		SLATE_EVENT( FOnAssetSelected, OnAssetSelected )
 
+		/** Called to when an asset is selected. Provides more context OnAssetSelected */
+		SLATE_EVENT( FOnAssetSelectionChanged, OnAssetSelectionChanged )
+
 		/** Called when the user double clicks, presses enter, or presses space on an asset */
 		SLATE_EVENT( FOnAssetsActivated, OnAssetsActivated )
 
@@ -86,6 +92,9 @@ public:
 
 		/** Called when the user has committed a rename of one or more assets */
 		SLATE_EVENT( FOnAssetRenameCommitted, OnAssetRenameCommitted )
+
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this asset item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
 
 		/** Called to get a custom asset item tool tip (if necessary) */
 		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip )
@@ -796,6 +805,9 @@ private:
 	/** Called when an asset was selected in the list */
 	FOnAssetSelected OnAssetSelected;
 
+	/** Called when an asset was selected in the list. Provides more context than OnAssetSelected. */
+	FOnAssetSelectionChanged OnAssetSelectionChanged;
+
 	/** Called when the user double clicks, presses enter, or presses space on an asset */
 	FOnAssetsActivated OnAssetsActivated;
 
@@ -816,6 +828,9 @@ private:
 
 	/** Called to check if an asset tag should be display in details view. */
 	FOnShouldDisplayAssetTag OnAssetTagWantsToBeDisplayed;
+
+	/** Called to see if it is valid to get a custom asset tool tip */
+	FOnIsAssetValidForCustomToolTip OnIsAssetValidForCustomToolTip;
 
 	/** Called to get a custom asset item tooltip (If necessary) */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;

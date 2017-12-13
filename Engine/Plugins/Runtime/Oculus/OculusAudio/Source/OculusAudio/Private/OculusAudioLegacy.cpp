@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 
 #include "OculusAudioLegacy.h"
 #include "OculusAudioSourceSettings.h"
@@ -208,4 +208,4 @@ void OculusAudioLegacySpatialization::ApplyOculusAudioSettings(const UOculusAudi
     OVR_AUDIO_CHECK(Result, "Failed to set room parameters");
 }
 
-#endif
+#endif // #if PLATFORM_WINDOWS

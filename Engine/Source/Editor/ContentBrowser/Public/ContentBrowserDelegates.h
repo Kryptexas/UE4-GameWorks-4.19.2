@@ -114,6 +114,9 @@ DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<FExtender>, FContentBrowserMenuExten
 /** Called to request the menu when right clicking on an asset */
 DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<SWidget>, FOnGetFolderContextMenu, const TArray<FString>& /*SelectedPaths*/, FContentBrowserMenuExtender_SelectedPaths /*MenuExtender*/, FOnCreateNewFolder /*CreationDelegate*/);
 
+/** Called to see if it is valid to request a custom asset item tooltip */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsAssetValidForCustomToolTip, FAssetData& /*AssetData*/);
+
 /** Called to request a custom asset item tooltip */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, FAssetData& /*AssetData*/);
 

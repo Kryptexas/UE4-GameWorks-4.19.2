@@ -163,11 +163,12 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 
 			// Generate proxy mesh and proxy material assets
 			IMeshReductionManagerModule& MeshReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
+			const bool bHasMeshReductionCapableModule = (MeshReductionModule.GetMeshMergingInterface() != NULL);
 
 			const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
 			// should give unique name, so use level + actor name
 			const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
-			if (MeshReductionModule.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
+			if (bHasMeshReductionCapableModule && LODSetup.bSimplifyMesh)
 			{
 				TArray<AActor*> Actors;
 				ExtractSubActorsFromLODActor(LODActor, Actors);

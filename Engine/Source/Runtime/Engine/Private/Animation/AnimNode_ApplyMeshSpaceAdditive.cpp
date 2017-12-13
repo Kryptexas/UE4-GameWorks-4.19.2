@@ -43,10 +43,11 @@ void FAnimNode_ApplyMeshSpaceAdditive::Evaluate_AnyThread(FPoseContext& Output)
 	//@TODO: Could evaluate Base into Output and save a copy
 	if (FAnimWeight::IsRelevant(ActualAlpha))
 	{
-		FPoseContext AdditiveEvalContext(Output);
+		const bool bExpectsAdditivePose=true;
+		FPoseContext AdditiveEvalContext(Output, bExpectsAdditivePose);
 
 		Base.Evaluate(Output);
-		Additive.Evaluate(AdditiveEvalContext, true);
+		Additive.Evaluate(AdditiveEvalContext);
 
 		FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditiveEvalContext.Pose, Output.Curve, AdditiveEvalContext.Curve, ActualAlpha, AAT_RotationOffsetMeshSpace);
 		Output.Pose.NormalizeRotations();

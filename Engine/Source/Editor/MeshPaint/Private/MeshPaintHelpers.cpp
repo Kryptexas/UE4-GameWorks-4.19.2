@@ -757,7 +757,7 @@ void MeshPaintHelpers::SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComp
 	}
 }
 
-void MeshPaintHelpers::SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComponent, int32 LODIndex, const FColor FillColor)
+void MeshPaintHelpers::SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComponent, int32 LODIndex, const FColor FillColor, const FColor MaskColor )
 {
 	checkf(MeshComponent != nullptr, TEXT("Invalid static mesh component ptr"));
 
@@ -768,26 +768,50 @@ void MeshPaintHelpers::SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComp
 		// Ensure we have enough LOD data structs
 		MeshComponent->SetLODDataCount(LODIndex + 1, MeshComponent->LODData.Num());
 		FStaticMeshComponentLODInfo& ComponentLodInfo = MeshComponent->LODData[LODIndex];
-		// First release existing buffer
-		if (ComponentLodInfo.OverrideVertexColors)
+
+		if (MaskColor == FColor::White)
 		{
-			ComponentLodInfo.ReleaseOverrideVertexColorsAndBlock();
+			// First release existing buffer
+			if (ComponentLodInfo.OverrideVertexColors)
+			{
+				ComponentLodInfo.ReleaseOverrideVertexColorsAndBlock();
+			}
+
+			// If we are adding colors to LOD > 0 we flag the component to have per-lod painted mesh colors
+			if (LODIndex > 0)
+			{
+				MeshComponent->bCustomOverrideVertexColorPerLOD = true;
+			}
+
+			// Initialize vertex buffer from given color
+			ComponentLodInfo.OverrideVertexColors = new FColorVertexBuffer;
+			ComponentLodInfo.OverrideVertexColors->InitFromSingleColor(FillColor, RenderData.GetNumVertices());			
+		}
+		else
+		{
+			const FStaticMeshLODResources& LODModel = MeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
+			/** If there is an actual mask apply it to Fill Color when changing the per-vertex color */
+			if (ComponentLodInfo.OverrideVertexColors)
+			{
+				const uint32 NumVertices = ComponentLodInfo.OverrideVertexColors->GetNumVertices();
+				for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+				{					
+					ApplyFillWithMask(ComponentLodInfo.OverrideVertexColors->VertexColor(VertexIndex), MaskColor, FillColor);
+				}
+			}
+			else
+			{
+				// Initialize vertex buffer from given color
+				ComponentLodInfo.OverrideVertexColors = new FColorVertexBuffer;
+				ComponentLodInfo.OverrideVertexColors->InitFromSingleColor(MaskColor, RenderData.GetNumVertices());
+			}
 		}
 
-		// If we are adding colors to LOD > 0 we flag the component to have per-lod painted mesh colors
-		if (LODIndex > 0)
-		{
-			MeshComponent->bCustomOverrideVertexColorPerLOD = true;
-		}
-
-		// Initialize vertex buffer from given color
-		ComponentLodInfo.OverrideVertexColors = new FColorVertexBuffer;
-		ComponentLodInfo.OverrideVertexColors->InitFromSingleColor(FillColor, RenderData.GetNumVertices() );	
 		BeginInitResource(ComponentLodInfo.OverrideVertexColors);
 	}
 }
 
-void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FColor FillColor, bool bInstanced /*= false*/)
+void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FColor FillColor, const FColor MaskColor, bool bInstanced /*= false*/)
 {
 	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 	{
@@ -799,7 +823,7 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 				const int32 NumLods = Mesh->GetNumLODs();
 				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
 				{
-					MeshPaintHelpers::SetInstanceColorDataForLOD(StaticMeshComponent, LODIndex, FillColor);
+					MeshPaintHelpers::SetInstanceColorDataForLOD(StaticMeshComponent, LODIndex, FillColor, MaskColor);
 				}
 			}
 		}
@@ -828,7 +852,7 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 				const int32 NumLods = Mesh->LODInfo.Num();
 				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
 				{
-					MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor);
+					MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor, MaskColor);
 				}
 				Mesh->InitResources();
 			}
@@ -836,14 +860,28 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 	}
 }
 
-void MeshPaintHelpers::SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LODIndex, const FColor FillColor)
+void MeshPaintHelpers::SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LODIndex, const FColor FillColor, const FColor MaskColor )
 {
 	checkf(SkeletalMesh != nullptr, TEXT("Invalid Skeletal Mesh Ptr"));
 	FSkeletalMeshRenderData* Resource = SkeletalMesh->GetResourceForRendering();
 	if (Resource && Resource->LODRenderData.IsValidIndex(LODIndex))
 	{
 		FSkeletalMeshLODRenderData& LODData = Resource->LODRenderData[LODIndex];
-		LODData.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FillColor, LODData.GetNumVertices());
+
+		if (MaskColor == FColor::White)
+		{
+			LODData.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FillColor, LODData.GetNumVertices());
+		}
+		else
+		{
+			/** If there is an actual mask apply it to Fill Color when changing the per-vertex color */
+			const uint32 NumVertices = LODData.StaticVertexBuffers.ColorVertexBuffer.GetNumVertices();
+			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+			{
+				ApplyFillWithMask(LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex), MaskColor, FillColor);
+			}
+		}
+
 		BeginInitResource(&LODData.StaticVertexBuffers.ColorVertexBuffer);
 	}	
 
@@ -855,13 +893,22 @@ void MeshPaintHelpers::SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LOD
 		int32 SectionIndex = INDEX_NONE;
 		int32 SectionVertexIndex = INDEX_NONE;
 		LODModel.GetSectionFromVertexIndex(VertexIndex, SectionIndex, SectionVertexIndex);
-		LODModel.Sections[SectionIndex].SoftVertices[SectionVertexIndex].Color = FillColor;
+		/** If there is an actual mask apply it to Fill Color when changing the per-vertex color */
+		ApplyFillWithMask(LODModel.Sections[SectionIndex].SoftVertices[SectionVertexIndex].Color, MaskColor, FillColor);
 	}
 
 	if (!SkeletalMesh->LODInfo[LODIndex].bHasPerLODVertexColors)
 	{
 		SkeletalMesh->LODInfo[LODIndex].bHasPerLODVertexColors = true;
 	}
+}
+
+void MeshPaintHelpers::ApplyFillWithMask(FColor& InOutColor, const FColor& MaskColor, const FColor& FillColor)
+{
+	InOutColor.R = ((InOutColor.R & (~MaskColor.R)) | (FillColor.R & MaskColor.R));
+	InOutColor.G = ((InOutColor.G & (~MaskColor.G)) | (FillColor.G & MaskColor.G));
+	InOutColor.B = ((InOutColor.B & (~MaskColor.B)) | (FillColor.B & MaskColor.B));
+	InOutColor.A = ((InOutColor.A & (~MaskColor.A)) | (FillColor.A & MaskColor.A));
 }
 
 void MeshPaintHelpers::ImportVertexColorsFromTexture(UMeshComponent* MeshComponent)
@@ -1396,7 +1443,7 @@ void MeshPaintHelpers::ImportVertexColorsToStaticMeshComponent(UStaticMeshCompon
 		else
 		{
 			// Original mesh didn't have any colors, so just use a default color
-			MeshPaintHelpers::SetInstanceColorDataForLOD(StaticMeshComponent, ImportLOD, FColor::White);
+			MeshPaintHelpers::SetInstanceColorDataForLOD(StaticMeshComponent, ImportLOD, FColor::White, FColor::White);
 		}
 
 		const int32 UVIndex = Options->UVIndex;
@@ -1443,7 +1490,7 @@ void MeshPaintHelpers::ImportVertexColorsToSkeletalMesh(USkeletalMesh* SkeletalM
 			LODData.StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor::White, LODData.GetNumVertices());
 			BeginInitResource(&LODData.StaticVertexBuffers.ColorVertexBuffer);
 		}
-	
+
 		for (uint32 VertexIndex = 0; VertexIndex < LODData.GetNumVertices(); ++VertexIndex)
 		{
 			const FVector2D UV = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);

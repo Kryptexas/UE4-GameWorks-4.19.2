@@ -7,6 +7,7 @@
 #include "BodyInstanceCustomization.h"
 
 class IDetailLayoutBuilder;
+class IPropertyHandle;
 
 class FBodySetupDetails : public IDetailCustomization
 {
@@ -23,6 +24,7 @@ private:
 private:
 	TSharedPtr<class FBodyInstanceCustomizationHelper> BodyInstanceCustomizationHelper;
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
+	TSharedPtr<IPropertyHandle> CollisionReponseHandle;
 };
 
 

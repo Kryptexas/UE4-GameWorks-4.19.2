@@ -1503,6 +1503,31 @@ void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton&
 	}
 }
 
+void FAnimationRuntime::MakeSkeletonRefPoseFromMesh(const USkeletalMesh* InMesh, const USkeleton* InSkeleton, TArray<FTransform>& OutBoneBuffer)
+{
+	check(InMesh && InSkeleton);
+
+	const TArray<FTransform>& MeshRefPose = InMesh->RefSkeleton.GetRefBonePose();
+	const TArray<FTransform>& SkeletonRefPose = InSkeleton->GetReferenceSkeleton().GetRefBonePose();
+	const TArray<FMeshBoneInfo> & SkeletonBoneInfo = InSkeleton->GetReferenceSkeleton().GetRefBoneInfo();
+
+	OutBoneBuffer.Reset(SkeletonRefPose.Num());
+	OutBoneBuffer.AddUninitialized(SkeletonRefPose.Num());
+
+	for (int32 SkeletonBoneIndex = 0; SkeletonBoneIndex < SkeletonRefPose.Num(); ++SkeletonBoneIndex)
+	{
+		FName SkeletonBoneName = SkeletonBoneInfo[SkeletonBoneIndex].Name;
+		int32 MeshBoneIndex = InMesh->RefSkeleton.FindBoneIndex(SkeletonBoneName);
+		if (MeshBoneIndex != INDEX_NONE)
+		{
+			OutBoneBuffer[SkeletonBoneIndex] = MeshRefPose[MeshBoneIndex];
+		}
+		else
+		{
+			OutBoneBuffer[SkeletonBoneIndex] = FTransform::Identity;
+		}
+	}
+}
 #if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms)
 {

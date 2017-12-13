@@ -1496,54 +1496,28 @@ void UAnimationBlueprintLibrary::GetBonePosesForTime(const UAnimSequence* Animat
 
 		if (IsValidTimeInternal(AnimationSequence, Time))
 		{
-			TArray<FBoneIndexType> RequiredBones;
-			TArray<int32> FoundBoneIndices;
-
-			FoundBoneIndices.AddZeroed(BoneNames.Num());
-
-			for (int32 BoneNameIndex = 0; BoneNameIndex < BoneNames.Num(); ++BoneNameIndex)
+			if (BoneNames.Num())
 			{
-				const FName& BoneName = BoneNames[BoneNameIndex];
-				const int32 BoneIndex = AnimationSequence->GetSkeleton()->GetReferenceSkeleton().FindRawBoneIndex(BoneName);
-
-				FoundBoneIndices[BoneNameIndex] = INDEX_NONE;
-				if (BoneIndex != INDEX_NONE)
-				{
-					FoundBoneIndices[BoneNameIndex] = RequiredBones.Add(BoneIndex);
-				}
-				else
-				{
-					UE_LOG(LogAnimationBlueprintLibrary, Warning, TEXT("Invalid bone name %s for Animation Sequence %s in GetBonePosesForTime"), *BoneName.ToString(), *AnimationSequence->GetName());
-				}
-			}
-
-			if (RequiredBones.Num())
-			{
-				FBoneContainer BoneContainer(RequiredBones, FCurveEvaluationOption(true), *AnimationSequence->GetSkeleton());
-				BoneContainer.SetUseSourceData(true);
-				BoneContainer.SetDisableRetargeting(true);
-				FCompactPose Pose;
-				Pose.SetBoneContainer(&BoneContainer);
-
-				FBlendedCurve Curve;
-				FAnimExtractContext Context;
-				Context.bExtractRootMotion = bExtractRootMotion;
-				Context.CurrentTime = Time;
-				const bool bForceUseRawData = true;
-				Curve.InitFrom(BoneContainer);
-
-				AnimationSequence->GetBonePose(Pose, Curve, Context, bForceUseRawData);
-
 				for (int32 BoneNameIndex = 0; BoneNameIndex < BoneNames.Num(); ++BoneNameIndex)
 				{
-					const int32 BoneContainerIndex = FoundBoneIndices[BoneNameIndex];
-					Poses[BoneNameIndex] = BoneContainerIndex != INDEX_NONE ? Pose.GetBones()[BoneContainerIndex] : FTransform::Identity;
+					const FName& BoneName = BoneNames[BoneNameIndex];
+					
+					FTransform& Transform = Poses[BoneNameIndex];
+					if (IsValidRawAnimationTrackName(AnimationSequence, BoneName))
+					{
+						AnimationSequence->ExtractBoneTransform(GetRawAnimationTrackByName(AnimationSequence, BoneName), Transform, Time);
+					}
+					else
+					{
+						UE_LOG(LogAnimationBlueprintLibrary, Warning, TEXT("Invalid bone name %s for Animation Sequence %s supplied for GetBonePosesForTime"), *BoneName.ToString(), *AnimationSequence->GetName());
+						Transform = FTransform::Identity;
+					}
 				}
 			}
 			else
 			{
-				UE_LOG(LogAnimationBlueprintLibrary, Error, TEXT("Invalid or no bone names specified to retrieve poses given  Animation Sequence %s in GetBonePosesForTime"), *AnimationSequence->GetName());
-			}
+				UE_LOG(LogAnimationBlueprintLibrary, Error, TEXT("Invalid or no bone names specified to retrieve poses given Animation Sequence %s in GetBonePosesForTime"), *AnimationSequence->GetName());
+			}			
 		}
 		else
 		{

@@ -160,6 +160,12 @@ void UAnimGraphNode_StateMachineBase::PostPasteNode()
 		ParentGraph->SubGraphs.Add(EditorStateMachineGraph);
 	}
 
+	for (UEdGraphNode* GraphNode : EditorStateMachineGraph->Nodes)
+	{
+		GraphNode->CreateNewGuid();
+		GraphNode->PostPasteNode();
+	}
+
 	// Find an interesting name
 	TSharedPtr<INameValidatorInterface> NameValidator = FNameValidatorFactory::MakeValidator(this);
 	FBlueprintEditorUtils::RenameGraphWithSuggestion(EditorStateMachineGraph, NameValidator, EditorStateMachineGraph->GetName());

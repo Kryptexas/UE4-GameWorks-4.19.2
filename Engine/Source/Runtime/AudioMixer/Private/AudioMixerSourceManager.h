@@ -110,6 +110,7 @@ namespace Audio
 		UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
 		UReverbPluginSourceSettingsBase* ReverbPluginSettings;
 		FName AudioComponentUserID;
+		uint64 AudioComponentID;
 		bool bPlayEffectChainTails;
 		bool bUseHRTFSpatialization;
 		bool bIsDebugMode;
@@ -130,6 +131,7 @@ namespace Audio
 			, SpatializationPluginSettings(nullptr)
 			, OcclusionPluginSettings(nullptr)
 			, ReverbPluginSettings(nullptr)
+			, AudioComponentID(INDEX_NONE)
 			, bPlayEffectChainTails(false)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
@@ -445,6 +447,8 @@ namespace Audio
 			bool bIsLastBuffer;
 			bool bOutputToBusOnly;
 			bool bIsVorbis;
+			bool bIsBypassingLPF;
+			bool bIsBypassingHPF;
 
 			bool bIsDebugMode;
 			FString DebugName;
@@ -453,6 +457,9 @@ namespace Audio
 			int32 NumInputChannels;
 			int32 NumPostEffectChannels;
 			int32 NumInputFrames;
+
+			// ID for associated Audio Component if there is one, INDEX_NONE otherwise
+			uint64 AudioComponentID;
 		};
 
 		void ApplyDistanceAttenuation(FSourceInfo& InSourceInfo, int32 NumSamples);

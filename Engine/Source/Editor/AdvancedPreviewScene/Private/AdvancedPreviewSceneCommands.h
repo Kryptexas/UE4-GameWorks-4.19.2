@@ -19,8 +19,8 @@ public:
 	)
 	{}
 	
-	/** Toggles sky sphere visibility */
-	TSharedPtr< FUICommandInfo > ToggleSky;
+	/** Toggles environment (sky sphere) visibility */
+	TSharedPtr< FUICommandInfo > ToggleEnvironment;
 
 	/** Toggles floor visibility */
 	TSharedPtr< FUICommandInfo > ToggleFloor;

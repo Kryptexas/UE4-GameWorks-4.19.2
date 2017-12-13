@@ -1470,7 +1470,15 @@ void UAnimCompress_PerTrackCompression::FilterBeforeMainKeyRemoval(
 	// Downsample the keys if enabled
 	if ((AnimSeq->NumFrames >= MinKeysForResampling) && bResampleAnimation)
 	{
-		ResampleKeys(TranslationData, RotationData, ScaleData, 1.0f / ResampledFramerate, 0.0f);
+		if(AnimSeq->SequenceLength > 0)
+		{
+			//Make sure we aren't going to oversample the original animation
+			const float CurrentFramerate = (AnimSeq->NumFrames - 1) / AnimSeq->SequenceLength;
+			if (CurrentFramerate > ResampledFramerate)
+			{
+				ResampleKeys(TranslationData, RotationData, ScaleData, 1.0f / ResampledFramerate, 0.0f);
+			}
+		}
 	}
 
 	// Create the cache

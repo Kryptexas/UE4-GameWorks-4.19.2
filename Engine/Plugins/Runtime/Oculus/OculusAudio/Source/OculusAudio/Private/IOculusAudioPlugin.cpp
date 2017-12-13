@@ -2,6 +2,7 @@
 
 #include "IOculusAudioPlugin.h"
 #include "OculusAudioContextManager.h"
+#include "AudioDevice.h"
 #include "Features/IModularFeatures.h"
 
 void FOculusAudioPlugin::StartupModule()

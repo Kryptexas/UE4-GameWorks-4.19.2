@@ -128,6 +128,8 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 
 		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
 
+		TSharedRef<SWidget> InternalCustomWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
+
 		if (OptionalPin.bCanToggleVisibility)
 		{
 			TSharedPtr<SWidget> NameWidget; 
@@ -135,8 +137,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			FDetailWidgetRow Row;
 			PropertyRow.GetDefaultWidgets( NameWidget, ValueWidget, Row );
 
-			TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
-			ValueWidget = (TempWidget == SNullWidget::NullWidget) ? ValueWidget : TempWidget;
+			ValueWidget = (InternalCustomWidget == SNullWidget::NullWidget) ? ValueWidget : InternalCustomWidget;
 
 			const FName OptionalPinArrayEntryName(*FString::Printf(TEXT("ShowPinForProperties[%d].bShowPin"), CustomPinIndex));
 			TSharedRef<IPropertyHandle> ShowHidePropertyHandle = DetailBuilder.GetProperty(OptionalPinArrayEntryName);
@@ -204,6 +205,20 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			[
 				ValueWidget.ToSharedRef()
 			];
+		}
+		else if(InternalCustomWidget != SNullWidget::NullWidget)
+		{
+			// A few properties are internally customized within this customization. Here we
+			// catch instances of these that don't have an optional pin flag.
+			PropertyRow.CustomWidget()
+				.NameContent()
+				[
+					TargetPropertyHandle->CreatePropertyNameWidget()
+				]
+				.ValueContent()
+				[
+					InternalCustomWidget
+				];
 		}
 	}
 }

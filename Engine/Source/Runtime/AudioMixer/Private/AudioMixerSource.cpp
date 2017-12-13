@@ -99,6 +99,8 @@ namespace Audio
 			}
 			InitParams.AudioComponentUserID = InWaveInstance->ActiveSound->GetAudioComponentUserID();
 
+			InitParams.AudioComponentID = InWaveInstance->ActiveSound->GetAudioComponentID();
+
 			InitParams.EnvelopeFollowerAttackTime = InWaveInstance->EnvelopeFollowerAttackTime;
 			InitParams.EnvelopeFollowerReleaseTime = InWaveInstance->EnvelopeFollowerReleaseTime;
 

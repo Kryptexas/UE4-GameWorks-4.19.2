@@ -1951,7 +1951,7 @@ bool USkinnedMeshComponent::IsMaterialSectionShown(int32 MaterialID, int32 LODIn
 			bHidden = HiddenMaterials[MaterialID];
 		}
 	}
-	return bHidden;
+	return !bHidden;
 }
 
 

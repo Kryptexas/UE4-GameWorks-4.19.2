@@ -139,6 +139,13 @@ void UAnimStateNode::PostPasteNode()
 	// Find an interesting name, but try to keep the same if possible
 	TSharedPtr<INameValidatorInterface> NameValidator = FNameValidatorFactory::MakeValidator(this);
 	FBlueprintEditorUtils::RenameGraphWithSuggestion(BoundGraph, NameValidator, GetStateName());
+
+	for (UEdGraphNode* GraphNode : BoundGraph->Nodes)
+	{
+		GraphNode->CreateNewGuid();
+		GraphNode->PostPasteNode();
+	}
+
 	Super::PostPasteNode();
 }
 

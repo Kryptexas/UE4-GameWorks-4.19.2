@@ -43,12 +43,6 @@ void FPhysCommandHandler::ExecuteCommands()
 			ApexInterface->release();
 			break;
 		}
-		case PhysCommand::ReleaseIDeferred:
-		{
-			Command.Pointer.DeferredReleaseCallback->ExecCommand();
-			delete Command.Pointer.DeferredReleaseCallback;
-			break;
-		}
 #endif
 #if WITH_PHYSX
 		case PhysCommand::ReleasePScene:
@@ -140,15 +134,3 @@ void FPhysCommandHandler::DeferredRelease(nvidia::apex::ApexInterface* ApexInter
 
 }
 #endif
-
-void FPhysCommandHandler::DeferredRelease(IDeferredReleaseCallback* DeferredRelease)
-{
-	check(DeferredRelease);
-
-	FPhysPendingCommand Command;
-	Command.Pointer.DeferredReleaseCallback = DeferredRelease;
-	Command.CommandType = PhysCommand::ReleaseIDeferred;
-
-	EnqueueCommand(Command);
-
-}

@@ -242,7 +242,7 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 	FDetailsViewArgs DetailsViewArgs(
 		/*bUpdateFromSelection=*/ false,
 		/*bLockable=*/ false,
-		/*bAllowSearch=*/ false,
+		/*bAllowSearch=*/ true,
 		FDetailsViewArgs::HideNameArea,
 		/*bHideSelectionTip=*/ true,
 		/*InNotifyHook=*/ nullptr,

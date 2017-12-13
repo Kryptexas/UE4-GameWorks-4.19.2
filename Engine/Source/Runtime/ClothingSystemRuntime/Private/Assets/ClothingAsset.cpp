@@ -20,6 +20,7 @@
 #include "ClothingMeshUtils.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "Rendering/SkeletalMeshRenderData.h"
+#include "ClothingSimulationInteractor.h"
 
 DEFINE_LOG_CATEGORY(LogClothingAsset)
 
@@ -785,22 +786,40 @@ void UClothingAsset::CalculateReferenceBoneIndex()
 
 void UClothingAsset::PostEditChangeChainProperty(FPropertyChangedChainEvent& InEvent)
 {
+	bool bReregisterComponents = false;
+
 	if(InEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
-		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UClothingAsset, PhysicsAsset))
-		{
-			HandlePhysicsAssetChange();
-		}
-
 		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
 			InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
 		{
 			BuildSelfCollisionData();
+			bReregisterComponents = true;
 		}
+		else if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UClothingAsset, PhysicsAsset))
+		{
+			bReregisterComponents = true;
+		}
+		else
+		{
+			// Other properties just require a config refresh
+			ForEachInteractorUsingClothing([](UClothingSimulationInteractor* InInteractor)
+			{
+				if(InInteractor)
+				{
+					InInteractor->ClothConfigUpdated();
+				}
+			});
+		}
+	}
+
+	if(bReregisterComponents)
+	{
+		ReregisterComponentsUsingClothing();
 	}
 }
 
-void UClothingAsset::HandlePhysicsAssetChange()
+void UClothingAsset::ReregisterComponentsUsingClothing()
 {
 	if(USkeletalMesh* OwnerMesh = Cast<USkeletalMesh>(GetOuter()))
 	{
@@ -811,6 +830,28 @@ void UClothingAsset::HandlePhysicsAssetChange()
 				if(Component->SkeletalMesh == OwnerMesh)
 				{
 					FComponentReregisterContext Context(Component);
+				}
+			}
+		}
+	}
+}
+
+void UClothingAsset::ForEachInteractorUsingClothing(TFunction<void(UClothingSimulationInteractor*)> Func)
+{
+	if(USkeletalMesh* OwnerMesh = Cast<USkeletalMesh>(GetOuter()))
+	{
+		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		{
+			if(USkeletalMeshComponent* Component = *It)
+			{
+				if(Component->SkeletalMesh == OwnerMesh)
+				{
+					UClothingSimulationInteractor* CurInteractor = Component->GetClothingSimulationInteractor();
+
+					if(CurInteractor)
+					{
+						Func(CurInteractor);
+					}
 				}
 			}
 		}

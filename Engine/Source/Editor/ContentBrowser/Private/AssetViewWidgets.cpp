@@ -382,6 +382,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	HighlightText = InArgs._HighlightText;
 	OnAssetsOrPathsDragDropped = InArgs._OnAssetsOrPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
+	OnIsAssetValidForCustomToolTip = InArgs._OnIsAssetValidForCustomToolTip;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
@@ -654,7 +655,14 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 {
 	if ( AssetItem.IsValid() )
 	{
-		if(OnGetCustomAssetToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
+		bool bTryCustomAssetToolTip = true;
+		if (OnIsAssetValidForCustomToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
+		{
+			FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+			bTryCustomAssetToolTip = OnIsAssetValidForCustomToolTip.Execute(AssetData);
+		}
+
+		if(bTryCustomAssetToolTip && OnGetCustomAssetToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
 		{
 			FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 			return OnGetCustomAssetToolTip.Execute(AssetData);
@@ -1444,6 +1452,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
@@ -1596,6 +1605,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
@@ -1797,6 +1807,7 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing(InArgs._OnAssetToolTipClosing)

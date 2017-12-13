@@ -701,12 +701,6 @@ void FPhysScene::AddTorque_AssumesLocked(FBodyInstance* BodyInstance, const FVec
 #if WITH_PHYSX
 void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType)
 {
-	if(PxRigidActor* RigidActor = BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType))
-	{
-		RemoveActiveRigidActor(SceneType, RigidActor);
-	}
-
-
 	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType));
 }
 #endif
@@ -821,12 +815,6 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 }
 
 #if WITH_PHYSX
-
-/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
-void FPhysScene::RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
-{
-	IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
-}
 
 void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 {
@@ -1209,17 +1197,14 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	bool bSuccess = false;
 
 #if WITH_PHYSX
-	IgnoreActiveActors[SceneType].Empty();
-
 	//This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
 	PxU32 OutErrorCode = 0;
 
-#if !WITH_APEX
 	PScene->lockWrite();
+#if !WITH_APEX
 	bSuccess = PScene->fetchResults(true, &OutErrorCode);
-	PScene->unlockWrite();
 #else	//	#if !WITH_APEX
 	// The APEX scene calls the fetchResults function for the PhysX scene, so we only call ApexScene->fetchResults().
 	apex::Scene* ApexScene = GetApexScene(SceneType);
@@ -1231,6 +1216,9 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	{
 		UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
 	}
+
+	SyncComponentsToBodies_AssumesLocked(SceneType);
+	PScene->unlockWrite();
 #endif // WITH_PHYSX
 
 	PhysicsSubsceneCompletion[SceneType] = NULL;
@@ -1280,12 +1268,6 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
 	{
 		PxActor* PActiveActor = PActiveActors[TransformIdx];
-
-		if (IgnoreActiveActors[SceneType].Find(PActiveActor) != INDEX_NONE)
-		{
-			continue;
-		}
-
 #ifdef __EMSCRIPTEN__
 		// emscripten doesn't seem to know how to look at <PxRigidActor> from the PxActor class...
 		PxRigidActor* XRigidActor = static_cast<PxRigidActor*>(PActiveActor); // is()
@@ -1321,6 +1303,19 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 		}
 	}
 
+	//Give custom plugins the chance to build the sync data
+	for (FCustomPhysXSyncActors* CustomSync : CustomPhysXSyncActors)
+	{
+		CustomSync->BuildSyncData_AssumesLocked(SceneType, CustomSync->Actors);
+		CustomSync->Actors.Empty(CustomSync->Actors.Num());
+	}
+
+	//Allow custom plugins to actually act on the sync data
+	for (FCustomPhysXSyncActors* CustomSync : CustomPhysXSyncActors)
+	{
+		CustomSync->FinalizeSync(SceneType);
+	}
+
 	/// Now actually move components
 	for (FPhysScenePendingComponentTransform& Entry : PendingTransforms)
 	{
@@ -1347,15 +1342,6 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 			}
 		}
 	}
-
-
-	for(FCustomPhysXSyncActors* CustomSync : CustomPhysXSyncActors)
-	{
-		CustomSync->SyncToActors_AssumesLocked(SceneType, CustomSync->Actors);
-		CustomSync->Actors.Empty(CustomSync->Actors.Num());
-	}
-
-	IgnoreActiveActors[SceneType].Empty();
 
 #endif // WITH_PHYSX 
 }
@@ -1604,14 +1590,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 #if ( WITH_PHYSX  && !(UE_BUILD_SHIPPING || WITH_PHYSX_RELEASE))
 	GatherPhysXStats_AssumesLocked(GetPhysXScene(PST_Sync), HasAsyncScene() ? GetPhysXScene(PST_Async) : nullptr);
 #endif
-
-	if (bAsyncSceneEnabled)
-	{
-		SyncComponentsToBodies_AssumesLocked(PST_Async);
-	}
-
-	SyncComponentsToBodies_AssumesLocked(PST_Sync);
-
+	
 	// Perform any collision notification events
 	DispatchPhysNotifications_AssumesLocked();
 

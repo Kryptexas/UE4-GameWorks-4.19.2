@@ -434,14 +434,14 @@ void FAdvancedPreviewScene::BindCommands()
 	UICommandList->MapAction(Commands.ToggleFloor,
 		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleFloor));
 
-	UICommandList->MapAction(Commands.ToggleSky,
-		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleSky));
+	UICommandList->MapAction(Commands.ToggleEnvironment,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleEnvironment));
 
 	UICommandList->MapAction(Commands.TogglePostProcessing,
 		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleTogglePostProcessing));
 }
 
-void FAdvancedPreviewScene::HandleToggleSky()
+void FAdvancedPreviewScene::HandleToggleEnvironment()
 {
 	SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
 }
@@ -457,6 +457,11 @@ void FAdvancedPreviewScene::HandleTogglePostProcessing()
 	Profile.bPostProcessingEnabled = !Profile.bPostProcessingEnabled;
 	PostProcessComponent->bEnabled = Profile.bPostProcessingEnabled;
 	bPostProcessing = Profile.bPostProcessingEnabled;
+	
+	FName PropertyName("bPostProcessingEnabled");
+	UProperty* PostProcessingProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
+	FPropertyChangedEvent PropertyEvent(PostProcessingProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);	
 }
 
 void FAdvancedPreviewScene::OnAssetViewerSettingsRefresh(const FName& InPropertyName)

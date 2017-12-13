@@ -5,11 +5,28 @@
 #include "CoreMinimal.h"
 #include "CustomPhysXPayload.h"
 
+struct FUpdateChunksInfo
+{
+	int32 ChunkIndex;
+	FTransform WorldTM;
+
+	FUpdateChunksInfo(int32 InChunkIndex, const FTransform& InWorldTM) : ChunkIndex(InChunkIndex), WorldTM(InWorldTM) {}
+};
+
 #if WITH_APEX
+
+class UDestructibleComponent;
 
 struct FApexDestructionSyncActors : public FCustomPhysXSyncActors
 {
-	virtual void SyncToActors_AssumesLocked(int32 SceneType, const TArray<physx::PxRigidActor*>& RigidActors) override;
+	virtual void BuildSyncData_AssumesLocked(int32 SceneType, const TArray<physx::PxRigidActor*>& RigidActors) override;
+
+	virtual void FinalizeSync(int32 SceneType) override;
+
+private:
+
+	/** Sync data for updating physx sim result */
+	TMap<TWeakObjectPtr<UDestructibleComponent>, TArray<FUpdateChunksInfo> > ComponentUpdateMapping;
 };
 
 struct FApexDestructionCustomPayload : public FCustomPhysXPayload
@@ -30,7 +47,7 @@ struct FApexDestructionCustomPayload : public FCustomPhysXPayload
 	/** Index of the chunk this data belongs to*/
 	int32 ChunkIndex;
 	/** Component owning this chunk info*/
-	TWeakObjectPtr<class UDestructibleComponent> OwningComponent;
+	TWeakObjectPtr<UDestructibleComponent> OwningComponent;
 
 private:
 	friend class FApexDestructionModule;

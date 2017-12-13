@@ -271,7 +271,7 @@ public:
 	void SetWindStrength( float SliderPos );
 
 	/** Function to get slider value which represents wind strength (0 - 1)*/
-	float GetWindStrengthSliderValue() const;
+	TOptional<float> GetWindStrengthSliderValue() const;
 
 	/** Function to get slider value which returns a string*/
 	FText GetWindStrengthLabel() const;

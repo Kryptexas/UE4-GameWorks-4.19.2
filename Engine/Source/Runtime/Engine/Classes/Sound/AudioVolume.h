@@ -69,6 +69,10 @@ struct FReverbSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbSettings)
 	class UReverbEffect* ReverbEffect;
 
+	/** This is used to apply plugin-specific settings when a Reverb Plugin is being used. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ReverbSettings)
+	class USoundEffectSubmixPreset* ReverbPluginEffect;
+
 	/** Volume level of the reverb affect. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbSettings)
 	float Volume;

@@ -625,7 +625,7 @@ void UAnimInstance::PostEvaluateAnimation()
 		BlueprintPostEvaluateAnimation();
 	}
 
-	GetProxyOnGameThread<FAnimInstanceProxy>().ClearObjects();
+	GetProxyOnGameThread<FAnimInstanceProxy>().PostEvaluate(this);
 }
 
 void UAnimInstance::NativeInitializeAnimation()
@@ -1675,65 +1675,20 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 
 UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount, float BlendOutTriggerTime, float InTimeToStartMontageAt)
 {
-	// create temporary montage and play
-	bool bValidAsset = Asset && !Asset->IsA(UAnimMontage::StaticClass());
-	if (!bValidAsset)
+	if (Asset && CurrentSkeleton->IsCompatible(Asset->GetSkeleton()))
 	{
-		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimationAsDynamicMontage: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
-		return nullptr;
+		// create asset using the information
+		UAnimMontage* NewMontage = UAnimMontage::CreateSlotAnimationAsDynamicMontage(Asset, SlotNodeName, BlendInTime, BlendOutTime, InPlayRate, LoopCount, BlendOutTriggerTime, InTimeToStartMontageAt);
+
+		if (NewMontage)
+		{
+			// if playing is successful, return the montage to allow more control if needed
+			float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);
+			return PlayTime > 0.0f ? NewMontage : nullptr;
+		}
 	}
 
-	if (SlotNodeName == NAME_None)
-	{
-		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
-		return nullptr;
-	}
-
-	USkeleton* AssetSkeleton = Asset->GetSkeleton();
-	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
-	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton '%s' isn't compatible with '%s' in AnimSequence '%s'!"), *GetPathNameSafe(AssetSkeleton), *GetPathNameSafe(CurrentSkeleton), *Asset->GetName());
-		return nullptr;
-	}
-
-	if (!Asset->CanBeUsedInMontage())
-	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
-		return nullptr;
-	}
-
-	// now play
-	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
-	NewMontage->SetSkeleton(AssetSkeleton);
-
-	// add new track
-	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
-	NewTrack.SlotName = SlotNodeName;
-	FAnimSegment NewSegment;
-	NewSegment.AnimReference = Asset;
-	NewSegment.AnimStartTime = 0.f;
-	NewSegment.AnimEndTime = Asset->SequenceLength;
-	NewSegment.AnimPlayRate = 1.f;
-	NewSegment.StartPos = 0.f;
-	NewSegment.LoopingCount = LoopCount;
-	NewMontage->SequenceLength = NewSegment.GetLength();
-	NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
-
-	FCompositeSection NewSection;
-	NewSection.SectionName = TEXT("Default");
-	NewSection.SetTime(0.0f);
-
-	// add new section
-	NewMontage->CompositeSections.Add(NewSection);
-	NewMontage->BlendIn.SetBlendTime(BlendInTime);
-	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
-	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
-
-	// if playing is successful, return the montage to allow more control if needed
-	float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);
-	return PlayTime > 0.0f ? NewMontage : NULL;
+	return nullptr;
 }
 
 void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
@@ -1806,15 +1761,18 @@ bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName
 }
 
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
-float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt)
+float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt, bool bStopAllMontages /*= true*/)
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
 		if (CurrentSkeleton && CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
-			// Enforce 'a single montage at once per group' rule
-			FName NewMontageGroupName = MontageToPlay->GetGroupName();
-			StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendIn);
+			if (bStopAllMontages)
+			{
+				// Enforce 'a single montage at once per group' rule
+				FName NewMontageGroupName = MontageToPlay->GetGroupName();
+				StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendIn);
+			}
 
 			// Enforce 'a single root motion montage at once' rule.
 			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
@@ -1846,9 +1804,9 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 			OnMontageStarted.Broadcast(MontageToPlay);
 
 			UE_LOG(LogAnimMontage, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
-						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
-			
-			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength/(InPlayRate*MontageToPlay->RateScale));
+				*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
+
+			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength / (InPlayRate*MontageToPlay->RateScale));
 		}
 		else
 		{
@@ -2530,6 +2488,17 @@ void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 		{
 			This->MontageInstances[I]->AddReferencedObjects(Collector);
 		}
+	}
+
+	// the queued montage events also reference montage, and we want to keep those montages around if they are queued to trigger 
+	for (int32 I = 0; I < This->QueuedMontageBlendingOutEvents.Num(); ++I)
+	{
+		Collector.AddReferencedObject(This->QueuedMontageBlendingOutEvents[I].Montage);
+	}
+
+	for (int32 I = 0; I < This->QueuedMontageEndedEvents.Num(); ++I)
+	{
+		Collector.AddReferencedObject(This->QueuedMontageEndedEvents[I].Montage);
 	}
 
 	if (This->AnimInstanceProxy)

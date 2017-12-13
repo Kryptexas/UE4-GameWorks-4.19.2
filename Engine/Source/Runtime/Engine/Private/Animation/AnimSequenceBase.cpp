@@ -344,7 +344,15 @@ void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarke
 {
 	if (!Instance.IsValid())
 	{
-		GetMarkerIndicesForTime(CurrentTime, bLooping, MarkerContext.GetValidMarkerNames(), Instance.PreviousMarker, Instance.NextMarker);
+		if (MarkerContext.IsMarkerSyncStartValid())
+		{
+			GetMarkerIndicesForPosition(MarkerContext.GetMarkerSyncStartPosition(), bLooping, Instance.PreviousMarker, Instance.NextMarker, CurrentTime);
+		}
+		else
+		{
+			GetMarkerIndicesForTime(CurrentTime, bLooping, MarkerContext.GetValidMarkerNames(), Instance.PreviousMarker, Instance.NextMarker);
+		}
+		
 	}
 
 	MarkerContext.SetMarkerSyncStartPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
@@ -496,14 +504,14 @@ int32 UAnimSequenceBase::GetNumberOfFrames() const
 
 int32 UAnimSequenceBase::GetFrameAtTime(const float Time) const
 {
-	const float Frac = Time / SequenceLength;
-	return FMath::FloorToInt(Frac * GetNumberOfFrames());
+	const float FrameTime = GetNumberOfFrames() > 1 ? SequenceLength / (float)(GetNumberOfFrames() - 1) : 0.0f;
+	return FMath::Clamp(FMath::RoundToInt(Time / FrameTime), 0, GetNumberOfFrames() - 1);
 }
 
 float UAnimSequenceBase::GetTimeAtFrame(const int32 Frame) const
 {
-	const float FrameTime = SequenceLength / GetNumberOfFrames();
-	return FrameTime * Frame;
+	const float FrameTime = GetNumberOfFrames() > 1 ? SequenceLength / (float)(GetNumberOfFrames() - 1) : 0.0f;
+	return FMath::Clamp(FrameTime * Frame, 0.0f, SequenceLength);
 }
 
 void UAnimSequenceBase::RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate)

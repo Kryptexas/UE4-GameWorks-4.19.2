@@ -12,6 +12,7 @@ class FUICommandInfo;
 class SWidget;
 class IPropertyHandle;
 class FUICommandList;
+class SEditableTextBox;
 
 class FPhysicsAssetDetailsCustomization : public IDetailCustomization
 {
@@ -28,6 +29,10 @@ public:
 
 private:
 	void BindCommands();
+
+	TSharedRef<SWidget> FillPhysicalAnimationProfileOptions();
+
+	TSharedRef<SWidget> FillConstraintProfilesOptions();
 
 	TSharedRef<SWidget> MakePhysicalAnimationProfilesWidget();
 	
@@ -94,5 +99,7 @@ private:
 
 	TSharedPtr<IPropertyHandle> AsyncScenePropertyHandle;
 
-	TSharedPtr<FUICommandList> CommandList;
+	TSharedPtr<SEditableTextBox> PhysicalAnimationProfileNameTextBox;
+
+	TSharedPtr<SEditableTextBox> ConstraintProfileNameTextBox;
 };

@@ -10,13 +10,13 @@ TAudioSpatializationPtr FOculusSpatializationPluginFactory::CreateNewSpatializat
     check(Plugin != nullptr);
     Plugin->RegisterAudioDevice(OwningDevice);
 
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 	if (OwningDevice->IsAudioMixerEnabled())
 #endif
 	{
 		return TAudioSpatializationPtr(new OculusAudioSpatializationAudioMixer());
 	}
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 	else
 	{
 		return TAudioSpatializationPtr(new OculusAudioLegacySpatialization());

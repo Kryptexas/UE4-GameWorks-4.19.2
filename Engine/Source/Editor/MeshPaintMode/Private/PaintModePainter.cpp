@@ -343,7 +343,7 @@ void FPaintModePainter::PasteVertexColors()
 					{
 						// no corresponding LOD in color paste buffer CopiedColorsByLOD
 						// create array of all white verts
-						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White);
+						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White, FColor::White);
 					}
 					else
 					{
@@ -1907,11 +1907,19 @@ void FPaintModePainter::FillWithVertexColor()
 	const TArray<UMeshComponent*> MeshComponents = GetSelectedComponents<UMeshComponent>();
 
 	static const bool bConvertSRGB = false;
-	FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
+	FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);	
+	FColor MaskColor = FColor::White;
 
 	if (PaintSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights)
 	{
 		FillColor = MeshPaintHelpers::GenerateColorForTextureWeight((int32)PaintSettings->VertexPaintSettings.TextureWeightType, (int32)PaintSettings->VertexPaintSettings.PaintTextureWeightIndex).ToFColor(bConvertSRGB);
+	}
+	else
+	{
+		MaskColor.R = PaintSettings->VertexPaintSettings.bWriteRed ? 255 : 0;
+		MaskColor.G = PaintSettings->VertexPaintSettings.bWriteGreen ? 255 : 0;
+		MaskColor.B = PaintSettings->VertexPaintSettings.bWriteBlue ? 255 : 0;
+		MaskColor.A = PaintSettings->VertexPaintSettings.bWriteAlpha ? 255 : 0;
 	}
 
 	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
@@ -1921,7 +1929,19 @@ void FPaintModePainter::FillWithVertexColor()
 		checkf(Component != nullptr, TEXT("Invalid Mesh Component"));
 		Component->Modify();
 		ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
-		MeshPaintHelpers::FillVertexColors(Component, FillColor, true);
+
+		TSharedPtr<IMeshPaintGeometryAdapter>* MeshAdapter = ComponentToAdapterMap.Find(Component);
+		if (MeshAdapter)
+		{
+			(*MeshAdapter)->PreEdit();
+		}
+		
+		MeshPaintHelpers::FillVertexColors(Component, FillColor, MaskColor, true);
+
+		if (MeshAdapter)
+		{
+			(*MeshAdapter)->PostEdit();
+		}
 	}
 }
 

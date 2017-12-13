@@ -4,7 +4,7 @@
 
 #include "IAudioExtensionPlugin.h"
 #include "OculusAudioMixer.h"
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 #include "OculusAudioLegacy.h"
 #endif
 #include "OculusAudioSourceSettings.h"
@@ -26,7 +26,7 @@ public:
 
 	virtual bool SupportsPlatform(EAudioPlatform Platform) override
 	{
-		if (Platform == EAudioPlatform::Windows)
+		if (Platform == EAudioPlatform::Windows || Platform == EAudioPlatform::Android)
 		{
 			return true;
 		}

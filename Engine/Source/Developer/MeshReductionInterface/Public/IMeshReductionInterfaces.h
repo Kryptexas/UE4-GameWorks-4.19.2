@@ -68,6 +68,9 @@ struct FMergeCompleteData
 	FCreateProxyDelegate CallbackDelegate;
 };
 
+struct FFlattenMaterial;
+
+DECLARE_DELEGATE_OneParam(FBakeMaterialsDelegate, TArray<FFlattenMaterial>&);
 /**
 * Mesh merging interface.
 */
@@ -80,11 +83,20 @@ public:
 		const struct FMeshProxySettings& InProxySettings,
 		const TArray<struct FFlattenMaterial>& InputMaterials,
 		const FGuid InJobGUID) {}
+	
 
 	virtual void AggregateLOD() {}
 
+	virtual FString GetName() = 0;
+
+	/*
+	* Does this tool support baking materials in parallel
+	*/
+	virtual bool bSupportsParallelMaterialBake() { return false; }
+
 	FProxyCompleteDelegate CompleteDelegate;
 	FProxyFailedDelegate FailedDelegate;
+	FBakeMaterialsDelegate BakeMaterialsDelegate;
 };
 
 /**

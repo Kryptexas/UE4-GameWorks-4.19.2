@@ -29,6 +29,10 @@ UAnimBlueprint* FAnimationBaseContext::GetAnimBlueprint() const
 }
 #endif //WITH_EDITORONLY_DATA
 
+void FAnimationBaseContext::LogMessageInternal(FName InLogType, EMessageSeverity::Type InSeverity, FText InMessage)
+{
+	AnimInstanceProxy->LogMessage(InLogType, InSeverity, InMessage);
+}
 /////////////////////////////////////////////////////
 // FPoseContext
 
@@ -91,12 +95,6 @@ void FAnimNode_Base::Evaluate_AnyThread(FPoseContext& Output)
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Evaluate(Output);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
-void FAnimNode_Base::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
-{
-	// Should assert if not overridden but may break too many things
-	Evaluate_AnyThread(Output);
 }
 
 void FAnimNode_Base::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
@@ -245,7 +243,7 @@ void FPoseLinkBase::GatherDebugData(FNodeDebugData& DebugData)
 /////////////////////////////////////////////////////
 // FPoseLink
 
-void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
+void FPoseLink::Evaluate(FPoseContext& Output)
 {
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "Evaluate already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
@@ -273,7 +271,7 @@ void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.ResetToAdditiveIdentity();
 #endif
-		LinkedNode->Evaluate_AnyThread(Output, bExpectsAdditivePose);
+		LinkedNode->Evaluate_AnyThread(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
@@ -281,10 +279,6 @@ void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
 #if WITH_EDITOR
 		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
 #endif
-	}
-	else if (bExpectsAdditivePose)
-	{
-		Output.ResetToAdditiveIdentity();
 	}
 	else
 	{
@@ -631,7 +625,14 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 				check(SourceProperty != nullptr && CopyRecord.DestProperty != nullptr);
 
 				bool bValue = static_cast<UBoolProperty*>(SourceProperty)->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
-				static_cast<UBoolProperty*>(CopyRecord.DestProperty)->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
+				if (CopyRecord.CopyType == ECopyType::BoolProperty)
+				{
+					static_cast<UBoolProperty*>(CopyRecord.DestProperty)->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
+				}
+				else if (UArrayProperty* DestArrayProperty = Cast<UArrayProperty>(CopyRecord.DestProperty))
+				{
+					static_cast<UBoolProperty*>(DestArrayProperty->Inner)->SetPropertyValue(CopyRecord.Dest, !bValue); // added to support arrays
+				}
 			}
 			break;
 		}

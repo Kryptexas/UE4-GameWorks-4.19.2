@@ -63,7 +63,7 @@
 #include "Landscape.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Engine/MeshMergeCullingVolume.h"
-//#include "ProxyMaterialUtilities.h"
+
 #include "Toolkits/AssetEditorManager.h"
 #include "LevelEditor.h"
 #include "IAnimationBlueprintEditor.h"
@@ -81,6 +81,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/MeshSimplificationSettings.h"
+#include "Engine/ProxyLODMeshSimplificationSettings.h"
 
 #include "IDetailCustomization.h"
 #include "EditorStyleSet.h"
@@ -5389,22 +5390,28 @@ private:
 
 		TArray<FName> ModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
-
-		MenuBuilder.BeginSection(NAME_None, LOCTEXT("AvailableReductionPluginsMenuSection", "Available Plugins"));
+		
 		if(ModuleNames.Num() > 0)
 		{
 			for(FName ModuleName : ModuleNames)
-		{
-				FUIAction UIAction;
-				UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
-				UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
+			{
+				IMeshReductionModule& Module = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleName);
 
-				MenuBuilder.AddMenuEntry( FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton );
+				IMeshReduction* StaticMeshReductionInterface = Module.GetStaticMeshReductionInterface();
+				// Only include options that support static mesh reduction.
+				if (StaticMeshReductionInterface)
+				{
+					FUIAction UIAction;
+					UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
+					UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
 
+					MenuBuilder.AddMenuEntry(FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton);
+				}
 			}
 
 			MenuBuilder.AddMenuSeparator();
-			}
+		}
+		
 
 		FUIAction OpenMarketplaceAction;
 		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
@@ -5444,6 +5451,128 @@ private:
 	TSharedPtr<IPropertyHandle> MeshReductionModuleProperty;
 };
 
+
+
+class FProxyLODMeshSimplifcationSettingsCustomization : public IDetailCustomization
+{
+public:
+	static TSharedRef<IDetailCustomization> MakeInstance()
+	{
+		return MakeShareable(new FProxyLODMeshSimplifcationSettingsCustomization);
+	}
+
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override
+	{
+		ProxyLODMeshReductionModuleProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UProxyLODMeshSimplificationSettings, ProxyLODMeshReductionModuleName));
+
+		IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(TEXT("General"));
+
+		IDetailPropertyRow& PropertyRow = Category.AddProperty(ProxyLODMeshReductionModuleProperty);
+
+		FDetailWidgetRow& WidgetRow = PropertyRow.CustomWidget();
+		WidgetRow.NameContent()
+			[
+				ProxyLODMeshReductionModuleProperty->CreatePropertyNameWidget()
+			];
+
+		WidgetRow.ValueContent()
+			.MaxDesiredWidth(0)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FProxyLODMeshSimplifcationSettingsCustomization::GenerateProxyLODMeshSimplifierMenu)
+			.ContentPadding(FMargin(2.0f, 2.0f))
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FProxyLODMeshSimplifcationSettingsCustomization::GetCurrentProxyLODMeshSimplifierName)
+			]
+			];
+	}
+
+private:
+	FText GetCurrentProxyLODMeshSimplifierName() const
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			FText Name;
+			ProxyLODMeshReductionModuleProperty->GetValueAsDisplayText(Name);
+
+			return Name;
+		}
+		else
+		{
+			return LOCTEXT("AutomaticProxyLODMeshReductionPlugin", "Automatic");
+		}
+	}
+
+	TSharedRef<SWidget> GenerateProxyLODMeshSimplifierMenu() const
+	{
+		FMenuBuilder MenuBuilder(true, nullptr);
+
+		TArray<FName> ModuleNames;
+		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
+
+		if (ModuleNames.Num() > 0)
+		{
+			for (FName ModuleName : ModuleNames)
+			{
+				IMeshReductionModule& Module = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleName);
+				 
+				IMeshMerging* MeshMergingInterface = Module.GetMeshMergingInterface();
+				// Only include options that support mesh mergine.
+				if (MeshMergingInterface)
+				{
+					FUIAction UIAction;
+					UIAction.ExecuteAction.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::OnProxyLODMeshSimplificationModuleChosen, ModuleName);
+					UIAction.GetActionCheckState.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::IsProxyLODMeshSimplificationModuleChosen, ModuleName);
+
+					MenuBuilder.AddMenuEntry(FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton);
+				}
+			}
+
+			MenuBuilder.AddMenuSeparator();
+		}
+
+
+		FUIAction OpenMarketplaceAction;
+		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
+		FSlateIcon Icon = FSlateIcon(FEditorStyle::Get().GetStyleSetName(), "LevelEditor.OpenMarketplace.Menu");
+		MenuBuilder.AddMenuEntry(LOCTEXT("FindMoreReductionPluginsLink", "Search the Marketplace"), LOCTEXT("FindMoreReductionPluginsLink_Tooltip", "Opens the Marketplace to find more mesh reduction plugins"), Icon, OpenMarketplaceAction);
+		return MenuBuilder.MakeWidget();
+	}
+
+	void OnProxyLODMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			ProxyLODMeshReductionModuleProperty->SetValue(ModuleName);
+		}
+	}
+
+	ECheckBoxState IsProxyLODMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			FName CurrentModuleName;
+			ProxyLODMeshReductionModuleProperty->GetValue(CurrentModuleName);
+			return CurrentModuleName == ModuleName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+
+		return ECheckBoxState::Unchecked;
+	}
+
+	void OnFindReductionPluginsClicked()
+	{
+		FString URL;
+		FUnrealEdMisc::Get().GetURL(TEXT("MeshSimplificationPluginsURL"), URL);
+
+		FUnrealEdMisc::Get().OpenMarketplace(URL);
+	}
+private:
+	TSharedPtr<IPropertyHandle> ProxyLODMeshReductionModuleProperty;
+};
+
 /*------------------------------------------------------------------------------
 Module initialization / teardown.
 ------------------------------------------------------------------------------*/
@@ -5456,6 +5585,8 @@ void FMeshUtilities::StartupModule()
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	PropertyEditorModule.RegisterCustomClassLayout("MeshSimplificationSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMeshSimplifcationSettingsCustomization::MakeInstance));
+
+	PropertyEditorModule.RegisterCustomClassLayout("ProxyLODMeshSimplificationSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProxyLODMeshSimplifcationSettingsCustomization::MakeInstance));
 
 	bDisableTriangleOrderOptimization = (CVarTriangleOrderOptimization.GetValueOnGameThread() == 2);
 

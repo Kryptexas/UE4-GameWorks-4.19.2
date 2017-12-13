@@ -24,6 +24,7 @@ public:
 	virtual void AddSource(TSharedPtr<ILiveLinkSource> InSource) = 0;
 
 	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) = 0;
+	virtual void PushSubjectSkeleton(FGuid SourceGuid, FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) = 0;
 	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) = 0;
 	virtual void ClearSubject(FName SubjectName) = 0;
 

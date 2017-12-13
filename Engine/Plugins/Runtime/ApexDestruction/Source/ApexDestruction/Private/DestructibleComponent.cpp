@@ -425,67 +425,12 @@ void UDestructibleComponent::OnCreatePhysicsState()
 #endif	// #if WITH_APEX
 }
 
-#if WITH_APEX
-struct APEXDESTRUCTION_API FDestructibleActorDeferredReleaseCallback : IDeferredReleaseCallback
-{
-	FDestructibleActorDeferredReleaseCallback(apex::DestructibleActor* Actor, FPhysScene* InOwningScene)
-		: Destructible(Actor)
-		, OwningScene(InOwningScene)
-	{
-	}
-
-	virtual void ExecCommand()
-	{
-		PxRigidDynamic** PActorBuffer = NULL;
-		PxU32 PActorCount = 0;
-		int32 SceneType = INDEX_NONE;
-
-		if (Destructible->acquirePhysXActorBuffer(PActorBuffer, PActorCount, apex::DestructiblePhysXActorQueryFlags::Dynamic))
-		{
-			while(PActorCount--)
-			{
-				if (PxRigidDynamic* PActor = *PActorBuffer++)
-				{
-					if (SceneType == INDEX_NONE)
-					{
-						if (PxScene* PScene = PActor->getScene())
-						{
-							SceneType = PScene == OwningScene->GetPhysXScene(PST_Sync) ? PST_Sync : PST_Async;
-						}
-					}
-
-					if (SceneType != INDEX_NONE)
-					{
-						OwningScene->RemoveActiveRigidActor(SceneType, PActor);
-					}
-				}
-			}
-			Destructible->releasePhysXActorBuffer();
-		}
-		Destructible->release();
-
-	}
-
-private:
-
-	apex::DestructibleActor* Destructible;
-	FPhysScene* OwningScene;
-};
-#endif
-
 void UDestructibleComponent::OnDestroyPhysicsState()
 {
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL)
 	{
-		if(UWorld * World = GetWorld())
-		{
-			if (FPhysScene * PhysScene = World->GetPhysicsScene())
-			{
-				GPhysCommandHandler->DeferredRelease(new FDestructibleActorDeferredReleaseCallback(ApexDestructibleActor, PhysScene));
-			}
-		}
-		
+		GPhysCommandHandler->DeferredRelease(ApexDestructibleActor);
 		ApexDestructibleActor = NULL;
 		
 		//Destructible component uses the BodyInstance in PrimitiveComponent in a very dangerous way. It assigns PxRigidDynamic to it as it needs it.
@@ -987,69 +932,6 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bInVisible 
 #endif
 }
 
-#if WITH_APEX
-void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<PxRigidActor*>& ActiveActors)
-{
-	//We want to consolidate the transforms so that we update each destructible component once by passing it an array of chunks to update.
-	//This helps avoid a lot of duplicated work like marking render dirty, computing inverse world component, etc...
-
-	TMap<UDestructibleComponent*, TArray<FUpdateChunksInfo> > ComponentUpdateMapping;
-	
-	//prepare map to update destructible components
-	TArray<PxShape*> Shapes;
-	for (const PxRigidActor* RigidActor : ActiveActors)
-	{
-		if (const FApexDestructionCustomPayload* DestructibleChunkInfo = ((FApexDestructionCustomPayload*) FPhysxUserData::Get<FCustomPhysXPayload>(RigidActor->userData)))
-		{
-			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
-			{
-				Shapes.AddUninitialized(RigidActor->getNbShapes());
-				int32 NumShapes = RigidActor->getShapes(Shapes.GetData(), Shapes.Num());
-				for (int32 ShapeIdx = 0; ShapeIdx < Shapes.Num(); ++ShapeIdx)
-				{
-					PxShape* Shape = Shapes[ShapeIdx];
-					int32 ChunkIndex;
-					if (apex::DestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
-					{
-						const physx::PxMat44 ChunkPoseRT = DestructibleActor->getChunkPose(ChunkIndex);
-						const physx::PxTransform Transform(ChunkPoseRT);
-						if (UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
-						{
-							if (DestructibleComponent->IsRegistered())
-							{
-								TArray<FUpdateChunksInfo>& UpdateInfos = ComponentUpdateMapping.FindOrAdd(DestructibleComponent);
-								FUpdateChunksInfo* UpdateInfo = new (UpdateInfos)FUpdateChunksInfo(ChunkIndex, P2UTransform(Transform));
-							}
-						}
-					}
-				}
-
-				Shapes.Empty(Shapes.Num());	//we want to keep largest capacity array to avoid reallocs
-			}
-		}
-	}
-	
-	//update each component
-	for (auto It = ComponentUpdateMapping.CreateIterator(); It; ++It)
-	{
-		UDestructibleComponent* DestructibleComponent = It.Key();
-		TArray<FUpdateChunksInfo>& UpdateInfos = It.Value();
-		if (DestructibleComponent->IsFracturedOrInitiallyStatic())
-		{
-			DestructibleComponent->SetChunksWorldTM(UpdateInfos);
-		}
-		else
-		{
-			//if we haven't fractured it must mean that we're simulating a destructible and so we should update our GetComponentTransform() based on the single rigid body
-			DestructibleComponent->SyncComponentToRBPhysics();
-		}
-
-		UNavigationSystem::UpdateComponentInNavOctree(*DestructibleComponent);
-	}
-
-}
-
-#endif
 
 void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& UpdateInfos)
 {

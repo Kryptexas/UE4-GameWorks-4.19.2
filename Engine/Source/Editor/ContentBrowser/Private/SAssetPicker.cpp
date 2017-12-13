@@ -228,10 +228,11 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		SAssignNew(AssetViewPtr, SAssetView)
 		.SelectionMode( InArgs._AssetPickerConfig.SelectionMode )
 		.OnShouldFilterAsset(InArgs._AssetPickerConfig.OnShouldFilterAsset)
-		.OnAssetSelected(InArgs._AssetPickerConfig.OnAssetSelected)
+		.OnAssetSelectionChanged(this, &SAssetPicker::HandleAssetSelectionChanged)
 		.OnAssetsActivated(this, &SAssetPicker::HandleAssetsActivated)
 		.OnGetAssetContextMenu(InArgs._AssetPickerConfig.OnGetAssetContextMenu)
 		.OnGetFolderContextMenu(InArgs._AssetPickerConfig.OnGetFolderContextMenu)
+		.OnIsAssetValidForCustomToolTip(InArgs._AssetPickerConfig.OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._AssetPickerConfig.OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._AssetPickerConfig.OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing(InArgs._AssetPickerConfig.OnAssetToolTipClosing)
@@ -428,6 +429,14 @@ FReply SAssetPicker::OnNoneButtonClicked()
 		AssetViewPtr->ClearSelection(true);
 	}
 	return FReply::Handled();
+}
+
+void SAssetPicker::HandleAssetSelectionChanged(const FAssetData& InAssetData, ESelectInfo::Type InSelectInfo)
+{
+	if(InSelectInfo != ESelectInfo::Direct)
+	{
+		OnAssetSelected.ExecuteIfBound(InAssetData);
+	}
 }
 
 void SAssetPicker::HandleAssetsActivated(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod)

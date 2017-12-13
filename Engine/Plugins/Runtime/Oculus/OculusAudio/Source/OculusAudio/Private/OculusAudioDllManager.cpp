@@ -61,7 +61,7 @@ void FOculusAudioLibraryManager::Shutdown()
 
 bool FOculusAudioLibraryManager::LoadDll()
 {
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 	if (!FOculusAudioLibraryManager::OculusAudioDllHandle)
 	{
 		FString Path = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Oculus/Audio/Win64/"));
@@ -76,7 +76,7 @@ bool FOculusAudioLibraryManager::LoadDll()
 
 void FOculusAudioLibraryManager::ReleaseDll()
 {
-#ifdef PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 	if (FOculusAudioLibraryManager::NumInstances == 0 && FOculusAudioLibraryManager::OculusAudioDllHandle)
 	{
 		FPlatformProcess::FreeDllHandle(OculusAudioDllHandle);

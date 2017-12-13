@@ -102,6 +102,11 @@ public:
 		return new FSimplygonSwarm();
 	}
 
+	virtual FString GetName() override
+	{
+		return FString("SimplygonSwarm");
+	}
+
 	struct FMaterialCastingProperties
 	{
 		bool bCastMaterials;

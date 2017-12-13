@@ -1755,13 +1755,7 @@ void FPersonaMeshDetails::UpdateLODNames()
 
 bool FPersonaMeshDetails::IsGenerateAvailable() const
 {
-	if (IsApplyNeeded())
-	{
-		return true;
-	}
-
-	// if you have LOD
-	return (LODCount > 1);
+	return IsAutoMeshReductionAvailable() && (IsApplyNeeded() || (LODCount > 1));
 }
 bool FPersonaMeshDetails::IsApplyNeeded() const
 {

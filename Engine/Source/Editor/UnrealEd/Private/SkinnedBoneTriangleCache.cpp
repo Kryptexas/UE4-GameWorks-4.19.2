@@ -56,8 +56,6 @@ void FSkinnedBoneTriangleCache::GetVerticesAndIndicesForBone(const int32 BoneInd
 			{
 				OutVertexPositions.Add(VertexPosition(VertIndex, ComponentToBoneMatrix));
 				SkinnedVertIndexToOutputIndex.Add(VertIndex, static_cast<uint32>(OutVertexPositions.Num() - 1));
-
-				continue;
 			}
 
 			// Map the skinned vert index to the index in our output array.

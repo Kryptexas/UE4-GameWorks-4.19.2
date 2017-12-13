@@ -829,7 +829,7 @@ TWeakObjectPtr<AWindDirectionalSource> FAnimationEditorPreviewScene::CreateWindA
 
 	check(Wind.IsValid());
 	//initial wind strength value 
-	Wind->GetComponent()->Strength = PrevWindStrength;
+	Wind->GetComponent()->Speed = PrevWindStrength;
 	return Wind;
 }
 
@@ -860,12 +860,11 @@ bool FAnimationEditorPreviewScene::IsWindEnabled() const
 	return WindSourceActor.IsValid();
 }
 
-void FAnimationEditorPreviewScene::SetWindStrength(float SliderPos)
+void FAnimationEditorPreviewScene::SetWindStrength(float SliderValue)
 {
 	if (WindSourceActor.IsValid())
 	{
-		//Clamp grid size slider value between 0 - 1
-		WindSourceActor->GetComponent()->Strength = FMath::Clamp<float>(SliderPos, 0.0f, 1.0f);
+		WindSourceActor->GetComponent()->Speed = SliderValue;
 		//to apply this new wind strength
 		WindSourceActor->UpdateComponentTransforms();
 	}
@@ -875,7 +874,7 @@ float FAnimationEditorPreviewScene::GetWindStrength() const
 {
 	if (WindSourceActor.IsValid())
 	{
-		return WindSourceActor->GetComponent()->Strength;
+		return WindSourceActor->GetComponent()->Speed;
 	}
 
 	return 0;

@@ -144,11 +144,20 @@ void FAnimBlueprintCompilerContext::CreateClassVariablesFromBlueprint()
 		{
 			for (UEdGraph* It : Blueprint->FunctionGraphs)
 			{
-				TArray<UAnimGraphNode_SubInstance*> SubInstanceNodes;
-				It->GetNodesOfClass(SubInstanceNodes);
-				for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
+				// Need to extract subgraphs to catch state machine states
+				TArray<UEdGraph*> AllGraphs;
+				AllGraphs.Add(It);
+
+				It->GetAllChildrenGraphs(AllGraphs);
+
+				for(UEdGraph* CurrGraph : AllGraphs)
 				{
-					ProcessSubInstance(SubInstance, false);
+					TArray<UAnimGraphNode_SubInstance*> SubInstanceNodes;
+					CurrGraph->GetNodesOfClass(SubInstanceNodes);
+					for(UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes)
+					{
+						ProcessSubInstance(SubInstance, false);
+					}
 				}
 			}
 		}

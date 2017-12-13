@@ -3,6 +3,8 @@
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "Animation/AnimInstanceProxy.h"
 
+#define LOCTEXT_NAMESPACE "AnimNode_SequencePlayer"
+
 /////////////////////////////////////////////////////
 // FAnimSequencePlayerNode
 
@@ -58,18 +60,23 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 
 void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
-	Evaluate_AnyThread(Output, false);
-}
+	auto BoolToYesNo = [](const bool& bBool) -> const TCHAR*
+	{
+		return bBool ? TEXT("Yes") : TEXT("No");
+	};
 
-void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
-{
 	if ((Sequence != nullptr) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
+		const bool bExpectedAdditive = Output.ExpectsAdditivePose();
+		const bool bIsAdditive = Sequence->IsValidAdditive();
+
+		if (bExpectedAdditive && !bIsAdditive)
+		{
+			FText Message = FText::Format(LOCTEXT("AdditiveMismatchWarning", "Trying to play a non-additive animation '{0}' into a pose that is expected to be additive in anim instance '{1}'"), FText::FromString(Sequence->GetName()), FText::FromString(Output.AnimInstanceProxy->GetAnimInstanceName()));
+			Output.LogMessage(EMessageSeverity::Warning, Message);
+		}
+
 		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
-	}
-	else if (bExpectsAdditivePose)
-	{
-		Output.ResetToAdditiveIdentity();
 	}
 	else
 	{
@@ -97,3 +104,5 @@ float FAnimNode_SequencePlayer::GetTimeFromEnd(float CurrentNodeTime)
 {
 	return Sequence->GetMaxCurrentTime() - CurrentNodeTime;
 }
+
+#undef LOCTEXT_NAMESPACE
