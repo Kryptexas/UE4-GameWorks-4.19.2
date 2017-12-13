@@ -155,7 +155,9 @@ public:
 
 	virtual void AddSource(TSharedPtr<ILiveLinkSource> InSource) override;
 
-	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override;
+	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override { PushSubjectSkeleton(FGuid(), SubjectName, RefSkeleton); }
+	virtual void PushSubjectSkeleton(FGuid SourceGuid, FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override;
+
 	virtual void ClearSubject(FName SubjectName) override;
 	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) override;
 	// End ILiveLinkClient Interface
@@ -265,7 +267,7 @@ private:
 	// Delegate to notify interested parties when the client sources have changed
 	FSimpleMulticastDelegate OnLiveLinkSourcesChanged;
 
-	// Delegate to notify interested parties when the client sources have changed
+	// Delegate to notify interested parties when the client subjects have changed
 	FSimpleMulticastDelegate OnLiveLinkSubjectsChanged;
 
 	// "source guid" for virtual subjects

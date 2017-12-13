@@ -88,7 +88,7 @@ void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectDataMess
 	UE_LOG(LogTemp, Warning, TEXT("INVALID BONE NAMES RECIEVED %i != existing %i"), Message.BoneNames.Num(), BoneNames.Num());
 	}*/
 
-	Client->PushSubjectSkeleton(Message.SubjectName, Message.RefSkeleton);
+	Client->PushSubjectSkeleton(SourceGuid, Message.SubjectName, Message.RefSkeleton);
 }
 
 void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)

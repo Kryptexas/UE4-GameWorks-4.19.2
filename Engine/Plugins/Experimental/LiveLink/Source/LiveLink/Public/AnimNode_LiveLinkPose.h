@@ -42,4 +42,7 @@ struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 private:
 
 	ILiveLinkClient* LiveLinkClient;
+
+	// Delta time from update so that it can be passed to retargeter
+	float CachedDeltaTime;
 };

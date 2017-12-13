@@ -33,7 +33,7 @@ void ULiveLinkRemapAsset::OnBlueprintClassCompiled(UBlueprint* TargetBlueprint)
 	NameMap.Reset();
 }
 
-void ULiveLinkRemapAsset::BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, FCompactPose& OutPose, FBlendedCurve& OutCurve)
+void ULiveLinkRemapAsset::BuildPoseForSubject(float DeltaTime, const FLiveLinkSubjectFrame& InFrame, FCompactPose& OutPose, FBlendedCurve& OutCurve)
 {
 	const TArray<FName>& SourceBoneNames = InFrame.RefSkeleton.GetBoneNames();
 

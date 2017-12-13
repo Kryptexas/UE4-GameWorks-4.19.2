@@ -346,8 +346,6 @@ void FLiveLinkClient::BuildThisTicksSubjectSnapshot()
 		ActiveSubjectSnapshots.Remove(SubjectName);
 		ActiveSubjectNames.RemoveSingleSwap(SubjectName, false);
 	}
-
-
 }
 
 void FLiveLinkClient::BuildVirtualSubjectFrame(FLiveLinkVirtualSubject& VirtualSubject, FLiveLinkSubjectFrame& SnapshotSubject)
@@ -449,7 +447,7 @@ FLiveLinkTimeCode FLiveLinkClient::MakeTimeCodeFromTimeOnly(double InTime) const
 }
 
 
-void FLiveLinkClient::PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton)
+void FLiveLinkClient::PushSubjectSkeleton(FGuid SourceGuid, FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton)
 {
 	FScopeLock Lock(&SubjectDataAccessCriticalSection);
 	
@@ -457,10 +455,11 @@ void FLiveLinkClient::PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefS
 	{
 		Subject->Frames.Reset();
 		Subject->SetRefSkeleton(RefSkeleton);
+		Subject->LastModifier = SourceGuid;
 	}
 	else
 	{
-		LiveSubjectData.Emplace(SubjectName, FLiveLinkSubject(RefSkeleton));
+		LiveSubjectData.Emplace(SubjectName, FLiveLinkSubject(RefSkeleton)).LastModifier = SourceGuid;
 	}
 }
 

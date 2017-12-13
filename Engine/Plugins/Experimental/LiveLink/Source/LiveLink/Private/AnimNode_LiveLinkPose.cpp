@@ -31,6 +31,9 @@ void FAnimNode_LiveLinkPose::Update_AnyThread(const FAnimationUpdateContext & Co
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
+	// Accumulate Delta time from update
+	CachedDeltaTime += Context.GetDeltaTime();
+
 	// Protection as a class graph pin does not honour rules on abstract classes and NoClear
 	if (!RetargetAsset.Get() || RetargetAsset.Get()->HasAnyClassFlags(CLASS_Abstract))
 	{
@@ -40,6 +43,7 @@ void FAnimNode_LiveLinkPose::Update_AnyThread(const FAnimationUpdateContext & Co
 	if (!CurrentRetargetAsset || RetargetAsset != CurrentRetargetAsset->GetClass())
 	{
 		CurrentRetargetAsset = NewObject<ULiveLinkRetargetAsset>(Context.AnimInstanceProxy->GetAnimInstanceObject(), *RetargetAsset);
+		CurrentRetargetAsset->Initialize();
 	}
 }
 
@@ -56,7 +60,8 @@ void FAnimNode_LiveLinkPose::Evaluate_AnyThread(FPoseContext& Output)
 
 	if(const FLiveLinkSubjectFrame* Subject = LiveLinkClient->GetSubjectData(SubjectName))
 	{
-		CurrentRetargetAsset->BuildPoseForSubject(*Subject, Output.Pose, Output.Curve);
+		CurrentRetargetAsset->BuildPoseForSubject(CachedDeltaTime, *Subject, Output.Pose, Output.Curve);
+		CachedDeltaTime = 0.f; // Reset so that if we evaluate again we don't "create" time inside of the retargeter
 	}
 }
 

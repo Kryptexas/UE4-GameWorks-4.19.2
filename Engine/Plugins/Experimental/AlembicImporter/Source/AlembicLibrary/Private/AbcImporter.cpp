@@ -1060,7 +1060,7 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		FSkeletalMeshLODModel& LODModel = ImportedModel->LODModels[0];
 
 		const FMeshBoneInfo BoneInfo(FName(TEXT("RootBone"), FNAME_Add), TEXT("RootBone_Export"), INDEX_NONE);
-		const FTransform BoneTransform;
+		const FTransform BoneTransform(ImportData->ArchiveBounds.GetBox().GetCenter());
 		{
 			FReferenceSkeletonModifier RefSkelModifier(SkeletalMesh->RefSkeleton, SkeletalMesh->Skeleton);
 			RefSkelModifier.Add(BoneInfo, BoneTransform);
