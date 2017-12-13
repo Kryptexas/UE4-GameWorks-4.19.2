@@ -26,6 +26,8 @@ $ bEditorDependsOnShaderCompileWorker : Whether to include a dependency on Shade
 
 $ bDebugBuildsActuallyUseDebugCRT : Enables the debug C++ runtime (CRT) for debug builds. By default we always use the release runtime, since the debug version isn't particularly useful when debugging Unreal Engine projects, and linking against the debug CRT libraries forces our third party library dependencies to also be compiled using the debug CRT (and often perform more slowly). Often it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply so that you can debug your program's code.
 
+$ bUseInlining : Enable inlining for all modules.
+
 $ bUseXGEController : Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
 
 $ bUseUnityBuild : Whether to unify C++ code into larger files for faster compilation.

@@ -83,7 +83,9 @@ $ PublicAdditionalShadowFiles (List&lt;String&gt;): For builds that execute on a
 
 $ PublicDelayLoadDLLs (List&lt;String&gt;): List of delay load DLLs - typically used for External (third party) modules
 
-$ Definitions (List&lt;String&gt;): Additional compiler definitions for this module
+$ PrivateDefinitions (List&lt;String&gt;): Private compiler definitions for this module
+
+$ PublicDefinitions (List&lt;String&gt;): Public compiler definitions for this module
 
 $ DynamicallyLoadedModuleNames (List&lt;String&gt;): Addition modules this module may require at run-time
 
