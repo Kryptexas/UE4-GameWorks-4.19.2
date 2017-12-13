@@ -178,3 +178,4 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 
 # Ignore VS / VS Code settings directory
 .vs
+.vscode
