@@ -1867,7 +1867,7 @@ bool UCookOnTheFlyServer::BeginPackageCacheForCookedPlatformData(UPackage* Packa
 				{
 					*Value += 1;
 				}
-				CurrentAsyncCache -= 1;
+				*CurrentAsyncCache -= 1;
 			}
 
 			if (Obj->IsA(UMaterialInterface::StaticClass()))
