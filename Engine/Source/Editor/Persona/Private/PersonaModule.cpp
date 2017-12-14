@@ -556,16 +556,17 @@ void FPersonaModule::ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& Ani
 	AnimCompressionDialog.ShowModal();
 }
 
-void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences, USkeletalMesh* SkeletalMesh)
+bool FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences, USkeletalMesh* SkeletalMesh)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bResult = false;
 
 	if (DesktopPlatform)
 	{
 		if (SkeletalMesh == NULL)
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingSkeletalMesh", "ERROR: Missing skeletal mesh"));
-			return;
+			return bResult;
 		}
 
 		if (AnimSequences.Num() > 0)
@@ -608,7 +609,7 @@ void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequ
 					if (!bFolderSelected)
 					{
 						// User canceled, return
-						return;
+						return bResult;
 					}
 
 					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
@@ -652,7 +653,7 @@ void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequ
 				if (!bSave)
 				{
 					// Canceled
-					return;
+					return bResult;
 				}
 				check(TempDestinationNames.Num() == 1);
 				check(AnimFileNames.Num() == 1);
@@ -689,11 +690,13 @@ void FPersonaModule::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequ
 					//The user cancel the batch export
 					break;
 				}
+				bResult |= !ExportCancel;
 			}
 
 			GWarn->EndSlowTask();
 		}
 	}
+	return bResult;
 }
 
 void FPersonaModule::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)

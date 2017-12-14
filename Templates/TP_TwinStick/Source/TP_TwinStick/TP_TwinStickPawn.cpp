@@ -101,7 +101,7 @@ void ATP_TwinStickPawn::Tick(float DeltaSeconds)
 
 void ATP_TwinStickPawn::FireShot(FVector FireDirection)
 {
-	// If we it's ok to fire again
+	// If it's ok to fire again
 	if (bCanFire == true)
 	{
 		// If we are pressing fire stick in a direction

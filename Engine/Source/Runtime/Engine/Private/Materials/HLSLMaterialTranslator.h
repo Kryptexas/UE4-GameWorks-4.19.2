@@ -33,6 +33,7 @@
 #include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialSharedInputCollection.h"
 #include "Containers/LazyPrintf.h"
 #endif
 
@@ -172,6 +173,10 @@ protected:
 
 	/** Parameter collections referenced by this material.  The position in this array is used as an index on the shader parameter. */
 	TArray<UMaterialParameterCollection*> ParameterCollections;
+
+	/** Shared inputs referenced by this material */
+	TArray<FGuid> CompiledSharedInputs;
+	TArray<FExpressionInput> CompiledSharedInputExpressions;
 
 	// Index of the next symbol to create
 	int32 NextSymbolIndex;
@@ -408,6 +413,51 @@ public:
 			}
 		}
 	}
+
+	void CompileCustomOutputs(TArray<UMaterialExpressionCustomOutput*>& CustomOutputExpressions, TSet<UClass*>& SeenCustomOutputExpressionsClases, bool bIsBeforeAttributes)
+	{
+		for (UMaterialExpressionCustomOutput* CustomOutput : CustomOutputExpressions)
+		{
+			if (CustomOutput->HasCustomSourceOutput() || CustomOutput->ShouldCompileBeforeAttributes() != bIsBeforeAttributes)
+			{
+				continue;
+			}
+
+			if (!CustomOutput->AllowMultipleCustomOutputs() && SeenCustomOutputExpressionsClases.Contains(CustomOutput->GetClass()))
+			{
+				Errorf(TEXT("The material can contain only one %s node"), *CustomOutput->GetDescription());
+			}
+			else
+			{
+				SeenCustomOutputExpressionsClases.Add(CustomOutput->GetClass());		
+				int32 NumOutputs = CustomOutput->GetNumOutputs();
+
+				if (CustomOutput->NeedsCustomOutputDefines())
+				{
+					ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *CustomOutput->GetFunctionName().ToUpper(), NumOutputs);
+				}
+
+				if (NumOutputs > 0)
+				{
+					for (int32 Index = 0; Index < NumOutputs; Index++)
+					{
+						{
+							FunctionStacks[SF_Pixel].Empty();
+							FunctionStacks[SF_Pixel].Add(FMaterialFunctionCompileState(nullptr));
+						}
+						MaterialProperty = MP_MAX; // Indicates we're not compiling any material property.
+						ShaderFrequency = SF_Pixel;
+						TArray<FShaderCodeChunk> CustomExpressionChunks;
+						CurrentScopeChunks = &CustomExpressionChunks; //-V506
+						CustomOutput->Compile(this, Index);
+					}
+
+					FunctionStacks[SF_Pixel].Empty();
+					FunctionStacks[SF_Pixel].Add(FMaterialFunctionCompileState(nullptr));
+				}
+			}
+		}
+	}
  
 	bool Translate()
 	{
@@ -483,6 +533,14 @@ public:
 			const EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
 			const EMaterialDomain Domain = Material->GetMaterialDomain();
 			const EBlendMode BlendMode = Material->GetBlendMode();
+
+			// Gather the implementation for any custom output expressions
+			TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+			Material->GatherCustomOutputExpressions(CustomOutputExpressions);
+			TSet<UClass*> SeenCustomOutputExpressionsClases;
+
+			// Some custom outputs must be pre-compiled so they can be re-used as shared inputs
+			CompileCustomOutputs(CustomOutputExpressions, SeenCustomOutputExpressionsClases, true);			
 
 			// Normal must always be compiled first; this will ensure its chunk calculations are the first to be added
 			{
@@ -749,45 +807,7 @@ public:
 			else
 #endif // #if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
 			{
-				// Gather the implementation for any custom output expressions
-				TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
-				Material->GatherCustomOutputExpressions(CustomOutputExpressions);
-				TSet<UClass*> SeenCustomOutputExpressionsClases;
-
-				for (UMaterialExpressionCustomOutput* CustomOutput : CustomOutputExpressions)
-				{
-					if (CustomOutput->HasCustomSourceOutput())
-					{
-						continue;
-					}
-
-					if (SeenCustomOutputExpressionsClases.Contains(CustomOutput->GetClass()))
-					{
-						Errorf(TEXT("The material can contain only one %s node"), *CustomOutput->GetDescription());
-					}
-					else
-					{
-						SeenCustomOutputExpressionsClases.Add(CustomOutput->GetClass());
-
-						int32 NumOutputs = CustomOutput->GetNumOutputs();
-						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *CustomOutput->GetFunctionName().ToUpper(), NumOutputs);
-						if (NumOutputs > 0)
-						{
-							for (int32 Index = 0; Index < NumOutputs; Index++)
-							{
-								{
-									FunctionStacks[SF_Pixel].Empty();
-									FunctionStacks[SF_Pixel].Add(FMaterialFunctionCompileState(nullptr));
-								}
-								MaterialProperty = MP_MAX; // Indicates we're not compiling any material property.
-								ShaderFrequency = SF_Pixel;
-								TArray<FShaderCodeChunk> CustomExpressionChunks;
-								CurrentScopeChunks = &CustomExpressionChunks; //-V506
-								CustomOutput->Compile(this, Index);
-							}
-						}
-					}
-				}
+				CompileCustomOutputs(CustomOutputExpressions, SeenCustomOutputExpressionsClases, false);
 			}
 
 			// Output the implementation for any custom expressions we will call below.
@@ -2226,6 +2246,78 @@ protected:
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 1,
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 2,
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 3);
+	}
+
+	virtual int32 AddCompiledSharedInput(int32 CodeIndex, FExpressionInput Expression, FGuid InputId, FName InputName, EMaterialValueType InputType) override
+	{
+		if (CompiledSharedInputs.Contains(InputId))
+		{
+			return Errorf(TEXT("Tried to compile shared input '%s' twice!"), *InputName.ToString());
+		}
+
+		CompiledSharedInputs.Add(InputId);
+		CompiledSharedInputExpressions.Add(Expression);
+		return CodeIndex;
+	}
+
+	virtual int32 AccessSharedInput(UMaterialSharedInputCollection* InputCollection, FGuid InputId, FName InputName) override
+	{
+		int32 SharedInputIndex = INDEX_NONE;
+		if (!CompiledSharedInputs.Find(InputId, SharedInputIndex))
+		{
+			return INDEX_NONE;
+		}
+
+		if (!InputCollection || InputCollection->GetInputName(InputId).IsNone())
+		{
+			return Errorf(TEXT("Failed to find input with name '%s'"), *InputName.ToString());
+		}
+
+		EMaterialSharedInputType::Type InputType = InputCollection->GetInputType(InputId);
+		EMaterialValueType OutputType;
+		switch(InputType)
+		{
+		case EMaterialSharedInputType::Vector2:
+			OutputType = MCT_Float2; break;
+		case EMaterialSharedInputType::Vector3:
+			OutputType = MCT_Float3; break;
+		case EMaterialSharedInputType::Vector4:
+			OutputType = MCT_Float4; break;
+		case EMaterialSharedInputType::Texture2D:
+			OutputType = MCT_Texture2D; break;
+		case EMaterialSharedInputType::TextureCube:
+			OutputType = MCT_TextureCube; break;
+		default: // EMaterialSharedInputType::Scalar
+			OutputType = MCT_Float;
+		}
+
+		if (OutputType & MCT_Texture)
+		{
+			// Compile the input with a forced global association
+			FMaterialParameterInfo AssociationInfo;
+			PushParameterOwner(AssociationInfo);
+			int32 Ret = CompiledSharedInputExpressions[SharedInputIndex].GetTracedInput().Compile(this);
+			PopParameterOwner();
+			return Ret;
+		}
+		else
+		{
+			// Add call to implementation function
+			const int32 OutputIndex = 0;
+			FString CodeChunk = FString::Printf(TEXT("%s_%s%d(Parameters)"), *InputCollection->GetName(), *InputName.ToString(), OutputIndex);
+			return AddCodeChunk(OutputType, *CodeChunk);
+		}	
+	}
+
+	virtual UMaterialExpression* AccessSharedInputExpression(FGuid InputId) override
+	{
+		int32 SharedInputIndex = INDEX_NONE;
+		if (!CompiledSharedInputs.Find(InputId, SharedInputIndex))
+		{
+			return nullptr;
+		}
+		
+		return CompiledSharedInputExpressions[SharedInputIndex].GetTracedInput().Expression;
 	}
 
 	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override

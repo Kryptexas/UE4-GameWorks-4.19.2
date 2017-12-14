@@ -47,7 +47,7 @@ namespace UnrealBuildTool
 			else
 			{
 				// if new multi-arch toolchain is used, prefer it
-				string MultiArchRoot = Environment.GetEnvironmentVariable("LINUX_MULTIARCH_ROOT");
+				MultiArchRoot = Environment.GetEnvironmentVariable("LINUX_MULTIARCH_ROOT");
 
 				if (MultiArchRoot != null)
 				{
@@ -60,6 +60,7 @@ namespace UnrealBuildTool
 				{
 					// use cross linux toolchain if LINUX_ROOT is specified
 					BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+					MultiArchRoot = BaseLinuxPath;
 
 					Console.WriteLine("Using LINUX_ROOT (deprecated, consider LINUX_MULTIARCH_ROOT), building with toolchain '{0}'", BaseLinuxPath);
 				}
@@ -697,6 +698,7 @@ namespace UnrealBuildTool
 		static string LlvmArPath;
 		static string RanlibPath;
 		static string StripPath;
+		static string MultiArchRoot;
 
 		/// <summary>
 		/// Version string of the current compiler, whether clang or gcc or whatever
@@ -800,6 +802,24 @@ namespace UnrealBuildTool
 			Console.WriteLine("------------------------------");
 		}
 
+		protected bool CheckSDKVersionFromFile(string VersionPath, out string ErrorMessage)
+		{
+			if (File.Exists(VersionPath))
+			{
+				StreamReader SDKVersionFile = new StreamReader(VersionPath);
+				string SDKVersionString = SDKVersionFile.ReadLine();
+				SDKVersionFile.Close();
+
+				if (SDKVersionString != null)
+				{
+					return LinuxPlatformSDK.CheckSDKCompatible(SDKVersionString, out ErrorMessage);
+				}
+			}
+
+			ErrorMessage = "Cannot use an old toolchain (missing " + LinuxPlatformSDK.SDKVersionFileName() + " file, assuming version earlier than v11)";
+			return false;
+		}
+
 		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
@@ -808,6 +828,22 @@ namespace UnrealBuildTool
 			if (!bHasPrintedBuildDetails)
 			{
 				PrintBuildDetails(CompileEnvironment);
+
+				string LinuxDependenciesPath = Path.Combine(UnrealBuildTool.EngineSourceThirdPartyDirectory.FullName, "Linux", LinuxPlatformSDK.HaveLinuxDependenciesFile());
+				if (!File.Exists(LinuxDependenciesPath))
+				{
+					throw new BuildException("Cannot build for Linux (missing binary dependencies), re-run the Setup script");
+				}
+
+				if (!String.IsNullOrEmpty(MultiArchRoot))
+				{
+					string ErrorMessage;
+					if (!CheckSDKVersionFromFile(Path.Combine(MultiArchRoot, LinuxPlatformSDK.SDKVersionFileName()), out ErrorMessage))
+					{
+						throw new BuildException(ErrorMessage);
+					}
+				}
+
 				bHasPrintedBuildDetails = true;
 			}
 

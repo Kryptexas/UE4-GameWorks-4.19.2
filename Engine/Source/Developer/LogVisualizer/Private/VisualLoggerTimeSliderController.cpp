@@ -22,7 +22,7 @@ namespace ScrubConstants
 
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct FVisualLoggerTimeSliderController::FScrubRangeToScreen
 {
 	FVector2D WidgetSize;
 
@@ -105,7 +105,7 @@ void FVisualLoggerTimeSliderController::SetTimesliderArgs(const FVisualLoggerTim
 	TimeSliderArgs = InArgs;
 }
 
-struct FDrawTickArgs
+struct FVisualLoggerTimeSliderController::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;

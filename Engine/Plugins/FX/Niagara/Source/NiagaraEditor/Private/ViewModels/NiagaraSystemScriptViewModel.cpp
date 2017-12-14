@@ -24,8 +24,8 @@
 
 FNiagaraSystemScriptViewModel::FNiagaraSystemScriptViewModel(UNiagaraSystem& InSystem, FNiagaraSystemViewModel* InParent)
 	: FNiagaraScriptViewModel(InSystem.GetSystemSpawnScript(), NSLOCTEXT("SystemScriptViewModel", "GraphName", "System"), ENiagaraParameterEditMode::EditAll)
-	, System(InSystem)
 	, Parent(InParent)
+	, System(InSystem)
 {
 	Scripts.Add(InSystem.GetSystemUpdateScript());
 

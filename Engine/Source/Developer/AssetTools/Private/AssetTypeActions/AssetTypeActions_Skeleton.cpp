@@ -935,12 +935,12 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 	}
 }
 
-void FAssetTypeActions_Skeleton::OnAssetCreated(TArray<UObject*> NewAssets) const
+bool FAssetTypeActions_Skeleton::OnAssetCreated(TArray<UObject*> NewAssets) const
 {
 	if(NewAssets.Num() > 1)
 	{
 		FAssetTools::Get().SyncBrowserToAssets(NewAssets);
 	}
-
+	return true;
 }
 #undef LOCTEXT_NAMESPACE

@@ -36,6 +36,7 @@ int32 UPanelWidget::GetChildrenCount() const
 
 UWidget* UPanelWidget::GetChildAt(int32 Index) const
 {
+	
 	if (Slots.IsValidIndex(Index))
 	{
 		// This occasionally is null during garbage collection passes during begin destroy, when we're
@@ -59,8 +60,7 @@ int32 UPanelWidget::GetChildIndex(UWidget* Content) const
 			return ChildIndex;
 		}
 	}
-
-	return -1;
+	return INDEX_NONE;
 }
 
 bool UPanelWidget::HasChild(UWidget* Content) const

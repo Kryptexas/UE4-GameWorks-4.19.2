@@ -10,7 +10,16 @@ public class libcurl : ModuleRules
 
 		PublicDefinitions.Add("WITH_LIBCURL=1");
 
-		string NewLibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/7_48_0/";
+		string NewLibCurlPath = Target.UEThirdPartySourceDirectory;
+		if (Target.Architecture == "x86_64-unknown-linux-gnu")
+		{
+			NewLibCurlPath += "libcurl/7_57_0/";
+		}
+		else
+		{
+			NewLibCurlPath += "libcurl/7_48_0/";
+		}
+
 		string LibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1/";
 
 		// TODO: latest recompile for consoles and mobile platforms

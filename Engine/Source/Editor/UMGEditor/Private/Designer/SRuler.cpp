@@ -20,7 +20,7 @@ namespace ScrubConstants
 }
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct SRuler::FScrubRangeToScreen
 {
 	float RulerLengthSlateUnits;
 
@@ -55,7 +55,7 @@ struct FScrubRangeToScreen
 	}
 };
 
-struct FDrawTickArgs
+struct SRuler::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;

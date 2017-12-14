@@ -232,8 +232,6 @@ TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 
 	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), FVector2D(0, 0));
 
-	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename);
-
 	return MenuBuilder.MakeWidget();
 }
 

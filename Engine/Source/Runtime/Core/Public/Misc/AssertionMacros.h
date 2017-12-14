@@ -248,6 +248,8 @@ namespace UE4Asserts_Private
 	bool GetMemberNameCheckedJunk(const T&);
 	template <typename T>
 	bool GetMemberNameCheckedJunk(const volatile T&);
+	template <typename R, typename ...Args>
+	bool GetMemberNameCheckedJunk(R(*)(Args...));
 }
 
 // Returns FName(TEXT("EnumeratorName")), while statically verifying that the enumerator exists in the enum

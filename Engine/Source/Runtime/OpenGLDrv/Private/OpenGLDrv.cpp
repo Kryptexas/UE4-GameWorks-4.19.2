@@ -23,6 +23,7 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);
 
+#define LOCTEXT_NAMESPACE "OpenGLDrv"
 
 ERHIFeatureLevel::Type GRequestedFeatureLevel = ERHIFeatureLevel::Num;
 
@@ -493,21 +494,48 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 		GRHIVendorId = 0x5143;
 	}
 
+#if PLATFORM_LINUX
 	if (GRHIVendorId == 0x0)
 	{
-		// Fix for Mesa Radeon
+		// Try harder for Mesa
 		const ANSICHAR* AnsiVersion = (const ANSICHAR*)glGetString(GL_VERSION);
 		const ANSICHAR* AnsiRenderer = (const ANSICHAR*)glGetString(GL_RENDERER);
 		if (AnsiVersion && AnsiRenderer)
 		{
-			if (FCStringAnsi::Strstr(AnsiVersion, "Mesa") &&
-				(FCStringAnsi::Strstr(AnsiRenderer, "AMD") || FCStringAnsi::Strstr(AnsiRenderer, "ATI")))
+			if (FCStringAnsi::Strstr(AnsiVersion, "Mesa"))
 			{
-				// Radeon
-				GRHIVendorId = 0x1002;
+				if (FCStringAnsi::Strstr(AnsiRenderer, "AMD") || FCStringAnsi::Strstr(AnsiRenderer, "ATI"))
+				{
+					// Radeon
+					GRHIVendorId = 0x1002;
+					bAmdWorkaround = true;
+				}
+				else if (FCStringAnsi::Strstr(AnsiRenderer, "Intel"))
+				{
+					GRHIVendorId = 0x8086;
+					bAmdWorkaround = true;
+				}
 			}
 		}
+
+		// If still not detected, show a message box to the user (editor build only) and
+		// set GRHIVendorId to something to avoid crashing in check()s later
+		if (GRHIVendorId == 0x0)
+		{
+			if (WITH_EDITOR != 0 && !IsRunningCommandlet() && !FApp::IsUnattended())
+			{
+				FString GlRenderer(ANSI_TO_TCHAR(AnsiRenderer));
+				FText ErrorMessage = FText::Format(LOCTEXT("CannotDetermineGraphicsDriversVendor", "Unknown graphics drivers '{0}' by '{1}' are installed on this system. You may experience visual artifacts and other problems."),
+					FText::FromString(GlRenderer), FText::FromString(VendorName));
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(),
+					*LOCTEXT("CannotDetermineGraphicsDriversVendorTitle", "Cannot determine driver vendor.").ToString());
+			}
+
+			GRHIVendorId = 0xFFFF;
+			bAmdWorkaround = true;	// be conservative here as well.
+		}
 	}
+#endif // PLATFORM_LINUX
 
 #if PLATFORM_WINDOWS
 	auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
@@ -516,7 +544,7 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 		CVar->Set(false);
 	}
 #endif
-#endif
+#endif // !PLATFORM_IOS
 
 	// Setup CVars that require the RHI initialized
 
@@ -600,3 +628,5 @@ void InitDefaultGLContextState(void)
 	}
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -75,7 +75,7 @@ private: // Helper functions
 	void SavePackages(const TArray<UPackage*> PackagesToSave) const;
 	void DetectReadOnlyPackages(TArray<FAssetToRemapSkeleton>& AssetsToRemap, TArray<UPackage*>& InOutPackagesToSave) const;
 	void FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons) const;
-	void OnAssetCreated(TArray<UObject*> NewAssets) const;
+	bool OnAssetCreated(TArray<UObject*> NewAssets) const;
 
 	/** Handler for retargeting */
 	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule);

@@ -1277,7 +1277,7 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::ProjectDir();
+			CachedSolutionPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 
 			if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 			{

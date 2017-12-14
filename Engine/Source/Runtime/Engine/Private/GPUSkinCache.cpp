@@ -304,8 +304,8 @@ public:
 		check(Data.SectionIndex == LodData.FindSectionIndex(*Section));
 
 		Data.NumVertices = NumVertices;
-
-		if (MorphVertexBuffer)
+		const bool bMorph = MorphVertexBuffer && MorphVertexBuffer->SectionIds.Contains(SectionIndex);
+		if (bMorph)
 		{
 			// in bytes
 			const uint32 MorphStride = sizeof(FMorphGPUSkinVertex);
@@ -319,7 +319,7 @@ public:
 		//INC_DWORD_STAT(STAT_GPUSkinCache_TotalNumChunks);
 
 		// SkinType 0:normal, 1:with morph target, 2:with cloth
-		Data.SkinType = ClothVertexBuffer ? 2 : (MorphVertexBuffer ? 1 : 0);
+		Data.SkinType = ClothVertexBuffer ? 2 : (bMorph ? 1 : 0);
 		Data.InputStreamStart = InputStreamStart;
 		Data.OutputStreamStart = Section->BaseVertexIndex;
 
@@ -1049,7 +1049,8 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		Entries.Add(InOutEntry);
 	}
 
-	if (MorphVertexBuffer)
+	const bool bMorph = MorphVertexBuffer && MorphVertexBuffer->SectionIds.Contains(Section);
+	if (bMorph)
 	{
 		InOutEntry->MorphBuffer = MorphVertexBuffer->GetSRV();
 		check(InOutEntry->MorphBuffer);
@@ -1106,7 +1107,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
         InOutEntry->DispatchData[Section].ClothLocalToWorld = ClothLocalToWorld;
         InOutEntry->DispatchData[Section].ClothWorldToLocal = ClothLocalToWorld.Inverse();
     }
-    InOutEntry->DispatchData[Section].SkinType = ClothVertexBuffer ? 2 : (MorphVertexBuffer ? 1 : 0);
+    InOutEntry->DispatchData[Section].SkinType = ClothVertexBuffer ? 2 : (bMorph ? 1 : 0);
 
 
 	DoDispatch(RHICmdList, InOutEntry, Section, RevisionNumber);

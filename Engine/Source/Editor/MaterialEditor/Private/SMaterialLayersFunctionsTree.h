@@ -36,6 +36,7 @@ public:
 	class UDEditorParameterValue* LayerParameter;
 	class UMaterialEditorInstanceConstant* MaterialEditorInstance;
 	TSharedPtr<class SMaterialLayersFunctionsInstanceTree> NestedTree;
+	FSimpleDelegate OnLayerPropertyChanged;
 };
 
 class SMaterialLayersFunctionsInstanceTree : public STreeView<TSharedPtr<FStackSortedData>>
@@ -47,7 +48,7 @@ public:
 	{}
 
 	SLATE_ARGUMENT(UMaterialEditorInstanceConstant*, InMaterialEditorInstance)
-
+	SLATE_ARGUMENT(SMaterialLayersFunctionsInstanceWrapper*, InWrapper)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -81,6 +82,8 @@ public:
 
 	bool IsLayerVisible(int32 Index) const;
 
+	SMaterialLayersFunctionsInstanceWrapper* GetWrapper() { return Wrapper; }
+
 protected:
 
 	void ShowSubParameters(TSharedPtr<FStackSortedData> ParentParameter);
@@ -93,7 +96,8 @@ private:
 	/** The actual width of the right column.  The left column is 1-ColumnWidth */
 	float ColumnWidth;
 
-	
+	SMaterialLayersFunctionsInstanceWrapper* Wrapper;
+
 	TSharedPtr<class IPropertyRowGenerator> Generator;
 
 };

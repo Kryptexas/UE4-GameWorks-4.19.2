@@ -13,6 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "DataTableEditorUtils"
 
+const FString FDataTableEditorUtils::VariableTypesTooltipDocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
+
 FDataTableEditorUtils::FDataTableEditorManager& FDataTableEditorUtils::FDataTableEditorManager::Get()
 {
 	static TSharedRef< FDataTableEditorManager > EditorManager(new FDataTableEditorManager());
@@ -276,6 +278,7 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 			CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
 			CachedColumnData->ColumnId = Prop->GetFName();
 			CachedColumnData->DisplayName = PropertyDisplayName;
+			CachedColumnData->Property = StructProps[Index];
 		}
 		else
 		{
@@ -364,6 +367,85 @@ bool FDataTableEditorUtils::IsValidTableStruct(UScriptStruct* Struct)
 	const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
 
 	return (bBasedOnTableRowBase || bUDStruct) && bValidStruct;
+}
+
+FText FDataTableEditorUtils::GetRowTypeInfoTooltipText(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr)
+{
+	if (ColumnHeaderDataPtr.IsValid())
+	{
+		const UProperty* Property = ColumnHeaderDataPtr->Property;
+		if (Property)
+		{
+			const UClass* PropertyClass = Property->GetClass();
+			const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+			if (StructProp)
+			{
+				FString TypeName = FName::NameToDisplayString(Property->GetCPPType(), Property->IsA<UBoolProperty>());
+				if (TypeName.Len())
+				{
+					// If type name starts with F and another capital letter, assume standard naming and remove F in the string shown to the user
+					if (TypeName.StartsWith("F", ESearchCase::CaseSensitive) && TypeName.Len() > 1 && FChar::IsUpper(TypeName.GetCharArray()[1]))
+					{
+						TypeName.RemoveFromStart("F");
+					}
+					return FText::FromString(TypeName);
+				}
+			}
+			if (PropertyClass)
+			{
+				return FText::FromString(PropertyClass->GetDescription());
+			}
+			
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
+FString FDataTableEditorUtils::GetRowTypeTooltipDocExcerptName(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr)
+{
+	if (ColumnHeaderDataPtr.IsValid())
+	{
+		const UProperty* Property = ColumnHeaderDataPtr->Property;
+		if (Property)
+		{
+			const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+			if (StructProp)
+			{
+				if (StructProp->Struct == TBaseStructure<FSoftObjectPath>::Get())
+				{
+					return "SoftObject";
+				}
+				if (StructProp->Struct == TBaseStructure<FSoftClassPath>::Get())
+				{
+					return "SoftClass";
+				}
+				FString TypeName = FName::NameToDisplayString(Property->GetCPPType(), Property->IsA<UBoolProperty>());
+				if (TypeName.Len())
+				{
+					// If type name starts with F and another capital letter, assume standard naming and remove F to match the doc excerpt name
+					if (TypeName.StartsWith("F", ESearchCase::CaseSensitive) && TypeName.Len() > 1 && FChar::IsUpper(TypeName.GetCharArray()[1]))
+					{
+						TypeName.RemoveFromStart("F");
+					}
+					return TypeName;
+				}
+			}
+			const UClass* PropertyClass = Property->GetClass();
+			if (PropertyClass)
+			{
+				if (PropertyClass == UStrProperty::StaticClass())
+				{
+					return "String";
+				}
+				FString PropertyClassName = PropertyClass->GetName();
+				PropertyClassName.RemoveFromEnd("Property");
+				return PropertyClassName;
+			}
+		}
+	}
+
+	return "";
 }
 
 #undef LOCTEXT_NAMESPACE

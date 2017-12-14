@@ -1033,6 +1033,9 @@ private:
 	*/
 	FViewInfo* FindViewForShadow(FSceneRenderer* SceneRenderer) const;
 
+	/** Will return if we should draw the static mesh for the shadow, and will perform lazy init of primitive if it was'nt visible */
+	bool ShouldDrawStaticMeshes(FViewInfo& InCurrentView, bool bInCustomDataRelevance, FPrimitiveSceneInfo* InPrimitiveSceneInfo);
+
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view
 	*/

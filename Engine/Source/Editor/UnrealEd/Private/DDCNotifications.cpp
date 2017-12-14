@@ -26,9 +26,9 @@ FDDCNotifications::FDDCNotifications() :
 	// If preference is enabled and we're not using a shared DDC
 	if (GetDefault<UEditorPerformanceSettings>()->bEnableSharedDDCPerformanceNotifications && !GetDerivedDataCacheRef().GetUsingSharedDDC())
 	{
-		// If we're a perforce build, or using the perforce source control provider
-		bSubscribe = FEngineBuildSettings::IsPerforceBuild() ||
-		ISourceControlModule::Get().GetProvider().GetName() == FName(TEXT("Perforce"));		 
+		// If we're a perforce build, or using the perforce source control provider and not an internal build
+		bSubscribe = !FEngineBuildSettings::IsInternalBuild() &&
+			(FEngineBuildSettings::IsPerforceBuild() || ISourceControlModule::Get().GetProvider().GetName() == FName(TEXT("Perforce")));
 	}
 
 	if (bSubscribe)

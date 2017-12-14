@@ -33,11 +33,7 @@ UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& Obj
 
 void UEdGraph_ReferenceViewer::BeginDestroy()
 {
-	if ( AssetThumbnailPool.IsValid() )
-	{
-		AssetThumbnailPool->ReleaseResources();
-		AssetThumbnailPool.Reset();
-	}
+	AssetThumbnailPool.Reset();
 
 	Super::BeginDestroy();
 }

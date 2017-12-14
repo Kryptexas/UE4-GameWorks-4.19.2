@@ -4447,7 +4447,7 @@ void FKismetCompilerContext::SetCanEverTick() const
 					MessageLog.Warning(*ReceiveTickEventWarning, FindLocalEntryPoint(ReceiveTickEvent));
 
 					const FString ReceiveTickEventRemedies = FString::Printf(
-						*LOCTEXT("RecieveTick_CanNeverTickRemedies", "You can solve this in several ways:\n  1) Consider using a Timer instead of Tick.\n  2) Add meta=(%s) to the parent C++ class\n  3) Reparent the Blueprint to AActor or UActorComponent, which can always tick.").ToString(),
+						*LOCTEXT("ReceiveTick_CanNeverTickRemedies", "You can solve this in several ways:\n  1) Consider using a Timer instead of Tick.\n  2) Add meta=(%s) to the parent C++ class\n  3) Reparent the Blueprint to AActor or UActorComponent, which can always tick.").ToString(),
 						*FBlueprintMetadata::MD_ChildCanTick.ToString());
 					MessageLog.Warning(*ReceiveTickEventRemedies);
 				}

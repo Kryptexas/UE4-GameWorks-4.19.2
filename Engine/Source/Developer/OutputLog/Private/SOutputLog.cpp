@@ -1285,7 +1285,7 @@ void SOutputLog::MakeSelectCategoriesSubMenu(FMenuBuilder& MenuBuilder)
 		{
 			MenuBuilder.AddMenuEntry(
 				FText::AsCultureInvariant(Category.ToString()),
-				FText::Format(LOCTEXT("Category_Tooltip", "Filter the Output Log to show Category: %s"), FText::AsCultureInvariant(Category.ToString())),
+				FText::Format(LOCTEXT("Category_Tooltip", "Filter the Output Log to show category: {0}"), FText::AsCultureInvariant(Category.ToString())),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::CategoriesSingle_Execute, Category),
 				FCanExecuteAction::CreateLambda([] { return true; }),

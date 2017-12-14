@@ -7,6 +7,8 @@
 #include "Materials/Material.h"
 #include "PackageName.h"
 #include "Package.h"
+#include "USDAssetImportData.h"
+#include "Factories/Factory.h"
 
 #define LOCTEXT_NAMESPACE "USDImportPlugin"
 
@@ -23,12 +25,26 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 	const bool bFlip = FinalTransform.GetDeterminant() > 0.0f;
 
-
 	int32 NumLODs = PrimToImport.NumLODs;
-	//int32 NumLODs = FMath::Max(Prim->GetNumLODs(), 1);
 
+	UUSDImportOptions* ImportOptions = nullptr;
 	UStaticMesh* NewMesh = USDUtils::FindOrCreateObject<UStaticMesh>(ImportContext.Parent, ImportContext.ObjectName, ImportContext.ImportObjectFlags);
 	check(NewMesh);
+	UUSDAssetImportData* ImportData = Cast<UUSDAssetImportData>(NewMesh->AssetImportData);
+	if (!ImportData)
+	{
+		ImportData = NewObject<UUSDAssetImportData>(NewMesh);
+		ImportData->ImportOptions = DuplicateObject<UUSDImportOptions>(ImportContext.ImportOptions, ImportData);
+		NewMesh->AssetImportData = ImportData;
+	}
+	ImportOptions = CastChecked<UUSDAssetImportData>(NewMesh->AssetImportData)->ImportOptions;
+	check(ImportOptions);
+
+	FString CurrentFilename = UFactory::GetCurrentFilename();
+	if (!CurrentFilename.IsEmpty())
+	{
+		NewMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
+	}
 
 	NewMesh->StaticMaterials.Empty();
 
@@ -129,7 +145,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 									FString MaterialPath = MaterialName;
 
-									ExistingMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(MaterialPath, BasePackageName, ImportContext.ImportOptions->MaterialSearchLocation, Error);
+									ExistingMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(MaterialPath, BasePackageName, ImportOptions->MaterialSearchLocation, Error);
 
 									if (!Error.IsEmpty())
 									{
@@ -142,7 +158,6 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 								int32 GlobalIndex = NewMesh->StaticMaterials.AddUnique(ExistingMaterial ? ExistingMaterial : UMaterial::GetDefaultMaterial(MD_Surface));
 								NewMesh->SectionInfoMap.Set(LODIndex, GlobalIndex, FMeshSectionInfo(GlobalIndex));
-								NewMesh->OriginalSectionInfoMap.Set(LODIndex, GlobalIndex, NewMesh->SectionInfoMap.Get(LODIndex, GlobalIndex));
 
 								LocalToGlobalMaterialMap[LocalMaterialIndex] = GlobalIndex;
 							}
@@ -265,11 +280,13 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 				}
 				else
 				{
-					ImportContext.AddErrorMessage(EMessageSeverity::Error,
-						FText::Format(LOCTEXT("StaticMeshesMustBeTriangulated", "{0} is not a triangle mesh. Static meshes must be triangulated to import"), FText::FromString(ImportContext.ObjectName)));
+					ImportContext.AddErrorMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("StaticMeshesMustBeTriangulated", "{0} is not a triangle mesh. Static meshes must be triangulated to import"), FText::FromString(ImportContext.ObjectName)));
 
-					NewMesh->ClearFlags(RF_Standalone);
-					NewMesh = nullptr;
+					if(NewMesh)
+					{
+						NewMesh->ClearFlags(RF_Standalone);
+						NewMesh = nullptr;
+					}
 					break;
 				}
 			}
@@ -288,21 +305,29 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 			RawTriangles.CompactMaterialIndices();
 
-			check(RawTriangles.IsValidOrFixable());
+			if(RawTriangles.IsValidOrFixable())
+			{
 
-			SrcModel.RawMeshBulkData->SaveRawMesh(RawTriangles);
+				SrcModel.RawMeshBulkData->SaveRawMesh(RawTriangles);
 
-			// Recompute normals if we didnt import any
-			SrcModel.BuildSettings.bRecomputeNormals = RawTriangles.WedgeTangentZ.Num() == 0;
+				// Recompute normals if we didnt import any
+				SrcModel.BuildSettings.bRecomputeNormals = RawTriangles.WedgeTangentZ.Num() == 0;
 
-			// Always recompute tangents as USD files do not contain tangent information
-			SrcModel.BuildSettings.bRecomputeTangents = true;
+				// Always recompute tangents as USD files do not contain tangent information
+				SrcModel.BuildSettings.bRecomputeTangents = true;
 
-			// Use mikktSpace if we have normals
-			SrcModel.BuildSettings.bUseMikkTSpace = RawTriangles.WedgeTangentZ.Num() != 0;
-			SrcModel.BuildSettings.bGenerateLightmapUVs = true;
-			SrcModel.BuildSettings.bBuildAdjacencyBuffer = false;
-			SrcModel.BuildSettings.bBuildReversedIndexBuffer = false;
+				// Use mikktSpace if we have normals
+				SrcModel.BuildSettings.bUseMikkTSpace = RawTriangles.WedgeTangentZ.Num() != 0;
+				SrcModel.BuildSettings.bGenerateLightmapUVs = true;
+				SrcModel.BuildSettings.bBuildAdjacencyBuffer = false;
+				SrcModel.BuildSettings.bBuildReversedIndexBuffer = false;
+			}
+			else
+			{
+				ImportContext.AddErrorMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("StaticMeshesNoValidSourceData","'{0}' does not have valid source data, mesh will not be imported"), FText::FromString(NewMesh->GetName())));
+				NewMesh->ClearFlags(RF_Standalone);
+				NewMesh = nullptr;
+			}
 		}
 
 	}

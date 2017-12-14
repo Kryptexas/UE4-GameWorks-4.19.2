@@ -35,9 +35,9 @@ bool FLegacyInternationalization::IsCultureRemapped(const FString& Name, FString
 	return false;
 }
 
-bool FLegacyInternationalization::IsCultureDisabled(const FString& Name)
+bool FLegacyInternationalization::IsCultureAllowed(const FString& Name)
 {
-	return false;
+	return true;
 }
 
 void FLegacyInternationalization::HandleLanguageChanged(const FString& Name)

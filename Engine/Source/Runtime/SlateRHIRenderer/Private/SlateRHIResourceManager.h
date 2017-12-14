@@ -31,21 +31,23 @@ class FSceneInterface;
 struct FMaterialKey
 {
 	TWeakObjectPtr<const UMaterialInterface> Material;
+	const FVector2D ImageSize;
 	int32 MaskKey;
 
-	FMaterialKey(const UMaterialInterface* InMaterial, int32 InMaskKey)
+	FMaterialKey(const UMaterialInterface* InMaterial, const FVector2D& InImageSize, int32 InMaskKey)
 		: Material(InMaterial)
+		, ImageSize(InImageSize)
 		, MaskKey(InMaskKey)
 	{}
 
 	friend bool operator==(const FMaterialKey& Lhs, const FMaterialKey& Rhs)
 	{
-		return Lhs.Material == Rhs.Material && Lhs.MaskKey == Rhs.MaskKey;
+		return Lhs.Material == Rhs.Material && Lhs.ImageSize == Rhs.ImageSize && Lhs.MaskKey == Rhs.MaskKey;
 	}
 
 	friend uint32 GetTypeHash(const FMaterialKey& Key)
 	{
-		return HashCombine(GetTypeHash(Key.Material), Key.MaskKey);
+		return HashCombine(GetTypeHash(Key.Material), HashCombine(GetTypeHash(Key.ImageSize), Key.MaskKey));
 	}
 };
 
@@ -297,7 +299,7 @@ private:
 	 *
 	 * @param InMaterial	The material object
 	 */
-	FSlateMaterialResource* GetMaterialResource( const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask, int32 InMaskKey );
+	FSlateMaterialResource* GetMaterialResource( const UObject* InMaterial, const FSlateBrush* InBrush, FSlateShaderResource* TextureMask, int32 InMaskKey );
 
 	/**
 	 * Called when the application exists before the UObject system shuts down so we can free object resources

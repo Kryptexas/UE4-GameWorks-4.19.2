@@ -21,6 +21,7 @@ class FICUBreakIteratorManager
 public:
 	static void Create();
 	static void Destroy();
+	static bool IsInitialized();
 	static FICUBreakIteratorManager& Get();
 
 	TWeakPtr<icu::BreakIterator> CreateCharacterBoundaryIterator();

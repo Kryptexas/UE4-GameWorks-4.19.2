@@ -52,7 +52,7 @@ class FMyBlueprintCommands : public TCommands<FMyBlueprintCommands>
 public:
 	/** Constructor */
 	FMyBlueprintCommands() 
-		: TCommands<FMyBlueprintCommands>("MyBlueprint", NSLOCTEXT("Contexts", "My Blueprint", "My Blueprint"), NAME_None, FEditorStyle::GetStyleSetName())
+		: TCommands<FMyBlueprintCommands>(TEXT("MyBlueprint"), NSLOCTEXT("Contexts", "My Blueprint", "My Blueprint"), NAME_None, FEditorStyle::GetStyleSetName())
 	{
 	}
 

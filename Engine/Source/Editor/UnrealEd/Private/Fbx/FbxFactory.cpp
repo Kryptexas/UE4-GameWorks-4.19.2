@@ -569,7 +569,6 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 								if (bImportSucceeded)
 								{
-									BaseSkeletalMesh->LODInfo[SuccessfulLodIndex].ScreenSize = 1.0f / (MaxLODLevel * SuccessfulLodIndex);
 									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									SuccessfulLodIndex++;
 								}
@@ -607,7 +606,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							UnFbx::FFbxImporter::UpdateSkeletalMeshImportData(SkeletalMesh, ImportUI->SkeletalMeshImportData, INDEX_NONE, nullptr, nullptr);
 							
 							//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
-							if (SkeletalMesh->MorphTargets.Num() > 0)
+							if (SkeletalMesh && SkeletalMesh->MorphTargets.Num() > 0)
 							{
 								SkeletalMesh->ReleaseResources();
 								//Rebuild the resources with a post edit change since we have added some morph targets

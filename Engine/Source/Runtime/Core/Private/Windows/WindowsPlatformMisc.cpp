@@ -891,6 +891,11 @@ bool FWindowsPlatformMisc::IsDebuggerPresent()
 }
 #endif // UE_BUILD_SHIPPING
 
+bool FWindowsPlatformMisc::IsRemoteSession()
+{
+	return ::GetSystemMetrics(SM_REMOTESESSION) != 0;
+}
+
 void FWindowsPlatformMisc::SetUTF8Output()
 {
 	CA_SUPPRESS(6031)

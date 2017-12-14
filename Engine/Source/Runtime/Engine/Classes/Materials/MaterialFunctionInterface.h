@@ -85,7 +85,7 @@ public:
 		PURE_VIRTUAL(UMaterialFunctionInterface::AppendReferencedTextures,);
 
 #if WITH_EDITOR
-	ENGINE_API virtual UMaterial* GetPreviewMaterial()
+	ENGINE_API virtual UMaterialInterface* GetPreviewMaterial()
 		PURE_VIRTUAL(UMaterialFunctionInterface::GetPreviewMaterial,return nullptr;);
 
 	virtual void UpdateInputOutputTypes()

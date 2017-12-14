@@ -372,6 +372,8 @@ namespace GLFuncPointers
 	ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 };
 
+#undef DECLARE_GL_ENTRYPOINTS
+
 // this using is needed since the rest of code uses plain GL names
 using namespace GLFuncPointers;
 

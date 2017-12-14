@@ -991,7 +991,7 @@ void FXmppMultiUserChatStrophe::OnReceiveRoomConfigSuccess(FXmppRoomId&& RoomId)
 				break;
 			}
 
-			UE_LOG(LogXmpp, Verbose, TEXT("MUC: OnReceiveRoomConfigSuccess Recieved success for room %s"), *RoomId);
+			UE_LOG(LogXmpp, Verbose, TEXT("MUC: OnReceiveRoomConfigSuccess Received success for room %s"), *RoomId);
 		}
 		else
 		{

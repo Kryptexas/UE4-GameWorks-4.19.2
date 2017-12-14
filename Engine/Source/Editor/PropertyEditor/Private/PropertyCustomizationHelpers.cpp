@@ -1682,13 +1682,6 @@ void FSectionList::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 		.Text(LOCTEXT("SectionHeaderTitle", "Sections"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	];
-	if (SectionListDelegates.OnGenerateLodComboBox.IsBound())
-	{
-		NodeRow.ValueContent()
-		[
-			SectionListDelegates.OnGenerateLodComboBox.Execute(SectionsLodIndex)
-		];
-	}
 }
 
 void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)

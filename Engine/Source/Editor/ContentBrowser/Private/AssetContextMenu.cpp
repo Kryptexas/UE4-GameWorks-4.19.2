@@ -7,6 +7,7 @@
 #include "Textures/SlateIcon.h"
 #include "Engine/Blueprint.h"
 #include "Misc/MessageDialog.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "HAL/FileManager.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/UObjectIterator.h"
@@ -57,6 +58,7 @@
 #include "EditorClassUtils.h"
 
 #include "Internationalization/Culture.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -240,24 +242,6 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	int32 NumAssetItems, NumClassItems;
 	ContentBrowserUtils::CountItemTypes(SelectedAssets, NumAssetItems, NumClassItems);
 
-	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-
-	// Can any of the selected assets be localized?
-	bool bAnyLocalizableAssetsSelected = false;
-	for (const FAssetData& Asset : SelectedAssets)
-	{
-		TSharedPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Asset.GetClass()).Pin();
-		if (AssetTypeActions.IsValid())
-		{
-			bAnyLocalizableAssetsSelected = AssetTypeActions->CanLocalize();
-		}
-
-		if (bAnyLocalizableAssetsSelected)
-		{
-			break;
-		}
-	}
-
 	MenuBuilder.BeginSection("CommonAssetActions", LOCTEXT("CommonAssetActionsMenuHeading", "Common"));
 	{
 		// Edit
@@ -314,12 +298,12 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 				);
 
-			if (bAnyLocalizableAssetsSelected && NumClassItems == 0)
+			if (NumClassItems == 0)
 			{
 				// Asset Localization sub-menu
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("LocalizationSubMenuLabel", "Asset Localization"),
-					LOCTEXT("LocalizationSubMenuToolTip", "View or create localized variants of this asset"),
+					LOCTEXT("LocalizationSubMenuToolTip", "Manage the localization of this asset"),
 					FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetLocalizationSubMenu),
 					FUIAction(),
 					NAME_None,
@@ -376,7 +360,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 
 	// Capture Thumbnail
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	if (SelectedAssets.Num() == 1 && AssetToolsModule.Get().AssetUsesGenericThumbnail(SelectedAssets[0]))
+	if (SelectedAssets.Num() == 1)
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CaptureThumbnail", "Capture Thumbnail"),
@@ -707,6 +691,35 @@ void FAssetContextMenu::MakeAssetLocalizationSubMenu(FMenuBuilder& MenuBuilder)
 			}
 		}
 	}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	// Add the Localization ID options
+	{
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalizationIdHeading", "Localization ID"));
+		{
+			// Show the localization ID if we have a single asset selected
+			if (SelectedAssets.Num() == 1)
+			{
+				const FString LocalizationId = TextNamespaceUtil::GetPackageNamespace(SelectedAssets[0].GetAsset());
+				MenuBuilder.AddMenuEntry(
+					FText::Format(LOCTEXT("CopyLocalizationIdFmt", "ID: {0}"), LocalizationId.IsEmpty() ? LOCTEXT("EmptyLocalizationId", "None") : FText::FromString(LocalizationId)),
+					LOCTEXT("CopyLocalizationIdTooltip", "Copy the localization ID to the clipboard."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteCopyTextToClipboard, LocalizationId))
+					);
+			}
+
+			// Always show the reset localization ID option
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ResetLocalizationId", "Reset Localization ID"),
+				LOCTEXT("ResetLocalizationIdTooltip", "Reset the localization ID. Note: This will re-key all the text within this asset."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteResetLocalizationId))
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	// If we found source assets for localized assets, then we can show the Source Asset options
 	if (SourceAssetsState.CurrentAssets.Num() > 0)
@@ -2031,6 +2044,33 @@ void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FSt
 void FAssetContextMenu::ExecuteCopyReference()
 {
 	ContentBrowserUtils::CopyAssetReferencesToClipboard(SelectedAssets);
+}
+
+void FAssetContextMenu::ExecuteCopyTextToClipboard(FString InText)
+{
+	FPlatformApplicationMisc::ClipboardCopy(*InText);
+}
+
+void FAssetContextMenu::ExecuteResetLocalizationId()
+{
+#if USE_STABLE_LOCALIZATION_KEYS
+	const FText ResetLocalizationIdMsg = LOCTEXT("ResetLocalizationIdMsg", "This will reset the localization ID of the selected assets and cause all text within them to lose their existing translations.\n\nAre you sure you want to do this?");
+	if (FMessageDialog::Open(EAppMsgType::YesNo, ResetLocalizationIdMsg) != EAppReturnType::Yes)
+	{
+		return;
+	}
+
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
+		{
+			Asset->Modify();
+			TextNamespaceUtil::ClearPackageNamespace(Asset);
+			TextNamespaceUtil::EnsurePackageNamespace(Asset);
+		}
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 }
 
 void FAssetContextMenu::ExecuteExport()

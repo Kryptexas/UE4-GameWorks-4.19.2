@@ -195,6 +195,7 @@ void FSlateEditorStyle::FStyle::Initialize()
 	SetupSourceControlStyles();
 	SetupAutomationStyles();
 	SetupUMGEditorStyles();
+	SetupMyBlueprintStyles();
 
 //	LogUnusedBrushResources();
 }
@@ -1222,7 +1223,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Session Browser tab
 	{
-		Set("SessionBrowser.SessionLocked", new IMAGE_BRUSH( "Icons/icon_levels_Locked_hi_16px", Icon16x16 ) );
+		Set("SessionBrowser.SessionLocked", new IMAGE_BRUSH( "Icons/icon_locked_highlight_16px", Icon16x16 ) );
 		Set("SessionBrowser.StatusRunning", new IMAGE_BRUSH( "Icons/icon_status_green_16x", Icon16x16 ) );
 		Set("SessionBrowser.StatusTimedOut", new IMAGE_BRUSH( "Icons/icon_status_grey_16x", Icon16x16 ) );
 		Set("SessionBrowser.Terminate", new IMAGE_BRUSH( "Icons/icon_DevicePowerOff_40x", Icon20x20 ) );
@@ -1365,8 +1366,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Level.NotVisibleHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_invisible_hi_16px", Icon16x16 ) );
 		Set( "Level.LightingScenarioIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LightingScenario_16px", Icon16x16 ) );
 		Set( "Level.LightingScenarioNotIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LightingScenarioNot_16px", Icon16x16 ) );
-		Set( "Level.LockedIcon16x", new IMAGE_BRUSH("Icons/icon_locked_16px", Icon16x16) );
-		Set( "Level.LockedHighlightIcon16x", new IMAGE_BRUSH("Icons/icon_locked_highlight_16px", Icon16x16) );
+		Set( "Level.LockedIcon16x", new IMAGE_BRUSH( "Icons/icon_locked_16px", Icon16x16 ) );
+		Set( "Level.LockedHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_locked_highlight_16px", Icon16x16 ) );
 		Set( "Level.UnlockedIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_unlocked_16px", Icon16x16 ) );
 		Set( "Level.UnlockedHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_unlocked_hi_16px", Icon16x16 ) );
 		Set( "Level.ReadOnlyLockedIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LockedReadOnly_16px", Icon16x16 ) );
@@ -6308,7 +6309,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		Set( "ContentBrowser.AssetActions.Edit", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_16x", Icon16x16 ) );
 		Set( "ContentBrowser.AssetActions.Delete", new IMAGE_BRUSH( "Icons/icon_delete_16px", Icon16x16, FLinearColor( 0.4f, 0.5f, 0.7f, 1.0f ) ) );
 		//Set( "ContentBrowser.AssetActions.Delete", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_Delete_16x", Icon16x16) );
-		Set( "ContentBrowser.AssetActions.Rename", new IMAGE_BRUSH( "Icons/icon_Asset_Rename_16x", Icon16x16) );
+		Set( "ContentBrowser.AssetActions.Rename", new IMAGE_BRUSH( "Icons/Icon_Asset_Rename_16x", Icon16x16) );
 		Set( "ContentBrowser.AssetActions.Duplicate", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_Duplicate_16x", Icon16x16) );
 		Set( "ContentBrowser.AssetActions.OpenSourceLocation", new IMAGE_BRUSH( "Icons/icon_Asset_Open_Source_Location_16x", Icon16x16) );
 		Set( "ContentBrowser.AssetActions.OpenInExternalEditor", new IMAGE_BRUSH( "Icons/icon_Asset_Open_In_External_Editor_16x", Icon16x16) );
@@ -6389,6 +6390,9 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 
 		Set( "AssetDiscoveryIndicator.MainStatusFont", DEFAULT_FONT( "Regular", 12 ) );
 		Set( "AssetDiscoveryIndicator.SubStatusFont", DEFAULT_FONT( "Regular", 9 ) );
+
+		Set( "ContentBrowser.SaveAllCurrentFolder", new IMAGE_BRUSH("Icons/icon_file_saveall_16px", Icon16x16) );
+		Set( "ContentBrowser.ResaveAllCurrentFolder", new IMAGE_BRUSH("Icons/icon_file_saveall_16px", Icon16x16) );
 	}
 #endif // #if WITH_EDITOR
 }
@@ -7660,6 +7664,11 @@ void FSlateEditorStyle::FStyle::SetupLocalizationDashboardStyles()
 		.SetFont( DEFAULT_FONT( "Regular", 8 ) )
 		.SetShadowOffset( FVector2D::ZeroVector )
 		);
+}
+
+void FSlateEditorStyle::FStyle::SetupMyBlueprintStyles()
+{
+	Set("MyBlueprint.DeleteEntry", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Delete_40x", Icon16x16));
 }
 
 #undef IMAGE_BRUSH

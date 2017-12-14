@@ -267,7 +267,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 	if (MacApplication)
 	{
-		MacApplication->DeferEvent(Notification);
+		GameThreadCall(^{
+			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here
+			{
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowActivationChanged(Window.ToSharedRef(), EWindowActivation::Activate);
+				}
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode, UE4CloseEventMode ], true);
 	}
 }
 
@@ -279,7 +288,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 	if (MacApplication)
 	{
-		MacApplication->DeferEvent(Notification);
+		GameThreadCall(^{
+			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here
+			{
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowActivationChanged(Window.ToSharedRef(), EWindowActivation::Deactivate);
+				}
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode, UE4CloseEventMode ], true);
 	}
 }
 

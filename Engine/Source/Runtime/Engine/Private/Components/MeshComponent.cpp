@@ -313,22 +313,19 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 	const UWorld* World = GetWorld();
 	// to set the default value for scalar params, we use a FMaterialResource, which means the world has to be rendering
 	const bool bHasMaterialResource = (World && World->WorldType != EWorldType::Inactive);
-	const ERHIFeatureLevel::Type FeatureLevel = bHasMaterialResource ? World->FeatureLevel : ERHIFeatureLevel::Num;
 	
 	// Retrieve all used materials
 	TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
 	int32 MaterialIndex = 0;
 	for (UMaterialInterface* MaterialInterface : MaterialInterfaces)
 	{
-		// If available retrieve material instance
-		UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
-		if (Material)
+		if (MaterialInterface)
 		{
 			TArray<FMaterialParameterInfo> OutParameterInfo;
 			TArray<FGuid> OutParameterIds;
 
 			// Retrieve all scalar parameter names from the material
-			Material->GetAllScalarParameterInfo(OutParameterInfo, OutParameterIds);
+			MaterialInterface->GetAllScalarParameterInfo(OutParameterInfo, OutParameterIds);
 			for (FMaterialParameterInfo& ParameterInfo : OutParameterInfo)
 			{
 				// Add or retrieve entry for this parameter name
@@ -340,7 +337,7 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 				if (bHasMaterialResource)
 				{
 					// store the default value
-					ParameterCache.ScalarParameterDefaultValue = Material->GetScalarParameterDefault(ParameterInfo.Name, FeatureLevel);
+					 MaterialInterface->GetScalarParameterDefaultValue(ParameterInfo, ParameterCache.ScalarParameterDefaultValue);
 				}
 			}
 
@@ -349,7 +346,7 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 			OutParameterIds.Reset();
 
 			// Retrieve all vector parameter names from the material
-			Material->GetAllVectorParameterInfo(OutParameterInfo, OutParameterIds);
+			MaterialInterface->GetAllVectorParameterInfo(OutParameterInfo, OutParameterIds);
 			for (FMaterialParameterInfo& ParameterInfo : OutParameterInfo)
 			{
 				// Add or retrieve entry for this parameter name

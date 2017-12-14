@@ -10,7 +10,7 @@ ParticleVertexFactory.h: Particle vertex factory definitions.
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "NiagaraVertexFactory.h"
-#include "NiagaraDataSet.h"
+#include "../../Niagara/Classes/NiagaraDataSet.h"
 #include "SceneView.h"
 #include "Components.h"
 #include "SceneManagement.h"

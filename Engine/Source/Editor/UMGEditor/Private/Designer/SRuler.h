@@ -72,8 +72,12 @@ protected:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 private:
+	// forward declared as class members to prevent name collision with similar types defined in other units
+	struct FDrawTickArgs;
+	struct FScrubRangeToScreen;
+
 	/** Draws the ticks on the track */
-	int32 DrawTicks(FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs) const;
+	int32 DrawTicks(FSlateWindowElementList& OutDrawElements, const FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs) const;
 
 private:
 	/** The orientation of the ruler */

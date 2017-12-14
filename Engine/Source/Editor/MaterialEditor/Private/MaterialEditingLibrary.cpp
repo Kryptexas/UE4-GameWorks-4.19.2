@@ -567,7 +567,7 @@ void UMaterialEditingLibrary::DeleteMaterialExpressionInFunction(UMaterialFuncti
 }
 
 
-void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* MaterialFunction, UMaterial* PreviewMaterial)
+void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunctionInterface* MaterialFunction, UMaterial* PreviewMaterial)
 {
 	if (MaterialFunction)
 	{
@@ -584,7 +584,10 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 			for (TObjectIterator<UMaterialFunctionInstance> It; It; ++It)
 			{
 				UMaterialFunctionInstance* FunctionInstance = *It;
-				if (FunctionInstance->GetBaseFunction() == MaterialFunction)
+
+				TArray<UMaterialFunctionInterface*> Functions;
+				FunctionInstance->GetDependentFunctions(Functions);
+				if (Functions.Contains(MaterialFunction))
 				{
 					FunctionInstance->UpdateParameterSet();
 					FunctionInstance->MarkPackageDirty();
@@ -608,14 +611,11 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 					}
 					else
 					{
-						for (const FMaterialFunctionInfo& FunctionInfo : CurrentMaterial->MaterialFunctionInfos)
+						TArray<UMaterialFunctionInterface*> Functions;
+						CurrentMaterial->GetDependentFunctions(Functions);
+						if (Functions.Contains(MaterialFunction))
 						{
-							UMaterialFunctionInstance* FunctionInstance = Cast<UMaterialFunctionInstance>(FunctionInfo.Function);
-							if (FunctionInfo.Function == MaterialFunction || (FunctionInstance && FunctionInstance->GetBaseFunction() == MaterialFunction))
-							{
-								bRecompile = true;
-								break;
-							}
+							bRecompile = true;
 						}
 					}
 
@@ -655,8 +655,11 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 			}
 		}
 
-		// update the world's viewports
-		UMaterialEditingLibrary::RebuildMaterialInstanceEditors(MaterialFunction);
+		// update the world's viewports	
+		UMaterialFunctionInstance* FunctionAsInstance = Cast<UMaterialFunctionInstance>(MaterialFunction);
+		UMaterialFunction* BaseFunction = Cast<UMaterialFunction>(FunctionAsInstance ? FunctionAsInstance->GetBaseFunction() : MaterialFunction);
+
+		UMaterialEditingLibrary::RebuildMaterialInstanceEditors(BaseFunction);
 		FEditorDelegates::RefreshEditor.Broadcast();
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 	}

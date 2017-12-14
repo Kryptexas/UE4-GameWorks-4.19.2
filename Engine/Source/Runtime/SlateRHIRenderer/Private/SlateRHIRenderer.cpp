@@ -926,8 +926,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 void FSlateRHIRenderer::DrawWindows( FSlateDrawBuffer& WindowDrawBuffer )
 {
-		DrawWindows_Private(WindowDrawBuffer);
-	}
+	DrawWindows_Private(WindowDrawBuffer);
+}
 
 
 void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
@@ -1039,11 +1039,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 #else
 					Params.bClear = false;
 #endif
-
-					// NOTE: We pass a raw pointer to the SWindow so that we don't have to use a thread-safe weak pointer in
-					// the FSlateWindowElementList structure
-					Params.SlateWindow = Window;
-
 					// Skip the actual draw if we're in a headless execution environment
 					if (GIsClient && !IsRunningCommandlet() && !GUsingNullRHI)
 					{
@@ -1055,7 +1050,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						);
 					}
 
-					SlateWindowRendered.Broadcast( *Params.SlateWindow, &ViewInfo->ViewportRHI );
+					SlateWindowRendered.Broadcast( *Window, &ViewInfo->ViewportRHI );
 
 					if ( bTakingAScreenShot )
 					{

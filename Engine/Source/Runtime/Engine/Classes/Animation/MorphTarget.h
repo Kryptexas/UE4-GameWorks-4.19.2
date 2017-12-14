@@ -6,6 +6,8 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "PackedNormal.h"
+#include "UObject/EditorObjectVersion.h"
+
 #include "MorphTarget.generated.h"
 
 class USkeletalMesh;
@@ -63,6 +65,9 @@ struct FMorphTargetLODModel
 	/** number of original verts in the base mesh */
 	int32 NumBaseMeshVerts;
 	
+	/** list of sections this morph is used */
+	TArray<int32> SectionIndices;
+
 	/** Get Resource Size */
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
 
@@ -73,7 +78,16 @@ struct FMorphTargetLODModel
 	/** pipe operator */
 	friend FArchive& operator<<(FArchive& Ar, FMorphTargetLODModel& M)
 	{
-		Ar << M.Vertices << M.NumBaseMeshVerts;
+		Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
+		if (Ar.IsLoading() && Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedMorphTargetSectionIndices)
+		{
+			Ar << M.Vertices << M.NumBaseMeshVerts;
+		}
+		else
+		{
+			Ar << M.Vertices << M.NumBaseMeshVerts << M.SectionIndices;
+		}
 		return Ar;
 	}
 };
@@ -104,7 +118,7 @@ public:
 
 #if WITH_EDITOR
 	/** Populates the given morph target LOD model with the provided deltas */
-	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal = false);
+	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const TArray<struct FSkelMeshSection>& Sections, const bool bCompareNormal = false);
 #endif // WITH_EDITOR
 
 public:
@@ -113,6 +127,6 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
-
+	virtual void PostLoad() override;
 
 };

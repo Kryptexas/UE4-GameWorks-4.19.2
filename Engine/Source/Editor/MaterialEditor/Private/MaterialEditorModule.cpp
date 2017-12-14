@@ -8,6 +8,7 @@
 #include "MaterialInstanceEditor.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialFunctionInstance.h"
+#include "Settings/EditorExperimentalSettings.h"
 
 const FName MaterialEditorAppIdentifier = FName(TEXT("MaterialEditorApp"));
 const FName MaterialInstanceEditorAppIdentifier = FName(TEXT("MaterialInstanceEditorApp"));
@@ -87,20 +88,12 @@ public:
 
 	virtual bool MaterialLayersEnabled()
 	{
-		return FMaterialEditorModule::bMaterialLayersEnabled;
+		return GetDefault<UEditorExperimentalSettings>()->bMaterialLayeringEnabled;
 	};
 
 	/** Gets the extensibility managers for outside entities to extend material editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() override { return ToolBarExtensibilityManager; }
-
-	static void ToggleLayers()
-	{
-		FMaterialEditorModule::bMaterialLayersEnabled = !FMaterialEditorModule::bMaterialLayersEnabled;
-	}
-
-
-	static bool bMaterialLayersEnabled;
 
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
@@ -109,10 +102,3 @@ private:
 };
 
 IMPLEMENT_MODULE( FMaterialEditorModule, MaterialEditor );
-
-bool FMaterialEditorModule::bMaterialLayersEnabled = true;
-
-namespace MatEd
-{
-	static FAutoConsoleCommand ToggleLayers(TEXT("MatEd.ToggleLayers"), TEXT("Toggles experimental Material Layers feature"), FConsoleCommandDelegate::CreateStatic(&FMaterialEditorModule::ToggleLayers));
-}

@@ -512,7 +512,7 @@ void FStaticMeshEditor::ExtendToolBar()
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FStaticMeshEditor* ThisEditor, TSharedPtr< class STextComboBox > LODLevelCombo)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FStaticMeshEditor* ThisEditor) 
 		{
 			ToolbarBuilder.BeginSection("Realtime");
 			{
@@ -561,12 +561,6 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().ResetCamera);
 			}
 			ToolbarBuilder.EndSection();
-	
-			ToolbarBuilder.BeginSection("LOD");
-			{
-				ToolbarBuilder.AddWidget(LODLevelCombo.ToSharedRef());
-			}
-			ToolbarBuilder.EndSection();
 
 			ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawAdditionalData);
 		}
@@ -582,7 +576,7 @@ void FStaticMeshEditor::ExtendToolBar()
 		"Asset",
 		EExtensionHook::After,
 		Viewport->GetCommandList(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, ThisEditor, LODLevelCombo )
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, ThisEditor) 
 		);
 	
 	AddToolbarExtender(ToolbarExtender);
@@ -599,17 +593,7 @@ void FStaticMeshEditor::BuildSubTools()
 
 	SAssignNew( ConvexDecomposition, SConvexDecomposition )
 		.StaticMeshEditorPtr(SharedThis(this));
-
-	LODLevelCombo = SNew(STextComboBox)
-		.OptionsSource(&LODLevels)
-		.OnSelectionChanged(this, &FStaticMeshEditor::LODLevelsSelectionChanged)
-		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() );
-
-	if(LODLevels.IsValidIndex(0))
-	{
-		LODLevelCombo->SetSelectedItem(LODLevels[0]);
-	}
-
+	
 	FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
 	AdvancedPreviewSettingsWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(Viewport->GetPreviewScene());
 }
@@ -1113,53 +1097,12 @@ void FStaticMeshEditor::RefreshTool()
 	bool bForceRefresh = true;
 	StaticMeshDetailsView->SetObject( StaticMesh, bForceRefresh );
 
-	RegenerateLODComboList();
 	RefreshViewport();
 }
 
 void FStaticMeshEditor::RefreshViewport()
 {
 	Viewport->RefreshViewport();
-}
-
-void FStaticMeshEditor::RegenerateLODComboList()
-{
-	if( StaticMesh->RenderData )
-	{
-		int32 OldLOD = GetCurrentLODLevel();
-
-		NumLODLevels = StaticMesh->RenderData->LODResources.Num();
-
-		// Fill out the LOD level combo.
-		LODLevels.Empty();
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
-		for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
-		{
-			LODLevels.Add( MakeShared<FString>( FText::Format( LOCTEXT("LODLevel_IDFmt", "LOD Level {0}"), LODLevelID ).ToString() ) );
-		}
-
-		if( LODLevelCombo.IsValid() )
-		{
-			LODLevelCombo->RefreshOptions();
-
-			if(LODLevels.IsValidIndex(OldLOD) && OldLOD < LODLevels.Num() )
-			{
-				LODLevelCombo->SetSelectedItem(LODLevels[OldLOD]);
-			}
-			else
-			{
-				LODLevelCombo->SetSelectedItem(LODLevels[0]);
-			}
-
-		}
-	}
-	else
-	{
-		NumLODLevels = 0;
-		LODLevels.Empty();
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-	}
 }
 
 TSharedRef<SWidget> FStaticMeshEditor::GenerateUVChannelComboList()
@@ -1216,7 +1159,7 @@ void FStaticMeshEditor::UpdateLODStats(int32 CurrentLOD)
 	NumTriangles[CurrentLOD] = 0;
 	NumVertices[CurrentLOD] = 0;
 	NumUVChannels[CurrentLOD] = 0;
-	NumLODLevels = 0;
+	int32 NumLODLevels = 0;
 
 	if( StaticMesh->RenderData )
 	{
@@ -1236,26 +1179,6 @@ void FStaticMeshEditor::ComboBoxSelectionChanged( TSharedPtr<FString> NewSelecti
 	Viewport->RefreshViewport();
 }
 
-void FStaticMeshEditor::LODLevelsSelectionChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type /*SelectInfo*/ )
-{
-	int32 CurrentLOD = 0;
-	LODLevels.Find(LODLevelCombo->GetSelectedItem(), CurrentLOD);
-	if (GetStaticMeshComponent() != nullptr)
-	{
-		GetStaticMeshComponent()->ForcedLodModel = CurrentLOD;
-	}
-	UpdateLODStats( CurrentLOD > 0? CurrentLOD - 1 : 0 );
-	Viewport->ForceLODLevel(CurrentLOD);
-	if (OnSelectedLODChanged.IsBound())
-	{
-		OnSelectedLODChanged.Broadcast();
-	}
-	if (OnSelectedLODChangedResetOnRefresh.IsBound())
-	{
-		OnSelectedLODChangedResetOnRefresh.Broadcast();
-	}
-}
-
 int32 FStaticMeshEditor::GetCurrentUVChannel()
 {
 	return FMath::Min(CurrentViewedUVChannel, GetNumUVChannels());
@@ -1263,18 +1186,11 @@ int32 FStaticMeshEditor::GetCurrentUVChannel()
 
 int32 FStaticMeshEditor::GetCurrentLODLevel()
 {
-	int32 Index = 0;
-	LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
-	if (GetStaticMeshComponent() != nullptr)
+	if (GetStaticMeshComponent())
 	{
-		if (GetStaticMeshComponent()->ForcedLodModel != Index)
-		{
-			LODLevelCombo->SetSelectedItem(LODLevels[GetStaticMeshComponent()->ForcedLodModel]);
-			LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
-		}
+		return GetStaticMeshComponent()->ForcedLodModel;
 	}
-
-	return Index;
+	return 0;
 }
 
 int32 FStaticMeshEditor::GetCurrentLODIndex()
@@ -1599,28 +1515,6 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCame
 
 	// Always default the LOD to 0 when setting the mesh.
 	UpdateLODStats(0);
-
-	// Fill out the LOD level combo.
-	LODLevels.Empty();
-	LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-	LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
-	for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
-	{
-		LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );
-
-		//Update LOD stats for each level
-		UpdateLODStats(LODLevelID);
-	}
-
-	if( LODLevelCombo.IsValid() )
-	{
-		LODLevelCombo->RefreshOptions();
-
-		if(LODLevels.Num())
-		{
-			LODLevelCombo->SetSelectedItem(LODLevels[0]);
-		}
-	}
 
 	// Set the details view.
 	StaticMeshDetailsView->SetObject(StaticMesh);

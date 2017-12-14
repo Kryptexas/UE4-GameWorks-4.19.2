@@ -783,7 +783,14 @@ void SDetailsView::PreSetObject(int32 InNewNumObjects)
 /** Called at the end of SetObjectArray after we change the objects being observed */
 void SDetailsView::PostSetObject()
 {
-	DestroyColorPicker();
+	TSharedPtr<SColorPicker> ExistingColorPicker = GetColorPicker();
+	if (ExistingColorPicker.IsValid()
+		&& (!ExistingColorPicker->GetOptionalOwningDetailsView().IsValid()
+			|| ExistingColorPicker->GetOptionalOwningDetailsView().Get() == this))
+	{
+		DestroyColorPicker();
+	}
+
 	ColorPropertyNode = nullptr;
 
 	// Are we editing PIE objects?  If the bShowHiddenPropertiesWhilePlaying setting is enabled, we may want to

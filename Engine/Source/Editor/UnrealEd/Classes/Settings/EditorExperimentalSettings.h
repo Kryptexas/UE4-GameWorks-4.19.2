@@ -128,6 +128,10 @@ public:
 	/** Enables in-editor support for text asset formats */
 	//UPROPERTY(EditAnywhere, config, Category = Core)
 	bool bTextAssetFormatSupport;
+
+	/** Enable material layering assets and workflow */
+	UPROPERTY(EditAnywhere, config, Category = Materials)
+	bool bMaterialLayeringEnabled;
 	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

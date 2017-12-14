@@ -1102,6 +1102,9 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 
 	FString Text = InitialText;
 
+	bool bAcquiredIniCombineThreshold = false;	// avoids extra work when writing multiple properties
+	EConfigFileHierarchy IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
+
 	for( TIterator SectionIterator(*this); SectionIterator; ++SectionIterator )
 	{
 		const FString& SectionName = SectionIterator.Key();
@@ -1173,7 +1176,22 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 
 					if( bIsADefaultIniWrite )
 					{
-						ProcessPropertyAndWriteForDefaults(CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
+						if (!bAcquiredIniCombineThreshold)
+						{
+							// find the filename in ini hierarchy
+							FString IniName = FPaths::GetCleanFilename(Filename);
+							for (const auto& HierarchyFileIt : SourceIniHierarchy)
+							{
+								if (FPaths::GetCleanFilename(HierarchyFileIt.Value.Filename) == IniName)
+								{
+									IniCombineThreshold = HierarchyFileIt.Key;
+									break;
+								}
+							}
+
+							bAcquiredIniCombineThreshold = true;
+						}
+						ProcessPropertyAndWriteForDefaults(IniCombineThreshold, CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
 					}
 					else
 					{
@@ -1502,8 +1520,7 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 	}
 }
 
-
-void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
+void FConfigFile::ProcessPropertyAndWriteForDefaults( EConfigFileHierarchy IniCombineThreshold, const TArray< FConfigValue >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
 {
 	// Only process against a hierarchy if this config file has one.
 	if (SourceIniHierarchy.Num() > 0)
@@ -1527,7 +1544,13 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue
 
 			for (const auto& HierarchyFileIt : SourceIniHierarchy)
 			{
-				DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
+				// Combine everything up to the level we're writing, but not including it.
+				// Inclusion would result in a bad feedback loop where on subsequent writes 
+				// we would be diffing against the same config we've just written to.
+				if (HierarchyFileIt.Key < IniCombineThreshold)
+				{
+					DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
+				}
 			}
 
 			// Remove any array elements from the default configs hierearchy, we will add these in below

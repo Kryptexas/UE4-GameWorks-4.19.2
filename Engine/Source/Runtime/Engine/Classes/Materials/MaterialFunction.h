@@ -115,7 +115,7 @@ public:
 	virtual void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const override;
 
 #if WITH_EDITOR
-	virtual UMaterial* GetPreviewMaterial() override;
+	virtual UMaterialInterface* GetPreviewMaterial() override;
 
 	virtual void UpdateInputOutputTypes() override;
 

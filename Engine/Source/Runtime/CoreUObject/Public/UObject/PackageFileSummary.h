@@ -84,14 +84,20 @@ public:
 	int32 	NameOffset;
 
 	/**
+	* Localization ID of this package
+	* @note This is copy of the version stored in the package meta-data. It exists here so we can query it without having to load the whole package
+	*/
+	FString		LocalizationId;
+
+	/**
 	* Number of gatherable text data items in this package
 	*/
-	int32	GatherableTextDataCount;
+	int32		GatherableTextDataCount;
 
 	/**
 	* Location into the file on disk for the gatherable text data items
 	*/
-	int32 	GatherableTextDataOffset;
+	int32 		GatherableTextDataOffset;
 
 	/**
 	* Number of exports contained in this package

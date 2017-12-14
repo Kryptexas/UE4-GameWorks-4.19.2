@@ -848,6 +848,12 @@ public:
 	FSceneBitArray StaticMeshEditorSelectionMap;
 #endif
 
+	/** Will only contain relevant primitives for view and/or shadow */
+	TArray<FLODMask, SceneRenderingAllocator> PrimitivesLODMask;
+
+	/** Used to know which shadow casting primitive were already init (lazy init)  */
+	FSceneBitArray InitializedShadowCastingPrimitive;
+
 	/** An array of batch element visibility masks, valid only for meshes
 	 set visible in either StaticMeshVisibilityMap or StaticMeshShadowDepthMap. */
 	TArray<uint64,SceneRenderingAllocator> StaticMeshBatchVisibility;
@@ -911,6 +917,11 @@ public:
 
 	// Used by mobile renderer to determine whether static meshes will be rendered with CSM shaders or not.
 	FMobileCSMVisibilityInfo MobileCSMVisibilityInfo;
+
+	// Primitive CustomData
+	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> PrimitivesWithCustomData;	// Size == Amount of Primitive With Custom View Data
+	FSceneBitArray UpdatedPrimitivesWithCustomData;
+	TArray<FMemStackBase, SceneRenderingAllocator> PrimitiveCustomDataMemStack; // Size == 1 global stack + 1 per visibility thread (if multithread)
 
 	/** Parameters for exponential height fog. */
 	FVector4 ExponentialFogParameters;
@@ -1164,6 +1175,13 @@ public:
 		
 		return FInt32Range(Start, AfterEnd);
 	}
+
+	/** Set the custom data associated with a primitive scene info.	*/
+	void SetCustomData(const FPrimitiveSceneInfo* InPrimitiveSceneInfo, void* InCustomData);
+
+	/** Custom Data Memstack functions.	*/
+	FORCEINLINE FMemStackBase& GetCustomDataGlobalMemStack() { return PrimitiveCustomDataMemStack[0]; }
+	FORCEINLINE FMemStackBase& AllocateCustomDataMemStack() { return *new(PrimitiveCustomDataMemStack) FMemStackBase(0); }
 
 private:
 	// Cache of TEXTUREGROUP_World to create view's samplers on render thread.
@@ -1538,6 +1556,7 @@ protected:
 		const FSceneViewFamily& InViewFamily, 
 		const FPrimitiveViewMasks& HasDynamicMeshElementsMasks, 
 		const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks, 
+		const FPrimitiveViewMasks& HasViewCustomDataMasks,
 		FMeshElementCollector& Collector);
 
 	/** Initialized the fog constants for each view. */
@@ -1641,6 +1660,9 @@ protected:
 
 	/** Render inverse opacity for the dynamic meshes. */
 	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
+
+	/** Will update the view custom data. */
+	void UpdateViewCustomData();
 	
 private:
 

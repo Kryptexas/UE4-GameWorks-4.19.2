@@ -635,14 +635,6 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 		{
 			OnWindowDidResize(EventWindow.ToSharedRef(), true);
 		}
-		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
-		{
-			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
-		}
-		else if (Event.NotificationName == NSWindowDidResignMainNotification)
-		{
-			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
-		}
 		else if (Event.NotificationName == NSWindowWillMoveNotification)
 		{
 			DraggedWindow = EventWindow->GetWindowHandle();
@@ -1118,7 +1110,6 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 
 	if (WindowToActivate.IsValid())
 	{
-		OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
 		WindowToActivate->SetWindowFocus();
 	}
 

@@ -208,7 +208,7 @@ bool GenerateProjectFiles(const FString& ProjectFileName)
 
 	// Generate project files
 	FFeedbackContext* Warn = DesktopPlatform->GetNativeFeedbackContext();
-	bool bResult = DesktopPlatform->GenerateProjectFiles(RootDir, ProjectFileName, Warn);
+	bool bResult = DesktopPlatform->GenerateProjectFiles(RootDir, ProjectFileName, Warn, FPaths::ProjectLogDir() / FString::Printf(TEXT("%s-%s.log"), FPlatformProcess::ExecutableName(), *FDateTime::Now().ToString()));
 	GLog->RemoveOutputDevice(&LogCapture);
 
 	// Display an error dialog if we failed

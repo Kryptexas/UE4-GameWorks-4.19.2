@@ -27,9 +27,6 @@ LandscapeRender.h: New terrain rendering
 #include "PrimitiveSceneProxy.h"
 #include "StaticMeshResources.h"
 
-
-
-
 // This defines the number of border blocks to surround terrain by when generating lightmaps
 #define TERRAIN_PATCH_EXPAND_SCALAR	1
 
@@ -56,7 +53,7 @@ namespace ELandscapeViewMode
 	};
 }
 
-extern LANDSCAPE_API ELandscapeViewMode::Type GLandscapeViewMode;
+extern LANDSCAPE_API int32 GLandscapeViewMode;
 
 namespace ELandscapeEditRenderMode
 {
@@ -207,7 +204,7 @@ public:
 		UpdateRHI();
 	}
 
-	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const override;
+	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch, const void* ViewCustomData = nullptr) const override;
 
 	/** stream component data bound to this vertex factory */
 	FDataType Data;
@@ -335,6 +332,8 @@ class FLandscapeNeighborInfo
 {
 	bool bRegistered;
 protected:
+	static const int8 NEIGHBOR_COUNT = 4;
+
 	// Key to uniquely identify the landscape to find the correct render proxy map
 	class FLandscapeKey
 	{
@@ -357,6 +356,18 @@ protected:
 		}
 	};
 
+	const FLandscapeNeighborInfo* GetNeighbor(int32 Index) const
+	{
+		if (Index < NEIGHBOR_COUNT)
+		{
+			return Neighbors[Index];
+		}
+
+		return nullptr;
+	}
+
+	virtual const ULandscapeComponent* GetLandscapeComponent() const { return nullptr; }
+
 	// Map of currently registered landscape proxies, used to register with our neighbors
 	static TMap<FLandscapeKey, TMap<FIntPoint, const FLandscapeNeighborInfo*> > SharedSceneProxyMap;
 
@@ -365,13 +376,14 @@ protected:
 	FIntPoint				ComponentBase;
 
 	// Pointer to our neighbor's scene proxies in NWES order (nullptr if there is currently no neighbor)
-	mutable const FLandscapeNeighborInfo* Neighbors[4];
+	mutable const FLandscapeNeighborInfo* Neighbors[NEIGHBOR_COUNT];
 
 	
 	// Data we need to be able to access about our neighbor
 	UTexture2D*				HeightmapTexture; // PC : Heightmap, Mobile : Weightmap
 	int8					ForcedLOD;
 	int8					LODBias;
+	int32					PrimitiveCustomDataIndex;
 
 	friend class FLandscapeComponentSceneProxy;
 
@@ -383,6 +395,7 @@ public:
 	, HeightmapTexture(InHeightmapTexture)
 	, ForcedLOD(InForcedLOD)
 	, LODBias(InLODBias)
+	, PrimitiveCustomDataIndex(INDEX_NONE)
 	{
 		//       -Y       
 		//    - - 0 - -   
@@ -426,7 +439,6 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	friend class FLandscapeSharedBuffers;
 
 	SIZE_T GetTypeHash() const override;
-
 	class FLandscapeLCI final : public FLightCacheInterface
 	{
 	public:
@@ -451,10 +463,65 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 		TArray<FGuid> IrrelevantLights;
 	};
 
+public:
+	static const int8 MAX_SUBSECTION_COUNT = 2*2;
+
+	// NOTE: this is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
+	struct FViewCustomDataSubSectionLOD
+	{
+		FViewCustomDataSubSectionLOD()
+			: StaticBatchElementIndexToRender(INDEX_NONE)
+			, fBatchElementCurrentLOD(-1.0f)
+			, BatchElementCurrentLOD(INDEX_NONE)
+			, ScreenRadiusSquared(-1.0f)
+			, ShaderCurrentNeighborLOD(FVector4(-1.0f, -1.0f, -1.0f, -1.0f))
+		{}
+
+		int8 StaticBatchElementIndexToRender;
+		float fBatchElementCurrentLOD;
+		int8 BatchElementCurrentLOD;
+		float ScreenRadiusSquared;
+		FVector4 ShaderCurrentNeighborLOD;
+	};
+
+	// NOTE: this is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
+	struct FViewCustomDataLOD
+	{
+		FViewCustomDataLOD()
+			: StaticMeshBatchLOD(INDEX_NONE)
+			, UseCombinedMeshBatch(true)
+			, ComponentScreenSize(0.0f)
+			, ShaderCurrentLOD(ForceInitToZero)
+			, LodBias(ForceInitToZero)
+			, LodTessellationParams(ForceInitToZero)
+		{}
+
+		int8 StaticMeshBatchLOD;
+		bool UseCombinedMeshBatch;
+		float ComponentScreenSize;
+		TArray<FViewCustomDataSubSectionLOD> SubSections; // We always have at least 1 subsections
+
+		// Shaders pre calculated params
+		FVector4 ShaderCurrentLOD;
+		FVector4 LodBias;
+		FVector4 LodTessellationParams;
+	};
+
 protected:
 	int8						MaxLOD;		// Maximum LOD level, user override possible
 	int32						FirstLOD;	// First LOD we have batch elements for
 	int32						LastLOD;	// Last LOD we have batch elements for
+	TArray<float>				LODSquaredScreenRatio;		// Table of valid screen size -> LOD index
+	float						ComponentMaxExtend; 		// The max extend value in any axis
+	float						ComponentSquaredScreenSizeToUseSubSections; // Size at which we start to draw in sub lod if LOD are different per sub section
+	float						MinValidLOD;							// Min LOD Taking into account LODBias
+	float						MaxValidLOD;							// Max LOD Taking into account LODBias
+	float						TessellationComponentSquaredScreenSize;	// Screen size of the component at which we start to apply tessellation
+	bool						TessellationEnabledOnDefaultMaterial;	// Used to know if we have tessellation enabled on the material
+	bool						UseTessellationComponentScreenSizeFalloff;	// Tell if we should apply a Tessellation falloff
+	float						TessellationComponentScreenSizeFalloff;	// Min Component screen size before we start applying the tessellation falloff
+	bool						IncludeTessellationInShadowLOD;			// Tell if we should include the tessellation material into the whole scene shadow generation
+	int32						RestrictTessellationToShadowCascade;	// when IncludeTessellationInShadowLOD is true it will tell us on which shadow cascade we restrict the application
 
 	/** 
 	 * Number of subsections within the component in each dimension, this can be 1 or 2.
@@ -487,10 +554,6 @@ protected:
 	TArray<FLandscapeBatchElementParams> GrassBatchParams;
 #endif
 
-	// Precomputed values
-	float					LODDistance;
-	float					DistDiff;
-
 	FVector4 WeightmapScaleBias;
 	float WeightmapSubsectionOffset;
 	TArray<UTexture2D*> WeightmapTextures;
@@ -511,7 +574,7 @@ protected:
 	FLandscapeSharedBuffers*	SharedBuffers;
 	FLandscapeVertexFactory*	VertexFactory;
 
-	TArray<UMaterialInterface*, TInlineAllocator<2>> MaterialInterfacesByLOD;
+	TArray<UMaterialInterface*, TInlineAllocator<2>> AvailableMaterials;
 	FMaterialRelevance MaterialRelevance;
 
 	// Reference counted vertex and index buffer shared among all landscape scene proxies of the same component size
@@ -528,7 +591,7 @@ protected:
 
 	const ULandscapeComponent* LandscapeComponent;
 
-	ELandscapeLODFalloff::Type LODFalloff;
+	ELandscapeLODFalloff::Type LODFalloff_DEPRECATED;
 
 	// data used in editor or visualisers
 #if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -547,12 +610,33 @@ protected:
 
 	// Cached versions of these
 	FMatrix					WorldToLocal;
-
+	
+protected:
 	virtual ~FLandscapeComponentSceneProxy();
+	
+	virtual const ULandscapeComponent* GetLandscapeComponent() const { return LandscapeComponent; }
+	FORCEINLINE void ComputeTessellationFalloffShaderValues(const FViewCustomDataLOD& LODData, const FMatrix& InViewProjectionMatrix, float& OutC, float& OutK) const;
+	bool CanUseMeshBatchForShadowCascade(int8 InLODIndex, float ShadowMapTextureResolution, float ShadowMapCascadeSize) const;
+	FORCEINLINE int32 ConvertBatchElementLODToBatchElementIndex(int8 BatchElementLOD, bool UseCombinedMeshBatch);
+	float GetNeighborLOD(const FSceneView& InView, float BatchElementCurrentLOD, int8 NeighborIndex, int32 SubSectionX, int32 SubSectionY) const;
+	void CalculateBatchElementLOD(const FSceneView& InView, float InMeshBatchScreenRadiusSquared, float InViewLODScale, FViewCustomDataLOD& InOutLODData) const;
+	void CalculateLODFromScreenSize(const FSceneView& InView, float InMeshScreenRadiusSquared, float InViewLODScale, int32 InSubSectionIndex, FViewCustomDataLOD& InOutLODData) const;
+	FORCEINLINE void ComputeStaticBatchIndexToRender(FViewCustomDataLOD& OutLODData, int32 SubSectionIndex);
+	int8 GetLODFromScreenSize(float InScreenSizeSquared, float InViewLODScale) const;
+	FORCEINLINE float ComputeBatchElementCurrentLOD(int32 InSelectedLODIndex, float ComponentScreenSize) const;
+	
+	FORCEINLINE void GetShaderCurrentNeighborLOD(const FSceneView& InView, float BatchElementCurrentLOD, int32 SubSectionX, int32 SubSectionY, FVector4& OutShaderCurrentNeighborLOD) const;
+	FORCEINLINE FVector4 GetShaderLODBias() const;
+	FORCEINLINE FVector4 GetShaderLODValues(int8 BatchElementCurrentLOD) const;
+
+	bool GetMeshElement(bool UseSeperateBatchForShadow, bool ShadowOnly, bool HasTessellation, uint8 BatchLOD, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams>& OutStaticBatchParamArray) const;
+	void BuildDynamicMeshElement(const FViewCustomDataLOD* PrimitiveCustomData, bool ToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray) const;
+
+	float GetComponentScreenSize(const class FSceneView* View, const FVector& Origin,  float MaxExtend, float ElementRadius) const;
 
 public:
 	// constructor
-	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD);
+	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
@@ -564,6 +648,12 @@ public:
 	virtual void OnTransformChanged() override;
 	virtual void CreateRenderThreadResources() override;
 	virtual void OnLevelAddedToWorld() override;
+	virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshBatchScreenRadiusSquared = -1.0f) override;
+	virtual void UpdateViewCustomData(const FSceneView& InView, void* InViewCustomData) override;
+	virtual bool IsUsingCustomLODRules() const override;
+	virtual FLODMask GetCustomLOD(const FSceneView& View, float InViewLODScale, int32 ForcedLODLevel, float& OutCalculatedScreenRadiusSquared) const override;
+	virtual bool IsUsingCustomWholeSceneShadowLODRules() const override;
+	virtual FLODMask GetCustomWholeSceneShadowLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, const struct FLODMask& InVisibilePrimitiveLODMask, float InShadowMapTextureResolution, float InShadowMapCascadeSize, int8 InShadowCascadeId, bool InHasSelfShadow) const override;
 	
 	friend class ULandscapeComponent;
 	friend class FLandscapeVertexFactoryVertexShaderParameters;
@@ -574,16 +664,16 @@ public:
 	friend class FLandscapeVertexFactoryMobilePixelShaderParameters;
 
 	// FLandscapeComponentSceneProxy interface.
-	float CalcDesiredLOD(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY) const;
-	int32 CalcLODForSubsection(const FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
-	void CalcLODParamsForSubsection(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, int32 BatchLOD, float& OutfLOD, FVector4& OutNeighborLODs) const;
-	uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const;
+	FORCEINLINE uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch, const void* ViewCustomData) const;
 #if WITH_EDITOR
 	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
 #endif
 
 	// FLandcapeSceneProxy
-	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
+	void ChangeTessellationComponentScreenSize_RenderThread(float InTessellationComponentScreenSize);
+	void ChangeComponentScreenSizeToUseSubSections_RenderThread(float InComponentScreenSizeToUseSubSections);
+	void ChangeUseTessellationComponentScreenSizeFalloff_RenderThread(bool InUseTessellationComponentScreenSizeFalloff);
+	void ChangeTessellationComponentScreenSizeFalloff_RenderThread(float InTessellationComponentScreenSizeFalloff);
 
 	virtual bool HeightfieldHasPendingStreaming() const override;
 

@@ -3688,8 +3688,9 @@ void FSkeletalMeshSceneProxy::DebugDrawSkeleton(int32 ViewIndex, FMeshElementCol
 *
 * @param bNeedsMorphUsage - true if the materials used by this skeletal mesh need morph target usage
 */
-void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMorphUsage)
+void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(TArray<UMaterialInterface*>& MaterialUsingMorphTarget)
 {
+	bool bNeedsMorphUsage = MaterialUsingMorphTarget.Num() > 0;
 	if( bNeedsMorphUsage != bMaterialsNeedMorphUsage_GameThread )
 	{
 		// keep track of current morph material usage for the proxy
@@ -3701,12 +3702,19 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 			UMaterialInterface* Material = *It;
 			if (Material)
 			{
-				const bool bCheckMorphUsage = !bMaterialsNeedMorphUsage_GameThread || (bMaterialsNeedMorphUsage_GameThread && Material->CheckMaterialUsage_Concurrent(MATUSAGE_MorphTargets));
 				const bool bCheckSkelUsage = Material->CheckMaterialUsage_Concurrent(MATUSAGE_SkeletalMesh);
-				// make sure morph material usage and default skeletal usage are both valid
-				if( !bCheckMorphUsage || !bCheckSkelUsage  )
+				if (!bCheckSkelUsage)
 				{
 					MaterialsToSwap.Add(Material);
+				}
+				else if(MaterialUsingMorphTarget.Contains(Material))
+				{
+					const bool bCheckMorphUsage = !bMaterialsNeedMorphUsage_GameThread || (bMaterialsNeedMorphUsage_GameThread && Material->CheckMaterialUsage_Concurrent(MATUSAGE_MorphTargets));
+					// make sure morph material usage and default skeletal usage are both valid
+					if (!bCheckMorphUsage)
+					{
+						MaterialsToSwap.Add(Material);
+					}
 				}
 			}
 		}

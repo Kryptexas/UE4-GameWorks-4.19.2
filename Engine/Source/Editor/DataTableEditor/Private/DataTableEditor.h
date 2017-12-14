@@ -142,6 +142,12 @@ private:
 		float CurrentWidth;
 	};
 
+	/** UI for the "Data Table" tab */
+	TSharedPtr<SWidget> DataTableTabWidget;
+
+	/** UI for the "Row Editor" tab */
+	TSharedPtr<SWidget> RowEditorTabWidget;
+
 	/** Array of the columns that are available for editing */
 	TArray<FDataTableEditorColumnHeaderDataPtr> AvailableColumns;
 

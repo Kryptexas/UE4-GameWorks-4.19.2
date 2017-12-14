@@ -132,7 +132,7 @@ public:
 	 *	Will recompile any Materials that use the supplied Material Function.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "MaterialEditing", meta = (HidePin = "PreviewMaterial"))
-	static void UpdateMaterialFunction(UMaterialFunction* MaterialFunction, UMaterial* PreviewMaterial = nullptr);
+	static void UpdateMaterialFunction(UMaterialFunctionInterface* MaterialFunction, UMaterial* PreviewMaterial = nullptr);
 
 
 	//////// MATERIAL INSTANCE CONSTANT EDITING

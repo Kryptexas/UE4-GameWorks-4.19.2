@@ -247,11 +247,17 @@ void UMaterialEditorPreviewParameters::PostEditChangeProperty(FPropertyChangedEv
 		else
 		{
 			ApplySourceFunctionChanges();
-			OriginalFunction->PreviewMaterial->PostEditChangeProperty(PropertyChangedEvent);
+			if (OriginalFunction->PreviewMaterial)
+			{
+				OriginalFunction->PreviewMaterial->PostEditChangeProperty(PropertyChangedEvent);
+			}
 		}
 	
-		// Tell our source instance to update itself so the preview updates.
-		DetailsView.Pin()->OnFinishedChangingProperties().Broadcast(PropertyChangedEvent);
+		if(DetailsView.IsValid())
+		{
+			// Tell our source instance to update itself so the preview updates.
+			DetailsView.Pin()->OnFinishedChangingProperties().Broadcast(PropertyChangedEvent);
+		}
 
 	}
 }
@@ -272,17 +278,25 @@ void  UMaterialEditorPreviewParameters::AssignParameterToGroup(UMaterial* Parent
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
 	if (MaterialEditorModule->MaterialLayersEnabled())
 	{
+		UDEditorMaterialLayersParameterValue* MaterialLayerParam = Cast<UDEditorMaterialLayersParameterValue>(ParameterValue);
 		if (ParameterValue->ParameterInfo.Association == EMaterialParameterAssociation::GlobalParameter)
 		{
-			FString AppendedGroupName = GlobalGroupPrefix.ToString();
-			if (ParameterGroupName != TEXT("None"))
+			if (MaterialLayerParam)
 			{
-				ParameterGroupName.AppendString(AppendedGroupName);
-				ParameterGroupName = FName(*AppendedGroupName);
+				ParameterGroupName = FMaterialPropertyHelpers::LayerParamName;
 			}
 			else
 			{
-				ParameterGroupName = TEXT("Global");
+				FString AppendedGroupName = GlobalGroupPrefix.ToString();
+				if (ParameterGroupName != TEXT("None"))
+				{
+					ParameterGroupName.AppendString(AppendedGroupName);
+					ParameterGroupName = FName(*AppendedGroupName);
+				}
+				else
+				{
+					ParameterGroupName = TEXT("Global");
+				}
 			}
 		}
 	}
@@ -307,10 +321,9 @@ void UMaterialEditorPreviewParameters::RegenerateArrays()
 		ParentMaterial->GetAllVectorParameterInfo(ParameterInfo, Guids);
 
 		// Vector Parameters.
-
 		for (int32 ParameterIdx = 0; ParameterIdx < ParameterInfo.Num(); ParameterIdx++)
 		{
-			UDEditorVectorParameterValue & ParameterValue = *(NewObject<UDEditorVectorParameterValue>());
+			UDEditorVectorParameterValue& ParameterValue = *(NewObject<UDEditorVectorParameterValue>());
 			FName ParameterName = ParameterInfo[ParameterIdx].Name;
 			FLinearColor Value;
 			int32 SortPriority;
@@ -320,6 +333,7 @@ void UMaterialEditorPreviewParameters::RegenerateArrays()
 			if (PreviewMaterial->GetVectorParameterValue(ParameterValue.ParameterInfo, Value))
 			{
 				ParameterValue.ParameterValue = Value;
+				PreviewMaterial->IsVectorParameterUsedAsChannelMask(ParameterValue.ParameterInfo, ParameterValue.bIsUsedAsChannelMask);			
 			}
 			if (PreviewMaterial->GetParameterSortPriority(ParameterName, SortPriority))
 			{
@@ -331,6 +345,7 @@ void UMaterialEditorPreviewParameters::RegenerateArrays()
 			}
 			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
+
 		// Scalar Parameters.
 		ParentMaterial->GetAllScalarParameterInfo(ParameterInfo, Guids);
 		for (int32 ParameterIdx = 0; ParameterIdx < ParameterInfo.Num(); ParameterIdx++)
@@ -616,6 +631,7 @@ void UMaterialEditorPreviewParameters::CopyToSourceInstance()
 {
 	if (PreviewMaterial->IsTemplate(RF_ClassDefaultObject) == false)
 	{
+		OriginalMaterial->MarkPackageDirty();
 		// Scalar Parameters
 		for (int32 GroupIdx = 0; GroupIdx < ParameterGroups.Num(); GroupIdx++)
 		{
@@ -953,6 +969,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			ParameterValue.ExpressionId = Guids[ParameterIdx];
 
 			SourceInstance->GetVectorParameterValue(ParameterInfo, ParameterValue.ParameterValue);
+			SourceInstance->IsVectorParameterUsedAsChannelMask(ParameterInfo, ParameterValue.bIsUsedAsChannelMask);
 
 			// @todo: This is kind of slow, maybe store these in a map for lookup?
 			// See if this keyname exists in the source instance.
@@ -1278,58 +1295,7 @@ void UMaterialEditorInstanceConstant::ApplySourceFunctionChanges()
 		SourceFunction->MarkPackageDirty();
 		bIsFunctionInstanceDirty = false;
 
-		// Create a material update context so we can safely update materials using this function.
-		FMaterialUpdateContext UpdateContext;
-
-		for (TObjectIterator<UMaterial> It; It; ++It)
-		{
-			UMaterial* CurrentMaterial = *It;
-			if (CurrentMaterial != SourceInstance->Parent)
-			{
-				bool bRecompile = false;
-				if (CurrentMaterial->bIsPreviewMaterial)
-				{
-					bRecompile = true;
-				}
-				else
-				{
-					for (const FMaterialFunctionInfo& FunctionInfo : CurrentMaterial->MaterialFunctionInfos)
-					{
-						if (FunctionInfo.Function == SourceFunction)
-						{
-							bRecompile = true;
-							break;
-						}
-					}
-				}
-
-				if (bRecompile)
-				{
-					UpdateContext.AddMaterial(CurrentMaterial);
-					CurrentMaterial->PreEditChange(nullptr);
-					CurrentMaterial->PostEditChange();
-				}
-			}
-		}
-
-		for (TObjectIterator<UMaterialInstance> It; It; ++It)
-		{
-			UMaterialInstance* CurrentInstance = *It;
-			if (CurrentInstance->GetBaseMaterial() && CurrentInstance != SourceInstance)
-			{
-				// TODO: This likely forces updates even if a base param has been overridden which
-				// should be ignored. Only needs to check the top-level override of each parameter
-				TArray<UMaterialFunctionInterface*> Functions;
-				CurrentInstance->GetDependentFunctions(Functions);
-				if (Functions.Contains(SourceFunction))
-				{
-					UpdateContext.AddMaterialInstance(CurrentInstance);
-					CurrentInstance->PreEditChange(nullptr);
-					CurrentInstance->PostEditChange();
-					break;
-				}
-			}
-		}
+		UMaterialEditingLibrary::UpdateMaterialFunction(SourceFunction, nullptr);
 	}
 }
 

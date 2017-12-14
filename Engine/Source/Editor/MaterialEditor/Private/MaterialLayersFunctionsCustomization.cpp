@@ -61,9 +61,23 @@ void FMaterialLayersFunctionsCustomization::ResetToDefault()
 	// Empty the existing Layers and Blends arrays
 	MaterialLayersFunctions->Layers.Empty();
 	MaterialLayersFunctions->Blends.Empty();
+	MaterialLayersFunctions->LayerStates.Empty();
+#if WITH_EDITOR
+	MaterialLayersFunctions->InstanceLayers.Empty();
+	MaterialLayersFunctions->FilterLayers.Empty();
+	MaterialLayersFunctions->InstanceBlends.Empty();
+	MaterialLayersFunctions->FilterBlends.Empty();
+	MaterialLayersFunctions->LayerNames.Empty();
 
+	MaterialLayersFunctions->FilterLayers.AddDefaulted();
+	MaterialLayersFunctions->InstanceLayers.AddDefaulted();
+
+	FText LayerName = FText(LOCTEXT("Background", "Background"));
+	MaterialLayersFunctions->LayerNames.Add(LayerName);
+#endif
 	// Add a new empty Layer
 	MaterialLayersFunctions->Layers.AddDefaulted();
+	MaterialLayersFunctions->LayerStates.Push(true);
 
 	SavedStructPropertyHandle->NotifyPostChange();
 
@@ -259,6 +273,12 @@ void FMaterialLayersFunctionsCustomization::RemoveLayer(int32 Index)
 void FMaterialLayersFunctionsCustomization::RefreshOnAssetChange(const struct FAssetData& InAssetData, int32 Index, EMaterialParameterAssociation MaterialType, const bool bIsFilterField)
 {
 	FMaterialPropertyHelpers::OnMaterialLayerAssetChanged(InAssetData, Index, MaterialType, SavedStructPropertyHandle, MaterialLayersFunctions, bIsFilterField);
+
+	if (Index == 0 && MaterialType == EMaterialParameterAssociation::LayerParameter)
+	{
+		// Refresh the header so the reset to default button is no longer visible
+		SavedLayoutBuilder->ForceRefreshDetails();
+	}
 
 	RebuildChildren();
 }

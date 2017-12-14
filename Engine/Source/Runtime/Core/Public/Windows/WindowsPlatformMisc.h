@@ -84,6 +84,8 @@ struct CORE_API FWindowsPlatformMisc
 
 	FORCEINLINE static void MemoryBarrier() { _mm_sfence(); }
 
+	static bool IsRemoteSession();
+
 	static void SetUTF8Output();
 	static void LocalPrint(const TCHAR *Message);
 	static void RequestExit(bool Force);

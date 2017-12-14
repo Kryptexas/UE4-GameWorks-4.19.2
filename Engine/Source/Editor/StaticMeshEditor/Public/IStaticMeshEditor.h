@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -232,6 +232,9 @@ public:
 	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate, bool UnregisterOnRefresh) = 0;
 	/* Unregister callback to free up the ressources */
 	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
+
+	/* Broadcast when selected LOD changes */
+	virtual void BroadcastOnSelectedLODChanged() = 0;
 };
 
 

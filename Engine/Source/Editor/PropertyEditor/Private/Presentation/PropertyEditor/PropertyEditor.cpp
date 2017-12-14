@@ -692,6 +692,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 					check(BaseOffset != NULL);
 
 					FPropertyConditionInfo NewCondition;
+					NewCondition.Object = ComplexParentNode->AsStructureNode() ? TWeakObjectPtr<UObject>(ComplexParentNode->GetBaseStructure()) : ComplexParentNode->GetInstanceAsUObject(Index);
 					// now calculate the address of the property value being used as the condition and add it to the array.
 					NewCondition.Object = ComplexParentNode->AsStructureNode() ? TWeakObjectPtr<UObject>(ComplexParentNode->GetBaseStructure()) : ComplexParentNode->GetInstanceAsUObject(Index);
 					NewCondition.BaseAddress = BaseAddress;

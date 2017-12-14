@@ -27,8 +27,8 @@ public:
 
 public:
 	SLATE_BEGIN_ARGS(SNiagaraResizeBox)
-		: _ContentHeight(50)
-		, _HandleHeight(5)
+		: _HandleHeight(5)
+		, _ContentHeight(50)
 		, _HandleColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
 		, _HandleHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
 	{}

@@ -201,7 +201,7 @@ protected:
 	const FSlateBrush* GetDirtyImage() const;
 
 	/** Gets the visibility for the thumbnail edit mode UI */
-	EVisibility GetThumbnailEditModeUIVisibility() const;
+	EVisibility GetThumbnailEditModeUIVisibility(FString AssetDataFullName) const;
 
 	/** Creates a tooltip widget for this item */
 	TSharedRef<SWidget> CreateToolTipWidget() const;

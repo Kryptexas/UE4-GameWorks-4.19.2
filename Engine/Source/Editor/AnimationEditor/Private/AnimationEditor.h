@@ -133,7 +133,8 @@ private:
 	void OnApplyCompression();
 
 	void OnExportToFBX(const EPoseSourceOption Option);
-	void ExportToFBX(const TArray<UObject*> NewAssets, bool bRecordAnimation);
+	//Return true mean the asset was exported, false it was cancel or it fail
+	bool ExportToFBX(const TArray<UObject*> NewAssets, bool bRecordAnimation);
 
 	void OnAddLoopingInterpolation();
 	void OnRemoveBoneTrack();
@@ -157,11 +158,11 @@ private:
 
 	void CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData) const;
 
-	void CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
+	bool CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
 
-	void CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
+	bool CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
 
-	void HandleAssetCreated(const TArray<UObject*> NewAssets);
+	bool HandleAssetCreated(const TArray<UObject*> NewAssets);
 
 	void ConditionalRefreshEditor(UObject* InObject);
 

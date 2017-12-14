@@ -54,13 +54,13 @@ FNiagaraSystemViewModel::FNiagaraSystemViewModel(UNiagaraSystem& InSystem, FNiag
 	, bCanModifyEmittersFromTimeline(InOptions.bCanModifyEmittersFromTimeline)
 	, bUseSystemExecStateForTimelineReset(InOptions.bUseSystemExecStateForTimelineReset)
 	, bCanAutoCompile(InOptions.bCanAutoCompile)
+	, bForceAutoCompileOnce(false)
 	, bCanSimulate(InOptions.bCanSimulate)
 	, EditMode(InOptions.EditMode)
 	, OnGetSequencerAddMenuContent(InOptions.OnGetSequencerAddMenuContent)
 	, bUpdatingFromSequencerDataChange(false)
 	, bUpdatingSystemSelectionFromSequencer(false)
 	, bUpdatingSequencerSelectionFromSystem(false)
-	, bForceAutoCompileOnce(false)
 {
 	SetupPreviewComponentAndInstance();
 	SetupSequencer();

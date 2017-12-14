@@ -89,6 +89,7 @@ class UMaterialExpressionMaterialAttributeLayers : public UMaterialExpression
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+	virtual bool NeedsLoadForClient() const override { return true; };
 	//~ Begin UObject Interface
 
 	ENGINE_API void RebuildLayerGraph(bool bReportErrors);
@@ -108,7 +109,7 @@ class UMaterialExpressionMaterialAttributeLayers : public UMaterialExpression
 	virtual const TArray<FExpressionInput*> GetInputs()override;
 	virtual FExpressionInput* GetInput(int32 InputIndex)override;
 	virtual FName GetInputName(int32 InputIndex) const override;
-	virtual bool IsInputConnectionRequired(int32 InputIndex) const override {return true;}
+	virtual bool IsInputConnectionRequired(int32 InputIndex) const override {return false;}
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex) override;
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override {return true;}

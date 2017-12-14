@@ -294,6 +294,8 @@ namespace UnrealBuildTool
 				{
 					HostArchitecture = "Mac";
 					BuildCommand = "cd \"" + UE4RootPath + "\" && bash \"" + UE4RootPath + "/Engine/Build/BatchFiles/" + HostArchitecture + "/Build.sh\"";
+					bIncludeIOSTargets = true;
+					bIncludeTVOSTargets = true;
 					break;
 				}
 				case UnrealTargetPlatform.Linux:
@@ -538,7 +540,7 @@ namespace UnrealBuildTool
 					{
 						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
 						{
-							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration) && !IsTargetExcluded(TargetName, CurConfiguration))
+							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration) && !IsTargetExcluded(TargetName, BuildHostPlatform.Current.Platform, CurConfiguration))
 							{
 								if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor"))
 								{
@@ -547,16 +549,38 @@ namespace UnrealBuildTool
 
 								string ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
 								CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} {5} {0} {3} {1} {2}{4} VERBATIM)\n", TargetName, ConfName, CMakeProjectCmdArg, HostArchitecture, UBTArguements, BuildCommand));
+
+								// Add iOS and TVOS targets if valid
+								if (bIncludeIOSTargets && !IsTargetExcluded(TargetName, UnrealTargetPlatform.IOS, CurConfiguration))
+								{
+    								CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} {5} {0} {3} {1} {2}{4} VERBATIM)\n", TargetName, ConfName, CMakeProjectCmdArg, UnrealTargetPlatform.IOS, UBTArguements, BuildCommand));
+								}
+								if (bIncludeTVOSTargets && !IsTargetExcluded(TargetName, UnrealTargetPlatform.TVOS, CurConfiguration))
+								{
+    								CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} {5} {0} {3} {1} {2}{4} VERBATIM)\n", TargetName, ConfName, CMakeProjectCmdArg, UnrealTargetPlatform.TVOS, UBTArguements, BuildCommand));
+								}
 							}
 						}
 					}
+                    if (!IsTargetExcluded(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development))
+                    {
+                        if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor"))
+                        {
+                            CMakeProjectCmdArg = "\"-project=" + CMakeGameProjectFile + "\"";
+                        }
 
-					if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor"))
-					{
-						CMakeProjectCmdArg = "\"-project=" + CMakeGameProjectFile + "\"";
-					}
+                        CMakefileContent.Append(String.Format("add_custom_target({0} {4} {0} {2} Development {1}{3} VERBATIM)\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture, UBTArguements, BuildCommand));
 
-					CMakefileContent.Append(String.Format("add_custom_target({0} {4} {0} {2} Development {1}{3} VERBATIM)\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture, UBTArguements, BuildCommand));
+                        // Add iOS and TVOS targets if valid
+                        if (bIncludeIOSTargets && !IsTargetExcluded(TargetName, UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Development))
+                        {
+                           CMakefileContent.Append(String.Format("add_custom_target({0}-{3} {5} {0} {3} {1} {2}{4} VERBATIM)\n", TargetName, UnrealTargetConfiguration.Development, CMakeProjectCmdArg, UnrealTargetPlatform.IOS, UBTArguements, BuildCommand));
+                        }
+                        if (bIncludeTVOSTargets && !IsTargetExcluded(TargetName, UnrealTargetPlatform.TVOS, UnrealTargetConfiguration.Development))
+                        {
+                            CMakefileContent.Append(String.Format("add_custom_target({0}-{3} {5} {0} {3} {1} {2}{4} VERBATIM)\n", TargetName, UnrealTargetConfiguration.Development, CMakeProjectCmdArg, UnrealTargetPlatform.TVOS, UBTArguements, BuildCommand));
+                        }
+                   }
 				}		
 			}
 
@@ -644,8 +668,16 @@ namespace UnrealBuildTool
 			return SourceFileRelativeToRoot.Contains("Source\\ThirdParty\\");
 		}
 
-		private bool IsTargetExcluded(string TargetName, UnrealTargetConfiguration TargetConfig)
+		private bool IsTargetExcluded(string TargetName, UnrealTargetPlatform TargetPlatform, UnrealTargetConfiguration TargetConfig)
 		{
+			if (TargetPlatform == UnrealTargetPlatform.IOS || TargetPlatform == UnrealTargetPlatform.TVOS)
+			{
+				if (TargetName.StartsWith("UE4Game") || (IsProjectBuild && TargetName.StartsWith(GameProjectName)))
+				{
+				    return false;
+				}
+				return true;
+            }
 			// Only do this level of filtering if we are trying to speed things up tremendously
 			if (bCmakeMinimalTargets)
 			{
@@ -750,6 +782,16 @@ namespace UnrealBuildTool
 		/// This will filter out numerous targets to speed up cmake processing
 		/// </summary>
 		protected bool bCmakeMinimalTargets = false;
+
+		/// <summary>
+		/// Whether to include iOS targets or not
+		/// </summary>
+		protected bool bIncludeIOSTargets = false;
+
+		/// <summary>
+		/// Whether to include TVOS targets or not
+		/// </summary>
+		protected bool bIncludeTVOSTargets = false;
 
 		protected override void ConfigureProjectFileGeneration(String[] Arguments, ref bool IncludeAllPlatforms)
 		{

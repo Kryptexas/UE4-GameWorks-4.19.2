@@ -327,6 +327,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "GenericCommands.Delete", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Delete_16x", Icon16x16) );
 		Style->Set( "GenericCommands.Paste", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Paste_16x", Icon16x16) );
 		Style->Set( "GenericCommands.Duplicate", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Duplicate_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Rename", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_Rename_16x", Icon16x16 ) );
 	}
 
 	// SVerticalBox Drag& Drop icon

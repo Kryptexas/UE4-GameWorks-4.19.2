@@ -3554,7 +3554,7 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 			const bool bAutoAdjustForDPIScale = false;
 
 			FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
+			DesiredToolTipLocation = CalculateTooltipWindowPosition(Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale);
 
 			// MoveWindowTo will adjust the window's position, if needed
 			NewToolTipWindow->MoveWindowTo( DesiredToolTipLocation );
@@ -3847,7 +3847,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 
 			// Avoid the edges of the desktop
 			FSlateRect Anchor(WindowLocation.X, WindowLocation.Y, WindowLocation.X, WindowLocation.Y);
-			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
+			WindowLocation = CalculateTooltipWindowPosition(Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale);
 
 			// Update the tool tip window positioning
 			// SetCachedScreenPosition is a hack (issue tracked as TTP #347070) which is needed because code in TickWindowAndChildren()/DrawPrepass()
@@ -4159,6 +4159,56 @@ void FSlateApplication::SetAllowTooltips(bool bCanShow)
 bool FSlateApplication::GetAllowTooltips() const
 {
 	return bAllowToolTips != 0;
+}
+
+FVector2D FSlateApplication::CalculateTooltipWindowPosition( const FSlateRect& InAnchorRect, const FVector2D& InSize, bool bAutoAdjustForDPIScale) const
+{
+	// first use the CalculatePopupWindowPosition and if cursor is not inside it, proceed with it to avoid behavior change.
+	FVector2D PopupPosition = CalculatePopupWindowPosition(InAnchorRect, InSize, bAutoAdjustForDPIScale);
+	FVector2D Cursor = GetCursorPos();
+	if (PopupPosition.X > Cursor.X || PopupPosition.X + InSize.X < Cursor.X ||
+		PopupPosition.Y > Cursor.Y || PopupPosition.Y + InSize.Y < Cursor.Y)
+	{
+		return PopupPosition;
+	}
+
+	const FPlatformRect WorkAreaFinderRect (Cursor.X, Cursor.Y, Cursor.X + 1.0f, Cursor.Y + 1.0f);
+	const FPlatformRect PlatformWorkArea = PlatformApplication->GetWorkArea(WorkAreaFinderRect);
+
+	const FSlateRect WorkAreaRect( 
+		PlatformWorkArea.Left, 
+		PlatformWorkArea.Top, 
+		PlatformWorkArea.Left+(PlatformWorkArea.Right - PlatformWorkArea.Left), 
+		PlatformWorkArea.Top+(PlatformWorkArea.Bottom - PlatformWorkArea.Top) );
+
+	float DPIScale = 1.0f; 
+
+	if (bAutoAdjustForDPIScale)
+	{
+		DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(Cursor.X, Cursor.Y);
+	}
+
+	// We want the Tooltip to appear in a 'comfortable' distance. The following vector: 'TooltipCursorOffset' 
+	// is used to move away from the cursor tip position. If we wouldn't do this the Tooltip would directly
+	// appear at the tip of the cursor. The coefficients 16 and 12 are estimated empirical.
+	const FVector2D TooltipCursorOffset(16 * DPIScale, 12 * DPIScale);
+
+	// Calculate the new position of the Tooltip by starting at the Top/Left corner.
+	FVector2D ToolTipLocation = Cursor - TooltipCursorOffset - InSize;
+
+	// Adjust the horizontal position so that it will be inside the work area.
+	if ( ToolTipLocation.X < WorkAreaRect.Left )
+	{
+		ToolTipLocation.X += (InSize.X + 2.0 * TooltipCursorOffset.X);
+	}
+
+	// Adjust the vertical position so that it will be inside the work area.
+	if ( ToolTipLocation.Y < WorkAreaRect.Top )
+	{
+		ToolTipLocation.Y += (InSize.Y + 2.0 * TooltipCursorOffset.Y);
+	}
+
+	return ToolTipLocation;
 }
 
 FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, bool bAutoAdjustForDPIScale, const FVector2D& InProposedPlacement, const EOrientation Orientation) const

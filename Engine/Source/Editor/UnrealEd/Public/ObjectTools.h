@@ -605,6 +605,9 @@ namespace ThumbnailTools
 	/** Standard thumbnail height setting used by generation */
 	const int32 DefaultThumbnailSize=256;
 
-	/** If the given asset has a custom thumbnail cached or on the disk. */
-	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData);
+	/** Returns true if the given asset has a custom thumbnail cached or on the disk. */
+	UNREALED_API bool AssetHasCustomThumbnail(const FString& InAssetDataFullName);
+	UNREALED_API bool AssetHasCustomThumbnail(const FString& InAssetDataFullName, FObjectThumbnail& OutThumbnail);
+	/** Returns true if the given asset has a custom thumbnail cached or on the disk and if the thumbnail was captured from a viewport. */
+	UNREALED_API bool AssetHasCustomCreatedThumbnail(const FString& InAssetDataFullName);
 }

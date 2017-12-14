@@ -28,10 +28,10 @@ DECLARE_CYCLE_STAT(TEXT("Niagara - System - CompileScript_ResetAfter"), STAT_Nia
 UNiagaraSystem::UNiagaraSystem(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 , ExposedParameters(this)
-, bAutoDeactivate(true)
 #if WITH_EDITORONLY_DATA
 , bIsolateEnabled(false)
 #endif
+, bAutoDeactivate(true)
 {
 }
 

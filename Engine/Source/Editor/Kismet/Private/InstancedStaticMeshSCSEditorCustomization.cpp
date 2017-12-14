@@ -118,9 +118,12 @@ bool FInstancedStaticMeshSCSEditorCustomization::HandleViewportDrag(class UScene
 			for (UObject* ArchetypeInstance : ArchetypeInstances)
 			{
 				UInstancedStaticMeshComponent* InstancedStaticMeshComponent = CastChecked<UInstancedStaticMeshComponent>(ArchetypeInstance);
-				if (InstancedStaticMeshComponent->PerInstanceSMData[InstanceIndex].Transform.Equals(DefaultValue))
+				if (InstancedStaticMeshComponent->PerInstanceSMData.IsValidIndex(InstanceIndex))
 				{
-					InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIndex, NewTransform, false, true, true);
+					if (InstancedStaticMeshComponent->PerInstanceSMData[InstanceIndex].Transform.Equals(DefaultValue))
+					{
+						InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIndex, NewTransform, false, true, true);
+					}
 				}
 			}
 

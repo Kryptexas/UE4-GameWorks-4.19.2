@@ -26,10 +26,7 @@
 
 SDetailsViewBase::~SDetailsViewBase()
 {
-	if (ThumbnailPool.IsValid())
-	{
-		ThumbnailPool->ReleaseResources();
-	}
+	ThumbnailPool.Reset();
 }
 
 
@@ -290,7 +287,7 @@ void SDetailsViewBase::CreateColorPickerWindow(const TSharedRef< FPropertyEditor
 	PickerArgs.LinearColorArray = &LinearColor;
 	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &SDetailsViewBase::SetColorPropertyFromColorPicker);
 	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateSP(this, &SDetailsViewBase::OnColorPickerWindowClosed);
-
+	PickerArgs.OptionalOwningDetailsView = AsShared();
 	OpenColorPicker(PickerArgs);
 }
 

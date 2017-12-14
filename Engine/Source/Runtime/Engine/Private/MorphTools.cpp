@@ -9,6 +9,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/MorphTarget.h"
 #include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshLODModel.h"
 
 /** compare based on base mesh source vertex indices */
 struct FCompareMorphTargetDeltas
@@ -52,7 +53,7 @@ bool UMorphTarget::HasValidData() const
 
 #if WITH_EDITOR
 
-void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal)
+void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const TArray<FSkelMeshSection>& Sections, const bool bCompareNormal)
 {
 	// create the LOD entry if it doesn't already exist
 	if (LODIndex >= MorphLODModels.Num())
@@ -78,6 +79,20 @@ void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const
 			( bCompareNormal && Delta.TangentZDelta.SizeSquared() > 0.01f))
 		{
 			MorphModel.Vertices.Add(Delta);
+			for (int32 SectionIdx = 0; SectionIdx < Sections.Num(); ++SectionIdx)
+			{
+				if (MorphModel.SectionIndices.Contains(SectionIdx))
+				{
+					continue;
+				}
+				const uint32 BaseVertexBufferIndex = (uint32)(Sections[SectionIdx].GetVertexBufferIndex());
+				const uint32 LastVertexBufferIndex = (uint32)(BaseVertexBufferIndex + Sections[SectionIdx].GetNumVertices());
+				if (BaseVertexBufferIndex <= Delta.SourceIdx && Delta.SourceIdx < LastVertexBufferIndex)
+				{
+					MorphModel.SectionIndices.AddUnique(SectionIdx);
+					break;
+				}
+			}
 		}
 	}
 

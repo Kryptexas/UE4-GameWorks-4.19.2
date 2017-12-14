@@ -1138,7 +1138,7 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 					// Setup morph target vertices directly
 					TArray<FMorphTargetDelta> MorphDeltas;
 					GenerateMorphTargetVertices(BaseSample, MorphDeltas, AverageSample, WedgeOffset, MorphTargetVertexRemapping, UsedVertexIndicesForMorphs, VertexOffset, WedgeOffset);
-					MorphTarget->PopulateDeltas(MorphDeltas, 0);
+					MorphTarget->PopulateDeltas(MorphDeltas, 0, LODModel.Sections);
 
 					const float PercentageOfVerticesInfluences = ((float)MorphTarget->MorphLODModels[0].Vertices.Num() / (float)NumIndices) * 100.0f;
 					if (PercentageOfVerticesInfluences > ImportData->ImportSettings->CompressionSettings.MinimumNumberOfVertexInfluencePercentage)

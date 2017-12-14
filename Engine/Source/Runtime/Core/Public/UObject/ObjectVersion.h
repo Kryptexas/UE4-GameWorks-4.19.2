@@ -627,6 +627,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADDED_SOFT_OBJECT_PATH,
 	// Changed the source orientation of point lights to match spot lights (z axis)
 	VER_UE4_POINTLIGHT_SOURCE_ORIENTATION,
+	// LocalizationId has been added to the package summary (editor-only)
+	VER_UE4_ADDED_PACKAGE_SUMMARY_LOCALIZATION_ID,
+
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

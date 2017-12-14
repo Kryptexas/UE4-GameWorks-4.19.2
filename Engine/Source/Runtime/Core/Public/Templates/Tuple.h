@@ -417,7 +417,7 @@ namespace UE4Tuple_Private
 		#if USE_TUPLE_AUTO_RETURN_TYPES
 			decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const
 		#else
-			auto ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Forward<ArgTypes>(Args)..., Get<Indices>()...))
+			auto ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Forward<ArgTypes>(Args)..., this->Get<Indices>()...))
 		#endif
 		{
 			return Func(Forward<ArgTypes>(Args)..., this->template Get<Indices>()...);
@@ -427,7 +427,7 @@ namespace UE4Tuple_Private
 		#if USE_TUPLE_AUTO_RETURN_TYPES
 			decltype(auto) ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const
 		#else
-			auto ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Get<Indices>()..., Forward<ArgTypes>(Args)...))
+			auto ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(this->Get<Indices>()..., Forward<ArgTypes>(Args)...))
 		#endif
 		{
 			return Func(this->template Get<Indices>()..., Forward<ArgTypes>(Args)...);

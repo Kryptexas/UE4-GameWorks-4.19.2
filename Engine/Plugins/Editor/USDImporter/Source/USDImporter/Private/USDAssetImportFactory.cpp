@@ -9,6 +9,7 @@
 #include "Engine/StaticMesh.h"
 #include "Paths.h"
 #include "JsonObjectConverter.h"
+#include "USDAssetImportData.h"
 
 void FUSDAssetImportContext::Init(UObject* InParent, const FString& InName, class IUsdStage* InStage)
 {
@@ -84,6 +85,58 @@ void UUSDAssetImportFactory::CleanUp()
 {
 	ImportContext = FUSDAssetImportContext();
 	UnrealUSDWrapper::CleanUp();
+}
+
+bool UUSDAssetImportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+{
+	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
+	if (Mesh != nullptr)
+	{
+		UUSDAssetImportData* ImportData = Cast<UUSDAssetImportData>(Mesh->AssetImportData);
+		if (ImportData)
+		{
+			OutFilenames.Add(ImportData->GetFirstFilename());
+			return true;
+		}
+	}
+	return false;
+}
+
+void UUSDAssetImportFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+{
+	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
+	if (Mesh != nullptr && ensure(NewReimportPaths.Num() == 1))
+	{
+		UUSDAssetImportData* ImportData = Cast<UUSDAssetImportData>(Mesh->AssetImportData);
+		if (ImportData)
+		{
+			ImportData->UpdateFilenameOnly(NewReimportPaths[0]);
+		}
+	}
+}
+
+EReimportResult::Type UUSDAssetImportFactory::Reimport(UObject* Obj)
+{
+	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
+	if (Mesh != nullptr)
+	{
+		UUSDAssetImportData* ImportData = Cast<UUSDAssetImportData>(Mesh->AssetImportData);
+		if (ImportData)
+		{
+			bool bOperationCancelled = false;
+			UObject* Result = FactoryCreateFile(UStaticMesh::StaticClass(), (UObject*)Mesh->GetOutermost(), Mesh->GetFName(), RF_Transactional | RF_Standalone | RF_Public, ImportData->GetFirstFilename(), nullptr, GWarn, bOperationCancelled);
+			if (bOperationCancelled)
+			{
+				return EReimportResult::Cancelled;
+			}
+			else
+			{
+				return Result ? EReimportResult::Succeeded : EReimportResult::Failed;
+			}
+		}
+	}
+
+	return EReimportResult::Failed;
 }
 
 void UUSDAssetImportFactory::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson)

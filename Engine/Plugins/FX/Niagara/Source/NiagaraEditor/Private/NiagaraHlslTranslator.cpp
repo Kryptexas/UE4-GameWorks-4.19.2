@@ -662,8 +662,8 @@ FHlslNiagaraTranslator::FHlslNiagaraTranslator()
 	: Script(nullptr)
 	, Schema(nullptr)
 	, TranslateResults(&MessageLog)
-	, bInsideInterpolatedSpawnScript(false)
 	, VisitID(INDEX_NONE)
+	, bInsideInterpolatedSpawnScript(false)
 	, CurrentBodyChunkMode(ENiagaraCodeChunkMode::Body)
 {
 	// Make the message log silent so we're not spamming the blueprint log.

@@ -118,7 +118,7 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 			Curve.FloatCurve.RemoveRedundantKeys(MaxCurveError);
 		}
 
-#ifdef DO_CHECK
+#if DO_CHECK
 		FString CompressionName = AnimToOperateOn->CompressionScheme->GetFullName();
 		const TCHAR* AAC = CompressContext.Get()->bAllowAlternateCompressor ? TEXT("true") : TEXT("false");
 		const TCHAR* OutputStr = CompressContext.Get()->bOutput ? TEXT("true") : TEXT("false");

@@ -2239,7 +2239,7 @@ void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffset
 		OutTextOffsetLocations->OffsetData.Reserve(LineModels.Num());
 	}
 
-	const int32 LineTerminatorLength = FCString::Strlen(LINE_TERMINATOR);
+	static const int32 LineTerminatorLength = FCString::Strlen(LINE_TERMINATOR);
 
 	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
@@ -2362,7 +2362,7 @@ FTextSelection FTextLayout::GetWordAt(const FTextLocation& Location) const
 
 	WordBreakIterator->SetString(**LineModel.Text);
 
-	int32 PreviousBreak = WordBreakIterator->MoveToCandidateAfter(Offset);
+	int32 PreviousBreak = (Offset < LineModel.Text->Len()) ? WordBreakIterator->MoveToCandidateAfter(Offset) : WordBreakIterator->ResetToEnd();
 	int32 CurrentBreak = 0;
 
 	while ((CurrentBreak = WordBreakIterator->MoveToPrevious()) != INDEX_NONE)

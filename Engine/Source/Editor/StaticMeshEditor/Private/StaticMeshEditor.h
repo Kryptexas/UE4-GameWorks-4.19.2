@@ -39,7 +39,6 @@ class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEd
 public:
 	FStaticMeshEditor()
 		: StaticMesh(NULL)
-		, NumLODLevels(0)
 		, MinPrimSize(0.5f)
 		, OverlapNudge(10.0f)
 		, CurrentViewedUVChannel(0)
@@ -133,10 +132,6 @@ public:
 	/** From FNotifyHook */
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
-	/** Get the names of the LOD for menus */
-	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
-	const TArray< TSharedPtr< FString > >& GetLODLevels() const { return LODLevels; }
-
 	/** Get the active view mode */
 	virtual EViewModeIndex GetViewMode() const override;
 
@@ -156,6 +151,14 @@ public:
 	{
 		OnSelectedLODChanged.RemoveAll(Thing);
 		OnSelectedLODChangedResetOnRefresh.RemoveAll(Thing);
+	}
+
+	virtual void BroadcastOnSelectedLODChanged() override
+	{
+		if (OnSelectedLODChanged.IsBound())
+		{
+			OnSelectedLODChanged.Broadcast();
+		}
 	}
 
 	class FStaticMeshEditorViewportClient& GetViewportClient();
@@ -207,9 +210,6 @@ private:
 
 	/** A general callback for the combo boxes in the Static Mesh Editor to force a viewport refresh when a selection changes. */
 	void ComboBoxSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-
-	/** A callback for when the LOD is selected, forces an update to retrieve UV channels, triangles, vertices among other things. Refreshes the viewport. */
-	void LODLevelsSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 
 	/**
 	 *	Sets the editor's current mesh and refreshes various settings to correspond with the new data.
@@ -265,9 +265,6 @@ private:
 
 	/** Replace the generated LODs in the original source mesh with the reduced versions.*/
 	void OnSaveGeneratedLODs();
-
-	/** Rebuilds the LOD combo list and sets it to "auto", a safe LOD level. */
-	void RegenerateLODComboList();
 
 	/** Rebuilds the UV Channel combo list and attempts to set it to the same channel. */
 	TSharedRef<SWidget> GenerateUVChannelComboList();
@@ -346,14 +343,8 @@ private:
 	/** Convex Decomposition widget */
 	TSharedPtr< class SConvexDecomposition> ConvexDecomposition;
 
-	/** Widget for displaying the available LOD. */
-	TSharedPtr< class STextComboBox > LODLevelCombo;
-
 	/** Static mesh editor detail customization */
 	TWeakPtr<class FStaticMeshDetails> StaticMeshDetails;
-
-	/** Named list of LODs for use in menus */
-	TArray< TSharedPtr< FString > > LODLevels;
 
 	/** The currently viewed Static Mesh. */
 	UStaticMesh* StaticMesh;
@@ -366,9 +357,6 @@ private:
 
 	/** The number of used UV channels. */
 	TArray<int32> NumUVChannels;
-
-	/** The number of LOD levels. */
-	int32 NumLODLevels;
 
 	/** Delegates called after an undo operation for child widgets to refresh */
 	FOnPostUndoMulticaster OnPostUndo;	
@@ -386,6 +374,7 @@ private:
 	/** The current UV Channel we are viewing */
 	int32 CurrentViewedUVChannel;
 
+	/** Selected LOD changed delegates */
 	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
 	FOnSelectedLODChangedMulticaster OnSelectedLODChangedResetOnRefresh;
 

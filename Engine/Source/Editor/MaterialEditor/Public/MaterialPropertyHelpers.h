@@ -92,7 +92,7 @@ public:
 	static ECheckBoxState IsOverriddenExpressionCheckbox(UDEditorParameterValue* Parameter);
 
 	/** Gets the expression description of this parameter from the base material */
-	static	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter, UMaterialEditorInstanceConstant* MaterialEditorInstance);
+	static	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter, UObject* MaterialEditorInstance);
 	
 	/**
 	 * Called when a parameter is overridden;
@@ -123,6 +123,10 @@ public:
 
 	static FReply OnClickedSaveNewFunctionInstance(class UMaterialFunctionInterface* Object, class UMaterialInterface* PreviewMaterial, UObject* EditorObject);
 
+	static void GetVectorChannelMaskComboBoxStrings(TArray<TSharedPtr<FString>>& OutComboBoxStrings, TArray<TSharedPtr<class SToolTip>>& OutToolTips, TArray<bool>& OutRestrictedItems);
+	static FString GetVectorChannelMaskValue(class UDEditorParameterValue* InParameter);
+	static void SetVectorChannelMaskValue(const FString& StringValue, TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* InParameter, UObject* MaterialEditorInstance);
+
 	/**
 	*  Returns group for parameter. Creates one if needed.
 	*
@@ -132,5 +136,6 @@ public:
 
 	static FText LayerID;
 	static FText BlendID;
+	static FName LayerParamName;
 };
 

@@ -487,10 +487,10 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 		}
 	}
 
-	// Remove any cultures that were explicitly disabled
+	// Remove any cultures that were explicitly disallowed
 	OutAvailableCultures.RemoveAll([&](const FCultureRef& InCulture) -> bool
 	{
-		return Implementation->IsCultureDisabled(InCulture->GetName());
+		return !Implementation->IsCultureAllowed(InCulture->GetName());
 	});
 }
 

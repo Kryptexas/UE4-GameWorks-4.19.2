@@ -66,9 +66,6 @@ bool FNiagaraEmitterScriptProperties::DataSetAccessSynchronized() const
 UNiagaraEmitter::UNiagaraEmitter(const FObjectInitializer& Initializer)
 : Super(Initializer)
 , CollisionMode(ENiagaraCollisionMode::None)
-#if WITH_EDITORONLY_DATA
-, ThumbnailImageOutOfDate(true)
-#endif
 , FixedBounds(FBox(FVector(-100), FVector(100)))
 , MinDetailLevel(0)
 , MaxDetailLevel(4)
@@ -76,6 +73,9 @@ UNiagaraEmitter::UNiagaraEmitter(const FObjectInitializer& Initializer)
 , bFixedBounds(false)
 , bUseMinDetailLevel(false)
 , bUseMaxDetailLevel(false)
+#if WITH_EDITORONLY_DATA
+, ThumbnailImageOutOfDate(true)
+#endif
 {
 }
 

@@ -34,6 +34,8 @@
 #include "AudioDevice.h"
 #include "RawIndexBuffer.h"
 #include "CameraController.h"
+#include "Animation/MorphTarget.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 namespace {
 	// Value from UE3
@@ -726,6 +728,31 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 		TArray<UMaterial*> MaterialsThatNeedMorphFlagOn;
 		TArray<UMaterial*> MaterialsThatNeedSaving;
 
+		const TIndirectArray<FSkeletalMeshLODModel>& LODModels = PreviewMeshComponent->SkeletalMesh->GetImportedModel()->LODModels;
+		int32 LodNumber = LODModels.Num();
+		TArray<UMaterialInterface*> MaterialUsingMorphTarget;
+		for (UMorphTarget *MorphTarget : PreviewMeshComponent->SkeletalMesh->MorphTargets)
+		{
+			if (MorphTarget == nullptr)
+			{
+				continue;
+			}
+			for (const FMorphTargetLODModel& MorphTargetLODModel : MorphTarget->MorphLODModels)
+			{
+				for (int32 SectionIndex : MorphTargetLODModel.SectionIndices)
+				{
+					for (int32 LodIdx = 0; LodIdx < LodNumber; LodIdx++)
+					{
+						const FSkeletalMeshLODModel& LODModel = LODModels[LodIdx];
+						if (LODModel.Sections.IsValidIndex(SectionIndex))
+						{
+							MaterialUsingMorphTarget.AddUnique(PreviewMeshComponent->SkeletalMesh->Materials[LODModel.Sections[SectionIndex].MaterialIndex].MaterialInterface);
+						}
+					}
+				}
+			}
+		}
+
 		for (int i = 0; i < PreviewMeshComponent->GetNumMaterials(); ++i)
 		{
 			if (UMaterialInterface* MaterialInterface = PreviewMeshComponent->GetMaterial(i))
@@ -734,7 +761,7 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 				if ((Material != nullptr) && !ProcessedMaterials.Contains(Material))
 				{
 					ProcessedMaterials.Add(Material);
-					if (!Material->GetUsageByFlag(MATUSAGE_MorphTargets))
+					if (MaterialUsingMorphTarget.Contains(MaterialInterface) && !Material->GetUsageByFlag(MATUSAGE_MorphTargets))
 					{
 						MaterialsThatNeedMorphFlagOn.Add(Material);
 					}

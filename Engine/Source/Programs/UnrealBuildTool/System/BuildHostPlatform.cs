@@ -477,6 +477,7 @@ namespace UnrealBuildTool
 		internal override void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats)
 		{
 			Formats.Add(ProjectFileFormat.Make);
+			Formats.Add(ProjectFileFormat.VisualStudioCode);
 			Formats.Add(ProjectFileFormat.KDevelop);
 			Formats.Add(ProjectFileFormat.QMake);
 			Formats.Add(ProjectFileFormat.CMake);

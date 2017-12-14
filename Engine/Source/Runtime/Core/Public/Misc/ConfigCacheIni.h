@@ -399,12 +399,13 @@ private:
 	 * Process the property for Writing to a default file. We will need to check for array operations, as default ini's rely on this
 	 * being correct to function properly
 	 *
+	 * @param IniCombineThreshold - Cutoff level for combining ini (to prevent applying changes from the same ini that we're writing)
 	 * @param InCompletePropertyToProcess - The complete property which we need to process for saving.
 	 * @param OutText - The stream we are processing the array to
 	 * @param SectionName - The section name the array property is being written to
 	 * @param PropertyName - The property name of the array
 	 */
-	void ProcessPropertyAndWriteForDefaults(const TArray<FConfigValue>& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName);
+	void ProcessPropertyAndWriteForDefaults(EConfigFileHierarchy IniCombineThreshold, const TArray<FConfigValue>& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName);
 
 };
 

@@ -22,6 +22,9 @@ public class SwarmInterface : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			PrivateIncludePathModuleNames.Add("MessagingCommon");
+			// the modules below are only needed for the UMB usability check
+			PublicDependencyModuleNames.Add("Sockets");
+			PublicDependencyModuleNames.Add("Networking");
 		}
 	}
 }

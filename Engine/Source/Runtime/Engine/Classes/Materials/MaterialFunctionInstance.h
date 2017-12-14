@@ -78,7 +78,7 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 	virtual void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const override;
 
 #if WITH_EDITOR
-	virtual UMaterial* GetPreviewMaterial() override;
+	virtual UMaterialInterface* GetPreviewMaterial() override;
 	virtual void UpdateInputOutputTypes() override;
 	virtual bool HasFlippedCoordinates() const override;
 #endif
@@ -159,4 +159,10 @@ public:
 	virtual bool OverrideNamedStaticSwitchParameter(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid) override;
 	virtual bool OverrideNamedStaticComponentMaskParameter(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) override;
 	//~ End UMaterialFunctionInterface interface
+
+protected:
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(transient)
+	class UMaterialInstanceConstant* PreviewMaterial;
+#endif // WITH_EDITORONLY_DATA
 };

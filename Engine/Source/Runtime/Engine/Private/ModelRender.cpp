@@ -90,7 +90,7 @@ void UModelComponent::BuildRenderData()
 {
 	UModel* TheModel = GetModel();
 
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 	const ULevel* Level = CastChecked<ULevel>(GetOuter());
 	const bool bIsGameWorld = !Level || !Level->OwningWorld || Level->OwningWorld->IsGameWorld();
 #endif

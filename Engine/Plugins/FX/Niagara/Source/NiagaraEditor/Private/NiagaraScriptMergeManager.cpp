@@ -1244,7 +1244,7 @@ TOptional<bool> FNiagaraScriptMergeManager::DoFunctionInputOverridesMatch(TShare
 			FunctionDiffResults.ModifiedOtherInputOverrides.Num() == 0;
 	}
 
-	return nullptr;
+	return TOptional<bool>();
 }
 
 FNiagaraScriptMergeManager::FApplyDiffResults FNiagaraScriptMergeManager::AddModule(FString UniqueEmitterName, UNiagaraScript& OwningScript, UNiagaraNodeOutput& TargetOutputNode, TSharedRef<FNiagaraStackFunctionMergeAdapter> AddModule)

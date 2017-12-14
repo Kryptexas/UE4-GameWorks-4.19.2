@@ -306,7 +306,12 @@ namespace
 				if (SettingsModel.IsValid())
 				{
 					SettingsModel->SetPreviewGameLanguage(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
-					FTextLocalizationManager::Get().RefreshResources();
+
+					if (FTextLocalizationManager::Get().ShouldGameLocalizationPreviewAutoEnable() || FTextLocalizationManager::Get().IsGameLocalizationPreviewEnabled())
+					{
+						// Enable the preview again for the newly set culture
+						FTextLocalizationManager::Get().EnableGameLocalizationPreview();
+					}
 				}
 				if (PreviewGameCultureComboButton.IsValid())
 				{

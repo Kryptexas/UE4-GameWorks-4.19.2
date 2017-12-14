@@ -276,7 +276,7 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& I
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
-	if (MaterialEditorModule->MaterialLayersEnabled() && !MaterialFunction)
+	if (MaterialEditorModule->MaterialLayersEnabled())
 	{
 		InTabManager->RegisterTabSpawner(LayerPropertiesTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_LayerProperties))
 			.SetDisplayName(LOCTEXT("LayerPropertiesTab", "Layer Parameters"))
@@ -301,7 +301,7 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	InTabManager->UnregisterTabSpawner( HLSLCodeTabId );
 	InTabManager->UnregisterTabSpawner( PreviewSettingsTabId );
 	InTabManager->UnregisterTabSpawner( ParameterDefaultsTabId );
-	InTabManager->UnregisterTabSpawner(LayerPropertiesTabId);
+	InTabManager->UnregisterTabSpawner( LayerPropertiesTabId );
 
 	OnUnregisterTabSpawners().Broadcast(InTabManager);
 }
@@ -429,7 +429,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	BindCommands();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v8")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v10")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -456,8 +456,9 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 				(
 					FTabManager::NewStack()
 					->AddTab( PropertiesTabId, ETabState::OpenedTab )
-					->AddTab( PreviewSettingsTabId, ETabState::ClosedTab)
+					->AddTab( PreviewSettingsTabId, ETabState::ClosedTab )
 					->AddTab( ParameterDefaultsTabId, ETabState::OpenedTab )
+					->AddTab( LayerPropertiesTabId, ETabState::ClosedTab )
 					->SetForegroundTab( PropertiesTabId )
 				)
 			)
@@ -569,6 +570,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(Input);
 						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
 						BaseAttributesInput->InputName = TEXT("Base Attributes");
+						BaseAttributesInput->bUsePreviewValueAsDefault = true;
 					}
 				}
 				else if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
@@ -579,6 +581,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputTop);
 						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
 						BaseAttributesInput->InputName = TEXT("Top Layer");
+						BaseAttributesInput->bUsePreviewValueAsDefault = true;
 					}
 
 					UMaterialExpression* InputBottom = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 400), false, true);
@@ -587,6 +590,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputBottom);
 						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
 						BaseAttributesInput->InputName = TEXT("Bottom Layer");
+						BaseAttributesInput->bUsePreviewValueAsDefault = true;
 					}
 				}
 			}
@@ -797,7 +801,7 @@ void FMaterialEditor::CreateInternalWidgets()
 
 	PropertyEditorModule.RegisterCustomClassLayout( UMaterial::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialDetailCustomization::MakeInstance ) );
 
-	const FDetailsViewArgs ParametersViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true);
+	const FDetailsViewArgs ParametersViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, this);
 	MaterialParametersView = PropertyEditorModule.CreateDetailView(ParametersViewArgs);
 	MaterialEditorInstance = NewObject<UMaterialEditorPreviewParameters>(GetTransientPackage(), NAME_None, RF_Transactional);
 	MaterialEditorInstance->PreviewMaterial = Material;
@@ -816,7 +820,7 @@ void FMaterialEditor::CreateInternalWidgets()
 	MaterialParametersView->OnFinishedChangingProperties().AddSP(this, &FMaterialEditor::OnFinishedChangingProperties);
 	
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
-	if (MaterialEditorModule->MaterialLayersEnabled() && !MaterialFunction)
+	if (MaterialEditorModule->MaterialLayersEnabled())
 	{
 		MaterialLayersFunctionsInstance = SNew(SMaterialLayersFunctionsMaterialWrapper)
 			.InMaterialEditorInstance(MaterialEditorInstance);
@@ -879,17 +883,28 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void FMaterialEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if (PropertyChangedEvent.Property != nullptr)
+	bool bRefreshNodePreviews = false;
+	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
 		UStructProperty* Property = Cast<UStructProperty>(PropertyChangedEvent.Property);
-
 		if (Property != nullptr)
 		{
 			if (Property->Struct->GetFName() == TEXT("LinearColor") || Property->Struct->GetFName() == TEXT("Color")) // if we changed a color property refresh the previews
 			{
-				RefreshExpressionPreviews(true);
+				bRefreshNodePreviews = true;
 			}
 		}
+		// If we changed any of the parameter values from the Parameter Defaults panel
+		if (PropertyChangedEvent.Property->GetName() == TEXT("Parameters"))
+		{
+			bRefreshNodePreviews = true;
+		}
+		if (bRefreshNodePreviews)
+		{
+			RefreshExpressionPreviews(true);
+		}
+		RefreshPreviewViewport();
+		UpdatePreviewMaterial();
 	}
 }
 
@@ -906,6 +921,8 @@ FText FMaterialEditor::GetBaseToolkitName() const
 FText FMaterialEditor::GetToolkitName() const
 {
 	const UObject* EditingObject = GetEditingObjects()[0];
+
+	check(EditingObject);
 
 	const bool bDirtyState = EditingObject->GetOutermost()->IsDirty();
 
@@ -1113,7 +1130,8 @@ void FMaterialEditor::DrawMaterialInfoStrings(
 	const FMaterialResource* MaterialResource, 
 	const TArray<FString>& CompileErrors, 
 	int32 &DrawPositionY,
-	bool bDrawInstructions)
+	bool bDrawInstructions,
+	bool bGeneratedNewShaders)
 {
 	check(Material && MaterialResource);
 
@@ -1154,6 +1172,23 @@ void FMaterialEditor::DrawMaterialInfoStrings(
 				SamplersUsed > MaxSamplers ? FLinearColor(1,0,0) : FLinearColor(1,1,0)
 				);
 			DrawPositionY += SpacingBetweenLines;
+		}
+
+		if (bGeneratedNewShaders)
+		{
+			int32 NumShaders = 0;
+			int32 NumPipelines = 0;
+			if(FMaterialShaderMap* ShaderMap = MaterialResource->GetGameThreadShaderMap())
+			{
+				ShaderMap->CountNumShaders(NumShaders, NumPipelines);
+			}
+
+			if (NumShaders)
+			{
+				FString ShaderCountString = FString::Printf(TEXT("Num shaders added: %i"), NumShaders);
+				Canvas->DrawShadowedString(5, DrawPositionY, *ShaderCountString, FontToUse, FLinearColor(1, 0.8, 0));
+				DrawPositionY += SpacingBetweenLines;
+			}
 		}
 	}
 
@@ -1696,8 +1731,8 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 				CompileErrors = MaterialResource->GetCompileErrors();
 			}
 
-			// Only show general info if stats enabled
-			if (!MaterialFunction && bShowStats)
+			// Only show general info if there are no errors and stats are enabled - Stats show for Materials, layers and blends
+			if (CompileErrors.Num() == 0 && (!MaterialFunction || MaterialFunction->GetMaterialFunctionUsage() != Default) && bShowStats)
 			{
 				// Display any errors and messages in the upper left corner of the viewport.
 				TArray<FString> Descriptions;
@@ -2216,7 +2251,7 @@ void FMaterialEditor::OnConvertObjects()
 
 				if (ClassToCreate)
 				{
-					UMaterialExpression* NewExpression = CreateNewMaterialExpression(ClassToCreate, FVector2D(GraphNode->NodePosX, GraphNode->NodePosY), false, true );
+					UMaterialExpression* NewExpression = CreateNewMaterialExpression(ClassToCreate, FVector2D(GraphNode->NodePosX, GraphNode->NodePosY), true, true );
 					if (NewExpression)
 					{
 						UMaterialGraphNode* NewGraphNode = CastChecked<UMaterialGraphNode>(NewExpression->GraphNode);
@@ -3183,7 +3218,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 
 		if (NewExpression)
 		{
-			Material->MaterialGraph->AddExpression(NewExpression);
+			Material->MaterialGraph->AddExpression(NewExpression, bAutoSelect);
 
 			// Select the new node.
 			if ( bAutoSelect )
@@ -4362,19 +4397,18 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 
 			ColorPickerObject = GraphNode->MaterialExpression;
 
-			// Open a color picker that only sends updates when Ok is clicked, 
-			// Since it is too slow to recompile preview expressions as the user is picking different colors
+			// Open a color picker 
 			FColorPickerArgs PickerArgs;
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
 			PickerArgs.bUseAlpha = ChannelEditStruct.Alpha != nullptr;
-			PickerArgs.bOnlyRefreshOnOk = true;
-			PickerArgs.bOnlyRefreshOnMouseUp = false;
+			PickerArgs.bOnlyRefreshOnOk = false;
+			PickerArgs.bOnlyRefreshOnMouseUp = true;
 			PickerArgs.bExpandAdvancedSection = true;
 			PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
 			PickerArgs.ColorChannelsArray = &Channels;
 			PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &FMaterialEditor::OnColorPickerCommitted);
 			PickerArgs.PreColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &FMaterialEditor::PreColorPickerCommit);
-
+			PickerArgs.OptionalOwningDetailsView = MaterialDetailsView;
 			OpenColorPicker(PickerArgs);
 		}
 

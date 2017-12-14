@@ -324,6 +324,12 @@ struct CORE_API FGenericPlatformMisc
 	/** Submits a crash report to a central server (release builds only) */
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 
+	/** Check to see if the platform is being viewed remotely. In such a mode we should aim to minimize screen refresh to get the best performance on the remote viewer */
+	static bool IsRemoteSession()
+	{
+		return false;
+	}
+
 	/** Return true if a debugger is present */
 	FORCEINLINE static bool IsDebuggerPresent()
 	{

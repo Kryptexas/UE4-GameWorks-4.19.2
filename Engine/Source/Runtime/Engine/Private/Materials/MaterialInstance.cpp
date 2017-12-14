@@ -681,6 +681,45 @@ bool UMaterialInstance::GetVectorParameterValue(const FMaterialParameterInfo& Pa
 	return false;
 }
 
+bool UMaterialInstance::IsVectorParameterUsedAsChannelMask(const FMaterialParameterInfo& ParameterInfo, bool& OutValue) const
+{
+	bool bFoundAValue = false;
+
+	if (GetReentrantFlag())
+	{
+		return false;
+	}
+	
+	// Instance-included default
+	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
+	{
+		UMaterialExpressionVectorParameter* Parameter = nullptr;
+		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
+		{
+			if (LayersParam.bOverride)
+			{
+				UMaterialFunctionInterface* Function = LayersParam.GetParameterAssociatedFunction(ParameterInfo);
+				UMaterialFunctionInterface* ParameterOwner = nullptr;
+
+				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
+				{					
+					OutValue = Parameter->IsUsedAsChannelMask();
+					return true;
+				}
+			}
+		}
+	}
+	
+	// Next material in hierarchy
+	if (Parent)
+	{
+		FMICReentranceGuard	Guard(this);
+		return Parent->IsVectorParameterUsedAsChannelMask(ParameterInfo, OutValue);
+	}
+	
+	return false;
+}
+
 bool UMaterialInstance::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const
 {
 	bool bFoundAValue = false;
@@ -1184,40 +1223,6 @@ void UMaterialInstance::OverrideScalarParameterDefault(const FMaterialParameterI
 		RecacheMaterialInstanceUniformExpressions(this);
 	}
 #endif // #if WITH_EDITOR
-}
-
-float UMaterialInstance::GetScalarParameterDefault(const FMaterialParameterInfo& ParameterInfo, ERHIFeatureLevel::Type InFeatureLevel)
-{
-	if (bHasStaticPermutationResource)
-	{
-		if (FApp::CanEverRender())
-		{
-			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
-			if (ensureAlways(SourceMaterialResource))
-			{
-				const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
-
-				// Iterate over each of the material's expressions.
-				for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
-				{
-					FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-					if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
-					{
-						FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
-
-						if (ScalarExpression->GetParameterInfo() == ParameterInfo)
-						{
-							float Value = 0.f;
-							ScalarExpression->GetDefaultValue(Value);
-							return Value;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return 0.f;
 }
 
 bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage)
@@ -1795,7 +1800,7 @@ void UMaterialInstance::GetDependentFunctions(TArray<UMaterialFunctionInterface*
 	}
 }
 
-bool UMaterialInstance::GetScalarParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, float& OutValue, bool bOveriddenOnly) const
+bool UMaterialInstance::GetScalarParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, float& OutValue, bool bOveriddenOnly, bool bCheckOwnedGlobalOverrides) const
 {
 #if WITH_EDITOR
 	if (GetReentrantFlag())
@@ -1810,6 +1815,7 @@ bool UMaterialInstance::GetScalarParameterDefaultValue(const FMaterialParameterI
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -1833,19 +1839,31 @@ bool UMaterialInstance::GetScalarParameterDefaultValue(const FMaterialParameterI
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FScalarParameterValue& ScalarParam : ScalarParameterValues)
+		{
+			if (ScalarParam.ParameterInfo == ParameterInfo)
+			{
+				OutValue = ScalarParam.ParameterValue;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 #if WITH_EDITOR
 		FMICReentranceGuard	Guard(this);
 #endif
-		return Parent->GetScalarParameterDefaultValue(ParameterInfo, OutValue, bOveriddenOnly);
+		return Parent->GetScalarParameterDefaultValue(ParameterInfo, OutValue, bOveriddenOnly, true);
 	}
 
 	return false;
 }
 
-bool UMaterialInstance::GetVectorParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue, bool bOveriddenOnly) const
+bool UMaterialInstance::GetVectorParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue, bool bOveriddenOnly, bool bCheckOwnedGlobalOverrides) const
 {
 #if WITH_EDITOR
 	if (GetReentrantFlag())
@@ -1860,6 +1878,7 @@ bool UMaterialInstance::GetVectorParameterDefaultValue(const FMaterialParameterI
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -1883,19 +1902,31 @@ bool UMaterialInstance::GetVectorParameterDefaultValue(const FMaterialParameterI
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FVectorParameterValue& VectorParam : VectorParameterValues)
+		{
+			if (VectorParam.ParameterInfo == ParameterInfo)
+			{
+				OutValue = VectorParam.ParameterValue;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 #if WITH_EDITOR
 		FMICReentranceGuard	Guard(this);
 #endif
-		return Parent->GetVectorParameterDefaultValue(ParameterInfo, OutValue, bOveriddenOnly);
+		return Parent->GetVectorParameterDefaultValue(ParameterInfo, OutValue, bOveriddenOnly, true);
 	}
 
 	return false;
 }
 
-bool UMaterialInstance::GetTextureParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const
+bool UMaterialInstance::GetTextureParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue, bool bCheckOwnedGlobalOverrides) const
 {
 #if WITH_EDITOR
 	if (GetReentrantFlag())
@@ -1910,6 +1941,7 @@ bool UMaterialInstance::GetTextureParameterDefaultValue(const FMaterialParameter
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -1933,19 +1965,31 @@ bool UMaterialInstance::GetTextureParameterDefaultValue(const FMaterialParameter
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FTextureParameterValue& TextureParam : TextureParameterValues)
+		{
+			if (TextureParam.ParameterInfo == ParameterInfo)
+			{
+				OutValue = TextureParam.ParameterValue;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 #if WITH_EDITOR
 		FMICReentranceGuard	Guard(this);
 #endif
-		return Parent->GetTextureParameterDefaultValue(ParameterInfo, OutValue);
+		return Parent->GetTextureParameterDefaultValue(ParameterInfo, OutValue, true);
 	}
 
 	return false;
 }
 
-bool UMaterialInstance::GetFontParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage) const
+bool UMaterialInstance::GetFontParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage, bool bCheckOwnedGlobalOverrides) const
 {
 #if WITH_EDITOR
 	if (GetReentrantFlag())
@@ -1960,6 +2004,7 @@ bool UMaterialInstance::GetFontParameterDefaultValue(const FMaterialParameterInf
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -1983,19 +2028,32 @@ bool UMaterialInstance::GetFontParameterDefaultValue(const FMaterialParameterInf
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FFontParameterValue& FontParam : FontParameterValues)
+		{
+			if (FontParam.ParameterInfo == ParameterInfo)
+			{
+				OutFontValue = FontParam.FontValue;
+				OutFontPage = FontParam.FontPage;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 #if WITH_EDITOR
 		FMICReentranceGuard	Guard(this);
 #endif
-		return Parent->GetFontParameterDefaultValue(ParameterInfo, OutFontValue, OutFontPage);
+		return Parent->GetFontParameterDefaultValue(ParameterInfo, OutFontValue, OutFontPage, true);
 	}
 
 	return false;
 }
 
-bool UMaterialInstance::GetStaticSwitchParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid) const
+bool UMaterialInstance::GetStaticSwitchParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid, bool bCheckOwnedGlobalOverrides) const
 {
 	if (GetReentrantFlag())
 	{
@@ -2008,6 +2066,7 @@ bool UMaterialInstance::GetStaticSwitchParameterDefaultValue(const FMaterialPara
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -2031,17 +2090,30 @@ bool UMaterialInstance::GetStaticSwitchParameterDefaultValue(const FMaterialPara
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FStaticSwitchParameter& SwitchParam : StaticParameters.StaticSwitchParameters)
+		{
+			if (SwitchParam.bOverride && SwitchParam.ParameterInfo == ParameterInfo)
+			{
+				OutValue = SwitchParam.Value;
+				OutExpressionGuid = SwitchParam.ExpressionGUID;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetStaticSwitchParameterDefaultValue(ParameterInfo, OutValue, OutExpressionGuid);
+		return Parent->GetStaticSwitchParameterDefaultValue(ParameterInfo, OutValue, OutExpressionGuid, true);
 	}
 
 	return false;
 }
 
-bool UMaterialInstance:: GetStaticComponentMaskParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) const
+bool UMaterialInstance:: GetStaticComponentMaskParameterDefaultValue(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid, bool bCheckOwnedGlobalOverrides) const
 {
 	if (GetReentrantFlag())
 	{
@@ -2054,6 +2126,7 @@ bool UMaterialInstance:: GetStaticComponentMaskParameterDefaultValue(const FMate
 
 	if (ParameterInfo.Association != EMaterialParameterAssociation::GlobalParameter)
 	{
+		// Parameters introduced by this instance's layer stack
 		for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 		{
 			if (LayersParam.bOverride)
@@ -2077,11 +2150,27 @@ bool UMaterialInstance:: GetStaticComponentMaskParameterDefaultValue(const FMate
 			}
 		}
 	}
+	else if (bCheckOwnedGlobalOverrides)
+	{
+		// Parameters overridden by this instance
+		for (const FStaticComponentMaskParameter& ComponentMaskParam : StaticParameters.StaticComponentMaskParameters)
+		{
+			if (ComponentMaskParam.bOverride && ComponentMaskParam.ParameterInfo == ParameterInfo)
+			{
+				OutR = ComponentMaskParam.R;
+				OutG = ComponentMaskParam.G;
+				OutB = ComponentMaskParam.B;
+				OutA = ComponentMaskParam.A;
+				OutExpressionGuid = ComponentMaskParam.ExpressionGUID;
+				return true;
+			}
+		}
+	}
 	
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetStaticComponentMaskParameterDefaultValue(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+		return Parent->GetStaticComponentMaskParameterDefaultValue(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid, true);
 	}
 
 	return false;
@@ -2101,22 +2190,26 @@ bool UMaterialInstance::GetGroupName(const FMaterialParameterInfo& ParameterInfo
 		{
 			if (ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
 			{
-				check(Param.Value.Layers.IsValidIndex(ParameterInfo.Index));
-				UMaterialFunctionInterface* Layer = Param.Value.Layers[ParameterInfo.Index];
-
-				if (Layer && Layer->GetParameterGroupName(ParameterInfo, OutGroup))
+				if(Param.Value.Layers.IsValidIndex(ParameterInfo.Index))
 				{
-					return true;
+					UMaterialFunctionInterface* Layer = Param.Value.Layers[ParameterInfo.Index];
+
+					if (Layer && Layer->GetParameterGroupName(ParameterInfo, OutGroup))
+					{
+						return true;
+					}
 				}
 			}
 			else if (ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter)
 			{
-				check(Param.Value.Blends.IsValidIndex(ParameterInfo.Index));
-				UMaterialFunctionInterface* Blend = Param.Value.Blends[ParameterInfo.Index];
-
-				if (Blend && Blend->GetParameterGroupName(ParameterInfo, OutGroup))
+				if(Param.Value.Blends.IsValidIndex(ParameterInfo.Index))
 				{
-					return true;
+					UMaterialFunctionInterface* Blend = Param.Value.Blends[ParameterInfo.Index];
+
+					if (Blend && Blend->GetParameterGroupName(ParameterInfo, OutGroup))
+					{
+						return true;
+					}
 				}
 			}
 		}

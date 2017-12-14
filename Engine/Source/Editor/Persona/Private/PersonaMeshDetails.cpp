@@ -1133,7 +1133,20 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 		FText LODControllerString = LOCTEXT("LODCustomModeCategoryName", "LOD Picker");
 
 		IDetailCategoryBuilder& LODCustomModeCategory = DetailLayout.EditCategory(*LODControllerCategoryName, LODControllerString, ECategoryPriority::Important);
+		LodCustomCategory = &LODCustomModeCategory;
 
+		LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeSelect", "Select LOD")))
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LODCustomModeSelectTitle", "LOD"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.IsEnabled(this, &FPersonaMeshDetails::IsLodComboBoxEnabledForLodPicker)
+		]
+		.ValueContent()
+		[
+			OnGenerateLodComboBoxForLodPicker()
+		];
 
 		LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeFirstRowName", "LODCustomMode")))
 		.NameContent()
@@ -1162,7 +1175,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			//Show the viewport LOD at start
 			bool IsViewportLOD = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex;
 			DetailDisplayLODs.Add(true); //Enable all LOD in custum mode
-			LODCustomModeCategory.AddCustomRow(( LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")))
+			LODCustomModeCategory.AddCustomRow(( LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")), true)
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -1224,7 +1237,6 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 				SectionListDelegates.OnSectionChanged.BindSP(this, &FPersonaMeshDetails::OnSectionChanged);
 				SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection);
 				SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSection);
-				SectionListDelegates.OnGenerateLodComboBox.BindSP(this, &FPersonaMeshDetails::OnGenerateLodComboBoxForSectionList);
 
 				SectionListDelegates.OnCopySectionList.BindSP(this, &FPersonaMeshDetails::OnCopySectionList, LODIndex);
 				SectionListDelegates.OnCanCopySectionList.BindSP(this, &FPersonaMeshDetails::OnCanCopySectionList, LODIndex);
@@ -1326,18 +1338,12 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 		}
 
 		//Show the LOD custom category 
-		LODCustomModeCategory.SetCategoryVisibility(SkelMeshLODCount > 1);
+		if (SkelMeshLODCount > 1)
+		{
+			LODCustomModeCategory.SetCategoryVisibility(true);
+			LODCustomModeCategory.SetShowAdvanced(false);
+		}
 	}
-}
-
-EVisibility FPersonaMeshDetails::LodComboBoxVisibilityForSectionList(int32 LodIndex) const
-{
-	//No combo box when in Custom mode
-	if (CustomLODEditMode)
-	{
-		return EVisibility::Hidden;
-	}
-	return EVisibility::All;
 }
 
 FText FPersonaMeshDetails::GetLODCustomModeNameContent(int32 LODIndex) const
@@ -1412,6 +1418,11 @@ void FPersonaMeshDetails::SetLODCustomModeCheck(ECheckBoxState NewState, int32 L
 			}
 			LodCategories[DetailLODIndex]->SetCategoryVisibility(DetailDisplayLODs[DetailLODIndex]);
 		}
+	}
+
+	if (LodCustomCategory != nullptr)
+	{
+		LodCustomCategory->SetShowAdvanced(CustomLODEditMode);
 	}
 }
 
@@ -2555,23 +2566,39 @@ FText FPersonaMeshDetails::GetCurrentLodTooltip() const
 	return FText::GetEmpty();
 }
 
-TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateLodComboBoxForSectionList(int32 LodIndex)
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateLodComboBoxForLodPicker()
 {
 	return SNew(SComboButton)
-	.Visibility(this, &FPersonaMeshDetails::LodComboBoxVisibilityForSectionList, LodIndex)
-	.OnGetMenuContent(this, &FPersonaMeshDetails::OnGenerateLodMenuForSectionList, LodIndex)
-	.VAlign(VAlign_Center)
-	.ContentPadding(2)
-	.ButtonContent()
-	[
-		SNew(STextBlock)
-		.Font(IDetailLayoutBuilder::GetDetailFont())
-		.Text(this, &FPersonaMeshDetails::GetCurrentLodName)
-		.ToolTipText(this, &FPersonaMeshDetails::GetCurrentLodTooltip)
-	];
+		.IsEnabled(this, &FPersonaMeshDetails::IsLodComboBoxEnabledForLodPicker)
+		.OnGetMenuContent(this, &FPersonaMeshDetails::OnGenerateLodMenuForLodPicker)
+		.VAlign(VAlign_Center)
+		.ContentPadding(2)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FPersonaMeshDetails::GetCurrentLodName)
+			.ToolTipText(this, &FPersonaMeshDetails::GetCurrentLodTooltip)
+		];
 }
 
-TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateLodMenuForSectionList(int32 LodIndex)
+EVisibility FPersonaMeshDetails::LodComboBoxVisibilityForLodPicker() const
+{
+	//No combo box when in Custom mode
+	if (CustomLODEditMode == true)
+	{
+		return EVisibility::Hidden;
+	}
+	return EVisibility::All;
+}
+
+bool FPersonaMeshDetails::IsLodComboBoxEnabledForLodPicker() const
+{
+	//No combo box when in Custom mode
+	return !CustomLODEditMode;
+}
+
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateLodMenuForLodPicker()
 {
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
 

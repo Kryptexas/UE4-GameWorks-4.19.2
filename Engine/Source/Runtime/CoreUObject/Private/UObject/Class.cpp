@@ -1360,20 +1360,35 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		}
 	}
 
-	//@todo NickW, temp hack to make stale property chains less crashy
-	for (UProperty* Property = This->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
+	bool bPropertiesRequireRelink = false;
+	auto AROPropertyChain = [&This, &Collector, &bPropertiesRequireRelink](UProperty* InProp, UProperty* UProperty::*NextPropPtr)
 	{
-		Collector.AddReferencedObject(Property, This);
-	}
-	for (UProperty* Property = This->RefLink; Property != NULL; Property = Property->NextRef)
+		//@todo NickW, temp hack to make stale property chains less crashy
+		for (UProperty* CurProperty = InProp; CurProperty;)
+		{
+			// Cache NextProperty now as ARO may re-point (or null) the Property pointer
+			UProperty* NextProperty = CurProperty->*NextPropPtr;
+
+			UProperty* PropertyToARO = CurProperty;
+			Collector.AddReferencedObject(PropertyToARO, This);
+			if (CurProperty != PropertyToARO)
+			{
+				// This property was re-pointed by ARO - we need to re-link the property chain
+				bPropertiesRequireRelink = true;
+			}
+
+			CurProperty = NextProperty;
+		}
+	};
+
+	AROPropertyChain(This->PropertyLink, &UProperty::PropertyLinkNext);
+	AROPropertyChain(This->RefLink, &UProperty::NextRef);
+	AROPropertyChain(This->DestructorLink, &UProperty::DestructorLinkNext);
+
+	if (bPropertiesRequireRelink)
 	{
-		Collector.AddReferencedObject(Property, This);
+		This->StaticLink(bPropertiesRequireRelink);
 	}
-	for (UProperty* Property = This->DestructorLink; Property != NULL; Property = Property->DestructorLinkNext)
-	{
-		Collector.AddReferencedObject(Property, This);
-	}
-	//
 #endif
 	Super::AddReferencedObjects( This, Collector );
 }

@@ -282,19 +282,8 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')) 
-#if PLATFORM_WINDOWS	// deprecate, but temporarily continue support /-prefixed switches on Windows
-			|| (**NextToken == TCHAR('/'))
-#endif // PLATFORM_WINDOWS
-			)
+		if ((**NextToken == TCHAR('-')))
 		{
-#if PLATFORM_WINDOWS	// warn as a courtesy
-			if (**NextToken == TCHAR('/'))
-			{
-				UE_LOG(LogInit, Warning, TEXT("Passing commandline switches using / instead of - has been deprecated and will be removed in future versions of Unreal Engine."));
-			}
-#endif // PLATFORM_WINDOWS
-
 			new(Switches) FString(NextToken.Mid(1));
 			new(Tokens) FString(NextToken.Right(NextToken.Len() - 1));
 		}

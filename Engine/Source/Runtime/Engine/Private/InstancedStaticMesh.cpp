@@ -87,7 +87,7 @@ bool FStaticMeshInstanceBuffer::ComponentRequestsCPUAccess(UInstancedStaticMeshC
 	return bNeedsCPUAccess;
 }
 
-void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies, int32 UpdateInstanceStartingIndex, int32 UpdateInstanceIndexCount)
+void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies, int32 UpdateInstanceStartingIndex, int32 UpdateInstanceIndexCount, bool InUpdateRandomStream)
 {
 	if (UpdateInstanceIndexCount == 0)
 	{
@@ -153,7 +153,14 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 					ShadowmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].ShadowmapUVBias;
 				}
 
-				InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
+				if (InUpdateRandomStream)
+				{
+					InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
+				}
+				else
+				{
+					InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, LightmapUVBias, ShadowmapUVBias);
+				}
 
 				#if WITH_EDITOR
 					if (GIsEditor)
@@ -213,7 +220,7 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 		
 	if (InitializeBufferFromData)
 	{
-		UpdateInstanceData(InComponent, InHitProxies, 0, InComponent->PerInstanceSMData.Num());
+		UpdateInstanceData(InComponent, InHitProxies, 0, InComponent->PerInstanceSMData.Num(), true);
 	}
 
 	float ThisTime = (StartTime - FPlatformTime::Seconds()) * 1000.0f;
@@ -1541,7 +1548,7 @@ int32 UInstancedStaticMeshComponent::AddInstanceInternal(int32 InstanceIndex, FI
 
 	if (PerInstanceRenderData.IsValid())
 	{
-		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount);
+		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount, true, true);
 	}
 
 	PartialNavigationUpdate(InstanceIndex);
@@ -2026,7 +2033,7 @@ void FAsyncBuildInstanceBuffer::DoWork()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageAsyncBufferUpdate);
 
 	check(Component->PerInstanceRenderData.IsValid());
-	Component->PerInstanceRenderData->UpdateAllInstanceData(Component);
+	Component->PerInstanceRenderData->UpdateAllInstanceData(Component, true, true);
 	
 	check(World);
 	check(World->AsyncPreRegisterLevelStreamingTasks.GetValue() > 0);
@@ -2314,7 +2321,6 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
-				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)

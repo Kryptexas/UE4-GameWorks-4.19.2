@@ -36,34 +36,18 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 			ThumbnailScene = new FMaterialThumbnailScene();
 		}
 
-		UMaterial* PreviewMaterial = bIsFunctionInstancePreview ? MatFuncInst->GetPreviewMaterial() : MatFunc->GetPreviewMaterial();
-		UMaterialInstanceConstant* FunctionInstanceProxy = nullptr;
+		UMaterialInterface* PreviewMaterial = bIsFunctionInstancePreview ? MatFuncInst->GetPreviewMaterial() : MatFunc->GetPreviewMaterial();
+		EMaterialFunctionUsage FunctionUsage = bIsFunctionInstancePreview ? MatFuncInst->GetMaterialFunctionUsage() : MatFunc->GetMaterialFunctionUsage();
+		UThumbnailInfo* ThumbnailInfo = bIsFunctionInstancePreview ? MatFuncInst->ThumbnailInfo : MatFunc->ThumbnailInfo;
 
 		if (PreviewMaterial)
 		{
-			if (bIsFunctionInstancePreview)
-			{
-				FunctionInstanceProxy = NewObject<UMaterialInstanceConstant>((UObject*)GetTransientPackage(), FName(TEXT("None")), RF_Transactional);
-				FunctionInstanceProxy->SetParentEditorOnly(PreviewMaterial);
-				MatFuncInst->OverrideMaterialInstanceParameterValues(FunctionInstanceProxy);
-				FunctionInstanceProxy->PreEditChange(NULL);
-				FunctionInstanceProxy->PostEditChange();
-				PreviewMaterial->ThumbnailInfo = MatFuncInst->ThumbnailInfo;
-				if (MatFuncInst->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
-				{
-					FunctionInstanceProxy->SetShouldForcePlanePreview(true);
-				}
-				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)FunctionInstanceProxy);
-			}
-			else
-			{
-				PreviewMaterial->ThumbnailInfo = MatFunc->ThumbnailInfo;
-				if (MatFunc->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+				PreviewMaterial->ThumbnailInfo = ThumbnailInfo;
+				if (FunctionUsage == EMaterialFunctionUsage::MaterialLayerBlend)
 				{
 					PreviewMaterial->SetShouldForcePlanePreview(true);
 				}
-				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)PreviewMaterial);
-			}
+				ThumbnailScene->SetMaterialInterface(PreviewMaterial);
 	
 			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game) )
 				.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));

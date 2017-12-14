@@ -57,6 +57,7 @@
 #include "Materials/MaterialExpressionCameraPositionWS.h"
 #include "Materials/MaterialExpressionCameraVectorWS.h"
 #include "Materials/MaterialExpressionCeil.h"
+#include "Materials/MaterialExpressionChannelMaskParameter.h"
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionComment.h"
@@ -156,6 +157,8 @@
 #include "Materials/MaterialExpressionSceneTexelSize.h"
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionScreenPosition.h"
+#include "Materials/MaterialExpressionGetSharedInput.h"
+#include "Materials/MaterialExpressionSetSharedInput.h"
 #include "Materials/MaterialExpressionSine.h"
 #include "Materials/MaterialExpressionSobol.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
@@ -207,6 +210,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #endif //WITH_EDITOR
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -638,7 +642,7 @@ void UMaterialExpression::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 		// Don't recompile the outer material if we are in the middle of a transaction or interactively changing properties
 		// as there may be many expressions in the transaction buffer and we would just be recompiling over and over again.
-		if (Material && !Material->bIsPreviewMaterial)
+		if (Material && !(Material->bIsPreviewMaterial || Material->bIsFunctionPreviewMaterial))
 		{
 			Material->PreEditChange(nullptr);
 			Material->PostEditChangeProperty(SubPropertyChangedEvent);
@@ -1560,12 +1564,14 @@ static bool VerifySamplerType(
 #if WITH_EDITOR
 int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Texture || TextureObject.Expression) // We deal with reroute textures later on in this function..
+	UMaterialExpression* InputExpression = TextureObject.GetTracedInput().Expression;
+
+	if (Texture || InputExpression) // We deal with reroute textures later on in this function..
 	{
 		int32 TextureReferenceIndex = INDEX_NONE;
 		int32 TextureCodeIndex = INDEX_NONE;
 
-		if (TextureObject.Expression)
+		if (InputExpression)
 		{
 			TextureCodeIndex = TextureObject.Compile(Compiler);
 		}
@@ -1581,31 +1587,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 		UTexture* EffectiveTexture = Texture;
 		EMaterialSamplerType EffectiveSamplerType = SamplerType;
 		TOptional<FName> EffectiveParameterName;
-		if (TextureObject.Expression)
+		if (InputExpression)
 		{
-			UMaterialExpression* InputExpression = TextureObject.Expression;
-
-			// If we are referencing a texture input through a reroute node, we'll need to backtrack
-			// to get to the real texture.
-			UMaterialExpressionReroute* RerouteInput = Cast<UMaterialExpressionReroute>(InputExpression);
-			if (RerouteInput)
-			{
-				int32 ExpressionOutputIndex = -1;
-				InputExpression  = RerouteInput->TraceInputsToRealExpression(ExpressionOutputIndex);
-				if (InputExpression == nullptr)
-				{
-					return CompilerError(Compiler, TEXT("Missing rerouted input texture"));
-				}
-				else if (OutputIndex >= 0)
-				{
-					uint32 OutputType = InputExpression->GetOutputType(OutputIndex);
-					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube && OutputType != MCT_Texture && OutputType != MCT_TextureExternal)
-					{
-						return Compiler->Errorf(TEXT("TextureSample> Reroute not bound to proper texture type!"));
-					}
-				}
-			}
-
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
 			if (FunctionInput)
 			{	
@@ -1627,7 +1610,17 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
 			}
 
-			
+			UMaterialExpressionGetSharedInput* SharedInput = Cast<UMaterialExpressionGetSharedInput>(InputExpression);
+			if (SharedInput)
+			{			
+				SharedInput->GetEffectiveTextureData(Compiler, EffectiveTexture, InputExpression);
+
+				if (!EffectiveTexture && !InputExpression)
+				{
+					return Compiler->Errorf(TEXT("Failed to find effective texture for shared input '%s'"), *SharedInput->InputName.ToString());
+				}
+			}
+
 			UMaterialExpressionTextureObject* TextureObjectExpression = Cast<UMaterialExpressionTextureObject>(InputExpression);
 			UMaterialExpressionTextureObjectParameter* TextureObjectParameter = Cast<UMaterialExpressionTextureObjectParameter>(InputExpression);
 			if (TextureObjectExpression)
@@ -5086,8 +5079,18 @@ void UMaterialExpressionMaterialAttributeLayers::RebuildLayerGraph(bool bReportE
 					LayerCallers[CallerIndex]->Outputs.Add(FunctionOutput.Output);
 				}
 
-				LayerCallers[CallerIndex]->FunctionInputs[0].Input = Input;
+				// Optional: Single material attributes input, the base input to the stack
+				if (LayerCallers[CallerIndex]->FunctionInputs.Num() > 0)
+				{
+					if (Input.GetTracedInput().Expression)
+					{
+						LayerCallers[CallerIndex]->FunctionInputs[0].Input = Input;
+					}
+				}
 #endif
+
+				// Recursively run through internal functions to allow connection of inputs/ouputs
+				LayerCallers[CallerIndex]->UpdateFromFunctionResource();
 			}
 		}
 
@@ -5109,7 +5112,10 @@ void UMaterialExpressionMaterialAttributeLayers::RebuildLayerGraph(bool bReportE
 					{
 						BlendCallers[CallerIndex]->Outputs.Add(FunctionOutput.Output);
 					}
-#endif		
+#endif
+
+					// Recursively run through internal functions to allow connection of inputs/ouputs
+					BlendCallers[CallerIndex]->UpdateFromFunctionResource();
 				}
 				else
 				{
@@ -5204,7 +5210,7 @@ bool UMaterialExpressionMaterialAttributeLayers::ValidateLayerConfiguration(FMat
 			{
 				TArray<UMaterialExpressionFunctionInput*> InputExpressions;
 				Layer->GetAllExpressionsOfType<UMaterialExpressionFunctionInput>(InputExpressions, false);
-				if (InputExpressions.Num() != 1)
+				if (InputExpressions.Num() > 1)
 				{
 					COMPILER_OR_LOG_ERROR(TEXT("Layer %i, %s, must have one MaterialAttributes input only."), LayerIndex, *Layer->GetName());
 					bIsValid = false;
@@ -5311,14 +5317,18 @@ UMaterialFunctionInterface* UMaterialExpressionMaterialAttributeLayers::GetParam
 	if (ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
 	{
 		const TArray<UMaterialFunctionInterface*>& Layers = GetLayers();
-		check(Layers.IsValidIndex(ParameterInfo.Index));
-		LayersFunction = Layers[ParameterInfo.Index];
+		if (Layers.IsValidIndex(ParameterInfo.Index))
+		{
+			LayersFunction = Layers[ParameterInfo.Index];
+		}
 	}
 	else if (ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter)
 	{
 		const TArray<UMaterialFunctionInterface*>& Blends = GetBlends();
-		check(Blends.IsValidIndex(ParameterInfo.Index));
-		LayersFunction = Blends[ParameterInfo.Index];
+		if (Blends.IsValidIndex(ParameterInfo.Index))
+		{
+			LayersFunction = Blends[ParameterInfo.Index];
+		}
 	}
 
 	return LayersFunction;
@@ -5334,14 +5344,18 @@ void UMaterialExpressionMaterialAttributeLayers::GetParameterAssociatedFunctions
 	if (ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
 	{
 		const TArray<UMaterialFunctionInterface*>& Layers = GetLayers();
-		check(Layers.IsValidIndex(ParameterInfo.Index));
-		LayersFunction = Layers[ParameterInfo.Index];
+		if (Layers.IsValidIndex(ParameterInfo.Index))
+		{
+			LayersFunction = Layers[ParameterInfo.Index];
+		}	
 	}
 	else if (ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter)
 	{
 		const TArray<UMaterialFunctionInterface*>& Blends = GetBlends();
-		check(Blends.IsValidIndex(ParameterInfo.Index));
-		LayersFunction = Blends[ParameterInfo.Index];
+		if (Blends.IsValidIndex(ParameterInfo.Index))
+		{
+			LayersFunction = Blends[ParameterInfo.Index];
+		}
 	}
 
 	if (LayersFunction)
@@ -5375,7 +5389,14 @@ int32 UMaterialExpressionMaterialAttributeLayers::Compile(FMaterialCompiler* Com
 		{
 			// Pass-through
 			const FGuid AttributeID = Compiler->GetMaterialAttribute();
-			Result = Input.CompileWithDefault(Compiler, AttributeID);
+			if (Input.GetTracedInput().Expression)
+			{
+				Result = Input.CompileWithDefault(Compiler, AttributeID);
+			}
+			else
+			{
+				Result = FMaterialAttributeDefinitionMap::CompileDefaultExpression(Compiler, AttributeID);
+			}
 		}
 		else
 		{
@@ -5402,7 +5423,7 @@ void UMaterialExpressionMaterialAttributeLayers::GetCaption(TArray<FString>& Out
 
 void UMaterialExpressionMaterialAttributeLayers::GetExpressionToolTip(TArray<FString>& OutToolTip) 
 {
-	ConvertToMultilineToolTip(TEXT("Evaluates the material layer stack set on a material instance."), 40, OutToolTip);
+	ConvertToMultilineToolTip(TEXT("Evaluates the active material layer stack and outputs the merged attributes."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -5888,7 +5909,6 @@ bool UMaterialExpressionParameter::NeedsLoadForClient() const
 UMaterialExpressionVectorParameter::UMaterialExpressionVectorParameter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
@@ -5951,8 +5971,165 @@ void UMaterialExpressionVectorParameter::PostEditChangeProperty(FPropertyChanged
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
-
 #endif
+
+//
+//	UMaterialExpressionChannelMaskParameter
+//
+UMaterialExpressionChannelMaskParameter::UMaterialExpressionChannelMaskParameter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
+	bShowMaskColorsOnPin = false;
+
+	// Default mask to red channel
+	DefaultValue = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f);
+	MaskChannel = EChannelMaskParameterColor::Red;
+}
+
+#if WITH_EDITOR
+bool UMaterialExpressionChannelMaskParameter::SetParameterValue(FName InParameterName, FLinearColor InValue)
+{
+	if (InParameterName == ParameterName)
+	{
+		// Update value
+		DefaultValue = InValue;
+
+		// Update enum
+		if (DefaultValue.R > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Red;
+		}
+		else if (DefaultValue.G > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Green;
+		}
+		else if (DefaultValue.B > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Blue;
+		}
+		else
+		{
+			MaskChannel = EChannelMaskParameterColor::Alpha;
+		}
+
+		// Update caption and preview
+		if (GraphNode)
+		{
+			CastChecked<UMaterialGraphNode>(GraphNode)->RecreateAndLinkNode();
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void UMaterialExpressionChannelMaskParameter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	const FString PropertyName = PropertyThatChanged ? PropertyThatChanged->GetName() : TEXT("");
+
+	if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterialExpressionChannelMaskParameter, MaskChannel))
+	{
+		// Update internal value
+		switch (MaskChannel)
+		{
+		case EChannelMaskParameterColor::Red:
+			DefaultValue = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f); break;
+		case EChannelMaskParameterColor::Green:
+			DefaultValue = FLinearColor(0.0f, 1.0f, 0.0f, 0.0f); break;
+		case EChannelMaskParameterColor::Blue:
+			DefaultValue = FLinearColor(0.0f, 0.0f, 1.0f, 0.0f); break;
+		default:
+			DefaultValue = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f); break;
+		}
+
+		FEditorSupportDelegates::VectorParameterDefaultChanged.Broadcast(this, ParameterName, DefaultValue);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterialExpressionVectorParameter, DefaultValue))
+	{
+		// If the vector parameter was updated, the enum needs to match and we assert the values are valid
+		if (DefaultValue.R > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Red;
+			DefaultValue = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f);
+		}
+		else if (DefaultValue.G > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Green;
+			DefaultValue = FLinearColor(0.0f, 1.0f, 0.0f, 0.0f);
+		}
+		else if (DefaultValue.B > 0.0f)
+		{
+			MaskChannel = EChannelMaskParameterColor::Blue;
+			DefaultValue = FLinearColor(0.0f, 0.0f, 1.0f, 0.0f);
+		}
+		else
+		{
+			MaskChannel = EChannelMaskParameterColor::Alpha;
+			DefaultValue = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		}
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+int32 UMaterialExpressionChannelMaskParameter::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing mask input"));
+	}
+
+	int32 Ret = Input.Compile(Compiler);
+	Ret = Compiler->ForceCast(Ret, MCT_Float4, MFCF_ForceCast);
+
+	if (Ret != INDEX_NONE)
+	{
+		// Internally this mask is a simple dot product, the mask is stored as a vector parameter
+		int32 Param = Compiler->VectorParameter(ParameterName, DefaultValue);
+		Ret = Compiler->Dot(Ret, Param);
+	}
+	else
+	{
+		Ret = Compiler->Errorf(TEXT("Failed to compile mask input"));
+	}
+	
+	return Ret;
+}
+
+void UMaterialExpressionChannelMaskParameter::GetCaption(TArray<FString>& OutCaptions) const
+{
+	switch (MaskChannel)
+	{
+	case EChannelMaskParameterColor::Red:
+		OutCaptions.Add(TEXT("Red")); break;
+	case EChannelMaskParameterColor::Green:
+		OutCaptions.Add(TEXT("Green")); break;
+	case EChannelMaskParameterColor::Blue:
+		OutCaptions.Add(TEXT("Blue")); break;
+	default:
+		OutCaptions.Add(TEXT("Alpha")); break;
+	}
+
+	OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString())); 
+}
+#endif // WITH_EDITOR
 
 //
 //	UMaterialExpressionScalarParameter
@@ -5960,7 +6137,6 @@ void UMaterialExpressionVectorParameter::PostEditChangeProperty(FPropertyChanged
 UMaterialExpressionScalarParameter::UMaterialExpressionScalarParameter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	bCollapsed = true;
 }
 
@@ -9179,7 +9355,7 @@ UMaterialFunction::UMaterialFunction(const FObjectInitializer& ObjectInitializer
 }
 
 #if WITH_EDITOR
-UMaterial* UMaterialFunction::GetPreviewMaterial()
+UMaterialInterface* UMaterialFunction::GetPreviewMaterial()
 {
 	if( NULL == PreviewMaterial )
 	{
@@ -9542,9 +9718,9 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 			}
 		}
 
-		if ( NumInputs < 1 || NumOutputs < 1)
+		if ( NumInputs > 1 || NumOutputs < 1)
 		{
-			Compiler->Errorf(TEXT("Layer graphs require a single material attributes input and output."));
+			Compiler->Errorf(TEXT("Layer graphs require a single material attributes output and optionally, a single material attributes input."));
 			bHasValidOutput = false;
 		}
 	}
@@ -10019,9 +10195,14 @@ bool UMaterialFunction::SetStaticComponentMaskParameterValueEditorOnly(FName Par
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialFunctionInstance
 ///////////////////////////////////////////////////////////////////////////////
+
 UMaterialFunctionInstance::UMaterialFunctionInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	PreviewMaterial = NULL;
+	ThumbnailInfo = NULL;
+#endif
 }
 
 void UMaterialFunctionInstance::UpdateParameterSet()
@@ -10208,9 +10389,18 @@ void UMaterialFunctionInstance::AppendReferencedTextures(TArray<UTexture*>& InOu
 }
 
 #if WITH_EDITOR
-UMaterial* UMaterialFunctionInstance::GetPreviewMaterial()
+UMaterialInterface* UMaterialFunctionInstance::GetPreviewMaterial()
 {
-	return Parent ? Parent->GetPreviewMaterial() : nullptr;
+	if (NULL == PreviewMaterial)
+	{
+		PreviewMaterial = NewObject<UMaterialInstanceConstant>((UObject*)GetTransientPackage(), FName(TEXT("None")), RF_Transient);
+		PreviewMaterial->SetParentEditorOnly(Parent->GetPreviewMaterial());
+		OverrideMaterialInstanceParameterValues(PreviewMaterial);
+		PreviewMaterial->PreEditChange(NULL);
+		PreviewMaterial->PostEditChange();
+
+	}
+	return PreviewMaterial;
 }
 
 void UMaterialFunctionInstance::UpdateInputOutputTypes()
@@ -10392,6 +10582,10 @@ UMaterialExpressionMaterialFunctionCall::UMaterialExpressionMaterialFunctionCall
 
 	BorderColor = FColor(0, 116, 255);
 
+	// Function calls created without a function should be pinless by default
+	FunctionInputs.Empty();
+	FunctionOutputs.Empty();
+	Outputs.Empty();
 }
 
 void UMaterialExpressionMaterialFunctionCall::PostLoad()
@@ -10758,6 +10952,7 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource(bool bR
 {
 	TArray<FFunctionExpressionInput> OriginalInputs = FunctionInputs;
 	TArray<FFunctionExpressionOutput> OriginalOutputs = FunctionOutputs;
+	TArray<FExpressionOutput> OriginalGraphOutputs = Outputs;
 
 	FunctionInputs.Empty();
 	FunctionOutputs.Empty();
@@ -10824,7 +11019,8 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource(bool bR
 		// Check whether number of input/outputs or transient pointers have changed
 		bool bUpdatedFromFunction = false;
 		if (OriginalInputs.Num() != FunctionInputs.Num()
-			|| OriginalOutputs.Num() != FunctionOutputs.Num())
+			|| OriginalOutputs.Num() != FunctionOutputs.Num()
+			|| OriginalOutputs.Num() != Outputs.Num())
 		{
 			bUpdatedFromFunction = true;
 		}
@@ -11426,6 +11622,9 @@ bool UMaterialExpressionFunctionOutput::IsResultMaterialAttributes(int32 OutputI
 }
 #endif // WITH_EDITOR
 
+//
+//	UMaterialExpressionCollectionParameter
+//
 UMaterialExpressionCollectionParameter::UMaterialExpressionCollectionParameter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -11555,6 +11754,364 @@ bool UMaterialExpressionCollectionParameter::MatchesSearchQuery(const TCHAR* Sea
 	}
 
 	return Super::MatchesSearchQuery(SearchQuery);
+}
+
+//
+//	UMaterialExpressionGetSharedInput
+//
+UMaterialExpressionGetSharedInput::UMaterialExpressionGetSharedInput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Parameters;
+		FConstructorStatics()
+			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
+
+	bCollapsed = true;
+
+	Outputs.Reset(1);
+	Outputs.Add(FExpressionOutput(TEXT("")));
+}
+
+
+void UMaterialExpressionGetSharedInput::PostLoad()
+{
+	if (Collection)
+	{
+		Collection->ConditionalPostLoad();
+		InputName = Collection->GetInputName(InputId);
+	}
+
+	Super::PostLoad();
+}
+
+#if WITH_EDITOR
+void UMaterialExpressionGetSharedInput::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (Collection)
+	{
+		InputId = Collection->GetInputId(InputName);
+	}
+	else
+	{
+		InputId = FGuid();
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+int32 UMaterialExpressionGetSharedInput::Compile(FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 Ret = INDEX_NONE;
+
+	if (Collection && InputId.IsValid())
+	{
+		Ret = Compiler->AccessSharedInput(Collection, InputId, InputName);
+
+#if WITH_EDITORONLY_DATA
+		if (Ret == INDEX_NONE)
+		{
+			// Compilation inside a function, layer or thumbnail won't have access to the input, so offer a preview
+			uint32 OutputType = GetOutputType(OutputIndex);
+			if (OutputType & MCT_Texture)
+			{
+				if (!PreviewTexture)
+				{
+					Ret = Compiler->Errorf(TEXT("Missing preview texture for shared input '%s'."), *InputName.ToString());
+				}
+				else
+				{
+					Ret = Compiler->Texture(PreviewTexture);
+				}
+			}
+			else
+			{
+				switch(OutputType)
+				{
+				case MCT_Float2:
+					Ret = Compiler->Constant2(PreviewValue.X, PreviewValue.Y); break;
+				case MCT_Float3:
+					Ret = Compiler->Constant3(PreviewValue.X, PreviewValue.Y, PreviewValue.Z); break;
+				case MCT_Float4:
+					Ret = Compiler->Constant4(PreviewValue.X, PreviewValue.Y, PreviewValue.Z, PreviewValue.W); break;
+				default: // MCT_Float
+					Ret = Compiler->Constant(PreviewValue.X);
+				}
+			}
+		}
+#endif // WITH_EDITORONLY_DATA
+
+		if (Ret == INDEX_NONE)
+		{
+			Ret = Compiler->Errorf(TEXT("Shared input '%s' not found, missing Set node for this input?"), *InputName.ToString());
+		}
+	}
+	else
+	{
+		Ret = Compiler->Error(TEXT("Invalid input name or missing collection"));
+	}
+
+	return Ret;
+}
+
+void UMaterialExpressionGetSharedInput::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString TypePrefix;
+
+	if (Collection)
+	{
+		TypePrefix = Collection->GetTypeName(InputId);
+	}
+
+	OutCaptions.Add(TEXT("Shared ") + TypePrefix + TEXT(" Input"));
+
+	if (Collection)
+	{
+		OutCaptions.Add(Collection->GetName());
+		OutCaptions.Add(FString(TEXT("'")) + InputName.ToString() + TEXT("'"));
+	}
+	else
+	{
+		OutCaptions.Add(TEXT("Unspecified"));
+	}
+}
+
+uint32 UMaterialExpressionGetSharedInput::GetOutputType(int32 OutputIndex)
+{
+	if (Collection)
+	{
+		EMaterialSharedInputType::Type Type = Collection->GetInputType(InputId);
+		switch(Type)
+		{
+		case EMaterialSharedInputType::Vector2:
+			return MCT_Float2;
+		case EMaterialSharedInputType::Vector3:
+			return MCT_Float3;
+		case EMaterialSharedInputType::Vector4:
+			return MCT_Float4;
+		case EMaterialSharedInputType::Texture2D:
+			return MCT_Texture2D;
+		case EMaterialSharedInputType::TextureCube:
+			return MCT_TextureCube;
+		default: // EMaterialSharedInputType::Scalar
+			return MCT_Float;
+		}
+	}
+
+	return MCT_Unknown;
+}
+
+void UMaterialExpressionGetSharedInput::GetEffectiveTextureData(FMaterialCompiler* Compiler, UTexture*& EffectiveTexture, UMaterialExpression*& EffectiveExpression)
+{
+	EffectiveTexture = nullptr;
+	EffectiveExpression = Compiler->AccessSharedInputExpression(InputId);	
+
+#if WITH_EDITORONLY_DATA
+	if (!EffectiveExpression)
+	{
+		EffectiveExpression = this;
+		EffectiveTexture = PreviewTexture;
+	}
+#endif // WITH_EDITORONLY_DATA
+}				
+#endif // WITH_EDITOR
+
+bool UMaterialExpressionGetSharedInput::MatchesSearchQuery(const TCHAR* SearchQuery)
+{
+	if (InputName.ToString().Contains(SearchQuery))
+	{
+		return true;
+	}
+
+	if (Collection && Collection->GetName().Contains(SearchQuery))
+	{
+		return true;
+	}
+
+	return Super::MatchesSearchQuery(SearchQuery);
+}
+
+//
+//	UMaterialExpressionSetSharedInput
+//
+UMaterialExpressionSetSharedInput::UMaterialExpressionSetSharedInput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Parameters;
+		FConstructorStatics()
+			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
+
+	bCollapsed = true;
+
+	// No outputs
+	Outputs.Reset();
+}
+
+
+void UMaterialExpressionSetSharedInput::PostLoad()
+{
+	if (Collection)
+	{
+		Collection->ConditionalPostLoad();
+		InputName = Collection->GetInputName(InputId);
+	}
+
+	Super::PostLoad();
+}
+
+#if WITH_EDITOR
+void UMaterialExpressionSetSharedInput::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (Collection)
+	{
+		InputId = Collection->GetInputId(InputName);
+	}
+	else
+	{
+		InputId = FGuid();
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+int32 UMaterialExpressionSetSharedInput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 Ret = INDEX_NONE;
+	EMaterialValueType InputType = (EMaterialValueType)GetInputType(OutputIndex);
+
+	if (Compiler && Compiler->GetCurrentFunctionStackDepth() > 1)
+	{
+		Ret = Compiler->Errorf(TEXT("Shared input '%s' cannot be set within a material function"), *InputName.ToString());
+	}
+	else if (Input.GetTracedInput().Expression)
+	{
+		if (Collection && InputId.IsValid())
+		{
+			int32 InternalCode = INDEX_NONE;
+			if (InputType & MCT_Float)
+			{
+				InternalCode = Input.Compile(Compiler);
+				
+				if (InternalCode != INDEX_NONE)
+				{
+					InternalCode = Compiler->ValidCast(InternalCode, InputType);
+					Compiler->CustomOutput(this, OutputIndex, InternalCode);
+					Ret = InternalCode;
+				}
+				else
+				{
+					Ret = Compiler->Errorf(TEXT("Failed to compile shared input, '%s'"), *InputName.ToString());
+				}		
+			}
+
+			Ret = Compiler->AddCompiledSharedInput(Ret, Input, InputId, InputName, InputType);
+		}
+		else
+		{
+			Ret = Compiler->Error(TEXT("Invalid input name or missing collection"));
+		}
+	}
+	else
+	{
+		Ret = Compiler->Errorf(TEXT("Input missing for shared input, '%s'"), *InputName.ToString());
+	}
+
+	return Ret;
+}
+
+void UMaterialExpressionSetSharedInput::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString TypePrefix;
+
+	if (Collection)
+	{
+		TypePrefix = Collection->GetTypeName(InputId);
+	}
+
+	OutCaptions.Add(TEXT("Shared ") + TypePrefix + TEXT(" Input"));
+
+	if (Collection)
+	{
+		OutCaptions.Add(Collection->GetName());
+		OutCaptions.Add(FString(TEXT("'")) + InputName.ToString() + TEXT("'"));
+	}
+	else
+	{
+		OutCaptions.Add(TEXT("Unspecified"));
+	}
+}
+
+uint32 UMaterialExpressionSetSharedInput::GetInputType(int32 InputIndex)
+{
+	if (Collection)
+	{
+		EMaterialSharedInputType::Type Type = Collection->GetInputType(InputId);
+		switch(Type)
+		{
+		case EMaterialSharedInputType::Vector2:
+			return MCT_Float2;
+		case EMaterialSharedInputType::Vector3:
+			return MCT_Float3;
+		case EMaterialSharedInputType::Vector4:
+			return MCT_Float4;
+		case EMaterialSharedInputType::Texture2D:
+			return MCT_Texture2D;
+		case EMaterialSharedInputType::TextureCube:
+			return MCT_TextureCube;
+		default: // EMaterialSharedInputType::Scalar
+			return MCT_Float;
+		}
+	}
+
+	return MCT_Unknown;
+}
+
+#endif // WITH_EDITOR
+
+bool UMaterialExpressionSetSharedInput::MatchesSearchQuery(const TCHAR* SearchQuery)
+{
+	if (InputName.ToString().Contains(SearchQuery))
+	{
+		return true;
+	}
+
+	if (Collection && Collection->GetName().Contains(SearchQuery))
+	{
+		return true;
+	}
+
+	return Super::MatchesSearchQuery(SearchQuery);
+}
+
+FExpressionInput* UMaterialExpressionSetSharedInput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+FString UMaterialExpressionSetSharedInput::GetFunctionName() const
+{
+	return FString::Printf(TEXT("%s_%s"), *Collection->GetName(), *InputName.ToString());
 }
 
 //

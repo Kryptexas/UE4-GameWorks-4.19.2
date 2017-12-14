@@ -128,7 +128,7 @@ void FDirectoryWatchRequestLinux::WatchDirectoryTree(const FString & RootAbsolut
 			int ErrNo = errno;
 			UE_LOG(LogDirectoryWatcher, Warning, TEXT("inotify_add_watch cannot watch folder %s (errno = %d, %s)"), *FolderName,
 				ErrNo,
-				UTF8_TO_TCHAR(strerror(ErrNo))
+				(ErrNo == ENOSPC) ? TEXT("Out of inotify watches, increase user.max_inotify_watches") : UTF8_TO_TCHAR(strerror(ErrNo))
 				);
 			// proceed further
 		}

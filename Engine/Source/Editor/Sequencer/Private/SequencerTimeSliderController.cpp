@@ -31,7 +31,7 @@ namespace ScrubConstants
 }
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct FSequencerTimeSliderController::FScrubRangeToScreen
 {
 	FVector2D WidgetSize;
 
@@ -113,7 +113,7 @@ float FSequencerTimeSliderController::DetermineOptimalSpacing(float InPixelsPerI
 	return Spacing;
 }
 
-struct FDrawTickArgs
+struct FSequencerTimeSliderController::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;

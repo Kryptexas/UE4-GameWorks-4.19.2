@@ -21,8 +21,8 @@
 
 #define LOCTEXT_NAMESPACE "UNiagaraStackParameterStoreEntry"
 UNiagaraStackParameterStoreEntry::UNiagaraStackParameterStoreEntry()
-	: ValueObjectEntry(nullptr)
-	, ItemIndentLevel(0)
+	: ItemIndentLevel(0)
+	, ValueObjectEntry(nullptr)
 {
 }
 

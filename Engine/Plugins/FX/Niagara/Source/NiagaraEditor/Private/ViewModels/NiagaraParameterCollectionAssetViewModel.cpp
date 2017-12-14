@@ -21,9 +21,9 @@ template<> TMap<UNiagaraParameterCollection*, TArray<FNiagaraParameterCollection
 
 FNiagaraParameterCollectionAssetViewModel::FNiagaraParameterCollectionAssetViewModel(UNiagaraParameterCollection* InCollection, FText InDisplayName, ENiagaraParameterEditMode InParameterEditMode)
 	: FNiagaraParameterCollectionViewModel(InParameterEditMode)
+	, DisplayName(InDisplayName)
 	, Collection(InCollection)
 	, Instance(InCollection->GetDefaultInstance())
-	, DisplayName(InDisplayName)
 {
 	check(Collection && Instance);
 
@@ -35,9 +35,9 @@ FNiagaraParameterCollectionAssetViewModel::FNiagaraParameterCollectionAssetViewM
 
 FNiagaraParameterCollectionAssetViewModel::FNiagaraParameterCollectionAssetViewModel(UNiagaraParameterCollectionInstance* InInstance, FText InDisplayName, ENiagaraParameterEditMode InParameterEditMode)
 	: FNiagaraParameterCollectionViewModel(InParameterEditMode)
+	, DisplayName(InDisplayName)
 	, Collection(InInstance->GetParent())
 	, Instance(InInstance)
-	, DisplayName(InDisplayName)
 {
 	check(Instance);
 

@@ -941,6 +941,33 @@ public:
 
 		InstancesUsage[InstanceIndex] = true;
 	}
+
+	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	{
+		FVector4 OldOrigin;
+		GetInstanceOriginInternal(InstanceIndex, OldOrigin);
+
+		FVector4 NewOrigin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], OldOrigin.Component(3));
+		SetInstanceOriginInternal(InstanceIndex, NewOrigin);
+
+		FVector4 InstanceTransform[3];
+		InstanceTransform[0] = FVector4(Transform.M[0][0], Transform.M[0][1], Transform.M[0][2], 0.0f);
+		InstanceTransform[1] = FVector4(Transform.M[1][0], Transform.M[1][1], Transform.M[1][2], 0.0f);
+		InstanceTransform[2] = FVector4(Transform.M[2][0], Transform.M[2][1], Transform.M[2][2], 0.0f);
+
+		if (bUseHalfFloat)
+		{
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
+		}
+		else
+		{
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+		}
+
+		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(LightmapUVBias.X, LightmapUVBias.Y, ShadowmapUVBias.X, ShadowmapUVBias.Y));
+
+		InstancesUsage[InstanceIndex] = true;
+	}
 	
 	FORCEINLINE_DEBUGGABLE void NullifyInstance(int32 InstanceIndex)
 	{

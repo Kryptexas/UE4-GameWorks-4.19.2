@@ -778,6 +778,124 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 	UpdateShaderDepthBias();
 }
 
+bool FProjectedShadowInfo::ShouldDrawStaticMeshes(FViewInfo& InCurrentView, bool InbCustomDataRelevance, FPrimitiveSceneInfo* InPrimitiveSceneInfo)
+{
+	bool WholeSceneDirectionalShadow = IsWholeSceneDirectionalShadow();
+	bool bDrawingStaticMeshes = false;
+	int32 PrimitiveId = InPrimitiveSceneInfo->GetIndex();
+
+	if (WholeSceneDirectionalShadow || (InCurrentView.InitializedShadowCastingPrimitive.IsValidIndex(PrimitiveId) && !InCurrentView.InitializedShadowCastingPrimitive[PrimitiveId]))
+	{
+		const int32 ForcedLOD = (InCurrentView.Family->EngineShowFlags.LOD) ? (GetCVarForceLODShadow() != -1 ? GetCVarForceLODShadow() : GetCVarForceLOD()) : -1;
+		const FLODMask* VisibilePrimitiveLODMask = nullptr;
+
+		if (InCurrentView.PrimitivesLODMask[PrimitiveId].ContainsLOD(MAX_int8)) // only calculate it if it's not set
+		{
+			FLODMask ViewLODToRender;
+			float MeshScreenRadiusSquared = 0;
+
+			if (InPrimitiveSceneInfo->bIsUsingCustomLODRules)
+			{
+				ViewLODToRender = InPrimitiveSceneInfo->Proxy->GetCustomLOD(InCurrentView, InCurrentView.LODDistanceFactor, ForcedLOD, MeshScreenRadiusSquared);
+			}
+			else
+			{
+				const FBoxSphereBounds& Bounds = InPrimitiveSceneInfo->Proxy->GetBounds();
+				ViewLODToRender = ComputeLODForMeshes(InPrimitiveSceneInfo->StaticMeshes, InCurrentView, Bounds.Origin, Bounds.SphereRadius, ForcedLOD, MeshScreenRadiusSquared, InCurrentView.LODDistanceFactor);
+			}	
+
+			InCurrentView.PrimitivesLODMask[PrimitiveId] = ViewLODToRender;
+
+			// If the primitive was not visible in the view, we need to updates its custom data now (lazy update)
+			if (InbCustomDataRelevance)
+			{
+				if (InCurrentView.GetCustomData(InPrimitiveSceneInfo->GetIndex()) == nullptr)
+				{
+					InCurrentView.SetCustomData(InPrimitiveSceneInfo, InPrimitiveSceneInfo->Proxy->InitViewCustomData(InCurrentView, InCurrentView.LODDistanceFactor, InCurrentView.GetCustomDataGlobalMemStack(), true, &ViewLODToRender, MeshScreenRadiusSquared));
+				}
+			}
+		}
+
+		VisibilePrimitiveLODMask = &InCurrentView.PrimitivesLODMask[PrimitiveId];
+		check(VisibilePrimitiveLODMask != nullptr);
+
+		FLODMask ShadowLODToRender = *VisibilePrimitiveLODMask;
+
+		// Use lowest LOD for PreShadow
+		if (bReflectiveShadowmap || (bPreShadow && GPreshadowsForceLowestLOD))
+		{
+			int8 LODToRenderScan = -MAX_int8;
+			FLODMask LODToRender;
+
+			for (int32 Index = 0; Index < InPrimitiveSceneInfo->StaticMeshes.Num(); Index++)
+			{
+				LODToRenderScan = FMath::Max<int8>(InPrimitiveSceneInfo->StaticMeshes[Index].LODIndex, LODToRenderScan);
+			}
+			if (LODToRenderScan != -MAX_int8)
+			{
+				ShadowLODToRender.SetLOD(LODToRenderScan);
+			}
+		}
+
+		if (WholeSceneDirectionalShadow)
+		{
+			if (InPrimitiveSceneInfo->bIsUsingCustomWholeSceneShadowLODRules)
+			{
+				const bool bHasShelfShadow = !bReflectiveShadowmap && !bPreShadow;
+				const float ShadowMapTextureResolution = BorderSize * 2 + ResolutionX; // We assume Shadow Map texture to be squared (current design)
+				ShadowLODToRender = InPrimitiveSceneInfo->Proxy->GetCustomWholeSceneShadowLOD(InCurrentView, InCurrentView.LODDistanceFactor, ForcedLOD, *VisibilePrimitiveLODMask, ShadowMapTextureResolution, ShadowBounds.W * 2.0f, ShadowId, bHasShelfShadow);
+			}
+
+			for (int32 MeshIndex = 0; MeshIndex < InPrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
+			{
+				const FStaticMesh& StaticMesh = InPrimitiveSceneInfo->StaticMeshes[MeshIndex];
+				if (StaticMesh.CastShadow && ShadowLODToRender.ContainsLOD(StaticMesh.LODIndex))
+				{
+					StaticMeshWholeSceneShadowDepthMap[StaticMesh.Id] = true;
+
+					if (StaticMesh.bRequiresPerElementVisibility)
+					{
+						StaticMeshWholeSceneShadowBatchVisibility[StaticMesh.BatchVisibilityId] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(InCurrentView, &StaticMesh);
+					}
+
+					bDrawingStaticMeshes = true;
+				}
+			}
+		}
+		else
+		{
+			for (int32 MeshIndex = 0; MeshIndex < InPrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
+			{
+				const FStaticMesh& StaticMesh = InPrimitiveSceneInfo->StaticMeshes[MeshIndex];
+				if (StaticMesh.CastShadow && ShadowLODToRender.ContainsLOD(StaticMesh.LODIndex))
+				{
+					InCurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] = true;
+
+					if (StaticMesh.bRequiresPerElementVisibility)
+					{
+						InCurrentView.StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(InCurrentView, &StaticMesh);
+					}
+
+					bDrawingStaticMeshes = true;
+				}
+			}
+		}
+
+		// If none of the static meshes were casting shadow for the given LOD, we can't cache the results
+		// and following calls to ShouldDrawStaticMeshes will redo the same processing with the same results.
+		if (bDrawingStaticMeshes && !WholeSceneDirectionalShadow)
+		{
+			InCurrentView.InitializedShadowCastingPrimitive[PrimitiveId] = true;
+		}
+	}
+	else if (!WholeSceneDirectionalShadow && InCurrentView.InitializedShadowCastingPrimitive[PrimitiveId])
+	{
+		bDrawingStaticMeshes = true;
+	}
+
+	return bDrawingStaticMeshes;
+}
+
 void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray, ERHIFeatureLevel::Type FeatureLevel, bool bRecordShadowSubjectsForMobileShading)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_AddSubjectPrimitive);
@@ -815,6 +933,8 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 		bool bOpaqueRelevance = false;
 		bool bTranslucentRelevance = false;
 		bool bShadowRelevance = false;
+		bool bCustomDataRelevance = false;
+
 		uint32 ViewMask = 0;
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 
@@ -865,6 +985,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 			bOpaqueRelevance |= ViewRelevance.bOpaqueRelevance || ViewRelevance.bMaskedRelevance;
 			bTranslucentRelevance |= ViewRelevance.HasTranslucency() && !ViewRelevance.bMaskedRelevance;
 			bShadowRelevance |= ViewRelevance.bShadowRelevance;
+			bCustomDataRelevance |= ViewRelevance.bUseCustomViewData;
 		}
 
 		if (bShadowRelevance)
@@ -915,111 +1036,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 					// Update visibility for meshes which weren't visible in the main views or were visible with static relevance
 					if (!CurrentView.PrimitiveVisibilityMap[PrimitiveId] || CurrentView.PrimitiveViewRelevanceMap[PrimitiveId].bStaticRelevance)
 					{
-						bool bUseExistingVisibility = false;
-
-						// Preshadows use the lowest LOD because there is no self shadowing
-						const bool bForceLowestDetailLevel = bReflectiveShadowmap || (bPreShadow && GPreshadowsForceLowestLOD);
-
-						// Don't use existing visibility if we need to use a different LOD in the shadow depth pass
-						if (!bForceLowestDetailLevel)
-						{
-							for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
-							{
-								const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
-								bool bMeshIsVisible = CurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] && StaticMesh.CastShadow;
-								bUseExistingVisibility = bUseExistingVisibility || bMeshIsVisible;
-
-								if (bMeshIsVisible && bWholeSceneDirectionalShadow)
-								{
-									StaticMeshWholeSceneShadowDepthMap[StaticMesh.Id] = true;
-
-									if (StaticMesh.bRequiresPerElementVisibility)
-									{
-										StaticMeshWholeSceneShadowBatchVisibility[StaticMesh.BatchVisibilityId] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(CurrentView, &StaticMesh);
-									}
-								}
-							}
-						}
-
-						if (bUseExistingVisibility)
-						{
-							bDrawingStaticMeshes = true;
-						}
-						// Don't overwrite visibility set by the main views
-						// This is necessary to avoid popping when transitioning between LODs, because on the frame of the transition, 
-						// The old LOD will continue to be drawn even though a different LOD would be chosen by distance.
-						else
-						{
-							FLODMask LODToRender;
-							int32 ForcedLODLevel = 0;
-
-							if (CurrentView.Family->EngineShowFlags.LOD)
-							{
-								// Shadow specific setting is highest priority
-								ForcedLODLevel = GetCVarForceLODShadow();
-
-								if (ForcedLODLevel == -1)
-								{
-									ForcedLODLevel = GetCVarForceLOD();
-								}
-							}
-
-							// Add the primitive's static mesh elements to the draw lists.
-							if (bForceLowestDetailLevel) 
-							{
-								int8 LODToRenderScan = -CHAR_MAX;
-								// Force the lowest detail LOD Level in reflective shadow maps.
-								for (int32 Index = 0; Index < PrimitiveSceneInfo->StaticMeshes.Num(); Index++)
-								{
-									LODToRenderScan = FMath::Max<int8>(PrimitiveSceneInfo->StaticMeshes[Index].LODIndex, LODToRenderScan);
-								}
-								if (LODToRenderScan != -CHAR_MAX)
-								{
-									LODToRender.SetLOD(LODToRenderScan);
-								}
-							}
-							else
-							{
-								LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, CurrentView, Bounds.Origin, Bounds.SphereRadius, ForcedLODLevel);
-							}
-
-							if (bWholeSceneDirectionalShadow)
-							{
-								for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
-								{
-									const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
-									if (StaticMesh.CastShadow && LODToRender.ContainsLOD(StaticMesh.LODIndex))
-									{
-										StaticMeshWholeSceneShadowDepthMap[StaticMesh.Id] = true;
-
-										if (StaticMesh.bRequiresPerElementVisibility)
-										{
-											StaticMeshWholeSceneShadowBatchVisibility[StaticMesh.BatchVisibilityId] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(CurrentView, &StaticMesh);
-										}
-
-										bDrawingStaticMeshes = true;
-									}
-								}
-							}
-							else
-							{
-								for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
-								{
-									const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
-									if (StaticMesh.CastShadow && LODToRender.ContainsLOD(StaticMesh.LODIndex))
-									{
-										CurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] = true;
-
-										if (StaticMesh.bRequiresPerElementVisibility)
-										{
-											CurrentView.StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(CurrentView, &StaticMesh);
-										}
-
-										bDrawingStaticMeshes = true;
-									}
-								}
-							}
-						}
+						bDrawingStaticMeshes |= ShouldDrawStaticMeshes(CurrentView, bCustomDataRelevance, PrimitiveSceneInfo);						
 					}
 				}
 			}
@@ -1211,6 +1228,15 @@ void FProjectedShadowInfo::GatherDynamicMeshElementsArray(
 		if (ViewRelevance.bShadowRelevance && ViewRelevance.bDynamicRelevance)
 		{
 			Renderer.MeshCollector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
+
+			if (ViewRelevance.bUseCustomViewData)
+			{
+				if (FoundView->GetCustomData(PrimitiveSceneInfo->GetIndex()) == nullptr)
+				{
+					FoundView->SetCustomData(PrimitiveSceneInfo, PrimitiveSceneInfo->Proxy->InitViewCustomData(*FoundView, FoundView->LODDistanceFactor, FoundView->GetCustomDataGlobalMemStack()));
+				}
+			}
+
 			PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ReusedViewsArray, Renderer.ViewFamily, 0x1, Renderer.MeshCollector);
 		}
 	}
@@ -3797,4 +3823,5 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
+
 }

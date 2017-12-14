@@ -271,7 +271,8 @@ public:
 		const FMaterialResource* MaterialResource,
 		const TArray<FString>& CompileErrors,
 		int32 &DrawPositionY,
-		bool bDrawInstructions);
+		bool bDrawInstructions,
+		bool bGeneratedNewShaders = false);
 	
 	/**
 	 * Draws messages on the specified viewport and canvas.

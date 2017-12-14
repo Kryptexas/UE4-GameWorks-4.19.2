@@ -1140,7 +1140,7 @@ void SContentBrowser::SaveSettings() const
 	// Save all our data using the settings string as a key in the user settings ini
 	FilterListPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 	PathViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
-	FavoritePathViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	FavoritePathViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString + TEXT(".Favorites"));
 	CollectionViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 	AssetViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 }
@@ -1274,7 +1274,7 @@ void SContentBrowser::LoadSettings(const FName& InInstanceName)
 	// Save all our data using the settings string as a key in the user settings ini
 	FilterListPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 	PathViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
-	FavoritePathViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	FavoritePathViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString + TEXT(".Favorites"));
 	CollectionViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 	AssetViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 }
@@ -2493,9 +2493,9 @@ void SContentBrowser::OnFilterChanged()
 	ContentBrowserModule.GetOnFilterChanged().Broadcast(Filter, bIsPrimaryBrowser);
 }
 
-FString SContentBrowser::GetPathText() const
+FText SContentBrowser::GetPathText() const
 {
-	FString PathLabelText;
+	FText PathLabelText;
 
 	if ( IsFilteredBySource() )
 	{
@@ -2506,17 +2506,17 @@ FString SContentBrowser::GetPathText() const
 
 		if (NumSources > 0)
 		{
-			PathLabelText = SourcesData.HasPackagePaths() ? SourcesData.PackagePaths[0].ToString() : SourcesData.Collections[0].Name.ToString();
+			PathLabelText = FText::FromName(SourcesData.HasPackagePaths() ? SourcesData.PackagePaths[0] : SourcesData.Collections[0].Name);
 
 			if (NumSources > 1)
 			{
-				PathLabelText += FString::Printf(*LOCTEXT("MultipleSourcesSuffix", " and %d others...").ToString(), NumSources - 1);
+				PathLabelText = FText::Format(LOCTEXT("PathTextFmt", "{0} and {1} {1}|plural(one=other,other=others)..."), PathLabelText, NumSources - 1);
 			}
 		}
 	}
 	else
 	{
-		PathLabelText = LOCTEXT("AllAssets", "All Assets").ToString();
+		PathLabelText = LOCTEXT("AllAssets", "All Assets");
 	}
 
 	return PathLabelText;

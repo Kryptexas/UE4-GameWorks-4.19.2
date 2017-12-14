@@ -428,7 +428,7 @@ public:
 	 * Get a bitmask representing the visibility of each FMeshBatch element.
 	 * FMeshBatch.bRequiresPerElementVisibility must be set for this to be called.
 	 */
-	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const { return 1; }
+	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch, const void* InViewCustomData = nullptr) const { return 1; }
 
 	bool NeedsDeclaration() const { return bNeedsDeclaration; }
 	bool SupportsManualVertexFetch(ERHIFeatureLevel::Type InFeatureLevel) const 

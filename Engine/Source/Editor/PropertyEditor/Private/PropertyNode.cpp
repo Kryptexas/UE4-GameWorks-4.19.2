@@ -2064,7 +2064,8 @@ bool FPropertyNode::IsReorderable()
 	return OuterArrayProp != nullptr 
 		&& !OuterArrayProp->HasMetaData(Name_DisableReordering)
 		&& !IsEditConst()
-		&& !OuterArrayProp->HasMetaData(NAME_ArraySizeEnum);
+		&& !OuterArrayProp->HasMetaData(NAME_ArraySizeEnum)
+		&& !FApp::IsGame();
 }
 
 /**
@@ -2669,7 +2670,7 @@ bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames,
 	return bCompleteMatchFound;
 }
 
-void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult)
+void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult, int32 SwapIndex /*= INDEX_NONE*/)
 {
 	UProperty* NodeProperty = GetProperty();
 	UArrayProperty* ArrayProperty = NULL;
@@ -2792,6 +2793,12 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 							// Copy the selected item's value to the new item.
 							NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
 							Object->InstanceSubobjectTemplates();
+							break;
+						case EPropertyArrayChangeType::Swap:
+							if (SwapIndex != INDEX_NONE)
+							{
+								ArrayHelper.SwapValues(Index, SwapIndex);
+							}
 							break;
 						}
 					}

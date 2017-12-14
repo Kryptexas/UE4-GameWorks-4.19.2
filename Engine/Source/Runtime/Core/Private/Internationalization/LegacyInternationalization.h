@@ -21,7 +21,7 @@ public:
 	void LoadAllCultureData();
 
 	bool IsCultureRemapped(const FString& Name, FString* OutMappedCulture);
-	bool IsCultureDisabled(const FString& Name);
+	bool IsCultureAllowed(const FString& Name);
 
 	void HandleLanguageChanged(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;

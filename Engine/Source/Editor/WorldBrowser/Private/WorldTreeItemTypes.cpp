@@ -776,8 +776,8 @@ namespace WorldHierarchy
 		auto DeleteFolderAction = FExecuteAction::CreateSP(&Hierarchy, &SWorldHierarchyImpl::DeleteFolders, Folders, /*bTransactional*/ true);
 
 		MenuBuilder.AddMenuEntry(LOCTEXT("CreateSubFolder", "Create Subfolder"), FText(), NewFolderIcon, FUIAction(NewFolderAction));
-		MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename"), FText(), FSlateIcon(), FUIAction(RenameFolderAction));
-		MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete"), FText(), FSlateIcon(), FUIAction(DeleteFolderAction));
+		MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename"), FUIAction(RenameFolderAction));
+		MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete"), FUIAction(DeleteFolderAction));
 	}
 
 	FValidationInfo FFolderTreeItem::ValidateDrop(const FDragDropEvent& DragEvent) const

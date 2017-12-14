@@ -14,28 +14,31 @@ public class RHI : ModuleRules
 		{
             DynamicallyLoadedModuleNames.Add("NullDrv");
 
-			// UEBuildAndroid.cs adds VulkanRHI for Android builds if it is enabled
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			if (Target.Type != TargetRules.TargetType.Server)   // Dedicated servers should skip loading everything but NullDrv
 			{
-				DynamicallyLoadedModuleNames.Add("D3D11RHI");
+				// UEBuildAndroid.cs adds VulkanRHI for Android builds if it is enabled
+				if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+				{
+					DynamicallyLoadedModuleNames.Add("D3D11RHI");
 
-				//#todo-rco: D3D12 requires different SDK headers not compatible with WinXP
-				DynamicallyLoadedModuleNames.Add("D3D12RHI");
-            }
+					//#todo-rco: D3D12 requires different SDK headers not compatible with WinXP
+					DynamicallyLoadedModuleNames.Add("D3D12RHI");
+				}
 
-			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-				(Target.Platform == UnrealTargetPlatform.Win32) ||
-				(Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64")))	// temporary, not all archs can support Vulkan atm
-			{
-				DynamicallyLoadedModuleNames.Add("VulkanRHI");
-			}
+				if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+					(Target.Platform == UnrealTargetPlatform.Win32) ||
+					(Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64")))	// temporary, not all archs can support Vulkan atm
+				{
+					DynamicallyLoadedModuleNames.Add("VulkanRHI");
+				}
 
-			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
-				(Target.Platform == UnrealTargetPlatform.Win64) ||
-                (Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server) ||  // @todo should servers on all platforms skip this?
-                (Target.Platform == UnrealTargetPlatform.HTML5))
-			{
-				DynamicallyLoadedModuleNames.Add("OpenGLDrv");
+				if ((Target.Platform == UnrealTargetPlatform.Win32) ||
+					(Target.Platform == UnrealTargetPlatform.Win64) ||
+					(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server) ||  // @todo should servers on all platforms skip this?
+					(Target.Platform == UnrealTargetPlatform.HTML5))
+				{
+					DynamicallyLoadedModuleNames.Add("OpenGLDrv");
+				}
 			}
         }
 

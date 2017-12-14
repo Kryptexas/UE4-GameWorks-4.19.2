@@ -11,6 +11,7 @@ class IDetailLayoutBuilder;
 class SHorizontalBox;
 class IPropertyHandle;
 class IDetailLayoutBuilder;
+class IPropertyUtilities;
 
 class FBrushDetails : public IDetailCustomization
 {
@@ -44,5 +45,5 @@ private:
 	/** Container widget for the geometry mode tools */
 	TSharedPtr< SHorizontalBox > GeometryToolsContainer;
 
-	IDetailLayoutBuilder* DetailLayout;
+	TWeakPtr<IPropertyUtilities> PropertyUtils;
 };

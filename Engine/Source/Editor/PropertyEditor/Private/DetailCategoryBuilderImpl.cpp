@@ -434,6 +434,11 @@ bool FDetailCategoryImpl::ShouldShowAdvanced() const
 	return bUserShowAdvanced || bForceAdvanced;
 }
 
+void FDetailCategoryImpl::SetShowAdvanced(bool bShowAdvanced)
+{
+	bUserShowAdvanced = bShowAdvanced;
+}
+
 bool FDetailCategoryImpl::IsAdvancedDropdownEnabled() const
 {
 	return !bForceAdvanced;

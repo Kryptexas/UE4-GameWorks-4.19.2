@@ -34,7 +34,7 @@ private:
 	FGuid Guid; 
 	TCHAR Url[1048];
 
-	TArray<uint8> RecieveBuffer; 
+	TArray<uint8> ReceiveBuffer; 
 	uint32 ReadPtr; 
 
 };

@@ -890,7 +890,7 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 	FText FailReason;
 	if (!Descriptor.Save(UPluginFilePath, FailReason))
 	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedToWriteDescriptor", "Couldn't save plugin descriptor under %s"), FText::AsCultureInvariant(UPluginFilePath)));
+		PopErrorNotification(FText::Format(LOCTEXT("FailedToWriteDescriptor", "Couldn't save plugin descriptor under {0}"), FText::AsCultureInvariant(UPluginFilePath)));
 		return false;
 	}
 

@@ -103,7 +103,7 @@ SAssetView::~SAssetView()
 	}
 
 	// Release all rendering resources being held onto
-	AssetThumbnailPool->ReleaseResources();
+	AssetThumbnailPool.Reset();
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

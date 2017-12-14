@@ -38,8 +38,8 @@
 
 ELFTC_VCSID("$Id: elf_end.c 2240 2011-11-28 06:36:48Z jkoshy $");
 
-__attribute__ ((visibility ("default"))) int
-elf_end(Elf *e)
+int
+elf_end_workaround(Elf *e)
 {
 	Elf *sv;
 	Elf_Scn *scn, *tscn;

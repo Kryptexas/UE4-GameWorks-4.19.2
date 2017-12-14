@@ -9,6 +9,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/SToolTip.h"
 #include "EditorStyleSet.h"
 #include "Materials/MaterialInterface.h"
 #include "MaterialEditor/DEditorFontParameterValue.h"
@@ -24,6 +25,7 @@
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionMaterialAttributeLayers.h"
+#include "Materials/MaterialExpressionChannelMaskParameter.h"
 #include "EditorSupportDelegates.h"
 #include "DetailWidgetRow.h"
 #include "PropertyHandle.h"
@@ -51,6 +53,7 @@
 
 FText FMaterialPropertyHelpers::LayerID = LOCTEXT("LayerID", "Layer Asset");
 FText FMaterialPropertyHelpers::BlendID = LOCTEXT("BlendID", "Blend Asset");
+FName FMaterialPropertyHelpers::LayerParamName = FName("Global Material Layers Parameter Values");
 
 EVisibility FMaterialPropertyHelpers::ShouldShowExpression(UDEditorParameterValue* Parameter, UMaterialEditorInstanceConstant* MaterialEditorInstance, FGetShowHiddenParameters ShowHiddenDelegate)
 {
@@ -250,7 +253,7 @@ bool FMaterialPropertyHelpers::FilterAssetInstances(const struct FAssetData& InA
 	return ShouldAssetBeFilteredOut;
 }
 
-FReply FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance(UMaterialInterface* Object, UObject* EditorObject)
+FReply FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance(UMaterialInterface* Parent, UObject* EditorObject)
 {
 	const FString DefaultSuffix = TEXT("_Inst");
 	TArray<FEditorParameterGroup> ParameterGroups;
@@ -269,16 +272,16 @@ FReply FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance(UMaterialInter
 		return FReply::Unhandled();
 	}
 
-	if (Object)
+	if (Parent)
 	{
 		// Create an appropriate and unique name 
 		FString Name;
 		FString PackageName;
 		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		AssetToolsModule.Get().CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+		AssetToolsModule.Get().CreateUniqueAssetName(Parent->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
 
 		UMaterialInstanceConstantFactoryNew* Factory = NewObject<UMaterialInstanceConstantFactoryNew>();
-		Factory->InitialParent = Object;
+		Factory->InitialParent = Parent;
 
 		UObject* Child = AssetToolsModule.Get().CreateAssetWithDialog(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialInstanceConstant::StaticClass(), Factory);
 		UMaterialInstanceConstant* ChildInstance = Cast<UMaterialInstanceConstant>(Child);
@@ -300,47 +303,47 @@ void FMaterialPropertyHelpers::CopyMaterialToInstance(UMaterialInstanceConstant*
 			FStaticParameterSet NewStaticParameters;
 			for (int32 GroupIdx = 0; GroupIdx < ParameterGroups.Num(); GroupIdx++)
 			{
-				FEditorParameterGroup & Group = ParameterGroups[GroupIdx];
+				FEditorParameterGroup& Group = ParameterGroups[GroupIdx];
 				for (int32 ParameterIdx = 0; ParameterIdx < Group.Parameters.Num(); ParameterIdx++)
 				{
 					if (Group.Parameters[ParameterIdx] == NULL)
 					{
 						continue;
 					}
-					UDEditorScalarParameterValue * ScalarParameterValue = Cast<UDEditorScalarParameterValue>(Group.Parameters[ParameterIdx]);
+					UDEditorScalarParameterValue* ScalarParameterValue = Cast<UDEditorScalarParameterValue>(Group.Parameters[ParameterIdx]);
 					if (ScalarParameterValue)
 					{
 						if (ScalarParameterValue->bOverride)
 						{
-							ChildInstance->SetScalarParameterValueEditorOnly(ScalarParameterValue->ParameterInfo.Name, ScalarParameterValue->ParameterValue);
+							ChildInstance->SetScalarParameterValueEditorOnly(ScalarParameterValue->ParameterInfo, ScalarParameterValue->ParameterValue);
 							continue;
 						}
 					}
-					UDEditorFontParameterValue * FontParameterValue = Cast<UDEditorFontParameterValue>(Group.Parameters[ParameterIdx]);
+					UDEditorFontParameterValue* FontParameterValue = Cast<UDEditorFontParameterValue>(Group.Parameters[ParameterIdx]);
 					if (FontParameterValue)
 					{
 						if (FontParameterValue->bOverride)
 						{
-							ChildInstance->SetFontParameterValueEditorOnly(FontParameterValue->ParameterInfo.Name, FontParameterValue->ParameterValue.FontValue, FontParameterValue->ParameterValue.FontPage);
+							ChildInstance->SetFontParameterValueEditorOnly(FontParameterValue->ParameterInfo, FontParameterValue->ParameterValue.FontValue, FontParameterValue->ParameterValue.FontPage);
 							continue;
 						}
 					}
 
-					UDEditorTextureParameterValue * TextureParameterValue = Cast<UDEditorTextureParameterValue>(Group.Parameters[ParameterIdx]);
+					UDEditorTextureParameterValue* TextureParameterValue = Cast<UDEditorTextureParameterValue>(Group.Parameters[ParameterIdx]);
 					if (TextureParameterValue)
 					{
 						if (TextureParameterValue->bOverride)
 						{
-							ChildInstance->SetTextureParameterValueEditorOnly(TextureParameterValue->ParameterInfo.Name, TextureParameterValue->ParameterValue);
+							ChildInstance->SetTextureParameterValueEditorOnly(TextureParameterValue->ParameterInfo, TextureParameterValue->ParameterValue);
 							continue;
 						}
 					}
-					UDEditorVectorParameterValue * VectorParameterValue = Cast<UDEditorVectorParameterValue>(Group.Parameters[ParameterIdx]);
+					UDEditorVectorParameterValue* VectorParameterValue = Cast<UDEditorVectorParameterValue>(Group.Parameters[ParameterIdx]);
 					if (VectorParameterValue)
 					{
 						if (VectorParameterValue->bOverride)
 						{
-							ChildInstance->SetVectorParameterValueEditorOnly(VectorParameterValue->ParameterInfo.Name, VectorParameterValue->ParameterValue);
+							ChildInstance->SetVectorParameterValueEditorOnly(VectorParameterValue->ParameterInfo, VectorParameterValue->ParameterValue);
 							continue;
 						}
 					}
@@ -354,7 +357,7 @@ void FMaterialPropertyHelpers::CopyMaterialToInstance(UMaterialInstanceConstant*
 						if (LayersParameterValue->bOverride)
 						{
 							FStaticMaterialLayersParameter* NewParameter =
-								new(NewStaticParameters.MaterialLayersParameters) FStaticMaterialLayersParameter(LayersParameterValue->ParameterInfo.Name, LayerValue, LayersParameterValue->bOverride, ExpressionIdValue);
+								new(NewStaticParameters.MaterialLayersParameters) FStaticMaterialLayersParameter(LayersParameterValue->ParameterInfo, LayerValue, LayersParameterValue->bOverride, ExpressionIdValue);
 						}
 					}
 
@@ -366,8 +369,8 @@ void FMaterialPropertyHelpers::CopyMaterialToInstance(UMaterialInstanceConstant*
 
 						if (StaticSwitchParameterValue->bOverride)
 						{
-							FStaticSwitchParameter * NewParameter =
-								new(NewStaticParameters.StaticSwitchParameters) FStaticSwitchParameter(StaticSwitchParameterValue->ParameterInfo.Name, SwitchValue, StaticSwitchParameterValue->bOverride, ExpressionIdValue);
+							FStaticSwitchParameter* NewParameter =
+								new(NewStaticParameters.StaticSwitchParameters) FStaticSwitchParameter(StaticSwitchParameterValue->ParameterInfo, SwitchValue, StaticSwitchParameterValue->bOverride, ExpressionIdValue);
 						}
 					}
 
@@ -385,7 +388,7 @@ void FMaterialPropertyHelpers::CopyMaterialToInstance(UMaterialInstanceConstant*
 						if (StaticComponentMaskParameterValue->bOverride)
 						{
 							FStaticComponentMaskParameter* NewParameter = new(NewStaticParameters.StaticComponentMaskParameters)
-								FStaticComponentMaskParameter(StaticComponentMaskParameterValue->ParameterInfo.Name, MaskR, MaskG, MaskB, MaskA, StaticComponentMaskParameterValue->bOverride, ExpressionIdValue);
+								FStaticComponentMaskParameter(StaticComponentMaskParameterValue->ParameterInfo, MaskR, MaskG, MaskB, MaskA, StaticComponentMaskParameterValue->bOverride, ExpressionIdValue);
 						}
 					}
 				}
@@ -512,10 +515,22 @@ void FMaterialPropertyHelpers::OnOverrideParameterCheckbox(ECheckBoxState NewVal
 	OnOverrideParameter(bIsChecked, Parameter, MaterialEditorInstance);
 }
 
-FText FMaterialPropertyHelpers::GetParameterExpressionDescription(UDEditorParameterValue* Parameter, UMaterialEditorInstanceConstant* MaterialEditorInstance)
+FText FMaterialPropertyHelpers::GetParameterExpressionDescription(UDEditorParameterValue* Parameter, UObject* MaterialEditorInstance)
 {
+	UMaterial* BaseMaterial = nullptr;
+
+	UMaterialEditorInstanceConstant* MaterialInstanceEditor = Cast<UMaterialEditorInstanceConstant>(MaterialEditorInstance);
+	if (MaterialInstanceEditor)
+	{
+		BaseMaterial = MaterialInstanceEditor->SourceInstance->GetMaterial();;
+	}
+	UMaterialEditorPreviewParameters* MaterialEditor = Cast<UMaterialEditorPreviewParameters>(MaterialEditorInstance);
+	if (MaterialEditor)
+	{
+		BaseMaterial = MaterialEditor->OriginalMaterial;
+	}
+
 	// TODO: This needs to support functions added by SourceInstance layers
-	UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
 	if ( BaseMaterial )
 	{
 		UMaterialExpression* MaterialExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpression>(Parameter->ExpressionId);
@@ -924,6 +939,97 @@ FEditorParameterGroup&  FMaterialPropertyHelpers::GetParameterGroup(UMaterial* I
 	Group.GroupAssociation = EMaterialParameterAssociation::GlobalParameter;
 
 	return Group;
+}
+
+void FMaterialPropertyHelpers::GetVectorChannelMaskComboBoxStrings(TArray<TSharedPtr<FString>>& OutComboBoxStrings, TArray<TSharedPtr<SToolTip>>& OutToolTips, TArray<bool>& OutRestrictedItems)
+{
+	const UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EChannelMaskParameterColor"));
+	check(ChannelEnum);
+
+	// Add RGBA string options (Note: Exclude the "::Max" entry)
+	const int32 NumEnums = ChannelEnum->NumEnums() - 1;
+	for (int32 Entry = 0; Entry < NumEnums; ++Entry)
+	{
+		FText EnumName = ChannelEnum->GetDisplayNameTextByIndex(Entry);
+
+		OutComboBoxStrings.Add(MakeShared<FString>(EnumName.ToString()));
+		OutToolTips.Add(SNew(SToolTip).Text(EnumName));
+		OutRestrictedItems.Add(false);
+	}
+}
+
+FString FMaterialPropertyHelpers::GetVectorChannelMaskValue(UDEditorParameterValue* InParameter)
+{
+	UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(InParameter);
+	check(VectorParam && VectorParam->bIsUsedAsChannelMask);
+
+	const UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EChannelMaskParameterColor"));
+	check(ChannelEnum);
+
+	// Convert from vector to RGBA string
+	int64 ChannelType = 0;
+
+	if (VectorParam->ParameterValue.R > 0.0f)
+	{
+		ChannelType = EChannelMaskParameterColor::Red;
+	}
+	else if (VectorParam->ParameterValue.G > 0.0f)
+	{
+		ChannelType = EChannelMaskParameterColor::Green;
+	}
+	else if (VectorParam->ParameterValue.B > 0.0f)
+	{
+		ChannelType = EChannelMaskParameterColor::Blue;
+	}
+	else
+	{
+		ChannelType = EChannelMaskParameterColor::Alpha;
+	}
+
+	return ChannelEnum->GetDisplayNameTextByValue(ChannelType).ToString();
+}
+
+void FMaterialPropertyHelpers::SetVectorChannelMaskValue(const FString& StringValue, TSharedPtr<IPropertyHandle> PropertyHandle, UDEditorParameterValue* InParameter, UObject* MaterialEditorInstance)
+{
+	UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(InParameter);
+	check(VectorParam && VectorParam->bIsUsedAsChannelMask);
+
+	const UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EChannelMaskParameterColor"));
+	check(ChannelEnum);
+
+	// Convert from RGBA string to vector
+	int64 ChannelValue = ChannelEnum->GetValueByNameString(StringValue);
+	FLinearColor NewValue;
+
+	switch (ChannelValue)
+	{
+	case EChannelMaskParameterColor::Red:
+		NewValue = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f); break;
+	case EChannelMaskParameterColor::Green:
+		NewValue = FLinearColor(0.0f, 1.0f, 0.0f, 0.0f); break;
+	case EChannelMaskParameterColor::Blue:
+		NewValue = FLinearColor(0.0f, 0.0f, 1.0f, 0.0f); break;
+	default:
+		NewValue = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	// If changed, propagate the update
+	if (VectorParam->ParameterValue != NewValue)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("SetVectorChannelMaskValue", "Set Vector Channel Mask Value"));
+		VectorParam->Modify();
+
+		PropertyHandle->NotifyPreChange();
+		VectorParam->ParameterValue = NewValue;
+
+		UMaterialEditorInstanceConstant* MaterialInstanceEditor = Cast<UMaterialEditorInstanceConstant>(MaterialEditorInstance);
+		if (MaterialInstanceEditor)
+		{
+			MaterialInstanceEditor->CopyToSourceInstance();
+		}
+
+		PropertyHandle->NotifyPostChange();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

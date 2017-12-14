@@ -298,6 +298,9 @@ public:
 		bool bCalcLODDistance
 		)
 	{
+		//If the Current LOD is an import from file
+		bool OldLodWasFromFile = SkeletalMesh->LODInfo.IsValidIndex(LODIndex) && SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified == false;
+
 		// Insert a new LOD model entry if needed.
 		if (LODIndex == SkeletalMeshResource->LODModels.Num())
 		{
@@ -427,6 +430,11 @@ public:
 				{
 					SkeletalMesh->LODInfo[LODIndex].ScreenSize = SkeletalMesh->LODInfo[LODIndex - 1].ScreenSize * 0.5;
 				}
+			}
+
+			if (OldLodWasFromFile)
+			{
+				SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.Empty();
 			}
 
 			// If base lod has a customized LODMaterialMap and this LOD doesn't (could have if changes are applied instead of freshly generated, copy over the data into new new LOD

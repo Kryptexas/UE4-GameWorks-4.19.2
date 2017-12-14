@@ -253,7 +253,7 @@ void FNetworkFileServerHttp::Process(FArchive& In, TArray<uint8>&Out, FNetworkFi
 		FGuid ClientGuid;
 		In << ClientGuid;
 
-		UE_LOG(LogFileServer, Log, TEXT("Recieved GUID %s"), *ClientGuid.ToString());
+		UE_LOG(LogFileServer, Log, TEXT("Received GUID %s"), *ClientGuid.ToString());
 
 		FNetworkFileServerClientConnectionHTTP* Connection = NULL;
 		if (Server->RequestHandlers.Contains(ClientGuid))

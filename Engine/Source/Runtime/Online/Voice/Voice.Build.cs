@@ -9,6 +9,17 @@ public class Voice : ModuleRules
 	{
 		PublicDefinitions.Add("VOICE_PACKAGE=1");
 
+		bool bDontNeedCapture = (Target.Type == TargetType.Server);
+
+		if (bDontNeedCapture)
+		{
+			PublicDefinitions.Add("VOICE_MODULE_WITH_CAPTURE=0");
+		}
+		else
+		{
+			PublicDefinitions.Add("VOICE_MODULE_WITH_CAPTURE=1");
+		}
+
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
 				"AndroidPermission"
@@ -42,6 +53,10 @@ public class Voice : ModuleRules
 		else if(Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			PublicFrameworks.AddRange(new string[] { "CoreAudio", "AudioUnit", "AudioToolbox" });
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux && !bDontNeedCapture)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
 		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "libOpus");

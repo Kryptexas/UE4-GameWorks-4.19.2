@@ -94,6 +94,7 @@
 #include "Factories/MaterialFunctionInstanceFactory.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
 #include "Factories/MaterialParameterCollectionFactoryNew.h"
+#include "Factories/MaterialSharedInputCollectionFactory.h"
 #include "Factories/ModelFactory.h"
 #include "Factories/ObjectLibraryFactory.h"
 #include "Factories/PackageFactory.h"
@@ -154,6 +155,7 @@
 #include "Sound/DialogueWave.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialSharedInputCollection.h"
 #include "Engine/ObjectLibrary.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/Polys.h"
@@ -251,6 +253,7 @@
 
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "JsonObjectConverter.h"
+#include "MaterialEditorModule.h"
 
 DEFINE_LOG_CATEGORY(LogEditorFactories);
 
@@ -455,6 +458,12 @@ UMaterialFunctionMaterialLayerFactory::UMaterialFunctionMaterialLayerFactory(con
 	bEditAfterNew = true;
 }
 
+bool UMaterialFunctionMaterialLayerFactory::CanCreateNew() const
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
+	return MaterialEditorModule.MaterialLayersEnabled();
+}
+
 UObject* UMaterialFunctionMaterialLayerFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	UMaterialFunctionMaterialLayer* Function = NewObject<UMaterialFunctionMaterialLayer>(InParent, UMaterialFunctionMaterialLayer::StaticClass(), Name, Flags);
@@ -474,6 +483,12 @@ UMaterialFunctionMaterialLayerBlendFactory::UMaterialFunctionMaterialLayerBlendF
 	SupportedClass = UMaterialFunctionMaterialLayerBlend::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
+}
+
+bool UMaterialFunctionMaterialLayerBlendFactory::CanCreateNew() const
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
+	return MaterialEditorModule.MaterialLayersEnabled();
 }
 
 UObject* UMaterialFunctionMaterialLayerBlendFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
@@ -569,6 +584,23 @@ UMaterialParameterCollectionFactoryNew::UMaterialParameterCollectionFactoryNew(c
 }
 
 UObject* UMaterialParameterCollectionFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	return NewObject<UObject>(InParent, Class, Name, Flags);
+}
+
+/*------------------------------------------------------------------------------
+	UMaterialParameterCollectionFactoryNew implementation.
+------------------------------------------------------------------------------*/
+UMaterialSharedInputCollectionFactory::UMaterialSharedInputCollectionFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = UMaterialSharedInputCollection::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialSharedInputCollectionFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
@@ -5079,7 +5111,10 @@ bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& 
 				//This mesh was import with a scene import, we cannot reimport it
 				return false;
 			}
-
+			else if (!FbxAssetImportData)
+			{
+				return false;
+			}
 			OutFilenames.Add(Mesh->AssetImportData->GetFirstFilename());
 		}
 		else

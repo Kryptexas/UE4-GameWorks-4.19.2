@@ -272,6 +272,12 @@ public:
 	/** The number of dynamic point lights for ES2 */
 	int32 NumES2DynamicPointLights;
 
+	/** This indicate that we should call the GetCustomLOD function on the proxy instead of the generic implementation. */
+	bool bIsUsingCustomLODRules : 1;
+	
+	/** This indicate that we should call the GetCustomWholeSceneShadowLOD function on the proxy instead of the generic implementation. */
+	bool bIsUsingCustomWholeSceneShadowLODRules : 1;
+
 	/** Initialization constructor. */
 	FPrimitiveSceneInfo(UPrimitiveComponent* InPrimitive,FScene* InScene);
 
@@ -384,12 +390,12 @@ public:
 	 * This index is only valid until a primitive is added to or removed from
 	 * the scene!
 	 */
-	inline int32 GetIndex() const { return PackedIndex; }
+	ENGINE_API FORCEINLINE int32 GetIndex() const { return PackedIndex; }
 	/** 
 	 * Retrieves the address of the primitives index into in the scene's primitives array.
 	 * This address is only for reference purposes
 	 */
-	inline const int32* GetIndexAddress() const { return &PackedIndex; }
+	FORCEINLINE const int32* GetIndexAddress() const { return &PackedIndex; }
 
 	/* @return true if the object needs to be rendered in the velocity pass (is not moving like the world, needed for motionblur and TemporalAA) */
 	bool ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility = true) const;

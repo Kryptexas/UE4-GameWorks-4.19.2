@@ -30,6 +30,8 @@
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "Misc/EngineBuildSettings.h"
 #include "ContentBrowserLog.h"
+#include "ObjectTools.h"
+#include "AssetThumbnail.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -215,7 +217,7 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 		[
 			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
 			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
-			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
+			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility, InTileOrListItem->AssetThumbnail->GetAssetData().GetFullName())
 		];
 	}
 
@@ -645,9 +647,10 @@ const FSlateBrush* SAssetViewItem::GetDirtyImage() const
 	return IsDirty() ? AssetDirtyBrush : NULL;
 }
 
-EVisibility SAssetViewItem::GetThumbnailEditModeUIVisibility() const
+EVisibility SAssetViewItem::GetThumbnailEditModeUIVisibility(FString AssetDataFullName) const
 {
-	return !IsFolder() && ThumbnailEditMode.Get() == true ? EVisibility::Visible : EVisibility::Collapsed;
+	return !IsFolder() && ThumbnailEditMode.Get() && !ThumbnailTools::AssetHasCustomCreatedThumbnail(AssetDataFullName) 
+		== true ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

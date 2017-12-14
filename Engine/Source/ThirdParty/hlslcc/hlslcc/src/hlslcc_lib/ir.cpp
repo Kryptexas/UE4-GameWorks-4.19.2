@@ -2177,7 +2177,7 @@ bool AreEquivalent(ir_instruction* A, ir_instruction* B)
 		return false;
 	}
 
-#ifndef __clang__
+#if ! (defined(__clang__) || defined(__GNUC__))
 #define IF_TEST(name)		if (A->##name()) { if (A->##name() && B->##name()) { return (A->##name())->IsEquivalent(B->##name()); } }
 #else
 #define IF_TEST(name)		if (A->name()) { if (A->name() && B->name()) { return (A->name())->IsEquivalent(B->name()); } }

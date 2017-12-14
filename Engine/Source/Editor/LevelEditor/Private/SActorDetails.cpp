@@ -252,7 +252,7 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 			TSharedPtr<SDockTab> Tab = DetailsView->GetHostTabManager()->FindExistingLiveTab(DetailsView->GetIdentifier());
 			if (Tab.IsValid() && !Tab->IsForeground() )
 			{
-				DetailsView->GetHostTabManager()->DrawAttention(Tab.ToSharedRef());
+				Tab->FlashTab();
 			}
 		}
 	}

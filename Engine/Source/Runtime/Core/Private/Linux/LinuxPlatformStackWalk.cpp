@@ -183,7 +183,7 @@ namespace LinuxStackWalkHelpers
 
 		if (ElfHdr)
 		{
-			elf_end(ElfHdr);
+			elf_end_workaround(ElfHdr);
 			ElfHdr = NULL;
 		}
 

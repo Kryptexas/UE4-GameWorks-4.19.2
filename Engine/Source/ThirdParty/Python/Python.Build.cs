@@ -121,6 +121,12 @@ public class Python : ModuleRules
 			PublicDefinitions.Add("WITH_PYTHON=1");
 			PublicDefinitions.Add(string.Format("UE_PYTHON_DIR=\"{0}\"", PythonRoot.Replace('\\', '/')));
 
+			// Some versions of Python need this define set when building on MSVC
+			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				PublicDefinitions.Add("HAVE_ROUND=1");
+			}
+
 			PublicSystemIncludePaths.Add(PythonIncludePath);
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{

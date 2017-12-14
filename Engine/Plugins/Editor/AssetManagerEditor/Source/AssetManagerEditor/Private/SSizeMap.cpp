@@ -36,11 +36,7 @@ SSizeMap::SSizeMap()
 
 SSizeMap::~SSizeMap()
 {
-	if (AssetThumbnailPool.IsValid())
-	{
-		AssetThumbnailPool->ReleaseResources();
-		AssetThumbnailPool.Reset();
-	}
+	AssetThumbnailPool.Reset();
 }
 
 FReply SSizeMap::OnZoomOut()

@@ -234,11 +234,20 @@ namespace FbxMeshUtils
 
 	bool ImportSkeletalMeshLOD( class USkeletalMesh* SelectedSkelMesh, const FString& Filename, int32 LODLevel)
 	{
+		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
+		//Make sure skeletal mesh is valid
+		if (!SelectedSkelMesh)
+		{
+			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FBXImport_NoSelectedSkeletalMesh", "Cannot import a LOD if there is not a valid selected skeletal mesh.")), FFbxErrors::Generic_MeshNotFound);
+			return false;
+		}
+
 		bool bSuccess = false;
 
 		// Check the file extension for FBX. Anything that isn't .FBX is rejected
 		const FString FileExtension = FPaths::GetExtension(Filename);
 		const bool bIsFBX = FCString::Stricmp(*FileExtension, TEXT("FBX")) == 0;
+
 
 		if (bIsFBX)
 		{
@@ -274,7 +283,6 @@ namespace FbxMeshUtils
 				ClothingAsset->UnbindFromSkeletalMesh(SelectedSkelMesh, LODLevel);
 			}
 
-			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
 			

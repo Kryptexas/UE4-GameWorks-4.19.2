@@ -170,6 +170,7 @@ public:
 	virtual void GetDefaultProperties(TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true) override;
 	virtual const FText& GetDisplayName() const override { return DisplayName; }
 	virtual void SetCategoryVisibility(bool bIsVisible) override;
+	virtual void SetShowAdvanced(bool bShowAdvanced) override;
 
 	/** FDetailTreeNode interface */
 	virtual IDetailsViewPrivate* GetDetailsView() const override { return DetailLayoutBuilder.Pin()->GetDetailsView(); }

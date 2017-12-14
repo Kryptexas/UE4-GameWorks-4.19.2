@@ -860,11 +860,13 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	
 	FEditorDelegates::BeginPIE.AddLambda([](bool)
 	{
+		FTextLocalizationManager::Get().PushAutoEnableGameLocalizationPreview();
 		FTextLocalizationManager::Get().EnableGameLocalizationPreview();
 	});
 
 	FEditorDelegates::EndPIE.AddLambda([](bool)
 	{
+		FTextLocalizationManager::Get().PopAutoEnableGameLocalizationPreview();
 		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
 	});
 

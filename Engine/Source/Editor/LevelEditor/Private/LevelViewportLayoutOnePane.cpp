@@ -52,7 +52,7 @@ TSharedRef<SWidget> FLevelViewportLayoutOnePane::MakeViewportLayout(const FStrin
 	Args.ParentLayout = AsShared();
 	Args.ParentLevelEditor = ParentLevelEditor;
 	Args.IsEnabled = FSlateApplication::Get().GetNormalExecutionAttribute();
-	Args.bRealtime = true;
+	Args.bRealtime = !FPlatformMisc::IsRemoteSession();
 	Args.ConfigKey = ViewportKey;
 	Args.ViewportType = LVT_Perspective;
 	TSharedRef<IViewportLayoutEntity> Viewport = LevelEditor.FactoryViewport(*ViewportType, Args);

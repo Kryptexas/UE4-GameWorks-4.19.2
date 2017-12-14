@@ -179,6 +179,12 @@ public:
 	 */
 	virtual void SetCategoryVisibility(bool bVisible) = 0;
 
+	/**
+	* Sets whether or not this category should show its advanced properties.
+	* This is designed to be used for dynamic display of advanced properties.
+	*/
+	virtual void SetShowAdvanced(bool bShowAdvanced) = 0;
+
 	DEPRECATED(4.17, "AddExternalProperty is deprecated.  Use AddExternalObjectProperty instead")
 	IDetailPropertyRow* AddExternalProperty(const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default)
 	{

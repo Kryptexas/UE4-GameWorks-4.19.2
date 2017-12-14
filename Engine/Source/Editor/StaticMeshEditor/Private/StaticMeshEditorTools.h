@@ -338,17 +338,7 @@ private:
 	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
 
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
-
-	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
-	EVisibility LodComboBoxVisibilityForSectionList(int32 LodIndex) const;
-
-	/*
-	* Generate the context menu to choose the LOD we will display the section list
-	*/
-	TSharedRef<SWidget> OnGenerateLodMenuForSectionList(int32 LodIndex);
 	void UpdateLODCategoryVisibility();
-	FText GetCurrentLodName() const;
-	FText GetCurrentLodTooltip() const;
 
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;
@@ -474,6 +464,8 @@ private:
 	void OnLODCountCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetLODCount() const;
 
+	void OnSelectedLODChanged(int32 NewLodIndex);
+
 	void OnMinLODChanged(int32 NewValue);
 	void OnMinLODCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetMinLOD() const;
@@ -504,6 +496,12 @@ private:
 	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
 	bool IsLODCustomModeEnable(int32 LODIndex) const;
 
+	TSharedRef<SWidget> OnGenerateLodComboBoxForLodPicker();
+	EVisibility LodComboBoxVisibilityForLodPicker() const;
+	bool IsLodComboBoxEnabledForLodPicker() const;
+	TSharedRef<SWidget> OnGenerateLodMenuForLodPicker();
+	FText GetCurrentLodName() const;
+	FText GetCurrentLodTooltip() const;
 
 private:
 
@@ -543,6 +541,8 @@ private:
 	bool bSectionSettingsExpanded[MAX_STATIC_MESH_LODS];
 
 	TArray<class IDetailCategoryBuilder*> LodCategories;
+	IDetailCategoryBuilder* LodCustomCategory;
+
 	bool CustomLODEditMode;
 	bool DetailDisplayLODs[MAX_STATIC_MESH_LODS];
 };

@@ -117,6 +117,19 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 	OnStartFrame(RHICmdList);
 }
 
+void FMobileSceneRenderer::UpdateViewCustomData()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateViewCustomData);
+
+	for (FViewInfo& ViewInfo : Views)
+	{
+		for (const FPrimitiveSceneInfo* PrimitiveSceneInfo : ViewInfo.PrimitivesWithCustomData)
+		{
+			PrimitiveSceneInfo->Proxy->UpdateViewCustomData(ViewInfo, ViewInfo.GetCustomData(PrimitiveSceneInfo->GetIndex()));
+		}
+	}
+}
+
 /** 
 * Renders the view family. 
 */
@@ -162,6 +175,8 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
+
+	UpdateViewCustomData();
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 

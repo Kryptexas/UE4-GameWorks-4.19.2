@@ -665,7 +665,6 @@ struct FSectionListDelegates
 		, OnGenerateCustomNameWidgets()
 		, OnGenerateCustomSectionWidgets()
 		, OnResetSectionToDefaultClicked()
-		, OnGenerateLodComboBox()
 	{}
 
 	/** Delegate called to populate the list with Sections */
@@ -678,9 +677,6 @@ struct FSectionListDelegates
 	FOnGenerateWidgetsForSection OnGenerateCustomSectionWidgets;
 	/** Delegate called when a Section list item should be reset to default */
 	FOnResetSectionToDefaultClicked OnResetSectionToDefaultClicked;
-
-	/** Delegate called when a Section list generate the LOD section combo box */
-	FOnGenerateLODComboBox OnGenerateLodComboBox;
 
 	/** Delegate called Copying a section list */
 	FOnCopySectionList OnCopySectionList;

@@ -1097,7 +1097,7 @@ bool ContentBrowserUtils::AssetHasCustomThumbnail( const FAssetData& AssetData )
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	if ( AssetToolsModule.Get().AssetUsesGenericThumbnail(AssetData) )
 	{
-		return ThumbnailTools::AssetHasCustomThumbnail(AssetData);
+		return ThumbnailTools::AssetHasCustomThumbnail(AssetData.GetFullName());
 	}
 
 	return false;

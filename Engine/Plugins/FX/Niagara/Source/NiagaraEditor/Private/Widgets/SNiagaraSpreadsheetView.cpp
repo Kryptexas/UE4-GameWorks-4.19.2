@@ -763,7 +763,7 @@ void SNiagaraSpreadsheetView::GenerateLayoutInfo(FNiagaraTypeLayoutInfo& Layout,
 			SNiagaraSpreadsheetView::FieldInfo Info;
 			Info.bFloat = false;
 			Info.bBoolean = Property->IsA(UBoolProperty::StaticClass());
-			Info.FloatStartOffset = -1.0f;
+			Info.FloatStartOffset = UINT_MAX;
 			Info.IntStartOffset = Layout.Int32ComponentRegisterOffsets.Num();
 			Info.GlobalStartOffset = sizeof(float) * Layout.FloatComponentRegisterOffsets.Num() + sizeof(int32) * Layout.Int32ComponentByteOffsets.Num();
 			Info.Enum = Enum;

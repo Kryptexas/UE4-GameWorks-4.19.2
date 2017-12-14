@@ -18,13 +18,13 @@
 #define LOCTEXT_NAMESPACE "NiagaraStackViewModel"
 
 UNiagaraStackRoot::UNiagaraStackRoot()
-	: EmitterSpawnGroup(nullptr)
+	: SystemExposedVariablesGroup(nullptr)
+	, EmitterSpawnGroup(nullptr)
 	, EmitterUpdateGroup(nullptr)
 	, ParticleSpawnGroup(nullptr)
 	, ParticleUpdateGroup(nullptr)
 	, AddEventHandlerGroup(nullptr)
 	, RenderGroup(nullptr)
-	, SystemExposedVariablesGroup(nullptr)
 {
 }
 

@@ -1518,6 +1518,18 @@ FSceneRenderTargetItem* FViewInfo::GetTonemappingLUTRenderTarget(FRHICommandList
 	return TargetItem;
 }
 
+void FViewInfo::SetCustomData(const FPrimitiveSceneInfo* InPrimitiveSceneInfo, void* InCustomData)
+{
+	if (InCustomData != nullptr)
+	{
+		check(InPrimitiveSceneInfo != nullptr);
+		check(PrimitivesCustomData.IsValidIndex(InPrimitiveSceneInfo->GetIndex()));
+		PrimitivesCustomData[InPrimitiveSceneInfo->GetIndex()] = InCustomData;
+
+		check(!PrimitivesWithCustomData.Contains(InPrimitiveSceneInfo));
+		PrimitivesWithCustomData.Add(InPrimitiveSceneInfo);
+	}
+}
 
 void FDisplayInternalsData::Setup(UWorld *World)
 {

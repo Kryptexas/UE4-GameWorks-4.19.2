@@ -12,7 +12,7 @@ class FNiagaraOpInfo
 {
 public:
 	FNiagaraOpInfo()
-		: NumericOuputTypeSelectionMode(ENiagaraNumericOutputTypeSelectionMode::Largest), Keywords(FText())
+		: Keywords(FText()), NumericOuputTypeSelectionMode(ENiagaraNumericOutputTypeSelectionMode::Largest)
 	{}
 
 	FName Name;

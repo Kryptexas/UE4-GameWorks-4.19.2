@@ -251,6 +251,11 @@ bool UMaterialInterface::GetVectorParameterValue(const FMaterialParameterInfo& P
 	return false;
 }
 
+bool UMaterialInterface::IsVectorParameterUsedAsChannelMask(const FMaterialParameterInfo& ParameterInfo, bool& OutValue) const
+{
+	return false;
+}
+
 bool UMaterialInterface::GetScalarParameterSliderMinMax(const FMaterialParameterInfo& ParameterInfo, float& OutSliderMin, float& OutSliderMax) const
 {
 	return false;

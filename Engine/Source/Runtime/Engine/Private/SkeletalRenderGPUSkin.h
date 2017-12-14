@@ -80,6 +80,8 @@ public:
 	TArray<FActiveMorphTarget> ActiveMorphTargets;
 	/** All morph target weights on this mesh */
 	TArray<float> MorphTargetWeights;
+	/** All section ID impacted by active morph target on this mesh */
+	TArray<int32> SectionIdsUseByActiveMorphTargets;
 	/** number of active morph targets with weights > 0 */
 	int32 NumWeightedActiveMorphTargets;
 
@@ -232,7 +234,9 @@ public:
 	}
 
 	FSkeletalMeshLODRenderData* GetLODRenderData() const { return &SkelMeshRenderData->LODRenderData[LODIdx]; }
-
+	
+	// section ids that are using this Morph buffer
+	TArray<int32> SectionIds;
 protected:
 	// guaranteed only to be valid if the vertex buffer is valid
 	FShaderResourceViewRHIRef SRVValue;
@@ -476,7 +480,7 @@ private:
 		 * @param MorphTargetWeights - All Morph weights
 		 */
 		void UpdateMorphVertexBufferCPU(const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights);
-		void UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers);
+		void UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<int32>& SectionIdsUseByActiveMorphTargets);
 
 		/**
 		 * Determine the current vertex buffers valid for this LOD

@@ -223,6 +223,12 @@ private:
 	/** Handler for CopyReference */
 	void ExecuteCopyReference();
 
+	/** Handler to copy the given text to the clipboard */
+	void ExecuteCopyTextToClipboard(FString InText);
+
+	/** Handler for resetting the localization ID of the current selection */
+	void ExecuteResetLocalizationId();
+
 	/** Handler for Export */
 	void ExecuteExport();
 

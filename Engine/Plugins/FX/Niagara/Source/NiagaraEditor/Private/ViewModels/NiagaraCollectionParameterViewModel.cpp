@@ -12,8 +12,8 @@
 
 FNiagaraCollectionParameterViewModel::FNiagaraCollectionParameterViewModel(FNiagaraVariable& Variable, UNiagaraParameterCollectionInstance* CollectionInstance, ENiagaraParameterEditMode ParameterEditMode)
 	: FNiagaraParameterViewModel(ParameterEditMode)
-	, Parameter(Variable)
 	, CollectionInst(CollectionInstance)
+	, Parameter(Variable)
 {
 	DefaultValueType = Variable.IsDataInterface() ? INiagaraParameterViewModel::EDefaultValueType::Object : INiagaraParameterViewModel::EDefaultValueType::Struct;
 	RefreshParameterValue();

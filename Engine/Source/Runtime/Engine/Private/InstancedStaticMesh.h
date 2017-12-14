@@ -76,7 +76,7 @@ public:
 	 * @param InUpdateInstanceStartingIndex - Starting instance index to update.
 	 * @param InUpdateInstanceIndexCount - Instance count to update.
 	 */
-	void UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount);
+	void UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount, bool InUpdateRandomStream);
 
 	/**
 	 * Initializes the buffer with the component's data.
@@ -279,7 +279,7 @@ public:
 	/**
 	* Get a bitmask representing the visibility of each FMeshBatch element.
 	*/
-	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const override
+	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch, const void* ViewCustomData = nullptr) const override
 	{
 		const uint32 NumBits = NumBitsForVisibilityMask();
 		const uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBits);
@@ -492,7 +492,7 @@ struct FPerInstanceRenderData
 	 * @param InUpdateInstanceIndexCount - Instance count to update.
 	 * @param InUpdateProxyData - Should we update the hit proxy data to match the updated instances.
 	 */
-	void UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount = 1, bool InUpdateProxyData = true)
+	void UpdateInstanceData(UInstancedStaticMeshComponent* InComponent, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount = 1, bool InUpdateProxyData = true, bool InUpdateRandomStream = false)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageBufferUpdate);
 
@@ -501,10 +501,10 @@ struct FPerInstanceRenderData
 			AddHitProxyData(InComponent, InUpdateInstanceStartingIndex, InUpdateInstanceIndexCount);
 		}
 
-		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, InUpdateInstanceStartingIndex, InUpdateInstanceIndexCount);
+		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, InUpdateInstanceStartingIndex, InUpdateInstanceIndexCount, InUpdateRandomStream);
 	}
 
-	void UpdateAllInstanceData(UInstancedStaticMeshComponent* InComponent, bool InUpdateProxyData = true)
+	void UpdateAllInstanceData(UInstancedStaticMeshComponent* InComponent, bool InUpdateProxyData = true, bool InUpdateRandomStream = false)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageBufferUpdate);
 
@@ -514,7 +514,7 @@ struct FPerInstanceRenderData
 		}
 
 		// Force full refresh of ALL the buffer instance (including the removed one as we might need to re locate them)
-		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, 0, FMath::Max((int32)InstanceBuffer.GetNumInstances(), InComponent->PerInstanceSMData.Num()));
+		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, 0, FMath::Max((int32)InstanceBuffer.GetNumInstances(), InComponent->PerInstanceSMData.Num()), InUpdateRandomStream);
 	}
 
 	/**

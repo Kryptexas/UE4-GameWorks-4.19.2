@@ -155,8 +155,6 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 {
 	check(GIsEditor);
 
-	ALandscapeProxy* Proxy = GetLandscapeProxy();
-
 	const bool bComponentHasHoles = ComponentHasVisibilityPainted();
 	UMaterialInterface* const LandscapeMaterial = GetLandscapeMaterial();
 	UMaterialInterface* const HoleMaterial = bComponentHasHoles ? GetLandscapeHoleMaterial() : nullptr;
@@ -186,6 +184,7 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 
 	if (ensure(MaterialToUse != nullptr))
 	{
+		ALandscapeProxy* Proxy = GetLandscapeProxy();
 		FString LayerKey = GetLayerAllocationKey(MaterialToUse, bMobile);
 		//UE_LOG(LogLandscape, Log, TEXT("Looking for key %s"), *LayerKey);
 
@@ -285,7 +284,7 @@ void ULandscapeComponent::UpdateMaterialInstances_Internal(FMaterialUpdateContex
 		}
 		MaterialInstance->PostEditChange();
 
-		// Setup material instance with disabled tessellation for LODs 1+
+		// Setup material instance with disabled tessellation
 		if (bTessellationEnabled)
 		{
 			ULandscapeMaterialInstanceConstant*& TessellationMaterialInstance = (ULandscapeMaterialInstanceConstant*&)MaterialInstances[1];
@@ -531,9 +530,9 @@ void ULandscapeComponent::FixupWeightmaps()
 			RemoveInvalidWeightmaps();
 
 			// Store the layer combination in the MaterialInstanceConstantMap
-			if (MaterialInstances[0] != nullptr)
+			if (GetMaterialInstance(0, false) != nullptr)
 			{
-				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(MaterialInstances[0]->Parent);
+				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(GetMaterialInstance(0, false)->Parent);
 				if (CombinationMaterialInstance)
 				{
 					Proxy->MaterialInstanceConstantMap.Add(*GetLayerAllocationKey(CombinationMaterialInstance->Parent), CombinationMaterialInstance);
@@ -3672,6 +3671,29 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			RecreateCollisionComponents();
 		}
 	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, TessellationComponentScreenSize))
+	{
+		ChangeTessellationComponentScreenSize(TessellationComponentScreenSize);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, ComponentScreenSizeToUseSubSections))
+	{
+		ChangeComponentScreenSizeToUseSubSections(ComponentScreenSizeToUseSubSections);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, UseTessellationComponentScreenSizeFalloff))
+	{
+		ChangeUseTessellationComponentScreenSizeFalloff(UseTessellationComponentScreenSizeFalloff);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, TessellationComponentScreenSizeFalloff))
+	{
+		ChangeTessellationComponentScreenSizeFalloff(TessellationComponentScreenSizeFalloff);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, LODDistributionSetting)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, LOD0DistributionSetting)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, IncludeTessellationInShadowLOD)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, RestrictTessellationToShadowCascade))
+	{		
+		MarkComponentsRenderStateDirty();
+	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUseMaterialPositionOffsetInStaticLighting))
 	{
 		InvalidateLightingCache();
@@ -3825,9 +3847,39 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		MaxLODLevel = FMath::Clamp<int32>(MaxLODLevel, -1, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
 		bPropagateToProxies = true;
 	}
-	else if (PropertyName == FName(TEXT("LODDistanceFactor")))
+	else if (PropertyName == FName(TEXT("TessellationComponentScreenSize")))
 	{
-		LODDistanceFactor = FMath::Clamp<float>(LODDistanceFactor, 0.1f, MAX_LANDSCAPE_LOD_DISTANCE_FACTOR); // limit because LOD transition became too popping...
+		TessellationComponentScreenSize = FMath::Clamp<float>(TessellationComponentScreenSize, 0.01f, 1.0f);
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("ComponentScreenSizeToUseSubSections")))
+	{
+		ComponentScreenSizeToUseSubSections = FMath::Clamp<float>(ComponentScreenSizeToUseSubSections, 0.01f, 1.0f);
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("UseTessellationComponentScreenSizeFalloff"))
+			|| PropertyName == FName(TEXT("IncludeTessellationInShadowLOD")))
+	{
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("TessellationComponentScreenSizeFalloff")))
+	{
+		TessellationComponentScreenSizeFalloff = FMath::Clamp<float>(TessellationComponentScreenSizeFalloff, 0.01f, 1.0f);
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("RestrictTessellationToShadowCascade")))
+	{
+		FMath::Max<float>(RestrictTessellationToShadowCascade, 10.0f);
+		bPropagateToProxies = true;
+	}		
+	else if (PropertyName == FName(TEXT("LODDistributionSetting")))
+	{
+		LODDistributionSetting = FMath::Clamp<float>(LODDistributionSetting, 1.0f, 10.0f);
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("LOD0DistributionSetting")))
+	{
+		LOD0DistributionSetting = FMath::Clamp<float>(LOD0DistributionSetting, 1.0f, 5.0f);
 		bPropagateToProxies = true;
 	}
 	else if (PropertyName == FName(TEXT("CollisionMipLevel")))
@@ -3841,10 +3893,6 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		bPropagateToProxies = true;
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bBakeMaterialPositionOffsetIntoCollision))
-	{
-		bPropagateToProxies = true;
-	}
-	else if (PropertyName == FName(TEXT("LODFalloff")))
 	{
 		bPropagateToProxies = true;
 	}

@@ -217,18 +217,20 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnRemoved()
 			return Info.StaticMeshComponent == this->StaticMeshComponent;
 		}
 		);
-		check(Index != INDEX_NONE);
 
-		StaticMeshComponent->BodyInstance.SetCollisionEnabled(StaticMeshReferencers->Referencers[Index].CachedCollisionType, false);
-		StaticMeshComponent->RecreatePhysicsState();
-
-		StaticMeshReferencers->Referencers.RemoveAtSwap(Index);
-
-		// If the last reference was removed, restore the body setup for the static mesh
-		if (StaticMeshReferencers->Referencers.Num() == 0)
+		if(ensure(Index != INDEX_NONE))
 		{
-			ReferencedStaticMesh->BodySetup = StaticMeshReferencers->RestoreBodySetup;
-			verify(MeshToComponentMap.Remove(ReferencedStaticMesh) == 1);
+			StaticMeshComponent->BodyInstance.SetCollisionEnabled(StaticMeshReferencers->Referencers[Index].CachedCollisionType, false);
+			StaticMeshComponent->RecreatePhysicsState();
+
+			StaticMeshReferencers->Referencers.RemoveAtSwap(Index);
+
+			// If the last reference was removed, restore the body setup for the static mesh
+			if (StaticMeshReferencers->Referencers.Num() == 0)
+			{
+				ReferencedStaticMesh->BodySetup = StaticMeshReferencers->RestoreBodySetup;
+				verify(MeshToComponentMap.Remove(ReferencedStaticMesh) == 1);
+			}
 		}
 	}
 }

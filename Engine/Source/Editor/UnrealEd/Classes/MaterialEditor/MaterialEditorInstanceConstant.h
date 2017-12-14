@@ -29,6 +29,7 @@ struct FEditorParameterGroup
 	UPROPERTY()
 	FName GroupName;
 
+	UPROPERTY()
 	TEnumAsByte<EMaterialParameterAssociation> GroupAssociation;
 
 	UPROPERTY(EditAnywhere, editfixedsize, Instanced, Category=EditorParameterGroup)

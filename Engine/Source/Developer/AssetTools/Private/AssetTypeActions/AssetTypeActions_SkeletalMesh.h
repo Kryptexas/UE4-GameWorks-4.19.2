@@ -57,7 +57,7 @@ private:
 	/** Assigns a skeleton to the mesh */
 	void AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const;
 
-	void OnAssetCreated(TArray<UObject*> NewAssets) const;
+	bool OnAssetCreated(TArray<UObject*> NewAssets) const;
 
 	void FillSourceMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
 	void FillSkeletonMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;

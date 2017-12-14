@@ -1007,7 +1007,7 @@ FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, f
 	return EndTransform.GetRelativeTransform(StartTransform);
 }
 
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 TArray<const UAnimSequence*> CurrentBakingAnims;
 #endif
 

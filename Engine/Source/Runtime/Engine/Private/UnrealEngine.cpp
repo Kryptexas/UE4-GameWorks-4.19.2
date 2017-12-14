@@ -1159,7 +1159,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	ErrorsAndWarningsCollector.Initialize();
 #endif
 
-#if !UE_BUILD_SHIPPING
+#if WITH_EDITOR
 	if(!FEngineBuildSettings::IsInternalBuild())
 	{
 		TArray<TSharedRef<IPlugin>> EnabledPlugins = IPluginManager::Get().GetEnabledPlugins();
@@ -1858,24 +1858,25 @@ void UEngine::ParseCommandline()
  * Loads a special material and verifies that it is marked as a special material (some shaders
  * will only be compiled for materials marked as "special engine material")
  *
- * @param MaterialName Fully qualified name of a material to load/find
+ * @param MaterialName Variable name of the material in the engine to identify which material can't be loaded
+ * @param MaterialNamePath Fully qualified name of a material to load/find
  * @param Material Reference to a material object pointer that will be filled out
  * @param bCheckUsage Check if the material has been marked to be used as a special engine material
  */
-void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool bCheckUsage)
+void LoadSpecialMaterial(const FString& MaterialName, const FString& MaterialNamePath, UMaterial*& Material, bool bCheckUsage)
 {
 	// only bother with materials that aren't already loaded
 	if (Material == NULL)
 	{
 		// find or load the object
-		Material = LoadObject<UMaterial>(NULL, *MaterialName, NULL, LOAD_None, NULL);	
+		Material = LoadObject<UMaterial>(NULL, *MaterialNamePath, NULL, LOAD_None, NULL);
 
 		if (!Material)
 		{
 #if !WITH_EDITORONLY_DATA
-			UE_LOG(LogEngine, Log, TEXT("ERROR: Failed to load special material '%s'. This will probably have bad consequences (depending on its use)"), *MaterialName);
+			UE_LOG(LogEngine, Log, TEXT("ERROR: Failed to load special material '%s' from path '%s'. This will probably have bad consequences (depending on its use)."), *MaterialName, *MaterialNamePath);
 #else
-			UE_LOG(LogEngine, Fatal,TEXT("Failed to load special material '%s'"), *MaterialName);
+			UE_LOG(LogEngine, Fatal, TEXT("Failed to load special material '%s' from path '%s'."), *MaterialName, *MaterialNamePath);
 #endif
 		}
 		// if the material wasn't marked as being a special engine material, then not all of the shaders 
@@ -1885,7 +1886,7 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 		{
 #if !WITH_EDITOR
 			// consoles must have the flag set properly in the editor
-			UE_LOG(LogEngine, Fatal,TEXT("The special material (%s) was not marked with bUsedAsSpecialEngineMaterial. Make sure this flag is set in the editor, save the package, and compile shaders for this platform"), *MaterialName);
+			UE_LOG(LogEngine, Fatal,TEXT("The special material (%s) was not marked with bUsedAsSpecialEngineMaterial. Make sure this flag is set in the editor, save the package, and compile shaders for this platform"), *MaterialNamePath);
 #else
 			Material->bUsedAsSpecialEngineMaterial = true;
 			Material->MarkPackageDirty();
@@ -1893,7 +1894,7 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 			// make sure all necessary shaders for the default are compiled, now that the flag is set
 			Material->PostEditChange();
 
-			FMessageDialog::Open( EAppMsgType::Ok, FText::Format( NSLOCTEXT("Engine", "SpecialMaterialConfiguredIncorrectly", "The special material ({0}) has not been marked with bUsedAsSpecialEngineMaterial.\nThis will prevent shader precompiling properly, so the flag has been set automatically.\nMake sure to save the package and distribute to everyone using this material."), FText::FromString( MaterialName ) ) );
+			FMessageDialog::Open( EAppMsgType::Ok, FText::Format( NSLOCTEXT("Engine", "SpecialMaterialConfiguredIncorrectly", "The special material ({0}) has not been marked with bUsedAsSpecialEngineMaterial.\nThis will prevent shader precompiling properly, so the flag has been set automatically.\nMake sure to save the package and distribute to everyone using this material."), FText::FromString( MaterialNamePath ) ) );
 #endif
 		}
 	}
@@ -1925,30 +1926,30 @@ void UEngine::InitializeObjectReferences()
 	if (AllowDebugViewmodes())
 	{
 		// Materials that are needed in-game if debug viewmodes are allowed
-		LoadSpecialMaterial(WireframeMaterialName, WireframeMaterial, true);
-		LoadSpecialMaterial(LevelColorationLitMaterialName, LevelColorationLitMaterial, true);
-		LoadSpecialMaterial(LevelColorationUnlitMaterialName, LevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(LightingTexelDensityName, LightingTexelDensityMaterial, false);
-		LoadSpecialMaterial(ShadedLevelColorationLitMaterialName, ShadedLevelColorationLitMaterial, true);
-		LoadSpecialMaterial(ShadedLevelColorationUnlitMaterialName, ShadedLevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(VertexColorMaterialName, VertexColorMaterial, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_ColorOnly, VertexColorViewModeMaterial_ColorOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_AlphaAsColor, VertexColorViewModeMaterial_AlphaAsColor, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_RedOnly, VertexColorViewModeMaterial_RedOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_GreenOnly, VertexColorViewModeMaterial_GreenOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_BlueOnly, VertexColorViewModeMaterial_BlueOnly, false);
+		LoadSpecialMaterial(TEXT("WireframeMaterialName"), WireframeMaterialName, WireframeMaterial, true);
+		LoadSpecialMaterial(TEXT("LevelColorationLitMaterialName"), LevelColorationLitMaterialName, LevelColorationLitMaterial, true);
+		LoadSpecialMaterial(TEXT("LevelColorationUnlitMaterialName"), LevelColorationUnlitMaterialName, LevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(TEXT("LightingTexelDensityName"), LightingTexelDensityName, LightingTexelDensityMaterial, false);
+		LoadSpecialMaterial(TEXT("ShadedLevelColorationLitMaterialName"), ShadedLevelColorationLitMaterialName, ShadedLevelColorationLitMaterial, true);
+		LoadSpecialMaterial(TEXT("ShadedLevelColorationUnlitMaterialName"), ShadedLevelColorationUnlitMaterialName, ShadedLevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(TEXT("VertexColorMaterialName"), VertexColorMaterialName, VertexColorMaterial, false);
+		LoadSpecialMaterial(TEXT("VertexColorViewModeMaterialName_ColorOnly"), VertexColorViewModeMaterialName_ColorOnly, VertexColorViewModeMaterial_ColorOnly, false);
+		LoadSpecialMaterial(TEXT("VertexColorViewModeMaterialName_AlphaAsColor"), VertexColorViewModeMaterialName_AlphaAsColor, VertexColorViewModeMaterial_AlphaAsColor, false);
+		LoadSpecialMaterial(TEXT("VertexColorViewModeMaterialName_RedOnly"), VertexColorViewModeMaterialName_RedOnly, VertexColorViewModeMaterial_RedOnly, false);
+		LoadSpecialMaterial(TEXT("VertexColorViewModeMaterialName_GreenOnly"), VertexColorViewModeMaterialName_GreenOnly, VertexColorViewModeMaterial_GreenOnly, false);
+		LoadSpecialMaterial(TEXT("VertexColorViewModeMaterialName_BlueOnly"), VertexColorViewModeMaterialName_BlueOnly, VertexColorViewModeMaterial_BlueOnly, false);
 	}
 
 	// Materials that may or may not be needed when debug viewmodes are disabled but haven't been fixed up yet
-	LoadSpecialMaterial(RemoveSurfaceMaterialName.ToString(), RemoveSurfaceMaterial, false);
+	LoadSpecialMaterial(TEXT("RemoveSurfaceMaterialName"), RemoveSurfaceMaterialName.ToString(), RemoveSurfaceMaterial, false);
 
 	// these one's are needed both editor and standalone 
-	LoadSpecialMaterial(DebugMeshMaterialName.ToString(), DebugMeshMaterial, false);
-	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.ToString(), InvalidLightmapSettingsMaterial, false);
-	LoadSpecialMaterial(ArrowMaterialName.ToString(), ArrowMaterial, false);
+	LoadSpecialMaterial(TEXT("DebugMeshMaterialName"), DebugMeshMaterialName.ToString(), DebugMeshMaterial, false);
+	LoadSpecialMaterial(TEXT("InvalidLightmapSettingsMaterialName"), InvalidLightmapSettingsMaterialName.ToString(), InvalidLightmapSettingsMaterial, false);
+	LoadSpecialMaterial(TEXT("ArrowMaterialName"), ArrowMaterialName.ToString(), ArrowMaterial, false);
 
 #if !UE_BUILD_SHIPPING
-	LoadSpecialMaterial(TEXT("/Engine/EngineMaterials/PhAT_JointLimitMaterial.PhAT_JointLimitMaterial"), ConstraintLimitMaterial, false);
+	LoadSpecialMaterial(TEXT("ConstraintLimitMaterialName"), TEXT("/Engine/EngineMaterials/PhAT_JointLimitMaterial.PhAT_JointLimitMaterial"), ConstraintLimitMaterial, false);
 
 	ConstraintLimitMaterialX = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
 	ConstraintLimitMaterialX->SetVectorParameterValue(FName("Color"), FLinearColor::Red);
@@ -1977,18 +1978,23 @@ void UEngine::InitializeObjectReferences()
 	{
 		// Materials that are only needed in the interactive editor
 #if WITH_EDITORONLY_DATA
-		LoadSpecialMaterial(GeomMaterialName.ToString(), GeomMaterial, false);
-		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
-		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
-		LoadSpecialMaterial(ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
-		LoadSpecialMaterial(ClothPaintMaterialWireframeName.ToString(), ClothPaintMaterialWireframe, false);
-		LoadSpecialMaterial(DebugEditorMaterialName.ToString(), DebugEditorMaterial, false);
+		LoadSpecialMaterial(TEXT("GeomMaterialName"), GeomMaterialName.ToString(), GeomMaterial, false);
+		LoadSpecialMaterial(TEXT("EditorBrushMaterialName"), EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
+		LoadSpecialMaterial(TEXT("BoneWeightMaterialName"), BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
+		LoadSpecialMaterial(TEXT("ClothPaintMaterialName"), ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
+		LoadSpecialMaterial(TEXT("ClothPaintMaterialWireframeName"), ClothPaintMaterialWireframeName.ToString(), ClothPaintMaterialWireframe, false);
+		LoadSpecialMaterial(TEXT("DebugEditorMaterialName"), DebugEditorMaterialName.ToString(), DebugEditorMaterial, false);
 
 		ClothPaintMaterialInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterial, nullptr);
 		ClothPaintMaterialWireframeInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterialWireframe, nullptr);
 #endif
-
-		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);
+		FString ValidPreviewShadowsIndicatorMaterialName = PreviewShadowsIndicatorMaterialName.ToString();
+		if (ValidPreviewShadowsIndicatorMaterialName.IsEmpty())
+		{
+			UE_LOG(LogEngine, Warning, TEXT("The default Preview Shadow Indicator material was not found. Using default Preview Shadow Indicator material instead. Please make sure to have the default Preview Shadow Indicator material set up correctly."));
+			ValidPreviewShadowsIndicatorMaterialName = TEXT("/Engine/EditorMaterials/PreviewShadowIndicatorMaterial.PreviewShadowIndicatorMaterial");
+		}
+		LoadSpecialMaterial(TEXT("PreviewShadowsIndicatorMaterialName"), ValidPreviewShadowsIndicatorMaterialName, PreviewShadowsIndicatorMaterial, false);
 		
 		//@TODO: This should move into the editor (used in editor modes exclusively)
 		if (DefaultBSPVertexTexture == NULL)
@@ -7166,7 +7172,7 @@ void UEngine::TickHardwareSurvey()
 bool UEngine::IsHardwareSurveyRequired()
 {
 	// Analytics must have been initialized FIRST.
-	if (!FEngineAnalytics::IsAvailable() || IsRunningDedicatedServer())
+	if (!FEngineAnalytics::IsAvailable() || IsRunningDedicatedServer() || IsRunningCommandlet() || GIsAutomationTesting || GIsBuildMachine)
 	{
 		return false;
 	}

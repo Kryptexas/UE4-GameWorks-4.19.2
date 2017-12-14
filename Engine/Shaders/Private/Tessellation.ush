@@ -67,6 +67,18 @@ float GetTessellationMultiplier(FPassSpecificVSToDS I)
 #endif
 }
 
+float GetTessellationWorldDisplacementMultiplier(FPassSpecificVSToDS I, float TessellationMultiplier)
+{
+#if VERTEX_FACTORY_MODIFIES_TESSELLATION
+	FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(I.FactoryInterpolants, I.Position.xyz);
+	float MaterialTessellationMultiplier = GetMaterialTessellationMultiplier(MaterialParameters);
+
+	return VertexFactoryModifyTessellationWorldDisplacementMultiplier(I.FactoryInterpolants, I.Position.xyz, MaterialTessellationMultiplier, TessellationMultiplier);
+#else
+	return 1.0;
+#endif
+}
+
 // Flag set if inside frustum
 int3 GetClipFlag( float3 Origin, float Radius )
 {

@@ -3428,8 +3428,16 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->Import(FGuid::NewGuid(), NewMinX, NewMinY, NewMaxX, NewMaxY, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, ELandscapeImportAlphamapType::Additive);
 
 			Landscape->MaxLODLevel = OldLandscapeProxy->MaxLODLevel;
-			Landscape->LODDistanceFactor = OldLandscapeProxy->LODDistanceFactor;
-			Landscape->LODFalloff = OldLandscapeProxy->LODFalloff;
+			Landscape->LODDistanceFactor_DEPRECATED = OldLandscapeProxy->LODDistanceFactor_DEPRECATED;
+			Landscape->LODFalloff_DEPRECATED = OldLandscapeProxy->LODFalloff_DEPRECATED;
+			Landscape->TessellationComponentScreenSize = OldLandscapeProxy->TessellationComponentScreenSize;
+			Landscape->ComponentScreenSizeToUseSubSections = OldLandscapeProxy->ComponentScreenSizeToUseSubSections;
+			Landscape->UseTessellationComponentScreenSizeFalloff = OldLandscapeProxy->UseTessellationComponentScreenSizeFalloff;
+			Landscape->TessellationComponentScreenSizeFalloff = OldLandscapeProxy->TessellationComponentScreenSizeFalloff;
+			Landscape->IncludeTessellationInShadowLOD = OldLandscapeProxy->IncludeTessellationInShadowLOD;
+			Landscape->RestrictTessellationToShadowCascade = OldLandscapeProxy->RestrictTessellationToShadowCascade;			
+			Landscape->LODDistributionSetting = OldLandscapeProxy->LODDistributionSetting;
+			Landscape->LOD0DistributionSetting = OldLandscapeProxy->LOD0DistributionSetting;
 			Landscape->ExportLOD = OldLandscapeProxy->ExportLOD;
 			Landscape->StaticLightingLOD = OldLandscapeProxy->StaticLightingLOD;
 			Landscape->NegativeZBoundsExtension = OldLandscapeProxy->NegativeZBoundsExtension;

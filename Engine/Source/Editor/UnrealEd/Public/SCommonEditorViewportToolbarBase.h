@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "Widgets/SWidget.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Editor/UnrealEd/Public/SViewportToolBar.h"
+#include "SViewportToolBar.h"
 
 // This is the interface that the host of a SCommonEditorViewportToolbarBase must implement
 class ICommonEditorViewportToolbarInfoProvider
@@ -127,7 +127,6 @@ private:
 	 */
 	virtual TSharedRef<SWidget> GenerateShowMenu() const;
 
-
 	/**
 	 * Returns the initial visibility of the view mode options widget 
 	 *
@@ -183,6 +182,9 @@ protected:
 
 	/** Extension allowing derived classes to add to the options menu.*/	
 	virtual void ExtendOptionsMenu(FMenuBuilder& OptionsMenuBuilder) const {}
+
+	/** Extension allowing derived classes to add to left-aligned portion of the toolbar slots.*/
+	virtual void ExtendLeftAlignedToolbarSlots(TSharedPtr<SHorizontalBox> MainBoxPtr, TSharedPtr<SViewportToolBar> ParentToolBarPtr) const {}
 
 protected:
 	// Returns the info provider for this viewport

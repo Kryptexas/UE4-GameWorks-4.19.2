@@ -312,7 +312,17 @@ namespace AnimationEditorUtils
 
 		if (AssetCreated.IsBound())
 		{
-			AssetCreated.Execute(ObjectsToSync);
+			if (!AssetCreated.Execute(ObjectsToSync))
+			{
+				//Destroy the assets we just create
+				for (UObject* ObjectToDelete : ObjectsToSync)
+				{
+					ObjectToDelete->ClearFlags(RF_Standalone | RF_Public);
+					ObjectToDelete->RemoveFromRoot();
+					ObjectToDelete->MarkPendingKill();
+				}
+				CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+			}
 		}
 	}
 
@@ -355,7 +365,17 @@ namespace AnimationEditorUtils
 					{
 						TArray<UObject*> NewObjects;
 						NewObjects.Add(NewAsset);
-						AssetCreated.Execute(NewObjects);
+						if (!AssetCreated.Execute(NewObjects))
+						{
+							//Destroy the assets we just create
+							for (UObject* ObjectToDelete : NewObjects)
+							{
+								ObjectToDelete->ClearFlags(RF_Standalone | RF_Public);
+								ObjectToDelete->RemoveFromRoot();
+								ObjectToDelete->MarkPendingKill();
+							}
+							CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+						}
 					}
 				}
 			}
@@ -397,7 +417,17 @@ namespace AnimationEditorUtils
 
 			if (AssetCreated.IsBound())
 			{
-				AssetCreated.Execute(AssetsToSync);
+				if (!AssetCreated.Execute(AssetsToSync))
+				{
+					//Destroy the assets we just create
+					for (UObject* ObjectToDelete : AssetsToSync)
+					{
+						ObjectToDelete->ClearFlags(RF_Standalone | RF_Public);
+						ObjectToDelete->RemoveFromRoot();
+						ObjectToDelete->MarkPendingKill();
+					}
+					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+				}
 			}
 		}
 	}

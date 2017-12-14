@@ -206,16 +206,20 @@ private:
 	 */
 	TSharedRef<SWidget> OnGenerateCustomSectionWidgetsForSection(int32 LODIndex, int32 SectionIndex);
 
-	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
+	TSharedRef<SWidget> OnGenerateLodComboBoxForLodPicker();
+	EVisibility LodComboBoxVisibilityForLodPicker() const;
+	bool IsLodComboBoxEnabledForLodPicker() const;
+
 	/*
-	 * Generate the context menu to choose the LOD we will display the section list
+	 * Generate the context menu to choose the LOD we will display the picker list
 	*/
-	TSharedRef<SWidget> OnGenerateLodMenuForSectionList(int32 LodIndex);
-	void UpdateLODCategoryVisibility() const;
+	TSharedRef<SWidget> OnGenerateLodMenuForLodPicker();
 	FText GetCurrentLodName() const;
 	FText GetCurrentLodTooltip() const;
 
 	void SetCurrentLOD(int32 NewLodIndex);
+
+	void UpdateLODCategoryVisibility() const;
 
 	FText GetMaterialNameText(int32 MaterialIndex)const ;
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
@@ -460,7 +464,6 @@ private:
 	
 	bool FilterOutBakePose(const struct FAssetData& AssetData, USkeleton* Skeleton) const;
 
-	EVisibility LodComboBoxVisibilityForSectionList(int32 LodIndex) const;
 	FText GetLODCustomModeNameContent(int32 LODIndex) const;
 	ECheckBoxState IsLODCustomModeCheck(int32 LODIndex) const;
 	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
@@ -498,6 +501,7 @@ private:
 	TMap<int32, TArray<FSectionLocalizer>> MaterialUsedMap;
 
 	TArray<class IDetailCategoryBuilder*> LodCategories;
+	IDetailCategoryBuilder* LodCustomCategory;
 
 	bool CustomLODEditMode;
 	TArray<bool> DetailDisplayLODs;

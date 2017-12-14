@@ -44,17 +44,15 @@ void FAssetTypeActions_MaterialFunctionInstance::OpenAssetEditor( const TArray<U
 
 UThumbnailInfo* FAssetTypeActions_MaterialFunctionInstance::GetThumbnailInfo(UObject* Asset) const
 {
-	if (UMaterialFunctionInstance* MaterialFunc = CastChecked<UMaterialFunctionInstance>(Asset))
+	UMaterialFunctionInstance* MaterialFunc = CastChecked<UMaterialFunctionInstance>(Asset);
+	UThumbnailInfo* ThumbnailInfo = MaterialFunc->ThumbnailInfo;
+	if (ThumbnailInfo == NULL)
 	{
-		if (!MaterialFunc->ThumbnailInfo)
-		{
-			MaterialFunc->ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialFunc, NAME_None, RF_Transactional);
-		}
-
-		return MaterialFunc->ThumbnailInfo;
+		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialFunc, NAME_None, RF_Transactional);
+		MaterialFunc->ThumbnailInfo = ThumbnailInfo;
 	}
 
-	return nullptr;
+	return ThumbnailInfo;
 }
 
 void FAssetTypeActions_MaterialFunctionInstance::ExecuteFindParent(TArray<TWeakObjectPtr<UMaterialFunctionInstance>> Objects)

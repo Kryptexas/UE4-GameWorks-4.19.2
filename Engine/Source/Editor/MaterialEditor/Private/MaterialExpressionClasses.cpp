@@ -14,6 +14,8 @@
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionGetSharedInput.h"
+#include "Materials/MaterialExpressionSetSharedInput.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +101,10 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 						ExpressionInputs.Empty();
 
 						// @TODO: Remove this. Temporary flag for toggling experimental material layers functionality
-						if (!bMaterialLayersEnabled && Class == UMaterialExpressionMaterialAttributeLayers::StaticClass())
+						if (!bMaterialLayersEnabled &&
+							(Class == UMaterialExpressionMaterialAttributeLayers::StaticClass() ||
+							 Class == UMaterialExpressionGetSharedInput::StaticClass() ||
+							 Class == UMaterialExpressionSetSharedInput::StaticClass()) )
 						{
 							continue;
 						}

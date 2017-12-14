@@ -439,11 +439,11 @@ bool FLinuxPlatformApplicationMisc::ControlScreensaver(EScreenSaverAction Action
 namespace LinuxPlatformApplicationMisc
 {
 	/**
-	 * Round the scale to 0.5, 0.75, 1, 1.25, 1.5, etc
+	 * Round the scale to 0.5, 1, 1.5, etc (note - step coarser than 0.25 is needed because a lot of monitors are 107-108 DPI and not 96).
 	 */
 	float QuantizeScale(float Scale)
 	{
-		float NewScale = FMath::FloorToFloat((64.0f * Scale / 16.0f) + 0.5f) / 4.0f;
+		float NewScale = FMath::FloorToFloat((64.0f * Scale / 32.0f) + 0.5f) / 2.0f;
 		return NewScale > 0.0f ? NewScale : 1.0f;
 	}
 }

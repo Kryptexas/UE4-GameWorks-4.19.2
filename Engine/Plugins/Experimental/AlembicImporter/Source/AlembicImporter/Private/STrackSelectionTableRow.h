@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "STrackSelectionTableRow.h"
-
 #include "AbcImporter.h"
 #include "AbcImportData.h"
 

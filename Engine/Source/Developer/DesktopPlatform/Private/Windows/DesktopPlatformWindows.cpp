@@ -241,16 +241,21 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 						FString SaveFilePath = pFilePath;
 						if (FileDialogFilters.IsValidIndex(OutFilterIndex))
 						{
+							// May have multiple semi-colon separated extensions in the pattern
+							const FString ExtensionPattern = FileDialogFilters[OutFilterIndex].pszSpec;
+							TArray<FString> SaveExtensions;
+							ExtensionPattern.ParseIntoArray(SaveExtensions, TEXT(";"));
+
 							// Build a "clean" version of the selected extension (without the wildcard)
-							FString CleanExtension = FileDialogFilters[OutFilterIndex].pszSpec;
+							FString CleanExtension = SaveExtensions[0];
 							if (CleanExtension == TEXT("*.*"))
 							{
 								CleanExtension.Reset();
 							}
 							else
 							{
-								const int32 WildCardIndex = CleanExtension.Find(TEXT("*"));
-								if (WildCardIndex != INDEX_NONE)
+								int32 WildCardIndex = INDEX_NONE;
+								if (CleanExtension.FindChar(TEXT('*'), WildCardIndex))
 								{
 									CleanExtension = CleanExtension.RightChop(WildCardIndex + 1);
 								}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorTools.h"
 #include "Framework/Commands/UIAction.h"
@@ -1404,7 +1404,6 @@ void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& Category
 	SectionListDelegates.OnSectionChanged.BindSP(this, &FMeshSectionSettingsLayout::OnSectionChanged);
 	SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection);
 	SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection);
-	SectionListDelegates.OnGenerateLodComboBox.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionList);
 
 	SectionListDelegates.OnCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCopySectionList, LODIndex);
 	SectionListDelegates.OnCanCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCanCopySectionList, LODIndex);
@@ -1415,7 +1414,7 @@ void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& Category
 
 	CategoryBuilder.AddCustomBuilder(MakeShareable(new FSectionList(CategoryBuilder.GetParentLayout(), SectionListDelegates, false, 64, LODIndex)));
 
-	StaticMeshEditor.RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &FMeshSectionSettingsLayout::UpdateLODCategoryVisibility), true);
+	StaticMeshEditor.RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &FMeshSectionSettingsLayout::UpdateLODCategoryVisibility), false);
 }
 
 void FMeshSectionSettingsLayout::OnCopySectionList(int32 CurrentLODIndex)
@@ -1984,87 +1983,6 @@ void FMeshSectionSettingsLayout::UpdateLODCategoryVisibility()
 		StaticMeshEditor.GetStaticMeshComponent()->SetSectionPreview(INDEX_NONE);
 		StaticMeshEditor.GetStaticMeshComponent()->SelectedEditorSection = INDEX_NONE;
 	}
-}
-
-FText FMeshSectionSettingsLayout::GetCurrentLodName() const
-{
-	bool bAutoLod = false;
-	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
-	{
-		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
-	}
-	int32 CurrentDisplayLOD = bAutoLod ? 0 : StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel - 1;
-	return FText::FromString(bAutoLod ? FString(TEXT("Auto (LOD0)")) : (FString(TEXT("LOD")) + FString::FromInt(CurrentDisplayLOD)));
-}
-
-FText FMeshSectionSettingsLayout::GetCurrentLodTooltip() const
-{
-	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr && StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0)
-	{
-		return FText::FromString(TEXT("LOD0 is edit when selecting Auto LOD"));
-	}
-	return FText::GetEmpty();
-}
-
-TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionList(int32 LodIndex)
-{
-	return SNew(SComboButton)
-		.Visibility(this, &FMeshSectionSettingsLayout::LodComboBoxVisibilityForSectionList, LodIndex)
-		.OnGetMenuContent(this, &FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList, LodIndex)
-		.VAlign(VAlign_Center)
-		.ContentPadding(2)
-		.ButtonContent()
-		[
-			SNew(STextBlock)
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(this, &FMeshSectionSettingsLayout::GetCurrentLodName)
-			.ToolTipText(this, &FMeshSectionSettingsLayout::GetCurrentLodTooltip)
-		];
-}
-
-EVisibility FMeshSectionSettingsLayout::LodComboBoxVisibilityForSectionList(int32 LodIndex) const
-{
-	//No combo box when in Custom mode
-	if (CustomLODEditModePtr != nullptr && *CustomLODEditModePtr == true)
-	{
-		return EVisibility::Hidden;
-	}
-	return EVisibility::All;
-}
-
-TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList(int32 LodIndex)
-{
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-
-	if (StaticMesh == nullptr)
-	{
-		return SNullWidget::NullWidget;
-	}
-
-	bool bAutoLod = false;
-	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
-	{
-		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
-	}
-	const int32 StaticMeshLODCount = StaticMesh->GetNumLODs();
-	if (StaticMeshLODCount < 2)
-	{
-		return SNullWidget::NullWidget;
-	}
-	FMenuBuilder MenuBuilder(true, NULL);
-
-	FText AutoLodText = FText::FromString((TEXT("Auto LOD")));
-	FUIAction AutoLodAction(FExecuteAction::CreateSP(this, &FMeshSectionSettingsLayout::SetCurrentLOD, 0));
-	MenuBuilder.AddMenuEntry(AutoLodText, LOCTEXT("OnGenerateLodMenuForSectionList_Auto_ToolTip", "LOD0 is edit when selecting Auto LOD"), FSlateIcon(), AutoLodAction);
-	// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
-	for (int32 AllLodIndex = 0; AllLodIndex < StaticMeshLODCount; ++AllLodIndex)
-	{
-		FText LODLevelString = FText::FromString((TEXT("LOD ") + FString::FromInt(AllLodIndex)));
-		FUIAction Action(FExecuteAction::CreateSP(this, &FMeshSectionSettingsLayout::SetCurrentLOD, AllLodIndex + 1));
-		MenuBuilder.AddMenuEntry(LODLevelString, FText::GetEmpty(), FSlateIcon(), Action);
-	}
-
-	return MenuBuilder.MakeWidget();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3034,7 +2952,20 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 		FText LODControllerString = LOCTEXT("LODCustomModeCategoryName", "LOD Picker");
 
 		IDetailCategoryBuilder& LODCustomModeCategory = DetailBuilder.EditCategory( *LODControllerCategoryName, LODControllerString, ECategoryPriority::Important );
+		LodCustomCategory = &LODCustomModeCategory;
 
+		LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeSelect", "Select LOD")))
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("LODCustomModeSelectTitle", "LOD"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsLodComboBoxEnabledForLodPicker)
+		]
+		.ValueContent()
+		[
+			OnGenerateLodComboBoxForLodPicker()
+		];
 
 		LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeFirstRowName", "LODCustomMode")))
 		.NameContent()
@@ -3059,7 +2990,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			//Show the viewport LOD at start
 			bool IsViewportLOD = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex;
 			DetailDisplayLODs[LODIndex] = true; //enable all LOD in custom mode
-			LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")))
+			LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")), true)
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -3210,7 +3141,11 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 		}
 
 		//Show the LOD custom category 
-		LODCustomModeCategory.SetCategoryVisibility(StaticMeshLODCount > 1);
+		if (StaticMeshLODCount > 1)
+		{
+			LODCustomModeCategory.SetCategoryVisibility(true);
+			LODCustomModeCategory.SetShowAdvanced(false);
+		}
 	}
 }
 
@@ -3628,6 +3563,11 @@ void FLevelOfDetailSettingsLayout::SetLODCustomModeCheck(ECheckBoxState NewState
 			LodCategories[DetailLODIndex]->SetCategoryVisibility(DetailDisplayLODs[DetailLODIndex]);
 		}
 	}
+
+	if (LodCustomCategory != nullptr)
+	{
+		LodCustomCategory->SetShowAdvanced(CustomLODEditMode);
+	}
 }
 
 bool FLevelOfDetailSettingsLayout::IsLODCustomModeEnable(int32 LODIndex) const
@@ -3639,5 +3579,119 @@ bool FLevelOfDetailSettingsLayout::IsLODCustomModeEnable(int32 LODIndex) const
 	}
 	return CustomLODEditMode;
 }
+
+TSharedRef<SWidget> FLevelOfDetailSettingsLayout::OnGenerateLodComboBoxForLodPicker()
+{
+	return SNew(SComboButton)
+		//.Visibility(this, &FLevelOfDetailSettingsLayout::LodComboBoxVisibilityForLodPicker)
+		.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsLodComboBoxEnabledForLodPicker)
+		.OnGetMenuContent(this, &FLevelOfDetailSettingsLayout::OnGenerateLodMenuForLodPicker)
+		.VAlign(VAlign_Center)
+		.ContentPadding(2)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FLevelOfDetailSettingsLayout::GetCurrentLodName)
+			.ToolTipText(this, &FLevelOfDetailSettingsLayout::GetCurrentLodTooltip)
+		];
+}
+
+EVisibility FLevelOfDetailSettingsLayout::LodComboBoxVisibilityForLodPicker() const
+{
+	//No combo box when in Custom mode
+	if (CustomLODEditMode == true)
+	{
+		return EVisibility::Hidden;
+	}
+	return EVisibility::All;
+}
+
+bool FLevelOfDetailSettingsLayout::IsLodComboBoxEnabledForLodPicker() const
+{
+	//No combo box when in Custom mode
+	return !CustomLODEditMode;
+}
+
+TSharedRef<SWidget> FLevelOfDetailSettingsLayout::OnGenerateLodMenuForLodPicker()
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+
+	if (StaticMesh == nullptr)
+	{
+		return SNullWidget::NullWidget;
+	}
+
+	bool bAutoLod = false;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
+	}
+	const int32 StaticMeshLODCount = StaticMesh->GetNumLODs();
+	if (StaticMeshLODCount < 2)
+	{
+		return SNullWidget::NullWidget;
+	}
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	FText AutoLodText = FText::FromString((TEXT("LOD Auto")));
+	FUIAction AutoLodAction(FExecuteAction::CreateSP(this, &FLevelOfDetailSettingsLayout::OnSelectedLODChanged, 0));
+	MenuBuilder.AddMenuEntry(AutoLodText, LOCTEXT("OnGenerateLodMenuForLodPicker_Auto_ToolTip", "LOD0 is edit when selecting Auto LOD"), FSlateIcon(), AutoLodAction);
+	// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
+	for (int32 AllLodIndex = 0; AllLodIndex < StaticMeshLODCount; ++AllLodIndex)
+	{
+		FText LODLevelString = FText::FromString((TEXT("LOD ") + FString::FromInt(AllLodIndex)));
+		FUIAction Action(FExecuteAction::CreateSP(this, &FLevelOfDetailSettingsLayout::OnSelectedLODChanged, AllLodIndex + 1));
+		MenuBuilder.AddMenuEntry(LODLevelString, FText::GetEmpty(), FSlateIcon(), Action);
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FLevelOfDetailSettingsLayout::OnSelectedLODChanged(int32 NewLodIndex)
+{
+	if (StaticMeshEditor.GetStaticMeshComponent() == nullptr)
+	{
+		return;
+	}
+	int32 CurrentDisplayLOD = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+	int32 RealCurrentDisplayLOD = CurrentDisplayLOD == 0 ? 0 : CurrentDisplayLOD - 1;
+	int32 RealNewLOD = NewLodIndex == 0 ? 0 : NewLodIndex - 1;
+
+	if (CurrentDisplayLOD == NewLodIndex || !LodCategories.IsValidIndex(RealCurrentDisplayLOD) || !LodCategories.IsValidIndex(RealNewLOD))
+	{
+		return;
+	}
+
+	StaticMeshEditor.GetStaticMeshComponent()->SetForcedLodModel(NewLodIndex);
+
+	//Reset the preview section since we do not edit the same LOD
+	StaticMeshEditor.GetStaticMeshComponent()->SetSectionPreview(INDEX_NONE);
+	StaticMeshEditor.GetStaticMeshComponent()->SelectedEditorSection = INDEX_NONE;
+
+	//Broadcast that the LOD model has changed
+	StaticMeshEditor.BroadcastOnSelectedLODChanged();
+}
+
+FText FLevelOfDetailSettingsLayout::GetCurrentLodName() const
+{
+	bool bAutoLod = false;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
+	}
+	int32 CurrentDisplayLOD = bAutoLod ? 0 : StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel - 1;
+	return FText::FromString(bAutoLod ? FString(TEXT("LOD Auto")) : (FString(TEXT("LOD ")) + FString::FromInt(CurrentDisplayLOD)));
+}
+
+FText FLevelOfDetailSettingsLayout::GetCurrentLodTooltip() const
+{
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr && StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0)
+	{
+		return FText::FromString(TEXT("LOD0 is edit when selecting Auto LOD"));
+	}
+	return FText::GetEmpty();
+}
+
 
 #undef LOCTEXT_NAMESPACE

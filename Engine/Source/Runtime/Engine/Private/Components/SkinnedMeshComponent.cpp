@@ -22,6 +22,7 @@
 #include "Engine/CollisionProfile.h"
 #include "Rendering/SkinWeightVertexBuffer.h"
 #include "SkeletalMeshTypes.h"
+#include "Animation/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 
@@ -355,8 +356,32 @@ void USkinnedMeshComponent::UpdateMorphMaterialUsageOnProxy()
 	// update morph material usage
 	if (SceneProxy)
 	{
-		const bool bHasMorphs = ActiveMorphTargets.Num() > 0;
-		((FSkeletalMeshSceneProxy*)SceneProxy)->UpdateMorphMaterialUsage_GameThread(bHasMorphs);
+		if (ActiveMorphTargets.Num() > 0 && SkeletalMesh->MorphTargets.Num() > 0)
+		{
+			TArray<UMaterialInterface*> MaterialUsingMorphTarget;
+			for (UMorphTarget* MorphTarget : SkeletalMesh->MorphTargets)
+			{
+				if (!MorphTarget)
+				{
+					continue;
+				}
+				for (const FMorphTargetLODModel& MorphTargetLODModel : MorphTarget->MorphLODModels)
+				{
+					for (int32 SectionIndex : MorphTargetLODModel.SectionIndices)
+					{
+						for (int32 LodIdx = 0; LodIdx < SkeletalMesh->GetResourceForRendering()->LODRenderData.Num(); LodIdx++)
+						{
+							const FSkeletalMeshLODRenderData& LODModel = SkeletalMesh->GetResourceForRendering()->LODRenderData[LodIdx];
+							if (LODModel.RenderSections.IsValidIndex(SectionIndex))
+							{
+								MaterialUsingMorphTarget.AddUnique(GetMaterial(LODModel.RenderSections[SectionIndex].MaterialIndex));
+							}
+						}
+					}
+				}
+			}
+			((FSkeletalMeshSceneProxy*)SceneProxy)->UpdateMorphMaterialUsage_GameThread(MaterialUsingMorphTarget);
+		}
 	}
 }
 

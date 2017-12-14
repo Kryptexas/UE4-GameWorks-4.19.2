@@ -76,7 +76,7 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 template<typename NumericType>
 bool TNumericUnitTypeInterface<NumericType>::IsCharacterValid(TCHAR InChar) const
 {
-	return (UnderlyingUnits == EUnit::Unspecified) ? TDefaultNumericTypeInterface<NumericType>::IsCharacterValid(InChar) : true;
+	return (UnderlyingUnits == EUnit::Unspecified) ? TDefaultNumericTypeInterface<NumericType>::IsCharacterValid(InChar) : InChar != TEXT('\t');
 }
 
 template<typename NumericType>

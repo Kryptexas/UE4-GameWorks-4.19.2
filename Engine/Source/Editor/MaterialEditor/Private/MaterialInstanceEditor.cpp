@@ -469,6 +469,113 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	Refresh();
 }
 
+void FMaterialInstanceEditor::ReInitMaterialFunctionProxies()
+{
+	if (bIsFunctionPreviewMaterial)
+	{
+		// Temporarily store unsaved parameters
+		TArray<FScalarParameterValue> ScalarParameterValues = FunctionInstanceProxy->ScalarParameterValues;
+		TArray<FVectorParameterValue> VectorParameterValues = FunctionInstanceProxy->VectorParameterValues;
+		TArray<FTextureParameterValue> TextureParameterValues = FunctionInstanceProxy->TextureParameterValues;
+		TArray<FFontParameterValue> FontParameterValues = FunctionInstanceProxy->FontParameterValues;
+
+		const FStaticParameterSet& OldStaticParameters = FunctionInstanceProxy->GetStaticParameters();
+		TArray<FStaticSwitchParameter> StaticSwitchParameters = OldStaticParameters.StaticSwitchParameters;
+		TArray<FStaticComponentMaskParameter> StaticComponentMaskParameters = OldStaticParameters.StaticComponentMaskParameters;
+
+		// Regenerate proxies
+		InitEditorForMaterialFunction(MaterialFunctionOriginal);
+		MaterialEditorInstance->SetSourceInstance(FunctionInstanceProxy);
+		MaterialEditorInstance->SetSourceFunction(MaterialFunctionOriginal);
+		
+		// Restore dynamic parameters, filtering those that no-longer exist
+		TArray<FMaterialParameterInfo> OutParameterInfo;
+		TArray<FGuid> Guids;
+
+		FunctionInstanceProxy->GetAllScalarParameterInfo(OutParameterInfo, Guids);
+		FunctionInstanceProxy->ScalarParameterValues.Empty();
+		for (FScalarParameterValue& ScalarParameter : ScalarParameterValues)
+		{
+			int32 Index = Guids.Find(ScalarParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				FunctionInstanceProxy->ScalarParameterValues.Add(ScalarParameter);
+				FunctionInstanceProxy->ScalarParameterValues.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		FunctionInstanceProxy->GetAllVectorParameterInfo(OutParameterInfo, Guids);
+		FunctionInstanceProxy->VectorParameterValues.Empty();
+		for (FVectorParameterValue& VectorParameter : VectorParameterValues)
+		{
+			int32 Index = Guids.Find(VectorParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				FunctionInstanceProxy->VectorParameterValues.Add(VectorParameter);
+				FunctionInstanceProxy->VectorParameterValues.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		FunctionInstanceProxy->GetAllTextureParameterInfo(OutParameterInfo, Guids);
+		FunctionInstanceProxy->TextureParameterValues.Empty();
+		for (FTextureParameterValue& TextureParameter : TextureParameterValues)
+		{
+			int32 Index = Guids.Find(TextureParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				FunctionInstanceProxy->TextureParameterValues.Add(TextureParameter);
+				FunctionInstanceProxy->TextureParameterValues.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		FunctionInstanceProxy->GetAllFontParameterInfo(OutParameterInfo, Guids);
+		FunctionInstanceProxy->FontParameterValues.Empty();
+		for (FFontParameterValue& FontParameter : FontParameterValues)
+		{
+			int32 Index = Guids.Find(FontParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				FunctionInstanceProxy->FontParameterValues.Add(FontParameter);
+				FunctionInstanceProxy->FontParameterValues.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		// Restore static parameters, filtering those that no-longer exist
+		FStaticParameterSet StaticParametersOverride = FunctionInstanceProxy->GetStaticParameters();
+
+		FunctionInstanceProxy->GetAllStaticSwitchParameterInfo(OutParameterInfo, Guids);
+		StaticParametersOverride.StaticSwitchParameters.Empty();
+		for (FStaticSwitchParameter& StaticSwitchParameter : StaticSwitchParameters)
+		{
+			int32 Index = Guids.Find(StaticSwitchParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				StaticParametersOverride.StaticSwitchParameters.Add(StaticSwitchParameter);
+				StaticParametersOverride.StaticSwitchParameters.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		FunctionInstanceProxy->GetAllStaticComponentMaskParameterInfo(OutParameterInfo, Guids);
+		StaticParametersOverride.StaticComponentMaskParameters.Empty();
+		for (FStaticComponentMaskParameter& StaticComponentMaskParameter : StaticComponentMaskParameters)
+		{
+			int32 Index = Guids.Find(StaticComponentMaskParameter.ExpressionGUID);
+			if (Index != INDEX_NONE)
+			{
+				StaticParametersOverride.StaticComponentMaskParameters.Add(StaticComponentMaskParameter);
+				StaticParametersOverride.StaticComponentMaskParameters.Last().ParameterInfo = OutParameterInfo[Index];
+			}
+		}
+
+		FunctionInstanceProxy->UpdateStaticPermutation(StaticParametersOverride);
+
+		// Refresh and apply to preview
+		FunctionInstanceProxy->PreEditChange(NULL);
+		FunctionInstanceProxy->PostEditChange();
+		SetPreviewMaterial(FunctionInstanceProxy);
+	}
+}
+
 FMaterialInstanceEditor::FMaterialInstanceEditor()
 : MaterialEditorInstance(nullptr)
 , bIsFunctionPreviewMaterial(false)
@@ -1097,6 +1204,7 @@ void FMaterialInstanceEditor::RebuildMaterialInstanceEditor()
 {
 	if( MaterialEditorInstance )
 	{
+		ReInitMaterialFunctionProxies();
 		MaterialEditorInstance->RegenerateArrays();
 		RebuildInheritanceList(); // Required b/c recompiled parent materials result in invalid weak object pointers
 		UpdatePropertyWindow();
@@ -1113,7 +1221,8 @@ void FMaterialInstanceEditor::DrawMessages( FViewport* Viewport, FCanvas* Canvas
 		int32 DrawPositionY = 50;
 		if ( BaseMaterial && MaterialResource )
 		{
-			FMaterialEditor::DrawMaterialInfoStrings( Canvas, BaseMaterial, MaterialResource, MaterialResource->GetCompileErrors(), DrawPositionY, true );
+			const bool bGeneratedNewShaders = MaterialEditorInstance->SourceInstance->bHasStaticPermutationResource;
+			FMaterialEditor::DrawMaterialInfoStrings( Canvas, BaseMaterial, MaterialResource, MaterialResource->GetCompileErrors(), DrawPositionY, true, bGeneratedNewShaders );
 		}
 		if (bShowMobileStats)
 		{

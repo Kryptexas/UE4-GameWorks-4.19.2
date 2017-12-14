@@ -348,6 +348,27 @@ SetXRandRDisplayName(Display *dpy, Atom EDID, char *name, const size_t namelen, 
 #endif
 }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+static int
+GetXftDPI(Display* dpy)
+{
+    char* xres = X11_XResourceManagerString(dpy);
+    if (xres) {
+        char const* dpi_string   = "Xft.dpi:\t";
+        char const* dpi_location = strstr(xres, dpi_string);
+        if (dpi_location) {
+            int out = atoi(dpi_location + strlen(dpi_string));
+            if (out > 0) {
+                return out;
+            }
+        }
+    }
+
+    return 0;
+}
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 static int
 X11_InitModes_XRandR(_THIS)
@@ -466,6 +487,19 @@ X11_InitModes_XRandR(_THIS)
                 displaydata->depth = vinfo.depth;
                 displaydata->hdpi = display_mm_width ? (((float) mode.w) * 25.4f / display_mm_width) : 0.0f;
                 displaydata->vdpi = display_mm_height ? (((float) mode.h) * 25.4f / display_mm_height) : 0.0f;
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+                {
+                    int xft_dpi_value = GetXftDPI(dpy);
+
+                    if (xft_dpi_value > 0)
+                    {
+                        displaydata->hdpi = xft_dpi_value;
+                        displaydata->vdpi = xft_dpi_value;
+                    }
+                }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
                 displaydata->ddpi = SDL_ComputeDiagonalDPI(mode.w, mode.h, ((float) display_mm_width) / 25.4f,((float) display_mm_height) / 25.4f);
                 displaydata->scanline_pad = scanline_pad;
                 displaydata->x = display_x;
@@ -749,6 +783,21 @@ X11_InitModes(_THIS)
             DisplayWidthMM(data->display, displaydata->screen);
         displaydata->vdpi = (float)DisplayHeight(data->display, displaydata->screen) * 25.4f /
             DisplayHeightMM(data->display, displaydata->screen);
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+        {
+            int xft_dpi_value = GetXftDPI(data->display);
+
+            if (xft_dpi_value > 0)
+            {
+                displaydata->hdpi = xft_dpi_value;
+                displaydata->vdpi = xft_dpi_value;
+            }
+        }
+#else
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
         displaydata->ddpi = SDL_ComputeDiagonalDPI(DisplayWidth(data->display, displaydata->screen),
                                                    DisplayHeight(data->display, displaydata->screen),
                                                    (float)DisplayWidthMM(data->display, displaydata->screen) / 25.4f,

@@ -171,6 +171,13 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 			Ar.SetFilterEditorOnly(true);
 		}
 		Ar << Sum.NameCount					<< Sum.NameOffset;
+		if (!Ar.IsFilterEditorOnly())
+		{
+			if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADDED_PACKAGE_SUMMARY_LOCALIZATION_ID)
+			{
+				Ar << Sum.LocalizationId;
+			}
+		}
 		if (Sum.FileVersionUE4 >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
 		{
 			Ar << Sum.GatherableTextDataCount	<< Sum.GatherableTextDataOffset;

@@ -2210,14 +2210,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 						ImportMaterialOriginalNameData.Add(MaterialImportNameLOD);
 					}
 				}
-
-				// Set LOD Model's DisplayFactor
-				// if this LOD is newly added, then set DisplayFactor
-				// Don't override DispalyFactor of existing LODs
-				if(LODIndex >= NumPrevLODs)
-				{
-					BaseSkeletalMesh->LODInfo[LODIndex].ScreenSize = 1.0f / (MaxLODLevel * LODIndex);
-				}
 			}
 
 			// import morph target
@@ -3295,6 +3287,10 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 		BaseSkeletalMesh->LODInfo.AddZeroed();
 		check(BaseSkeletalMesh->LODInfo.Num() == DestImportedResource->LODModels.Num());
 		BaseSkeletalMesh->LODInfo[DesiredLOD] = InSkeletalMesh->LODInfo[0];
+
+		// Set LOD Model's DisplayFactor
+		// if this LOD is newly added, then set DisplayFactor
+		BaseSkeletalMesh->LODInfo[DesiredLOD].ScreenSize = 1.0f / (DestImportedResource->LODModels.Num() * DesiredLOD);
 	}
 
 	// Set up LODMaterialMap to number of materials in new mesh.
@@ -4054,8 +4050,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 		GWarn->StatusUpdate(Index + 1, MorphTargets.Num(), FText::Format(LOCTEXT("BuildingMorphTargetRenderDataStatus", "Building Morph Target Render Data: {NumCompleted} of {NumTasks}"), Args));
 
 		UMorphTarget* MorphTarget = MorphTargets[Index];
-
-		MorphTarget->PopulateDeltas(*Results[Index], LODIndex, ImportOptions->ShouldImportNormals() == false);
+		MorphTarget->PopulateDeltas(*Results[Index], LODIndex, BaseLODModel.Sections, ImportOptions->ShouldImportNormals() == false);
 
 		// register does mark package as dirty
 		if (MorphTarget->HasValidData())

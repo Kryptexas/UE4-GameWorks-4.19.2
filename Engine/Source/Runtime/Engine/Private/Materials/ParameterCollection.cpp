@@ -217,7 +217,7 @@ void UMaterialParameterCollection::PostEditChangeProperty(FPropertyChangedEvent&
 
 				// Preview materials often use expressions for rendering that are not in their Expressions array, 
 				// And therefore their MaterialParameterCollectionInfos are not up to date.
-				if (CurrentMaterial->bIsPreviewMaterial)
+				if (CurrentMaterial->bIsPreviewMaterial || CurrentMaterial->bIsFunctionPreviewMaterial)
 				{
 					bRecompile = true;
 				}

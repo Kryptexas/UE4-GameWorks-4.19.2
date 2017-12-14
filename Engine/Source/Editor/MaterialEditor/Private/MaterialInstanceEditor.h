@@ -157,6 +157,8 @@ private:
 
 	TSharedRef<SWidget> GenerateInheritanceMenu();
 
+	/** If re-initializing for a material function instance re-generate the proxy materials */
+	void ReInitMaterialFunctionProxies();
 
 	//~ Begin IMaterialEditor Interface
 	virtual bool ApproveSetPreviewAsset(UObject* InAsset) override;

@@ -1002,7 +1002,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 					{
 						Mesh->Modify();
 
-						GWarn->StatusUpdate(MeshIndex + 1, SelectedMeshes.Num(), FText::Format(NSLOCTEXT("UnrealEd", "ScalingStaticMeshes_Value", "Static Mesh: %s"), FText::FromString(Mesh->GetName())));
+						GWarn->StatusUpdate(MeshIndex + 1, SelectedMeshes.Num(), FText::Format(NSLOCTEXT("UnrealEd", "ScalingStaticMeshes_Value", "Static Mesh: {0}"), FText::FromString(Mesh->GetName())));
 
 						FStaticMeshSourceModel& Model = Mesh->SourceModels[0];
 

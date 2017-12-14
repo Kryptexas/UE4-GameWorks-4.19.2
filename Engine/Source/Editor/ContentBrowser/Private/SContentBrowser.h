@@ -352,7 +352,7 @@ private:
 	void OnFilterChanged();
 
 	/** Gets the text for the path label */
-	FString GetPathText() const;
+	FText GetPathText() const;
 
 	/** Returns true if currently filtering by a source */
 	bool IsFilteredBySource() const;

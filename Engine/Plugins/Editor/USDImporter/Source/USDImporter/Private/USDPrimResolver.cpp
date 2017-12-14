@@ -215,14 +215,14 @@ AActor* UUSDPrimResolver::SpawnActor(FUSDSceneImportContext& ImportContext, cons
 				SpawnedActor->GetRootComponent()->SetMobility(EComponentMobility::Static);
 			}
 
-			if (ImportedAssets.Num() > 1 && ActorAsset)
+			if (ImportedAssets.Num() > 1)
 			{
 				// Multiple assets were found but factories only support creating from one asset so warn about this
 				ImportContext.AddErrorMessage(
 					EMessageSeverity::Warning, FText::Format(LOCTEXT("MultipleAssetsForASingleActor", "Actor type '{0}' only supports one asset but {1} assets were imported.   The first imported asset '{2}' was assigned to the actor"),
 						FText::FromString(SpawnedActor->GetClass()->GetName()),
 						FText::AsNumber(ImportedAssets.Num()),
-						FText::FromString(ActorAsset->GetName())
+						FText::FromString(ActorAsset ? ActorAsset->GetName() : TEXT("None"))
 					)
 				);
 			}

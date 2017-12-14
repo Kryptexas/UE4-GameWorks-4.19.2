@@ -264,9 +264,14 @@ void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const
 		const int32 FirstVertIndex = LastVertIndex;
 		LastVertIndex = ConvexShapeIndices.IsValidIndex(Idx + 1) ? ConvexShapeIndices[Idx + 1] : ConvexCollision.VertexBuffer.Num();
 
-		FAreaNavModifier AreaMod(ConvexCollision.VertexBuffer, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
-		AreaMod.SetIncludeAgentHeight(true);
-		Modifier.Add(AreaMod);
+		// @todo this is a temp fix. A proper fix is making sure ConvexShapeIndices doesn't
+		// contain any duplicates (which is the original cause of UE-52123)
+		if (FirstVertIndex < LastVertIndex)
+		{
+			FAreaNavModifier AreaMod(ConvexCollision.VertexBuffer, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+			AreaMod.SetIncludeAgentHeight(true);
+			Modifier.Add(AreaMod);
+		}
 	}
 
 	if (TriMeshCollision.VertexBuffer.Num() > 0)

@@ -271,6 +271,9 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(TextExportTransient)
 	TArray<UMaterialInstanceConstant*> MaterialInstances;
 
+	UPROPERTY(Transient, TextExportTransient)
+	TArray<UMaterialInstanceDynamic*> MaterialInstancesDynamic;
+
 	/** List of layers, and the weightmap and channel they are stored */
 	UPROPERTY()
 	TArray<FWeightmapLayerAllocationInfo> WeightmapLayerAllocations;
@@ -507,6 +510,12 @@ public:
 	/** Generate mobile data if it's missing or outdated */
 	void CheckGenerateLandscapePlatformData(bool bIsCooking);
 #endif
+
+	LANDSCAPE_API class UMaterialInstance* GetMaterialInstance(int32 InIndex, bool InDynamic = true) const;
+
+	/** Gets the landscape material instance dynamic for this component */
+	UFUNCTION(BlueprintCallable, Category = "Landscape Runtime | Material")
+	class UMaterialInstanceDynamic* GetMaterialInstanceDynamic(int32 InIndex) const;
 
 	/** Get the landscape actor associated with this component. */
 	ALandscape* GetLandscapeActor() const;

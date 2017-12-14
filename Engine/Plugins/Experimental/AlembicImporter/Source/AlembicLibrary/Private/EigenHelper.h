@@ -13,8 +13,10 @@
 	#pragma warning(push)
 	#pragma warning(disable:6326) // Potential comparison of a constant with another constant.
 #endif
+THIRD_PARTY_INCLUDES_START
 	#include <Eigen/Dense>
 	#include <Eigen/SVD>
+THIRD_PARTY_INCLUDES_END
 #if defined(_MSC_VER) && USING_CODE_ANALYSIS
 	#pragma warning(pop)
 #endif

@@ -23,6 +23,11 @@ void FICUBreakIteratorManager::Destroy()
 	Singleton = nullptr;
 }
 
+bool FICUBreakIteratorManager::IsInitialized()
+{
+	return Singleton != nullptr;
+}
+
 FICUBreakIteratorManager& FICUBreakIteratorManager::Get()
 {
 	check(Singleton);
@@ -77,8 +82,11 @@ FICUBreakIterator::FICUBreakIterator(TWeakPtr<icu::BreakIterator>&& InICUBreakIt
 
 FICUBreakIterator::~FICUBreakIterator()
 {
-	// This assumes that FICUBreakIterator owns the iterator, and that nothing ever copies an FICUBreakIterator instance
-	FICUBreakIteratorManager::Get().DestroyIterator(ICUBreakIteratorHandle);
+	if (FICUBreakIteratorManager::IsInitialized())
+	{
+		// This assumes that FICUBreakIterator owns the iterator, and that nothing ever copies an FICUBreakIterator instance
+		FICUBreakIteratorManager::Get().DestroyIterator(ICUBreakIteratorHandle);
+	}
 }
 
 void FICUBreakIterator::SetString(const FText& InText)

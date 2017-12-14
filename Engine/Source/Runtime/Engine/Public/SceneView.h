@@ -16,6 +16,7 @@
 #include "FinalPostProcessSettings.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "DebugViewModeHelpers.h"
+#include "RendererInterface.h"
 
 class FForwardLightingViewResources;
 class FSceneView;
@@ -1070,6 +1071,14 @@ public:
 	/** Feature level for this scene */
 	const ERHIFeatureLevel::Type FeatureLevel;
 
+protected:
+	friend class FSceneRenderer;
+
+	/** Custom data per primitives */
+	TArray<void*> PrimitivesCustomData; // Size == MaxPrimitive
+
+public:
+
 	static const int32 NumBufferedSubIsOccludedArrays = 2;
 	TArray<bool> FrameSubIsOccluded[NumBufferedSubIsOccludedArrays];
 
@@ -1237,6 +1246,9 @@ public:
 		const FIntRect& InEffectiveViewRect,
 		const FViewMatrices& InViewMatrices,
 		const FViewMatrices& InPrevViewMatrices) const;
+
+	/** Will return custom data associated with the specified primitive index.	*/
+	FORCEINLINE void* GetCustomData(int32 InPrimitiveSceneInfoIndex) const { return PrimitivesCustomData.IsValidIndex(InPrimitiveSceneInfoIndex) ? PrimitivesCustomData[InPrimitiveSceneInfoIndex] : nullptr; }
 };
 
 //////////////////////////////////////////////////////////////////////////

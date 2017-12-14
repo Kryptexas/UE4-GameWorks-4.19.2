@@ -21,6 +21,9 @@ class UMaterialExpressionCustomOutput : public UMaterialExpression
 #if WITH_EDITOR
 	// Allow custom outputs to generate their own source code
 	virtual bool HasCustomSourceOutput() { return false; }
+	virtual bool AllowMultipleCustomOutputs() { return false; }
+	virtual bool NeedsCustomOutputDefines() { return true; }
+	virtual bool ShouldCompileBeforeAttributes() { return false; }
 #endif
 };
 

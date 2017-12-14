@@ -61,6 +61,8 @@ namespace UnrealIdentifiers
 	static const TfToken ProxyPurpose("proxy");
 
 	static const TfToken GuidePurpose("guide");
+
+	static const TfToken MaterialRelationship("material:binding");
 }
 
 
@@ -104,8 +106,8 @@ private:
 		bool bIsActive = Prim.IsActive();
 		bool bInMaster = Prim.IsInMaster();
 		bool bIsMaster = Prim.IsMaster();
-		Log(string(Concat + "Prim: [%s] %s Model:%d Abstract:%d Group:%d Instance:%d Active:%d InMaster:%d IsMaster:%d\n").c_str(),
-			TypeName.c_str(), Prim.GetName().GetText(), bIsModel, bIsAbstract, bIsGroup, bIsInstance, bIsActive, bInMaster, bIsMaster);
+		Log(string(Concat + "Prim: [%s] %s Model:%d Abstract:%d Group:%d Instance:%d(Master:%s) Active:%d InMaster:%d IsMaster:%d\n").c_str(),
+			TypeName.c_str(), Prim.GetName().GetText(), bIsModel, bIsAbstract, bIsGroup, bIsInstance, bIsInstance ? Prim.GetMaster().GetName().GetString().c_str() : "", bIsActive, bInMaster, bIsMaster);
 		{
 			UsdMetadataValueMap Metadata = Prim.GetAllMetadata();
 			if(Metadata.size())
@@ -117,7 +119,22 @@ private:
 				}
 			}
 
-		
+			vector<UsdRelationship> Relationships = Prim.GetRelationships();
+			if (Relationships.size())
+			{
+				Log(string(Concat + "\tRelationships:\n").c_str());
+				for (const UsdRelationship& Relationship : Relationships)
+				{
+					SdfPathVector Targets;
+					Relationship.GetTargets(&Targets);
+
+					for(SdfPath& Path : Targets)
+					{
+						Log(string(Concat + "\t\t%s\n").c_str(), Path.GetString().c_str());
+					}
+				}
+			}
+
 
 			vector<UsdAttribute> Attributes = Prim.GetAttributes();
 			if(Attributes.size())
@@ -709,6 +726,13 @@ public:
 
 	virtual const FUsdGeomData* GetGeometryData(double Time) override
 	{
+		if (Time == UsdTimeCode::Default())
+		{
+			// work around issues where usd exporters set a time code for non-animated data but the requested time is the default time code
+			UsdStageWeakPtr Stage = Prim.GetStage();
+			Time = Stage->GetStartTimeCode();
+		}
+
 		bool bValid = false;
 		UsdGeomMesh Mesh(Prim);
 		if (Mesh)
@@ -750,13 +774,6 @@ public:
 					VtArray<GfVec3f> PointsArray;
 					Points.Get(&PointsArray, Time);
 
-					// Bug??  Usd returns nothing for UsdTimeCode::Default if there are animated points
-					if (PointsArray.size() == 0 && Time == UsdTimeCode::Default())
-					{
-						// Try to get at time = 0
-						Points.Get(&PointsArray, UsdTimeCode(0));
-					}
-					
 					GeomData->Points.resize(PointsArray.size());
 					memcpy(&GeomData->Points[0], &PointsArray[0], PointsArray.size() * sizeof(GfVec3f));
 				}
@@ -906,63 +923,66 @@ public:
 				// @todo USD/Unreal.  This is probably wrong for multiple face sets.  They don't make a ton of sense for unreal as there can only be one "set" of materials at once and there is no construct in the engine for material sets
 			
 				//GeomData->MaterialNames.resize(FaceSets)
-				for (int FaceSetIdx = 0; FaceSetIdx < FaceSets.size(); ++FaceSetIdx)
+				if(FaceSets.size() > 0)
 				{
-					const UsdGeomFaceSetAPI& FaceSet = FaceSets[FaceSetIdx];
-					
-					SdfPathVector BindingTargets;
-					FaceSet.GetBindingTargets(&BindingTargets);
-
-					
-					UsdStageWeakPtr Stage = Prim.GetStage();
-					for(const SdfPath& Path : BindingTargets)
+					for (int FaceSetIdx = 0; FaceSetIdx < FaceSets.size(); ++FaceSetIdx)
 					{
-						// load each material at the material path; 
-						UsdPrim MaterialPrim = Stage->Load(Path);
+						const UsdGeomFaceSetAPI& FaceSet = FaceSets[FaceSetIdx];
 
-						// Default to using the prim path name as the path for this material in Unreal
-						std::string MaterialName = MaterialPrim.GetName().GetString();
+						SdfPathVector BindingTargets;
+						FaceSet.GetBindingTargets(&BindingTargets);
 
-						// See if the material has an "unrealAssetPath" attribute.  This should be the full name of the material
-						static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
-						UsdAttribute UnrealAssetPathAttr = MaterialPrim.GetAttribute(AssetPathToken);
-						if (UnrealAssetPathAttr && UnrealAssetPathAttr.HasValue())
+
+						UsdStageWeakPtr Stage = Prim.GetStage();
+						for (const SdfPath& Path : BindingTargets)
 						{
-							UnrealAssetPathAttr.Get(&MaterialName);
+							FillMaterialInfo(Path, *GeomData);
 						}
-
-						GeomData->MaterialNames.push_back(MaterialName);
-					}
-					// Faces must be mutually exclusive
-					if (FaceSet.GetIsPartition())
-					{
-						// Get the list of faces in the face set.  The size of this list determines the number of materials in this set
-						VtIntArray FaceCounts;
-						FaceSet.GetFaceCounts(&FaceCounts, Time);
-
-						// Get the list of global face indices mapped in this set
-						VtIntArray FaceIndices;
-						FaceSet.GetFaceIndices(&FaceIndices, Time);
-
-						// How far we are into the face indices list
-						int Offset = 0;
-
-						// Walk each face group in the set
-						for (int FaceCountIdx = 0; FaceCountIdx < FaceCounts.size(); ++FaceCountIdx)
+						// Faces must be mutually exclusive
+						if (FaceSet.GetIsPartition())
 						{
-							int MaterialIdx = FaceSetIdx * FaceSets.size() + FaceCountIdx;
+							// Get the list of faces in the face set.  The size of this list determines the number of materials in this set
+							VtIntArray FaceCounts;
+							FaceSet.GetFaceCounts(&FaceCounts, Time);
 
+							// Get the list of global face indices mapped in this set
+							VtIntArray FaceIndices;
+							FaceSet.GetFaceIndices(&FaceIndices, Time);
 
-							// Number of faces with the material index
-							int FaceCount = FaceCounts[FaceCountIdx];
+							// How far we are into the face indices list
+							int Offset = 0;
 
-							// Walk each face and map it to the computed material index
-							for (int FaceNum = 0; FaceNum < FaceCount; ++FaceNum)
+							// Walk each face group in the set
+							for (int FaceCountIdx = 0; FaceCountIdx < FaceCounts.size(); ++FaceCountIdx)
 							{
-								int Face = FaceIndices[FaceNum + Offset];
-								GeomData->FaceMaterialIndices[Face] = MaterialIdx;
+								int MaterialIdx = FaceSetIdx * FaceSets.size() + FaceCountIdx;
+
+								// Number of faces with the material index
+								int FaceCount = FaceCounts[FaceCountIdx];
+
+								// Walk each face and map it to the computed material index
+								for (int FaceNum = 0; FaceNum < FaceCount; ++FaceNum)
+								{
+									int Face = FaceIndices[FaceNum + Offset];
+									GeomData->FaceMaterialIndices[Face] = MaterialIdx;
+								}
+								Offset += FaceCount;
 							}
-							Offset += FaceCount;
+						}
+					}
+				}
+				else
+				{
+					// No face sets, find a relationship that defines the material 
+					UsdRelationship Relationship = Prim.GetRelationship(UnrealIdentifiers::MaterialRelationship);
+					if (Relationship)
+					{
+						SdfPathVector Targets;
+						Relationship.GetTargets(&Targets);
+						// Note there should only be one target without a face set but fill them out so we can warn later
+						for (const SdfPath& Path : Targets)
+						{
+							FillMaterialInfo(Path, *GeomData);
 						}
 					}
 				}
@@ -1124,6 +1144,29 @@ public:
 	UsdPrim GetUSDPrim() { return Prim; }
 
 private:
+	void FillMaterialInfo(const SdfPath& Path, FUsdGeomData& GeomData)
+	{
+		UsdStageWeakPtr Stage = Prim.GetStage();
+
+		// load each material at the material path; 
+		UsdPrim MaterialPrim = Stage->Load(Path);
+		
+		if(MaterialPrim)
+		{
+			// Default to using the prim path name as the path for this material in Unreal
+			std::string MaterialName = MaterialPrim.GetName().GetString();
+
+			// See if the material has an "unrealAssetPath" attribute.  This should be the full name of the material
+			static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
+			UsdAttribute UnrealAssetPathAttr = MaterialPrim.GetAttribute(AssetPathToken);
+			if (UnrealAssetPathAttr && UnrealAssetPathAttr.HasValue())
+			{
+				UnrealAssetPathAttr.Get(&MaterialName);
+			}
+
+			GeomData.MaterialNames.push_back(MaterialName);
+		}
+	}
 	void PrivateGetAttributes(std::vector<FUsdAttribute>& OutAttributes, const TfToken& ByMetadata) const
 	{
 		std::vector<UsdAttribute> Attributes = Prim.GetAttributes();

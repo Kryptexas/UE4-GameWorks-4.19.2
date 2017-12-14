@@ -480,18 +480,22 @@ bool SDetailSingleItemRow::OnContextMenuOpening(FMenuBuilder& MenuBuilder)
 
 	if (CopyAction.IsBound() && PasteAction.IsBound())
 	{
-		MenuBuilder.AddMenuSeparator();
+		// Hide separator line if it only contains the SearchWidget, making the next 2 elements the top of the list
+		if (MenuBuilder.GetMultiBox()->GetBlocks().Num() > 1)
+		{
+			MenuBuilder.AddMenuSeparator();
+		}
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "CopyProperty", "Copy"),
 			NSLOCTEXT("PropertyView", "CopyProperty_ToolTip", "Copy this property value"),
-			FSlateIcon(),
+			FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "GenericCommands.Copy"),
 			CopyAction);
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "PasteProperty", "Paste"),
 			NSLOCTEXT("PropertyView", "PasteProperty_ToolTip", "Paste the copied value here"),
-			FSlateIcon(),
+			FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "GenericCommands.Paste"),
 			PasteAction);
 
 		return true;

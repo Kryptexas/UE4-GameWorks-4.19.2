@@ -12,13 +12,19 @@ public class NiagaraVertexFactories : ModuleRules
 				"Engine",		
 				"RenderCore",
 				"ShaderCore",
-                "Niagara",
                 "RHI",
 			}
         );
 
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"Niagara",
+			}
+		);
+
         PublicDependencyModuleNames.AddRange(
             new string[] {
+				"VectorVM",
             }
         );
 

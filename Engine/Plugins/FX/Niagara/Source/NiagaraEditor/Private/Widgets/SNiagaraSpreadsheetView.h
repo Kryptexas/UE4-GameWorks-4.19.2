@@ -28,6 +28,7 @@ public:
 	void Construct(const FArguments& InArgs, TSharedRef<FNiagaraSystemViewModel> InSystemViewModel);
 	virtual ~SNiagaraSpreadsheetView();
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override {}
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
@@ -61,7 +62,7 @@ protected:
 
 	struct CapturedUIData
 	{
-		CapturedUIData() : TargetUsage(ENiagaraScriptUsage::ParticleUpdateScript), LastCaptureTime( -FLT_MAX) , bAwaitingFrame(false), LastReadWriteId(-1),	DataSet( nullptr), bOutputColumnsAreAttributes(true), bInputColumnsAreAttributes(true)
+		CapturedUIData() : LastReadWriteId(-1), DataSet(nullptr), TargetUsage(ENiagaraScriptUsage::ParticleUpdateScript), bAwaitingFrame(false), LastCaptureTime(-FLT_MAX), bInputColumnsAreAttributes(true), bOutputColumnsAreAttributes(true)
 		{ }
 
 		TSharedPtr<SHeaderRow> OutputHeaderRow;
@@ -150,7 +151,7 @@ public:
 	typedef TSharedPtr<TMap <FName, SNiagaraSpreadsheetView::FieldInfo> > FieldsMap;
 
 	SLATE_BEGIN_ARGS(SNiagaraSpreadsheetRow)
-		: _RowIndex(0), _DataSet(nullptr), _ColumnsAreAttributes(true)
+		: _RowIndex(0), _ColumnsAreAttributes(true), _DataSet(nullptr)
 	{}
 	SLATE_ARGUMENT(int32, RowIndex)
 	SLATE_ARGUMENT(bool, ColumnsAreAttributes)

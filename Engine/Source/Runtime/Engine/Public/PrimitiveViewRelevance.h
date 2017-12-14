@@ -69,6 +69,8 @@ struct FPrimitiveViewRelevance
 	uint32 bTranslucentSurfaceLighting : 1;
 	/** Whether the primitive has materials that read the scene depth. */
 	uint32 bUsesSceneDepth : 1;
+	/** Whether the view use custom data. */
+	uint32 bUseCustomViewData : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  

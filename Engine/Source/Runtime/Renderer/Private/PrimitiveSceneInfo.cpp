@@ -97,6 +97,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	LastVisibilityChangeTime(0.0f),
 	Scene(InScene),
 	NumES2DynamicPointLights(0),
+	bIsUsingCustomLODRules(Proxy->IsUsingCustomLODRules()),
+	bIsUsingCustomWholeSceneShadowLODRules(Proxy->IsUsingCustomWholeSceneShadowLODRules()),
 	PackedIndex(INDEX_NONE),
 	ComponentForDebuggingOnly(InComponent),
 	bNeedsStaticMeshUpdate(false),

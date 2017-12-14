@@ -508,6 +508,9 @@ public:
 	/** Guids of any Parameter Collections the material was dependent on. */
 	TArray<FGuid> ReferencedParameterCollections;
 
+	/** Guids of any Shared Input Collections the material was dependent on. */
+	TArray<FGuid> ReferencedSharedInputCollections;
+
 	/** Shader types of shaders that are inlined in this shader map in the DDC. */
 	TArray<FShaderTypeDependency> ShaderTypeDependencies;
 
@@ -552,6 +555,7 @@ public:
 		return sizeof(*this)
 			+ ReferencedFunctions.GetAllocatedSize()
 			+ ReferencedParameterCollections.GetAllocatedSize()
+			+ ReferencedSharedInputCollections.GetAllocatedSize()
 			+ ShaderTypeDependencies.GetAllocatedSize()
 			+ ShaderPipelineTypeDependencies.GetAllocatedSize()
 			+ VertexFactoryTypeDependencies.GetAllocatedSize();
@@ -833,6 +837,21 @@ public:
 	const FUniformExpressionSet& GetUniformExpressionSet() const { return MaterialCompilationOutput.UniformExpressionSet; }
 
 	int32 GetNumRefs() const { return NumRefs; }
+
+	void CountNumShaders(int32& NumShaders, int32& NumPipelines) const
+	{
+		NumShaders = GetNumShaders();
+		NumPipelines = GetNumShaderPipelines();
+
+		for (FMeshMaterialShaderMap* MeshShaderMap : OrderedMeshShaderMaps)
+		{
+			if (MeshShaderMap)
+			{
+				NumShaders += MeshShaderMap->GetNumShaders();
+				NumPipelines += MeshShaderMap->GetNumShaderPipelines();
+			}
+		}
+	}
 
 private:
 

@@ -53,7 +53,7 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 	ChildSlot
 	[
 		SAssignNew(SearchBox, SAssetSearchBox)
-		.InitialText(this, &SAssetSearchBoxForBones::GetBoneName)
+		.InitialText(GetBoneName())
 		.HintText(InArgs._HintText)
 		.OnTextCommitted(InArgs._OnTextCommitted)
 		.PossibleSuggestions(PossibleSuggestions)
@@ -72,19 +72,12 @@ void SAssetSearchBoxForBones::RefreshName()
 
 FText SAssetSearchBoxForBones::GetBoneName() const
 {
-	FString CurValue;
+	FName CurValue;
 	if (BonePropertyHandle.IsValid())
 	{
-		const FText PropertyName = BonePropertyHandle->GetPropertyDisplayName();
 		BonePropertyHandle->GetValue(CurValue);
-
-		if (CurValue == FString("None"))
-		{
-			CurValue.Empty();
-		}
 	}
-
-	return FText::FromString(CurValue);
+	return CurValue.IsNone() ? FText::GetEmpty() : FText::FromName(CurValue);
 }
 
 void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class USkeleton* InSkeleton, TSharedPtr<class IPropertyHandle> CurveNameProperty)

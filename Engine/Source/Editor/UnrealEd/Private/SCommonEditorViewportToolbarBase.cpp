@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SCommonEditorViewportToolbarBase.h"
 #include "Widgets/SBoxPanel.h"
@@ -24,6 +24,7 @@ void SCommonEditorViewportToolbarBase::Construct(const FArguments& InArgs, TShar
 {
 	InfoProviderPtr = InInfoProvider;
  	TSharedRef<SEditorViewport> ViewportRef = GetInfoProvider().GetViewportWidget();
+	TSharedPtr<SHorizontalBox> MainBoxPtr;
 
 	const FMargin ToolbarSlotPadding( 2.0f, 2.0f );
 	const FMargin ToolbarButtonPadding( 2.0f, 0.0f );
@@ -42,79 +43,82 @@ void SCommonEditorViewportToolbarBase::Construct(const FArguments& InArgs, TShar
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew( SHorizontalBox )
-
-				// Options menu
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-					SNew( SEditorViewportToolbarMenu )
-					.ParentToolBar( SharedThis( this ) )
-					.Cursor( EMouseCursor::Default )
-					.Image( "EditorViewportToolBar.MenuDropdown" )
-					.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateOptionsMenu)
-				]
-
-				// Camera mode menu
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-					SNew( SEditorViewportToolbarMenu )
-					.ParentToolBar( SharedThis( this ) )
-					.Cursor( EMouseCursor::Default )
-					.Label(this, &SCommonEditorViewportToolbarBase::GetCameraMenuLabel)
-					.LabelIcon(this, &SCommonEditorViewportToolbarBase::GetCameraMenuLabelIcon)
-					.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateCameraMenu)
-				]
-
-				// View menu
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-					MakeViewMenu()
-				]
-
-				// Show menu
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-					SNew( SEditorViewportToolbarMenu )
-					.Label( LOCTEXT("ShowMenuTitle", "Show") )
-					.Cursor( EMouseCursor::Default )
-					.ParentToolBar( SharedThis( this ) )
-					.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateShowMenu)
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-
-					SNew( SEditorViewportToolbarMenu )
-					.Label( LOCTEXT("ViewParamMenuTitle", "View Mode Options") )
-					.Cursor( EMouseCursor::Default )
-					.ParentToolBar( SharedThis( this ) )
-					.Visibility( this, &SCommonEditorViewportToolbarBase::GetViewModeOptionsVisibility )
-					.OnGetMenuContent( this, &SCommonEditorViewportToolbarBase::GenerateViewModeOptionsMenu ) 
-				]
-
-				// Transform toolbar
-				+ SHorizontalBox::Slot()
-				.Padding( ToolbarSlotPadding )
-				.HAlign( HAlign_Right )
-				[
-					SNew(STransformViewportToolBar)
-					.Viewport(ViewportRef)
-					.CommandList(ViewportRef->GetCommandList())
-					.Extenders(GetInfoProvider().GetExtenders())
-					.Visibility(ViewportRef, &SEditorViewport::GetTransformToolbarVisibility)
-				]
+				SAssignNew( MainBoxPtr, SHorizontalBox )
 			]
 		]
 	];
+
+	// Options menu
+	MainBoxPtr->AddSlot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			SNew(SEditorViewportToolbarMenu)
+			.ParentToolBar(SharedThis(this))
+			.Cursor(EMouseCursor::Default)
+			.Image("EditorViewportToolBar.MenuDropdown")
+			.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateOptionsMenu)
+		];
+
+	// Camera mode menu
+	MainBoxPtr->AddSlot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			SNew(SEditorViewportToolbarMenu)
+			.ParentToolBar(SharedThis(this))
+			.Cursor(EMouseCursor::Default)
+			.Label(this, &SCommonEditorViewportToolbarBase::GetCameraMenuLabel)
+			.LabelIcon(this, &SCommonEditorViewportToolbarBase::GetCameraMenuLabelIcon)
+			.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateCameraMenu)
+		];
+
+	// View menu
+	MainBoxPtr->AddSlot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			MakeViewMenu()
+		];
+
+	// Show menu
+	MainBoxPtr->AddSlot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			SNew(SEditorViewportToolbarMenu)
+			.Label(LOCTEXT("ShowMenuTitle", "Show"))
+			.Cursor(EMouseCursor::Default)
+			.ParentToolBar(SharedThis(this))
+			.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateShowMenu)
+		];
+
+	MainBoxPtr->AddSlot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			SNew(SEditorViewportToolbarMenu)
+			.Label(LOCTEXT("ViewParamMenuTitle", "View Mode Options"))
+			.Cursor(EMouseCursor::Default)
+			.ParentToolBar(SharedThis(this))
+			.Visibility(this, &SCommonEditorViewportToolbarBase::GetViewModeOptionsVisibility)
+			.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateViewModeOptionsMenu)
+		];
+
+	// Add optional toolbar slots to be added by child classes inherited from this common viewport toolbar
+	ExtendLeftAlignedToolbarSlots(MainBoxPtr, SharedThis(this));
+
+	// Transform toolbar
+	MainBoxPtr->AddSlot()
+		.Padding(ToolbarSlotPadding)
+		.HAlign(HAlign_Right)
+		[
+			SNew(STransformViewportToolBar)
+			.Viewport(ViewportRef)
+			.CommandList(ViewportRef->GetCommandList())
+			.Extenders(GetInfoProvider().GetExtenders())
+			.Visibility(ViewportRef, &SEditorViewport::GetTransformToolbarVisibility)
+		];
 
 	SViewportToolBar::Construct(SViewportToolBar::FArguments());
 }

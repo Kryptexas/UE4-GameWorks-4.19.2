@@ -157,15 +157,15 @@ void FAssetTypeActions_MaterialFunction::ExecuteFindMaterials(TArray<TWeakObject
 
 UThumbnailInfo* FAssetTypeActions_MaterialFunction::GetThumbnailInfo(UObject* Asset) const
 {
-	if (UMaterialFunctionInterface* MaterialFunc = CastChecked<UMaterialFunctionInterface>(Asset))
+	UMaterialFunctionInterface* MaterialFunc = CastChecked<UMaterialFunctionInterface>(Asset);
+	UThumbnailInfo* ThumbnailInfo = MaterialFunc->ThumbnailInfo;
+	if (ThumbnailInfo == NULL)
 	{
-		if (!MaterialFunc->ThumbnailInfo)
-		{
-			MaterialFunc->ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialFunc, NAME_None, RF_Transactional);
-		}
+		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialFunc, NAME_None, RF_Transactional);
+		MaterialFunc->ThumbnailInfo = ThumbnailInfo;
 	}
 
-	return nullptr;
+	return ThumbnailInfo;
 }
 
 UClass* FAssetTypeActions_MaterialFunctionLayer::GetSupportedClass() const

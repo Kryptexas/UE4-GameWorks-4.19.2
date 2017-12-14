@@ -16,5 +16,7 @@ class UNREALED_API UDEditorVectorParameterValue : public UDEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=DEditorVectorParameterValue)
 	FLinearColor ParameterValue;
 
+	UPROPERTY(Transient)
+	bool bIsUsedAsChannelMask;
 };
 

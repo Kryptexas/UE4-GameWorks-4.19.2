@@ -52,11 +52,7 @@ TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(TArray<FAssetData> InAssetDat
 
 FAssetDragDropOp::~FAssetDragDropOp()
 {
-	if (ThumbnailPool.IsValid())
-	{
-		// Release all rendering resources being held onto
-		ThumbnailPool->ReleaseResources();
-	}
+	ThumbnailPool.Reset();
 }
 
 TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const

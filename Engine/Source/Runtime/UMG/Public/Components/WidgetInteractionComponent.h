@@ -180,7 +180,7 @@ private:
 	 * virtual slate user it will be, so virtual slate user 0, is probably real slate user 8, as that's the first
 	 * index by default that virtual users begin - the goal is to never have them overlap with real input
 	 * hardware as that will likely conflict with focus states you don't actually want to change - like where
-	 * the mouse and keyboard focus input (the viewport), so that things like the player controller recieve
+	 * the mouse and keyboard focus input (the viewport), so that things like the player controller receive
 	 * standard hardware input.
 	 */
 	TSharedPtr<FSlateVirtualUser> VirtualUser;

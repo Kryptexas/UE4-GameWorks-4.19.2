@@ -20,32 +20,32 @@
 		  "Name": "Niagara",
 		  "Type": "Runtime",
 		  "LoadingPhase": "PreDefault",
-		  "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne" ]
+		  "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		},
 		{
 			"Name" : "NiagaraShader",
 			"Type" : "Runtime",
 			"LoadingPhase" : "PostConfigInit",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		},
 
 		{
 			"Name" : "NiagaraVertexFactories",
 			"Type" : "Runtime",
 			"LoadingPhase" : "PostConfigInit",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		},
 		{
 			"Name" : "NiagaraEditor",
 			"Type" : "Editor",
 			"LoadingPhase" : "Default",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		},
 		{
 			"Name" : "NiagaraEditorWidgets",
 			"Type" : "Editor",
 			"LoadingPhase" : "Default",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		}
 	]
 }

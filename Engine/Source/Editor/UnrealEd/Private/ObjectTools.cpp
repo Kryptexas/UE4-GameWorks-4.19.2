@@ -4158,16 +4158,23 @@ namespace ThumbnailTools
 		return true;
 	}
 
-	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData)
+	bool AssetHasCustomThumbnail(const FString& InAssetDataFullName)
 	{
-		const FObjectThumbnail* CachedThumbnail = FindCachedThumbnail(InAssetData.GetFullName());
+		FObjectThumbnail Thumbnail;
+		return AssetHasCustomThumbnail(InAssetDataFullName, Thumbnail);
+	}
+
+	bool AssetHasCustomThumbnail(const FString& InAssetDataFullName, FObjectThumbnail& OutThumbnail)
+	{
+		const FObjectThumbnail* CachedThumbnail = FindCachedThumbnail(InAssetDataFullName);
 		if (CachedThumbnail != NULL && !CachedThumbnail->IsEmpty())
 		{
+			OutThumbnail = *CachedThumbnail;
 			return true;
 		}
 
 		// If we don't yet have a thumbnail map, check the disk
-		FName ObjectFullName = FName(*InAssetData.GetFullName());
+		FName ObjectFullName = FName(*InAssetDataFullName);
 		TArray<FName> ObjectFullNames;
 		FThumbnailMap LoadedThumbnails;
 		ObjectFullNames.Add(ObjectFullName);
@@ -4177,9 +4184,21 @@ namespace ThumbnailTools
 
 			if (Thumbnail != NULL && !Thumbnail->IsEmpty())
 			{
+				OutThumbnail = *Thumbnail;
 				return true;
 			}
 		}
+		return false;
+	}
+
+	bool AssetHasCustomCreatedThumbnail(const FString& InAssetDataFullName)
+	{
+		FObjectThumbnail Thumbnail;
+		if (AssetHasCustomThumbnail(InAssetDataFullName, Thumbnail))
+		{
+			return Thumbnail.IsCreatedAfterCustomThumbsEnabled();
+		}
+
 		return false;
 	}
 }

@@ -20,9 +20,9 @@ DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - UNiagaraNodeInput - SortNodes"), STAT_N
 
 UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, DataInterface(nullptr)
-	, Usage(ENiagaraInputNodeUsage::Undefined)	
+	, Usage(ENiagaraInputNodeUsage::Undefined)
 	, CallSortPriority(0)
+	, DataInterface(nullptr)
 {
 	bCanRenameNode = true;
 }

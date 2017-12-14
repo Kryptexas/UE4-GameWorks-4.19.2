@@ -576,7 +576,6 @@ void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 	{
 		TArray<TWeakObjectPtr<UObject>> Skeletons;
 		Skeletons.Add(PersonaToolkit->GetSkeleton());
-
 		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_PreviewMesh"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
 	}
 	else
@@ -585,8 +584,9 @@ void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 	}
 }
 
-void FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool bRecordAnimation)
+bool FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool bRecordAnimation)
 {
+	bool AnimSequenceExportResult = false;
 	TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
 	if (AssetsToExport.Num() > 0)
 	{
@@ -606,8 +606,11 @@ void FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool b
 	if (AnimSequences.Num() > 0)
 	{
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
-		PersonaModule.ExportToFBX(AnimSequences, GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh);
+		
+		
+		AnimSequenceExportResult = PersonaModule.ExportToFBX(AnimSequences, GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh);
 	}
+	return AnimSequenceExportResult;
 }
 
 void FAnimationEditor::OnAddLoopingInterpolation()
@@ -1008,7 +1011,7 @@ void FAnimationEditor::CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
+bool FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = true;
 	if (NewAssets.Num() > 0)
@@ -1057,9 +1060,10 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const E
 			}
 		}
 	}
+	return true;
 }
 
-void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
+bool FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = false;
 	if (NewAssets.Num() > 0)
@@ -1107,9 +1111,10 @@ void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const E
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToCreateAsset", "Failed to create asset"));
 		}
 	}
+	return true;
 }
 
-void FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
+bool FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
 {
 	if (NewAssets.Num() > 0)
 	{
@@ -1131,6 +1136,7 @@ void FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
 			}
 		}
 	}
+	return true;
 }
 
 void FAnimationEditor::ConditionalRefreshEditor(UObject* InObject)

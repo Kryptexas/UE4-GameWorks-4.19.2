@@ -36,7 +36,7 @@ class UCookCommandlet
 	bool bCookOnTheFly; 
 	/** Cook everything */
 	bool bCookAll;
-	/** Skip saving any packages in Engine/COntent/Editor* UNLESS TARGET HAS EDITORONLY DATA (in which case it will save those anyway) */
+	/** Skip saving any packages in Engine/Content/Editor* UNLESS TARGET HAS EDITORONLY DATA (in which case it will save those anyway) */
 	bool bSkipEditorContent;
 	/** Test for UObject leaks */
 	bool bLeakTest;  

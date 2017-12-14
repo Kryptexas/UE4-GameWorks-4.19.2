@@ -272,7 +272,7 @@ bool FPhysXCooking::CookTriMeshImp(FName Format, EPhysXMeshCookFlags CookFlags, 
 	PTriMeshDesc.triangles.stride = sizeof(FTriIndices);
 	PTriMeshDesc.materialIndices.data = SrcMaterialIndices.GetData();
 	PTriMeshDesc.materialIndices.stride = sizeof(PxMaterialTableIndex);
-	PTriMeshDesc.flags = FlipNormals ? PxMeshFlag::eFLIPNORMALS : (PxMeshFlags)0;
+	PTriMeshDesc.flags = FlipNormals ? PxMeshFlag::eFLIPNORMALS : static_cast<PxMeshFlag::Enum>(0);
 
 	// Set up cooking
 	const PxCookingParams CurrentParams = PhysXCooking->getParams();

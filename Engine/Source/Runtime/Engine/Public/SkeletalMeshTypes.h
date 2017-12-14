@@ -258,7 +258,7 @@ public:
 	*
 	* @param bNeedsMorphUsage - true if the materials used by this skeletal mesh need morph target usage
 	*/
-	void UpdateMorphMaterialUsage_GameThread(bool bNeedsMorphUsage);
+	void UpdateMorphMaterialUsage_GameThread(TArray<UMaterialInterface*>& MaterialUsingMorphTarget);
 
 
 #if WITH_EDITORONLY_DATA

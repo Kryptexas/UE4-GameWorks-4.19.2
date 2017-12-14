@@ -13,6 +13,7 @@
 
 #define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
 ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
+#undef DEFINE_GL_ENTRYPOINTS
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL;
 
 extern PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT_ProcAddress;	// set in OpenGLDevice.cpp
@@ -830,6 +831,7 @@ bool PlatformInitOpenGL()
 			// Initialize entry points required by Unreal from opengl32.dll
 			#define GET_GL_ENTRYPOINTS_DLL(Type,Func) Func = (Type)FPlatformProcess::GetDllExport(OpenGLDLL,TEXT(#Func));
 			ENUM_GL_ENTRYPOINTS_DLL(GET_GL_ENTRYPOINTS_DLL);
+			#undef GET_GL_ENTRYPOINTS_DLL
 
 			// Release the OpenGL DLL.
 			FPlatformProcess::FreeDllHandle(OpenGLDLL);
@@ -838,6 +840,7 @@ bool PlatformInitOpenGL()
 			#define GET_GL_ENTRYPOINTS(Type,Func) Func = (Type)wglGetProcAddress(#Func);
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
+			#undef GET_GL_ENTRYPOINTS
 
 			// Restore warning C4191.
 			#pragma warning(pop)
@@ -847,6 +850,7 @@ bool PlatformInitOpenGL()
 			#define CHECK_GL_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 			ENUM_GL_ENTRYPOINTS_DLL(CHECK_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS(CHECK_GL_ENTRYPOINTS);
+			#undef CHECK_GL_ENTRYPOINTS
 			checkf(bFoundAllEntryPoints, TEXT("Failed to find all OpenGL entry points."));
 		}
 

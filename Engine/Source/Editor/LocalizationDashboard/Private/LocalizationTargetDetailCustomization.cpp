@@ -372,10 +372,10 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 		const TSharedPtr<IPropertyHandle> MemberPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(PropertyName);
 		if (MemberPropertyHandle.IsValid() && MemberPropertyHandle->IsValidHandle())
 		{
+			static const FName ShowOnlyInners("ShowOnlyInnerProperties");
+
 			const FName CategoryName = FObjectEditorUtils::GetCategoryFName(MemberProperty);
 			IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(CategoryName);
-
-			static FName ShowOnlyInners("ShowOnlyInnerProperties");
 
 			const auto* const Function = PropertyCustomizationMap.Find(PropertyName);
 			if (Function)

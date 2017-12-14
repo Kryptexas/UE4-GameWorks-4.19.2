@@ -53,6 +53,10 @@ struct CORE_API FEditorObjectVersion
 		GatheredTextEditorOnlyPackageLocId,
 		// Added AlwaysSign to FNumberFormattingOptions
 		AddedAlwaysSignNumberFormattingOption,
+		// Added additional objects that must be serialized as part of this new material feature
+		AddedMaterialSharedInputs,
+		// Added morph target section indices
+		AddedMorphTargetSectionIndices,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

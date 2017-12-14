@@ -260,8 +260,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				// Save
 				MenuBuilder.AddMenuEntry(FContentBrowserCommands::Get().SaveAllCurrentFolder, NAME_None,
 					LOCTEXT("SaveFolder", "Save All"),
-					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
-					FSlateIcon()
+					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder.")
 					);
 
 				// Resave
@@ -270,8 +269,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				// Delete
 				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 					LOCTEXT("DeleteFolder", "Delete"),
-					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
-					FSlateIcon()
+					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains.")
 					);
 
 				// Fix Up Redirectors in Folder

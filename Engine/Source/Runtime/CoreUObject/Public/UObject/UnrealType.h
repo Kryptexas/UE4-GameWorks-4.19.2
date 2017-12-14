@@ -2018,9 +2018,9 @@ public:
 	// TProperty::GetCPPType should not be used here
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override
 	{
-		check(UObjectPropertyBase::PropertyClass);
+		check(this->PropertyClass);
 		return this->GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
-			FString::Printf(TEXT("%s%s"), UObjectPropertyBase::PropertyClass->GetPrefixCPP(), *UObjectPropertyBase::PropertyClass->GetName()));
+			FString::Printf(TEXT("%s%s"), this->PropertyClass->GetPrefixCPP(), *this->PropertyClass->GetName()));
 	}
 };
 

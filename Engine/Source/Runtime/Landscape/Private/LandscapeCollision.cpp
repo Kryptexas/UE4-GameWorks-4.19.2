@@ -1698,7 +1698,7 @@ void ULandscapeHeightfieldCollisionComponent::PreSave(const class ITargetPlatfor
 			{
 				if (!RenderComponent->CanRenderGrassMap())
 				{
-					RenderComponent->MaterialInstances[0]->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
+					RenderComponent->GetMaterialInstance(0, false)->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
 				}
 				RenderComponent->RenderGrassMap();
 			}
