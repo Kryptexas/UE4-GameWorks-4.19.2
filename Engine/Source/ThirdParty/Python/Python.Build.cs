@@ -1,5 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System.IO;
+using System.Diagnostics;
 using System.Collections.Generic;
 using UnrealBuildTool;
 
@@ -111,7 +112,26 @@ public class Python : ModuleRules
 				PythonRoot = null;
 			}
 		}
-		
+
+		// Make sure the Python install is the correct architecture
+		if (PythonRoot != null)
+		{
+			string ExpectedPointerSizeResult = Target.Platform == UnrealTargetPlatform.Win32 ? "4" : "8";
+
+			// Invoke Python to query the pointer size of the interpreter so we can work out whether it's 32-bit or 64-bit
+			// todo: We probably need to do this for all platforms, but right now it's only an issue on Windows
+			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				string PythonBinary = Path.Combine(PythonRoot, "python");
+				string Result = InvokePython(PythonBinary, "-c \"import struct; print(struct.calcsize('P'))\"");
+				Result = Result != null ? Result.Replace("\r", "").Replace("\n", "") : null;
+				if (Result == null || Result != ExpectedPointerSizeResult)
+				{
+					PythonRoot = null;
+				}
+			}
+		}
+
 		if (PythonRoot == null)
 		{
 			PublicDefinitions.Add("WITH_PYTHON=0");
@@ -138,6 +158,30 @@ public class Python : ModuleRules
 				PublicLibraryPaths.Add(PythonLibPath);
 				PublicAdditionalLibraries.Add(PythonLibName);
 			}
+		}
+	}
+
+	private string InvokePython(string InPythonBinary, string InPythonArgs)
+	{
+		ProcessStartInfo ProcStartInfo = new ProcessStartInfo();
+		ProcStartInfo.FileName = InPythonBinary;
+		ProcStartInfo.Arguments = InPythonArgs;
+		ProcStartInfo.UseShellExecute = false;
+		ProcStartInfo.RedirectStandardOutput = true;
+
+		try
+		{
+			using (Process Proc = Process.Start(ProcStartInfo))
+			{
+				using (StreamReader StdOutReader = Proc.StandardOutput)
+				{
+					return StdOutReader.ReadToEnd();
+				}
+			}
+		}
+		catch
+		{
+			return null;
 		}
 	}
 }
