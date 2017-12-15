@@ -572,8 +572,8 @@ PyObject* FPythonScriptPlugin::EvalString(const TCHAR* InStr, const TCHAR* InCon
 
 PyObject* FPythonScriptPlugin::EvalString(const TCHAR* InStr, const TCHAR* InContext, const int InMode, PyObject* InGlobalDict, PyObject* InLocalDict)
 {
-	FScopedSlowTask SlowTask(0.f, (LOCTEXT("PythonScript_EvalString", "Running Python")));
-	SlowTask.MakeDialog();
+	FScopedSlowTask SlowTask(0.f, LOCTEXT("PythonScript_EvalString", "Running Python"));
+	SlowTask.MakeDialogDelayed(1.0f);
 
 	PyCompilerFlags *PyCompFlags = nullptr;
 
