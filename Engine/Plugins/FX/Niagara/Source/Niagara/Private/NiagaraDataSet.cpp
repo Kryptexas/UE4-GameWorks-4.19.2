@@ -5,6 +5,7 @@
 #include "NiagaraShader.h"
 #include "GlobalShader.h"
 #include "UpdateTextureShaders.h"
+#include "ShaderParameterUtils.h"
 #include "NiagaraStats.h"
 
 DECLARE_CYCLE_STAT(TEXT("InitRenderData"), STAT_InitRenderData, STATGROUP_Niagara);
