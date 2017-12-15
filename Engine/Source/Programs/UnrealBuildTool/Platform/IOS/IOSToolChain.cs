@@ -945,7 +945,7 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
+        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform, List<FileItem> Icons)
         {
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
@@ -987,6 +987,7 @@ namespace UnrealBuildTool
 
             CompileAssetAction.CommandArguments = Arguments;
             CompileAssetAction.PrerequisiteItems.Add(Executable);
+			CompileAssetAction.PrerequisiteItems.AddRange(Icons);
             CompileAssetAction.ProducedItems.Add(DestFile);
             CompileAssetAction.StatusDescription = CompileAssetAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
             CompileAssetAction.bCanExecuteRemotely = false;
@@ -1251,7 +1252,7 @@ namespace UnrealBuildTool
 			}
         }
 
-        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform)
+        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform, ref List<FileItem> Icons)
         {
             if (Platform == CppPlatform.TVOS)
             {
@@ -1397,6 +1398,7 @@ namespace UnrealBuildTool
                     if (File.Exists(Image))
                     {
                         File.Copy(Image, Path.Combine(Dir, Images[Index][0]), true);
+						Icons.Add(FileItem.GetItemByPath(Image));
                         LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[Index][0])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                         FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[Index][0]));
                         DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
@@ -1430,8 +1432,9 @@ namespace UnrealBuildTool
                 string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
                 string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
                 string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
-                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir, BinaryLinkEnvironment.Platform);
-                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, BinaryLinkEnvironment.Platform));
+				List<FileItem> Icons = new List<FileItem>();
+                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir, BinaryLinkEnvironment.Platform, ref Icons);
+                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, BinaryLinkEnvironment.Platform, Icons));
             }
 
             return OutputFiles;
@@ -1452,10 +1455,10 @@ namespace UnrealBuildTool
 
 		private static void GenerateCrashlyticsData(string ExecutableDirectory, string ExecutableName, string ProjectDir, string ProjectName)
         {
-			Log.TraceInformation("Generating and uploading Crashlytics Data");
             string FabricPath = UnrealBuildTool.EngineDirectory + "/Intermediate/UnzippedFrameworks/ThirdPartyFrameworks/Fabric.embeddedframework";
             if (Directory.Exists(FabricPath))
             {
+				Log.TraceInformation("Generating and uploading Crashlytics Data");
 				string PlistFile = ProjectDir + "/Intermediate/IOS/" + ProjectName + "-Info.plist";
                 Process FabricProcess = new Process();
                 FabricProcess.StartInfo.WorkingDirectory = ExecutableDirectory;

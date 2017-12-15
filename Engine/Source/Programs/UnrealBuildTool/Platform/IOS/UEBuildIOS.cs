@@ -618,7 +618,23 @@ namespace UnrealBuildTool
 		{
 			IOSToolChain.PostCodeGeneration(Manifest);
 		}
-		
+
+		public bool HasIcons(DirectoryReference ProjectDirectoryName)
+		{
+			string IconDir = (((ProjectDirectoryName != null) ? ProjectDirectoryName.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (this.Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS") + "/Resources/Graphics";
+
+			if (Directory.Exists(IconDir))
+			{
+				FileInfo[] Files = (new DirectoryInfo(IconDir).GetFiles("Icon*.*", SearchOption.AllDirectories));
+				if (Files.Length > 0)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		/// <summary>
 		/// Check for the default configuration
 		/// return true if the project uses the default build config
@@ -640,6 +656,12 @@ namespace UnrealBuildTool
 			// look up iOS specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
 					BoolKeys, null, StringKeys))
+			{
+				return false;
+			}
+
+			// check to see if we need to build an asset catalog
+			if (HasIcons(ProjectDirectoryName))
 			{
 				return false;
 			}

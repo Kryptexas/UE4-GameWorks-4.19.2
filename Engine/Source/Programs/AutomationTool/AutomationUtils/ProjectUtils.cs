@@ -127,6 +127,22 @@ namespace AutomationTool
 			return ProjectClientBinariesPath;
 		}
 
+		private static bool HasIcons(DirectoryReference ProjectDirectoryName)
+		{
+			string IconDir = ProjectDirectoryName.ToString() + "/Build/IOS/Resources/Graphics";
+
+			if (Directory.Exists(IconDir))
+			{
+				FileInfo[] Files = (new DirectoryInfo(IconDir).GetFiles("Icon*.*", SearchOption.AllDirectories));
+				if (Files.Length > 0)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		private static bool RequiresTempTarget(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms, bool AssetNativizationRequested)
 		{
 			// check to see if we already have a Target.cs file
@@ -209,6 +225,14 @@ namespace AutomationTool
 					{
 						RetVal = true;
 						break;
+					}
+					else if (TargetPlatformType == UnrealTargetPlatform.IOS)
+					{
+						if (HasIcons(RawProjectPath.Directory))
+						{
+							RetVal = true;
+							break;
+						}
 					}
 
 					// find if there are any plugins enabled or disabled which differ from the default
