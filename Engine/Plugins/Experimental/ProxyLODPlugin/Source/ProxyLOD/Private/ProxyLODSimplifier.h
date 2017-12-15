@@ -11,7 +11,7 @@
 #include "Containers/HashTable.h"
 #include "Containers/BinaryHeap.h"
 #include "Developer/MeshSimplifier/Private/MeshSimplifyElements.h"
-#include "Developer/MeshSimplifier/Private/Quadric.h"
+#include "ProxyLODQuadric.h"
 
 
 //===========================================================================================
@@ -72,7 +72,7 @@ namespace ProxyLOD
 		* @param EdgeQuadricFatory   Method to compute new quadric from a triangle
 		*/
 		template <typename EdgeQuadricFatoryType>
-		FQuadric GetEdgeQuadric(SimpVertType* v, const EdgeQuadricFatoryType& EdgeQuadricFatory);
+		ProxyLOD::FQuadric GetEdgeQuadric(SimpVertType* v, const EdgeQuadricFatoryType& EdgeQuadricFatory);
 
 
 		/**
@@ -111,7 +111,7 @@ namespace ProxyLOD
 		TArray< QuadricType >	TriQuadrics;
 
 		TBitArray<>				EdgeQuadricsValid;
-		TArray< FQuadric >		EdgeQuadrics;
+		TArray< ProxyLOD::FQuadric >		EdgeQuadrics;
 
 		// To map vert pointer to vert index
 
@@ -131,7 +131,7 @@ namespace ProxyLOD
 	};
 	template<> struct VertToQuadricTrait<FPositionOnlyVertex>
 	{
-		typedef FQuadric  QuadricType;
+		typedef ProxyLOD::FQuadric  QuadricType;
 	};
 
 	/**
@@ -231,7 +231,7 @@ namespace ProxyLOD
 		void				InitVert(SimpVertType* v);
 
 		QuadricType			GetQuadric(SimpVertType* v);
-		FQuadric			GetEdgeQuadric(SimpVertType* v);
+		ProxyLOD::FQuadric			GetEdgeQuadric(SimpVertType* v);
 
 		// TODO move away from pointers and remove these functions
 		uint32				GetVertIndex(const SimpVertType* vert) const;
@@ -247,7 +247,7 @@ namespace ProxyLOD
 		void				CollapseEdgeVert(const SimpVertType* oldV, const SimpVertType* otherV, SimpVertType* newV);
 
 		float				ComputeNewVerts(SimpEdgeType* edge, TArray< MeshVertType, TInlineAllocator<16> >& newVerts);
-		FVector             ComputeNewVertsPos(SimpEdgeType* edge, TArray< MeshVertType, TInlineAllocator<16> >& newVerts, TArray< QuadricType, TInlineAllocator<16> >& quadrics, FQuadric& edgeQuadric);
+		FVector             ComputeNewVertsPos(SimpEdgeType* edge, TArray< MeshVertType, TInlineAllocator<16> >& newVerts, TArray< QuadricType, TInlineAllocator<16> >& quadrics, ProxyLOD::FQuadric& edgeQuadric);
 		
 		float				ComputeEdgeCollapseCost(SimpEdgeType* edge);
 		void				Collapse(SimpEdgeType* edge);
@@ -344,15 +344,15 @@ namespace ProxyLOD
 	}
 
 	
-	FORCEINLINE FQuadric FQuadricMeshSimplifier::GetEdgeQuadric(SimpVertType* v)
+	FORCEINLINE ProxyLOD::FQuadric FQuadricMeshSimplifier::GetEdgeQuadric(SimpVertType* v)
 	{
 
-		const auto EdgeQuadricFactory = [this](const FVector& Pos0, const FVector& Pos1, const FVector& Normal)->FQuadric
+		const auto EdgeQuadricFactory = [this](const FVector& Pos0, const FVector& Pos1, const FVector& Normal)->ProxyLOD::FQuadric
 		{
-			return FQuadric(Pos0, Pos1, Normal, 256.f);
+			return ProxyLOD::FQuadric(Pos0, Pos1, Normal, 256.f);
 		};
 		LockTriFlags(SIMP_MARK1);
-		FQuadric Quadric = quadricCache.GetEdgeQuadric(v, EdgeQuadricFactory);
+		ProxyLOD::FQuadric Quadric = quadricCache.GetEdgeQuadric(v, EdgeQuadricFactory);
 		UnlockTriFlags(SIMP_MARK1);
 		return Quadric;
 	}
@@ -742,7 +742,7 @@ namespace ProxyLOD
 
 	template <typename QuadricType>
 	template <typename EdgeQuadricFatoryType>
-	FQuadric TQuadricCache< QuadricType>::GetEdgeQuadric(SimpVertType* v, const EdgeQuadricFatoryType& EdgeQuadricFatory)
+	ProxyLOD::FQuadric TQuadricCache< QuadricType>::GetEdgeQuadric(SimpVertType* v, const EdgeQuadricFatoryType& EdgeQuadricFatory)
 	{
 
 		uint32 VertIndex = GetVertIndex(v);
@@ -751,7 +751,7 @@ namespace ProxyLOD
 			return EdgeQuadrics[VertIndex];
 		}
 
-		FQuadric vertQuadric;
+		ProxyLOD::FQuadric vertQuadric;
 		vertQuadric.Zero();
 
 		TArray< SimpVertType*, TInlineAllocator<64> > adjVerts;
