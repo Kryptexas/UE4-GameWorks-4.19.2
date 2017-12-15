@@ -9,9 +9,8 @@
 
 #include "command_encoder.hpp"
 #include "device.hpp"
-#ifdef __OBJC__
-#import <Metal/MTLCommandEncoder.h>
-#endif
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -19,66 +18,50 @@ namespace mtlpp
     Device CommandEncoder<T>::GetDevice() const
     {
         this->Validate();
-#ifdef __OBJC__
-        return [(id<MTLCommandEncoder>)this->m_ptr device];
-#else
-		return Device();
-#endif
+		return this->m_table->Device((id<MTLCommandEncoder>)this->m_ptr);
     }
 
 	template<typename T>
     ns::String CommandEncoder<T>::GetLabel() const
     {
         this->Validate();
-#ifdef __OBJC__
-        return [(id<MTLCommandEncoder>)this->m_ptr label];
-#else
-		return ns::String();
-#endif
+		return this->m_table->Label((id<MTLCommandEncoder>)this->m_ptr);
     }
 
 	template<typename T>
     void CommandEncoder<T>::SetLabel(const ns::String& label)
     {
         this->Validate();
-#ifdef __OBJC__
-        [(id<MTLCommandEncoder>)this->m_ptr setLabel:(NSString*)label.GetPtr()];
-#endif
+		this->m_table->SetLabel((id<MTLCommandEncoder>)this->m_ptr, label.GetPtr());
     }
 
 	template<typename T>
     void CommandEncoder<T>::EndEncoding()
     {
         this->Validate();
-#ifdef __OBJC__
-        [(id<MTLCommandEncoder>)this->m_ptr endEncoding];
-#endif
+		this->m_table->EndEncoding((id<MTLCommandEncoder>)this->m_ptr);
     }
 
 	template<typename T>
     void CommandEncoder<T>::InsertDebugSignpost(const ns::String& string)
     {
-       this->Validate();
-#ifdef __OBJC__
-        [(id<MTLCommandEncoder>)this->m_ptr insertDebugSignpost:(NSString*)string.GetPtr()];
-#endif
+    	this->Validate();
+		this->m_table->InsertDebugSignpost((id<MTLCommandEncoder>)this->m_ptr, string.GetPtr());
     }
 
 	template<typename T>
     void CommandEncoder<T>::PushDebugGroup(const ns::String& string)
     {
         this->Validate();
-#ifdef __OBJC__
-        [(id<MTLCommandEncoder>)this->m_ptr pushDebugGroup:(NSString*)string.GetPtr()];
-#endif
+		this->m_table->PushDebugGroup((id<MTLCommandEncoder>)this->m_ptr, string.GetPtr());
     }
 
 	template<typename T>
     void CommandEncoder<T>::PopDebugGroup()
     {
         this->Validate();
-#ifdef __OBJC__
-        [(id<MTLCommandEncoder>)this->m_ptr popDebugGroup];
-#endif
+		this->m_table->PopDebugGroup((id<MTLCommandEncoder>)this->m_ptr);
     }
 }
+
+MTLPP_END

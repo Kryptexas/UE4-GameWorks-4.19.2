@@ -5,16 +5,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "heap.hpp"
 #include <Metal/MTLHeap.h>
+#include "heap.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
-    uint32_t HeapDescriptor::GetSize() const
+    NSUInteger HeapDescriptor::GetSize() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return uint32_t([(MTLHeapDescriptor*)m_ptr size]);
+        return NSUInteger([(MTLHeapDescriptor*)m_ptr size]);
 #else
         return 0;
 #endif
@@ -43,7 +45,7 @@ namespace mtlpp
 
     }
 
-    void HeapDescriptor::SetSize(uint32_t size) const
+    void HeapDescriptor::SetSize(NSUInteger size) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
@@ -74,7 +76,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return [(id<MTLHeap>)m_ptr label];
+		return m_table->Label(m_ptr);
 #else
         return nullptr;
 #endif
@@ -85,7 +87,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return [(id<MTLHeap>)m_ptr device];
+		return m_table->Device(m_ptr);
 #else
         return nullptr;
 #endif
@@ -96,7 +98,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return StorageMode([(id<MTLHeap>)m_ptr storageMode]);
+        return StorageMode(m_table->StorageMode(m_ptr));
 #else
         return StorageMode(0);
 #endif
@@ -107,40 +109,40 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return CpuCacheMode([(id<MTLHeap>)m_ptr cpuCacheMode]);
+        return CpuCacheMode(m_table->CpuCacheMode(m_ptr));
 #else
         return CpuCacheMode(0);
 #endif
 
     }
 
-    uint32_t Heap::GetSize() const
+    NSUInteger Heap::GetSize() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return uint32_t([(id<MTLHeap>)m_ptr size]);
+        return m_table->Size(m_ptr);
 #else
         return 0;
 #endif
 
     }
 
-    uint32_t Heap::GetUsedSize() const
+    NSUInteger Heap::GetUsedSize() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return uint32_t([(id<MTLHeap>)m_ptr usedSize]);
+        return m_table->UsedSize(m_ptr);
 #else
         return 0;
 #endif
 
     }
 	
-	uint32_t Heap::GetCurrentAllocatedSize() const
+	NSUInteger Heap::GetCurrentAllocatedSize() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return uint32_t([(id<MTLHeap>)m_ptr currentAllocatedSize]);
+		return m_table->CurrentAllocatedSize(m_ptr);
 #else
 		return GetSize();
 #endif
@@ -150,27 +152,27 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        [(id<MTLHeap>)m_ptr setLabel:(NSString*)label.GetPtr()];
+		m_table->SetLabel(m_ptr, label.GetPtr());
 #endif
 
     }
 
-    uint32_t Heap::MaxAvailableSizeWithAlignment(uint32_t alignment)
+    NSUInteger Heap::MaxAvailableSizeWithAlignment(NSUInteger alignment)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return uint32_t([(id<MTLHeap>)m_ptr maxAvailableSizeWithAlignment:alignment]);
+		return m_table->MaxAvailableSizeWithAlignment(m_ptr, alignment);
 #else
         return 0;
 #endif
 
     }
 
-    Buffer Heap::NewBuffer(uint32_t length, ResourceOptions options)
+    Buffer Heap::NewBuffer(NSUInteger length, ResourceOptions options)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return [(id<MTLHeap>)m_ptr newBufferWithLength:length options:MTLResourceOptions(options)];
+		return m_table->NewBufferWithLength(m_ptr, length, MTLResourceOptions(options));
 #else
         return nullptr;
 #endif
@@ -181,7 +183,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return [(id<MTLHeap>)m_ptr newTextureWithDescriptor:(MTLTextureDescriptor*)desc.GetPtr()];
+		return m_table->NewTextureWithDescriptor(m_ptr, desc.GetPtr());
 #else
         return nullptr;
 #endif
@@ -192,10 +194,12 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 10_0)
-        return PurgeableState([(id<MTLHeap>)m_ptr setPurgeableState:MTLPurgeableState(state)]);
+		return PurgeableState(m_table->SetPurgeableState(m_ptr, MTLPurgeableState(state)));
 #else
         return PurgeableState(0);
 #endif
 
     }
 }
+
+MTLPP_END

@@ -462,35 +462,6 @@ struct FHLODSceneNodeVisibilityState
 	uint16 bIsFading	: 1;
 };
 
-// Structure in charge of storing all information about TAA's history.
-struct FTemporalAAHistory
-{
-	// Render targets holding's pixel history.
-	//  scene color's RGBA are in RT[0].
-	TRefCountPtr<IPooledRenderTarget> RT[2];
-
-	// Reference size of RT. Might be different than RT's actual size to handle down res.
-	FIntPoint ReferenceBufferSize;
-
-	// Viewport coordinate of the history in RT according to ReferenceBufferSize.
-	FIntRect ViewportRect;
-
-	// Scene color's PreExposure.
-	float SceneColorPreExposure;
-
-
-	void SafeRelease()
-	{ 
-		RT[0].SafeRelease();
-		RT[1].SafeRelease();
-	}
-
-	bool IsValid() const
-	{
-		return RT[0].IsValid();
-	}
-};
-
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -554,10 +525,6 @@ public:
 	int32 CachedVisibilityHandlerId;
 	int32 CachedVisibilityBucketIndex;
 	int32 CachedVisibilityChunkIndex;
-
-	/** Parameter to keep track of previous frame. Managed by the rendering thread. */
-	FViewMatrices PrevViewMatrices;
-	FViewMatrices PendingPrevViewMatrices;
 
 	uint32		PendingPrevFrameNumber;
 	uint32		PrevFrameNumber;
@@ -691,11 +658,18 @@ private:
 
 public:
 
+	// Previous frame's view info to use.
+	FPreviousViewInfo PrevFrameViewInfo;
+
+	// Pending previous frame's view info. When rendering a new view, this must be the PendingPrevFrame that
+	// should be updated. This is the next frame that is only going to set PrevFrame = PendingPrevFrame if
+	// the world is not pause.
+	FPreviousViewInfo PendingPrevFrameViewInfo;
+
+
 	FHeightfieldLightingAtlas* HeightfieldLightingAtlas;
 
-	// Temporal AA result of last frame
-	FTemporalAAHistory TemporalAAHistory;
-	FTemporalAAHistory PendingTemporalAAHistory;
+	// TODO: move these guys in FPreviousViewInfo.
 	// Temporal AA result for DOF of last frame
 	FTemporalAAHistory DOFHistory;
 	FTemporalAAHistory DOFHistory2;
@@ -1048,8 +1022,8 @@ public:
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRTManager.SafeRelease();
 		CombinedLUTRenderTarget.SafeRelease();
-		TemporalAAHistory.SafeRelease();
-		PendingTemporalAAHistory.SafeRelease();
+		PrevFrameViewInfo.SafeRelease();
+		PendingPrevFrameViewInfo.SafeRelease();
 		DOFHistory.SafeRelease();
 		DOFHistory2.SafeRelease();
 		SSRHistory.SafeRelease();

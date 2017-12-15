@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CaptureManager.hpp"
 #include "ns.hpp"
 
-MTLPP_CLASS(MTLCaptureManager);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -36,3 +38,5 @@ namespace mtlpp
 	} MTLPP_AVAILABLE(10_13, 11_0);
 	
 }
+
+MTLPP_END

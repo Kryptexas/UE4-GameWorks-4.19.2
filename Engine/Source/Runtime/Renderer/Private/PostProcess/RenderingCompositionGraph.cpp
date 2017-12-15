@@ -187,7 +187,7 @@ bool FRenderingCompositePassContext::IsViewFamilyRenderTarget(const FSceneRender
 }
 
 
-void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
+void FRenderingCompositePassContext::Process(const TArray<FRenderingCompositePass*>& TargetedRoots, const TCHAR *GraphDebugName)
 {
 	// call this method only once after the graph is finished
 	check(!bWasProcessed);
@@ -202,53 +202,61 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 		GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() &&
 		GEngine->XRSystem->GetHMDDevice()->HasVisibleAreaMesh());
 
-	if(Root)
+	if (TargetedRoots.Num() == 0)
 	{
-		if(ShouldDebugCompositionGraph())
-		{
-			UE_LOG(LogConsoleResponse,Log, TEXT(""));
-			UE_LOG(LogConsoleResponse,Log, TEXT("FRenderingCompositePassContext:Debug '%s' ---------"), GraphDebugName);
-			UE_LOG(LogConsoleResponse,Log, TEXT(""));
+		return;
+	}
 
-			GGMLFileWriter.OpenGMLFile(GraphDebugName);
-			GGMLFileWriter.WriteLine("Creator \"UnrealEngine4\"");
-			GGMLFileWriter.WriteLine("Version \"2.10\"");
-			GGMLFileWriter.WriteLine("graph");
-			GGMLFileWriter.WriteLine("[");
-			GGMLFileWriter.WriteLine("\tcomment\t\"This file can be viewed with yEd from yWorks. Run Layout/Hierarchical after loading.\"");
-			GGMLFileWriter.WriteLine("\thierarchic\t1");
-			GGMLFileWriter.WriteLine("\tdirected\t1");
-		}
+	if(ShouldDebugCompositionGraph())
+	{
+		UE_LOG(LogConsoleResponse,Log, TEXT(""));
+		UE_LOG(LogConsoleResponse,Log, TEXT("FRenderingCompositePassContext:Debug '%s' ---------"), GraphDebugName);
+		UE_LOG(LogConsoleResponse,Log, TEXT(""));
 
-		bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
+		GGMLFileWriter.OpenGMLFile(GraphDebugName);
+		GGMLFileWriter.WriteLine("Creator \"UnrealEngine4\"");
+		GGMLFileWriter.WriteLine("Version \"2.10\"");
+		GGMLFileWriter.WriteLine("graph");
+		GGMLFileWriter.WriteLine("[");
+		GGMLFileWriter.WriteLine("\tcomment\t\"This file can be viewed with yEd from yWorks. Run Layout/Hierarchical after loading.\"");
+		GGMLFileWriter.WriteLine("\thierarchic\t1");
+		GGMLFileWriter.WriteLine("\tdirected\t1");
+	}
 
+	bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
+
+	for (FRenderingCompositePass* Root : TargetedRoots)
+	{
 		Graph.RecursivelyGatherDependencies(Root);
+	}
 
-		if(bNewOrder)
+	if(bNewOrder)
+	{
+		// process in the order the nodes have been created (for more control), unless the dependencies require it differently
+		for (FRenderingCompositePass* Node : Graph.Nodes)
 		{
-			// process in the order the nodes have been created (for more control), unless the dependencies require it differently
-			for (FRenderingCompositePass* Node : Graph.Nodes)
+			// only if this is true the node is actually needed - no need to compute it when it's not needed
+			if(Node->WasComputeOutputDescCalled())
 			{
-				// only if this is true the node is actually needed - no need to compute it when it's not needed
-				if(Node->WasComputeOutputDescCalled())
-				{
-					Graph.RecursivelyProcess(Node, *this);
-				}
+				Graph.RecursivelyProcess(Node, *this);
 			}
 		}
-		else
+	}
+	else
+	{
+		// process in the order of the dependencies, starting from the root (without processing unreferenced nodes)
+		for (FRenderingCompositePass* Root : TargetedRoots)
 		{
-			// process in the order of the dependencies, starting from the root (without processing unreferenced nodes)
 			Graph.RecursivelyProcess(Root, *this);
 		}
+	}
 
-		if(ShouldDebugCompositionGraph())
-		{
-			UE_LOG(LogConsoleResponse,Log, TEXT(""));
+	if(ShouldDebugCompositionGraph())
+	{
+		UE_LOG(LogConsoleResponse,Log, TEXT(""));
 
-			GGMLFileWriter.WriteLine("]");
-			GGMLFileWriter.CloseGMLFile();
-		}
+		GGMLFileWriter.WriteLine("]");
+		GGMLFileWriter.CloseGMLFile();
 	}
 }
 

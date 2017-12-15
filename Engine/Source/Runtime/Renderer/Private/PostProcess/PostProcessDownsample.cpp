@@ -23,14 +23,14 @@ class FPostProcessDownsamplePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDownsamplePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return Method != 2 || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return Method != 2 || IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
 		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), ManuallyClampUV);
 	}
@@ -120,7 +120,7 @@ class FPostProcessDownsampleVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FPostProcessDownsampleVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -166,14 +166,14 @@ class FPostProcessDownsampleCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDownsampleCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDownsampleTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDownsampleTileSizeY);

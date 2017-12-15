@@ -1864,7 +1864,7 @@ bool UStaticMeshComponent::UsesOnlyUnlitMaterials() const
 bool UStaticMeshComponent::GetLightMapResolution( int32& Width, int32& Height ) const
 {
 	bool bPadded = false;
-	if( GetStaticMesh() )
+	if (GetStaticMesh())
 	{
 		// Use overridden per component lightmap resolution.
 		if( bOverrideLightMapRes )
@@ -1895,8 +1895,6 @@ void UStaticMeshComponent::GetEstimatedLightMapResolution(int32& Width, int32& H
 {
 	if (GetStaticMesh())
 	{
-		ELightMapInteractionType LMIType = GetStaticLightingType();
-
 		bool bUseSourceMesh = false;
 
 		// Use overridden per component lightmap resolution.

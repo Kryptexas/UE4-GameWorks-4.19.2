@@ -30,6 +30,7 @@
 #include "GameFramework/CheatManager.h"
 #include "Streaming/TextureStreamingHelpers.h"
 #include "PrimitiveSceneProxy.h"
+#include "UObject/RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -252,7 +253,7 @@ bool UPrimitiveComponent::IsEditorOnly() const
 
 bool UPrimitiveComponent::HasStaticLighting() const
 {
-	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
+	return ((Mobility == EComponentMobility::Static) || LightmapType == ELightmapType::ForceSurface) && SupportsStaticLighting();
 }
 
 void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -761,6 +762,16 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 	{
 		BodyInstance.FixupData(this);
 	}
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ReplaceLightAsIfStatic)
+	{
+		if (bLightAsIfStatic_DEPRECATED)
+		{
+			LightmapType = ELightmapType::ForceSurface;
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -787,9 +798,9 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		}
 	}
 
-	if (bLightAsIfStatic && GetStaticLightingType() == LMIT_None)
+	if (LightmapType == ELightmapType::ForceSurface && GetStaticLightingType() == LMIT_None)
 	{
-		bLightAsIfStatic = false;
+		LightmapType = ELightmapType::Default;
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -830,7 +841,6 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		const FName PropertyName = InProperty->GetFName();
 
-		static FName LightAsIfStaticName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic);
 		static FName LightmassSettingsName = TEXT("LightmassSettings");
 		static FName LightingChannelsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightingChannels);
 		static FName SingleSampleShadowFromStationaryLightsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights);
@@ -839,15 +849,9 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 		static FName CastInsetShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow);
 		static FName CastShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow);
 
-		if (PropertyName == LightAsIfStaticName)
-		{
-			// Disable editing bLightAsIfStatic on static components, since it has no effect
-			return Mobility != EComponentMobility::Static;
-		}
-
 		if (PropertyName == LightmassSettingsName)
 		{
-			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
+			return Mobility != EComponentMobility::Movable || LightmapType == ELightmapType::ForceSurface;
 		}
 
 		if (PropertyName == SingleSampleShadowFromStationaryLightsName)
@@ -866,6 +870,12 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			AWorldSettings* WorldSettings = World ? World->GetWorldSettings() : NULL;
 			const bool bILCRelevant = WorldSettings ? (WorldSettings->LightmassSettings.VolumeLightingMethod == VLM_SparseVolumeLightingSamples) : true;
 			return bILCRelevant && Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightmapType))
+		{
+			static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+			return AllowStaticLightingVar->GetValueOnAnyThread() != 0;
 		}
 
 		if (PropertyName == CastInsetShadowName)
@@ -1014,9 +1024,9 @@ void UPrimitiveComponent::PostLoad()
 		}
 	} 
 
-	if (bLightAsIfStatic && GetStaticLightingType() == LMIT_None)
+	if (LightmapType == ELightmapType::ForceSurface && GetStaticLightingType() == LMIT_None)
 	{
-		bLightAsIfStatic = false;
+		LightmapType = ELightmapType::Default;
 	}
 }
 

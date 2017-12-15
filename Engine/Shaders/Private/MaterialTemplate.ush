@@ -1056,7 +1056,7 @@ float2 RotateScaleOffsetTexCoords(float2 InTexCoords, float4 InRotationScale, fl
 #if USES_SPEEDTREE
 
 /** Vertex offset for SpeedTree wind and LOD */
-float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, FSpeedTreeData STData) 
+float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bExtraBend, float3 ExtraBend, FSpeedTreeData STData) 
 {
 	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || IS_MESHPARTICLE_FACTORY
 		return float4(0,0,0);
@@ -1083,12 +1083,10 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 #if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
-		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * ResolvedView.ViewToClip[0][0],
-												View.ViewSizeAndInvSize.y * ResolvedView.ViewToClip[1][1]);
-		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
-									max(1.0, dot(TreePos - ResolvedView.WorldCameraOrigin, ResolvedView.ViewForward.xyz));
-		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
-		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
+		const float Dist = length(TreePos - ResolvedView.WorldCameraOrigin);
+        const float ScreenMultiple = 0.5 * max(ResolvedView.ViewToClip[0][0], ResolvedView.ViewToClip[1][1]);
+        const float ScreenRadius = 2.0 * ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / max(1.0, Dist);
+        LodInterp = saturate((ScreenRadius - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}
 #endif
 	TreePos *= 0.001; // The only other use of the tree position is as an offset into trig functions, but big numbers don't play nice there
@@ -1154,8 +1152,23 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		{
 			// remove anchor pos from vertex position
 			float3 Anchor = float3(Parameters.TexCoords[4].y, Parameters.TexCoords[5].x, Parameters.TexCoords[5].y);
+
+			// face camera-facing leaves to the camera, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
+			{
+				// have to rotate the view into local space
+				FinalPosition = LocalPosition - Anchor;
+				FinalPosition = FinalPosition.x * ResolvedView.ViewRight + 
+								FinalPosition.y * ResolvedView.ViewUp + 
+								FinalPosition.z * ResolvedView.ViewForward;
+			}
+			
 			Anchor = (mul(Anchor, LocalToWorld)) / TreeScale;
-			FinalPosition -= Anchor;
+			
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF)
+			{
+				FinalPosition -= Anchor;
+			}
 
 			// smooth LOD
 			#if !USE_INSTANCING
@@ -1174,15 +1187,6 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 					}
 				}
 			#endif
-
-			// face camera-facing leaves to the camera, if needed
-			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
-			{
-				// have to rotate the view into local space
-				FinalPosition = FinalPosition.x * ResolvedView.ViewRight + 
-								FinalPosition.y * ResolvedView.ViewUp + 
-								FinalPosition.z * ResolvedView.ViewForward;
-			}
 
 			// leaf wind
 			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType != SPEEDTREE_WIND_TYPE_PALM) 
@@ -1205,9 +1209,10 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 	}
 
 	// global wind can apply to the whole tree, even billboards
-	if (WindType != SPEEDTREE_WIND_TYPE_NONE)
+	bool bHasGlobal = (WindType != SPEEDTREE_WIND_TYPE_NONE);
+	if (bExtraBend || bHasGlobal)
 	{
-		FinalPosition = GlobalWind(STData, FinalPosition, TreePos, true);
+		FinalPosition = GlobalWind(STData, FinalPosition, TreePos, true, bHasGlobal, bExtraBend, ExtraBend);
 	}
 
 	// convert into a world space offset
@@ -1215,14 +1220,14 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 }
 
 /** Vertex offset for SpeedTree wind and LOD */
-float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame) 
+float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame, bool bExtraBend, float3 ExtraBend) 
 {
 #if VF_SUPPORTS_SPEEDTREE_WIND
 	if (bUsePreviousFrame)
 	{
-		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetPreviousSpeedTreeData());
+		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, bExtraBend, ExtraBend, GetPreviousSpeedTreeData());
 	}
-	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetCurrentSpeedTreeData());
+	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, bExtraBend, ExtraBend, GetCurrentSpeedTreeData());
 #else
 	return 0;
 #endif

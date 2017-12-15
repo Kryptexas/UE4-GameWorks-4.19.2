@@ -330,7 +330,7 @@ static MTLVertexDescriptor* GetMaskedVertexDescriptor(MTLVertexDescriptor* Input
 	{
 		if (!(InOutMask & (1 << Attr)) && [InputDesc.attributes objectAtIndexedSubscript:Attr] != nil)
 		{
-			MTLVertexDescriptor* Desc = [InputDesc copy];
+			MTLVertexDescriptor* Desc = [[InputDesc copy] autorelease];
 			uint32 BuffersUsed = 0;
 			for (uint32 i = 0; i < MaxMetalStreams; i++)
 			{
@@ -370,25 +370,28 @@ static FMetalShaderPipeline* CreateMTLRenderPipeline(bool const bSync, FMetalGra
     FMetalShaderPipeline* Pipeline = nil;
     if (vertexFunction && ((PixelShader != nullptr) == (fragmentFunction != nil)) && ((DomainShader != nullptr) == (domainFunction != nil)))
     {
-        Pipeline = [FMetalShaderPipeline new];
-        METAL_DEBUG_OPTION(FMemory::Memzero(Pipeline->ResourceMask, sizeof(Pipeline->ResourceMask)));
-
         NSError* Error = nil;
         id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
 
-        MTLRenderPipelineDescriptor* RenderPipelineDesc = [MTLRenderPipelineDescriptor new];
-        MTLComputePipelineDescriptor* ComputePipelineDesc = nil;
-        
-        
-        uint32 const NumActiveTargets = Init.ComputeNumValidRenderTargets();
+		uint32 const NumActiveTargets = Init.ComputeNumValidRenderTargets();
         check(NumActiveTargets <= MaxSimultaneousRenderTargets);
         if (PixelShader)
         {
-            check((PixelShader->Bindings.InOutMask & 0x8000) || (PixelShader->Bindings.InOutMask & 0x7fff) > 0 || PixelShader->Bindings.NumUAVs > 0);
+			if ((PixelShader->Bindings.InOutMask & 0x8000) == 0 && (PixelShader->Bindings.InOutMask & 0x7fff) == 0 && PixelShader->Bindings.NumUAVs == 0 && PixelShader->Bindings.bDiscards == false)
+			{
+				UE_LOG(LogMetal, Error, TEXT("Pixel shader has no outputs which is not permitted. No Discards, In-Out Mask: %x\nNumber UAVs: %d\nSource Code:\n%s"), PixelShader->Bindings.InOutMask, PixelShader->Bindings.NumUAVs, *FString(PixelShader->GetSourceCode()));
+				return nil;
+			}
             
             UE_CLOG((NumActiveTargets < __builtin_popcount(PixelShader->Bindings.InOutMask & 0x7fff)), LogMetal, Verbose, TEXT("NumActiveTargets doesn't match pipeline's pixel shader output mask: %u, %hx"), NumActiveTargets, PixelShader->Bindings.InOutMask);
         }
         
+		Pipeline = [FMetalShaderPipeline new];
+		METAL_DEBUG_OPTION(FMemory::Memzero(Pipeline->ResourceMask, sizeof(Pipeline->ResourceMask)));
+
+		MTLRenderPipelineDescriptor* RenderPipelineDesc = [MTLRenderPipelineDescriptor new];
+		MTLComputePipelineDescriptor* ComputePipelineDesc = nil;
+		
         FMetalBlendState* BlendState = (FMetalBlendState*)Init.BlendState;
         
         for (uint32 i = 0; i < NumActiveTargets; i++)
@@ -475,7 +478,7 @@ static FMetalShaderPipeline* CreateMTLRenderPipeline(bool const bSync, FMetalGra
 
         FMetalHullShader* HullShader = (FMetalHullShader*)Init.BoundShaderState.HullShaderRHI;
         
-        if(RenderPipelineDesc.depthAttachmentPixelFormat == MTLPixelFormatInvalid && PixelShader && ((PixelShader->Bindings.InOutMask & 0x8000) || (PixelShader->Bindings.NumUAVs > 0)))
+        if(RenderPipelineDesc.depthAttachmentPixelFormat == MTLPixelFormatInvalid && PixelShader && ((PixelShader->Bindings.InOutMask & 0x8000) || (NumActiveTargets == 0 && (PixelShader->Bindings.NumUAVs > 0))))
         {
             RenderPipelineDesc.depthAttachmentPixelFormat = (MTLPixelFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;
             RenderPipelineDesc.stencilAttachmentPixelFormat = (MTLPixelFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;

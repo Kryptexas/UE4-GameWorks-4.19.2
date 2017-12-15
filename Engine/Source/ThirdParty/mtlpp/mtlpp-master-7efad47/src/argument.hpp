@@ -7,16 +7,11 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "texture.hpp"
 
-MTLPP_CLASS(MTLType);
-MTLPP_CLASS(MTLTextureReferenceType);
-MTLPP_CLASS(MTLPointerType);
-MTLPP_CLASS(MTLStructType);
-MTLPP_CLASS(MTLStructMember);
-MTLPP_CLASS(MTLArrayType);
-MTLPP_CLASS(MTLArgument);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -103,22 +98,22 @@ namespace mtlpp
 		Sampler MTLPP_AVAILABLE(10_13, 11_0) = 59,
 		Pointer MTLPP_AVAILABLE(10_13, 11_0) = 60,
 		
-		R8Unorm         MTLPP_AVAILABLE(NA, 11_0) = 62,
-		R8Snorm         MTLPP_AVAILABLE(NA, 11_0) = 63,
-		R16Unorm        MTLPP_AVAILABLE(NA, 11_0) = 64,
-		R16Snorm        MTLPP_AVAILABLE(NA, 11_0) = 65,
-		RG8Unorm        MTLPP_AVAILABLE(NA, 11_0) = 66,
-		RG8Snorm        MTLPP_AVAILABLE(NA, 11_0) = 67,
-		RG16Unorm       MTLPP_AVAILABLE(NA, 11_0) = 68,
-		RG16Snorm       MTLPP_AVAILABLE(NA, 11_0) = 69,
-		RGBA8Unorm      MTLPP_AVAILABLE(NA, 11_0) = 70,
-		RGBA8Unorm_sRGB MTLPP_AVAILABLE(NA, 11_0) = 71,
-		RGBA8Snorm      MTLPP_AVAILABLE(NA, 11_0) = 72,
-		RGBA16Unorm     MTLPP_AVAILABLE(NA, 11_0) = 73,
-		RGBA16Snorm     MTLPP_AVAILABLE(NA, 11_0) = 74,
-		RGB10A2Unorm    MTLPP_AVAILABLE(NA, 11_0) = 75,
-		RG11B10Float    MTLPP_AVAILABLE(NA, 11_0) = 76,
-		RGB9E5Float     MTLPP_AVAILABLE(NA, 11_0) = 77,
+		R8Unorm         MTLPP_AVAILABLE_IOS(11_0) = 62,
+		R8Snorm         MTLPP_AVAILABLE_IOS(11_0) = 63,
+		R16Unorm        MTLPP_AVAILABLE_IOS(11_0) = 64,
+		R16Snorm        MTLPP_AVAILABLE_IOS(11_0) = 65,
+		RG8Unorm        MTLPP_AVAILABLE_IOS(11_0) = 66,
+		RG8Snorm        MTLPP_AVAILABLE_IOS(11_0) = 67,
+		RG16Unorm       MTLPP_AVAILABLE_IOS(11_0) = 68,
+		RG16Snorm       MTLPP_AVAILABLE_IOS(11_0) = 69,
+		RGBA8Unorm      MTLPP_AVAILABLE_IOS(11_0) = 70,
+		RGBA8Unorm_sRGB MTLPP_AVAILABLE_IOS(11_0) = 71,
+		RGBA8Snorm      MTLPP_AVAILABLE_IOS(11_0) = 72,
+		RGBA16Unorm     MTLPP_AVAILABLE_IOS(11_0) = 73,
+		RGBA16Snorm     MTLPP_AVAILABLE_IOS(11_0) = 74,
+		RGB10A2Unorm    MTLPP_AVAILABLE_IOS(11_0) = 75,
+		RG11B10Float    MTLPP_AVAILABLE_IOS(11_0) = 76,
+		RGB9E5Float     MTLPP_AVAILABLE_IOS(11_0) = 77,
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
@@ -173,8 +168,8 @@ namespace mtlpp
 		
 		DataType   GetElementType() const;
 		ArgumentAccess GetAccess() const;
-		uint32_t GetAlignment() const;
-		uint32_t GetDataSize() const;
+		NSUInteger GetAlignment() const;
+		NSUInteger GetDataSize() const;
 		bool GetElementIsArgumentBuffer() const;
 		
 		StructType GetElementStructType();
@@ -189,7 +184,7 @@ namespace mtlpp
         StructMember(MTLStructMember* handle) : ns::Object<MTLStructMember*>(handle) { }
 
         ns::String GetName() const;
-        uint32_t   GetOffset() const;
+        NSUInteger   GetOffset() const;
         DataType   GetDataType() const;
 
         StructType GetStructType() const;
@@ -218,9 +213,9 @@ namespace mtlpp
         ArrayType();
         ArrayType(MTLArrayType* handle) : ns::Object<MTLArrayType*>(handle) { }
 
-        uint32_t   GetArrayLength() const;
+        NSUInteger   GetArrayLength() const;
         DataType   GetElementType() const;
-        uint32_t   GetStride() const;
+        NSUInteger   GetStride() const;
         StructType GetElementStructType() const;
         ArrayType  GetElementArrayType() const;
 		
@@ -239,25 +234,26 @@ namespace mtlpp
         ns::String     GetName() const;
         ArgumentType   GetType() const;
         ArgumentAccess GetAccess() const;
-        uint32_t       GetIndex() const;
+        NSUInteger       GetIndex() const;
 
         bool           IsActive() const;
 
-        uint32_t       GetBufferAlignment() const;
-        uint32_t       GetBufferDataSize() const;
+        NSUInteger       GetBufferAlignment() const;
+        NSUInteger       GetBufferDataSize() const;
         DataType       GetBufferDataType() const;
         StructType     GetBufferStructType() const;
 		PointerType	   GetBufferPointerType() const MTLPP_AVAILABLE(10_13, 11_0);
 
-        uint32_t       GetThreadgroupMemoryAlignment() const;
-        uint32_t       GetThreadgroupMemoryDataSize() const;
+        NSUInteger       GetThreadgroupMemoryAlignment() const;
+        NSUInteger       GetThreadgroupMemoryDataSize() const;
 
         TextureType    GetTextureType() const;
         DataType       GetTextureDataType() const;
 
         bool           IsDepthTexture() const MTLPP_AVAILABLE(10_12, 10_0);
-        uint32_t       GetArrayLength() const MTLPP_AVAILABLE(10_13, 11_0);
+        NSUInteger       GetArrayLength() const MTLPP_AVAILABLE(10_13, 11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

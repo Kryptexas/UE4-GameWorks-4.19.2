@@ -200,7 +200,7 @@ class FTangoCameraOverlayVS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FTangoCameraOverlayVS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}
@@ -240,7 +240,7 @@ class FTangoCameraOverlayPS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FTangoCameraOverlayPS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}

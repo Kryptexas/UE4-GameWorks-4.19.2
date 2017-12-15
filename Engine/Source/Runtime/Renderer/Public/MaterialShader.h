@@ -123,12 +123,8 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetViewParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
 	{
 		const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
-		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 		CheckShaderIsValid();
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, ViewUniformBuffer);
-#if USE_GBuiltinSamplersUniformBuffer
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
-#endif
 
 		if (View.bShouldBindInstancedViewUB && View.Family->Views.Num() > 0)
 		{
@@ -142,9 +138,7 @@ public:
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
+	{ }
 
 	/** Sets pixel parameters that are material specific but not FMeshBatch specific. */
 	template< typename ShaderRHIParamRef >

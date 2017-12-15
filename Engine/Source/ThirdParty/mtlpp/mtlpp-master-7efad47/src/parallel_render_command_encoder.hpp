@@ -7,12 +7,14 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_ParallelRenderCommandEncoder.hpp"
 #include "ns.hpp"
 #include "render_pass.hpp"
 #include "command_encoder.hpp"
 
-MTLPP_PROTOCOL(MTLParallelRenderCommandEncoder);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -26,14 +28,15 @@ namespace mtlpp
 
         RenderCommandEncoder GetRenderCommandEncoder();
 
-        void SetColorStoreAction(StoreAction storeAction, uint32_t colorAttachmentIndex) MTLPP_AVAILABLE(10_12, 10_0);
+        void SetColorStoreAction(StoreAction storeAction, NSUInteger colorAttachmentIndex) MTLPP_AVAILABLE(10_12, 10_0);
         void SetDepthStoreAction(StoreAction storeAction) MTLPP_AVAILABLE(10_12, 10_0);
         void SetStencilStoreAction(StoreAction storeAction) MTLPP_AVAILABLE(10_12, 10_0);
 		
-		void SetColorStoreActionOptions(StoreActionOptions options, uint32_t colorAttachmentIndex) MTLPP_AVAILABLE(10_13, 11_0);
+		void SetColorStoreActionOptions(StoreActionOptions options, NSUInteger colorAttachmentIndex) MTLPP_AVAILABLE(10_13, 11_0);
 		void SetDepthStoreActionOptions(StoreActionOptions options) MTLPP_AVAILABLE(10_13, 11_0);
 		void SetStencilStoreActionOptions(StoreActionOptions options) MTLPP_AVAILABLE(10_13, 11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

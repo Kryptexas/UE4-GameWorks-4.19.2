@@ -2,61 +2,84 @@
 
 #pragma once
 
-#include <assert.h>
-#include <objc/runtime.h>
+#include "declare.hpp"
+#include "imp_SelectorCache.hpp"
+#include "imp_Object.hpp"
+
+MTLPP_BEGIN
 
 namespace ue4
 {
-	template<typename ReturnType, bool ClassMethod, typename... Args>
-	class Selector
+	template<typename ObjC, typename Interpose>
+	class imp_cache
 	{
-		typedef ReturnType (*TypeSafeIMP)(Args...);
-		TypeSafeIMP Implementation;
-	public:
-		Selector(Class InClass, SEL InSelector)
+		imp_cache() {}
+		~imp_cache()
 		{
-			assert(InClass && InSelector);
-			if (ClassMethod)
+			for(auto entry : Impls)
 			{
-				Implementation = (TypeSafeIMP)class_getClassMethod(InClass, InSelector);
+				delete entry.second;
 			}
-			else
-			{
-				Implementation = (TypeSafeIMP)class_getMethodImplementation(InClass, InSelector);
-			}
-			assert(Implementation);
 		}
 		
-		ReturnType operator()(Args... InArgs)
+	public:
+		typedef IMPTable<ObjC, Interpose> table;
+		
+		static table* Register(ObjC Object)
 		{
-			return Implementation(InArgs...);
+			static imp_cache Self;
+			table* impTable = nullptr;
+			if(Object)
+			{
+				Class c = object_getClass(Object);
+				Self.Lock.lock();
+				auto it = Self.Impls.find(c);
+				if (it != Self.Impls.end())
+				{
+					impTable = it->second;
+				}
+				else
+				{
+					impTable = new table(c);
+					Self.Impls.emplace(c, impTable);
+				}
+				Self.Lock.unlock();
+			}
+			return impTable;
 		}
+		
+	private:
+		std::mutex Lock;
+		std::unordered_map<Class, table*> Impls;
 	};
 	
-	template<bool ClassMethod, typename... Args>
-	class Selector<void, ClassMethod, Args...>
+	template<typename T>
+	static inline IMPTable<T, void>* CreateIMPTable(const T handle)
 	{
-		typedef void (*TypeSafeIMP)(Args...);
-		TypeSafeIMP Implementation;
-	public:
-		Selector(Class InClass, SEL InSelector)
+		if (handle)
 		{
-			assert(InClass && InSelector);
-			if (ClassMethod)
-			{
-				Implementation = (TypeSafeIMP)class_getClassMethod(InClass, InSelector);
-			}
-			else
-			{
-				Implementation = (TypeSafeIMP)class_getMethodImplementation(InClass, InSelector);
-			}
-			assert(Implementation);
+			return imp_cache<T, void>::Register(handle);
 		}
-		
-		void operator()(Args... InArgs)
+		else
 		{
-			Implementation(InArgs...);
+			return nullptr;
 		}
-	};
+	}
+	
+	template<>
+	inline IMPTable<IOSurfaceRef, void>* CreateIMPTable(const IOSurfaceRef handle)
+	{
+		static IMPTable<IOSurfaceRef, void> Table;
+		return &Table;
+	}
+	
+	template<>
+	inline IMPTable<NSError*, void>* CreateIMPTable(NSError* handle)
+	{
+		static IMPTable<NSError*, void> Table(objc_getRequiredClass("NSError"));
+		return &Table;
+	}
 }
+
+MTLPP_END
 

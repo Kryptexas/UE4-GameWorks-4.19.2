@@ -221,14 +221,14 @@ class FPostProcessTemporalAAPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTemporalAAPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		// PassConfig == 4 is MainFast.
 		// Responsive == 2 is camera cut.
@@ -304,14 +304,14 @@ class FPostProcessTemporalAACS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTemporalAACS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("TAA_PASS_CONFIG"), PassConfig);
 		OutEnvironment.SetDefine(TEXT("TAA_FAST"), UseFast);
 		OutEnvironment.SetDefine(TEXT("TAA_SCREEN_PERCENTAGE_RANGE"), ScreenPercentageRange);
@@ -867,7 +867,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 		Context.SetViewportAndCallRHI(ViewRect);
 
-		if(Context.View.bCameraCut)
+		if(!Context.View.PrevViewInfo.TemporalAAHistory.IsValid())
 		{
 			// On camera cut this turns on responsive everywhere.
 			if (bUseFast)
@@ -973,7 +973,7 @@ void DispatchMainCSTemplate(
 	const bool bUseDither,
 	FTextureRHIParamRef EyeAdaptationTex)
 {
-	if (Context.View.bCameraCut)
+	if (!Context.View.PrevViewInfo.TemporalAAHistory.IsValid())
 	{
 		if (bUseFast)
 		{

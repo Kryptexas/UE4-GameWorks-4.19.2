@@ -203,9 +203,9 @@ class FPostProcessSelectionOutlinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSelectionOutlinePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if(!IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
+		if(!IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5))
 		{
 			if(MSAASampleCount > 1)
 			{
@@ -213,12 +213,12 @@ class FPostProcessSelectionOutlinePS : public FGlobalShader
 			}
 		}
 
-		return IsPCPlatform(Platform);
+		return IsPCPlatform(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("MSAA_SAMPLE_COUNT"), MSAASampleCount);
 	}
 

@@ -310,19 +310,19 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 		{
 			const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
 			// Figure out whether we are storing the lighting/ shadowing information in a texture or vertex buffer.
-			bool bUseTextureMap;
+			bool bValidTextureMap;
 			if( (BaseLightMapWidth > 0) && (BaseLightMapHeight > 0) 
 				&& GetStaticMesh()->LightMapCoordinateIndex >= 0
 				&& (uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords())
 			{
-				bUseTextureMap = true;
+				bValidTextureMap = true;
 			}
 			else
 			{
-				bUseTextureMap = false;
+				bValidTextureMap = false;
 			}
 
-			if(bUseTextureMap)
+			if (bValidTextureMap)
 			{
 				// Create a static lighting mesh for the LOD.
 				FStaticMeshStaticLightingMesh* StaticLightingMesh = AllocateStaticLightingMesh(LODIndex,InRelevantLights);
@@ -332,9 +332,18 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 				// Shrink LOD texture lightmaps by half for each LOD level
 				const int32 LightMapWidth = LODIndex > 0 ? FMath::Max(BaseLightMapWidth / (2 << (LODIndex - 1)), 32) : BaseLightMapWidth;
 				const int32 LightMapHeight = LODIndex > 0 ? FMath::Max(BaseLightMapHeight / (2 << (LODIndex - 1)), 32) : BaseLightMapHeight;
-				// Create a static lighting texture mapping for the LOD.
-				OutPrimitiveInfo.Mappings.Add(new FStaticMeshStaticLightingTextureMapping(
-					this,LODIndex,StaticLightingMesh,LightMapWidth,LightMapHeight, GetStaticMesh()->LightMapCoordinateIndex,true));
+
+				if (LightmapType == ELightmapType::ForceVolumetric)
+				{
+					OutPrimitiveInfo.Mappings.Add(new FStaticLightingGlobalVolumeMapping(
+						StaticLightingMesh,this,LightMapWidth,LightMapHeight, GetStaticMesh()->LightMapCoordinateIndex));
+				}
+				else
+				{
+					// Create a static lighting texture mapping for the LOD.
+					OutPrimitiveInfo.Mappings.Add(new FStaticMeshStaticLightingTextureMapping(
+						this,LODIndex,StaticLightingMesh,LightMapWidth,LightMapHeight, GetStaticMesh()->LightMapCoordinateIndex,true));
+				}
 			}
 		}
 
@@ -364,35 +373,50 @@ void UStaticMeshComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
 
 ELightMapInteractionType UStaticMeshComponent::GetStaticLightingType() const
 {
+	ELightMapInteractionType InteractionType = LMIT_None;
+
 	bool bUseTextureMap = false;
 	if( HasValidSettingsForStaticLighting(false) )
 	{
-		// Process each LOD separately.
-		for(int32 LODIndex = 0;LODIndex < GetStaticMesh()->RenderData->LODResources.Num();LODIndex++)
+		if (LightmapType == ELightmapType::ForceVolumetric)
 		{
-			const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
-
-			// Figure out whether we are storing the lighting/ shadowing information in a texture or vertex buffer.
-			int32		LightMapWidth	= 0;
-			int32		LightMapHeight	= 0;
-			GetLightMapResolution( LightMapWidth, LightMapHeight );
-
-			if ((LightMapWidth > 0) && (LightMapHeight > 0) &&	
-				(GetStaticMesh()->LightMapCoordinateIndex >= 0) &&
-				((uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords())
-				)
+			InteractionType = LMIT_GlobalVolume;
+		}
+		else
+		{
+			// Process each LOD separately.
+			for(int32 LODIndex = 0;LODIndex < GetStaticMesh()->RenderData->LODResources.Num();LODIndex++)
 			{
-				bUseTextureMap = true;
-				break;
+				const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
+
+				// Figure out whether we are storing the lighting/ shadowing information in a texture or vertex buffer.
+				int32		LightMapWidth	= 0;
+				int32		LightMapHeight	= 0;
+				GetLightMapResolution( LightMapWidth, LightMapHeight );
+
+				if ((LightMapWidth > 0) && (LightMapHeight > 0) &&	
+					(GetStaticMesh()->LightMapCoordinateIndex >= 0) &&
+					((uint32)GetStaticMesh()->LightMapCoordinateIndex < LODRenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords())
+					)
+				{
+					InteractionType = LMIT_Texture;
+					break;
+				}
 			}
 		}
 	}
 
-	return (bUseTextureMap == true) ? LMIT_Texture : LMIT_None;
+	return InteractionType;
 }
 
 bool UStaticMeshComponent::IsPrecomputedLightingValid() const
 {
+	if (LightmapType == ELightmapType::ForceVolumetric)
+	{
+		// No unbuilt tracking mechanism
+		return true;
+	}
+
 	if (LODData.Num() > 0)
 	{
 		return GetMeshMapBuildData(LODData[0]) != NULL;

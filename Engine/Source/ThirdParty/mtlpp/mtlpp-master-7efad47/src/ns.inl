@@ -6,6 +6,7 @@
 // Modifications for Unreal Engine
 
 #include "ns.hpp"
+#include "imp_cache.hpp"
 #ifdef __OBJC__
 #import <CoreFoundation/CFBase.h>
 #import <Foundation/NSString.h>
@@ -16,81 +17,108 @@
 
 namespace ns
 {
-	template<typename T>
-    Object<T>::Object() :
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>::Object() :
         m_ptr(nullptr),
+		m_table(nullptr),
 		RefCount(0)
     {
+		m_table = ue4::CreateIMPTable((T)nullptr);
     }
 
-	template<typename T>
-    Object<T>::Object(const T handle, bool const retain) :
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>::Object(const T handle, bool const retain, ITable* table) :
 	m_ptr(handle),
+	m_table(table),
 	RefCount(0)
     {
-#ifdef __OBJC__
-		if (m_ptr && retain)
-			CFRetain(m_ptr);
-#endif
+		if (m_ptr)
+		{
+			if (!m_table)
+			{
+				m_table = ue4::CreateIMPTable(handle);
+			}
+			if (!bAutoReleased)
+			{
+				if (retain)
+				{
+					assert(m_table);
+					m_table->Retain(m_ptr);
+				}
+			}
+		}
     }
 
-	template<typename T>
-    Object<T>::Object(const Object& rhs) :
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>::Object(const Object& rhs) :
 	m_ptr(rhs.m_ptr),
+	m_table(rhs.m_table),
 	RefCount(0)
     {
-#ifdef __OBJC__
-		if (m_ptr)
-            CFRetain(m_ptr);
-#endif
+		if (!bAutoReleased && m_ptr)
+		{
+			assert(m_table);
+			m_table->Retain(m_ptr);
+		}
     }
 
 #if MTLPP_CONFIG_RVALUE_REFERENCES
-	template<typename T>
-    Object<T>::Object(Object&& rhs) :
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>::Object(Object&& rhs) :
 	m_ptr(rhs.m_ptr),
+	m_table(rhs.m_table),
 	RefCount(0)
     {
         rhs.m_ptr = nullptr;
+		rhs.m_table = nullptr;
     }
 #endif
 
-	template<typename T>
-    Object<T>::~Object()
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>::~Object()
     {
-#ifdef __OBJC__
-        if (m_ptr)
-            CFRelease(m_ptr);
-#endif
+		if (!bAutoReleased && m_ptr)
+		{
+			assert(m_table);
+			m_table->Release(m_ptr);
+		}
     }
 
-	template<typename T>
-    Object<T>& Object<T>::operator=(const Object& rhs)
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>& Object<T, bAutoReleased>::operator=(const Object& rhs)
     {
-        if (rhs.m_ptr == m_ptr)
+        if (rhs.m_ptr == m_ptr && rhs.m_table == m_table)
             return *this;
-#ifdef __OBJC__
-        if (rhs.m_ptr)
-            CFRetain(rhs.m_ptr);
-        if (m_ptr)
-            CFRelease(m_ptr);
-#endif
+        if (!bAutoReleased && rhs.m_ptr)
+		{
+			assert(rhs.m_table);
+			rhs.m_table->Retain(rhs.m_ptr);
+		}
+        if (!bAutoReleased && m_ptr)
+		{
+			assert(m_table);
+			m_table->Release(m_ptr);
+		}
         m_ptr = rhs.m_ptr;
+		m_table = rhs.m_table;
         return *this;
     }
 
 #if MTLPP_CONFIG_RVALUE_REFERENCES
-	template<typename T>
-    Object<T>& Object<T>::operator=(Object&& rhs)
+	template<typename T, bool bAutoReleased>
+    Object<T, bAutoReleased>& Object<T, bAutoReleased>::operator=(Object&& rhs)
     {
-        if (rhs.m_ptr == m_ptr)
+        if (rhs.m_ptr == m_ptr && rhs.m_table == m_table)
             return *this;
-#ifdef __OBJC__
-        if (m_ptr)
-            CFRelease(m_ptr);
-#endif
+        if (!bAutoReleased && m_ptr)
+		{
+			assert(m_table);
+			m_table->Release(m_ptr);
+		}
         m_ptr = rhs.m_ptr;
         rhs.m_ptr = nullptr;
+		m_table = rhs.m_table;
+		rhs.m_table = nullptr;
         return *this;
     }
 #endif

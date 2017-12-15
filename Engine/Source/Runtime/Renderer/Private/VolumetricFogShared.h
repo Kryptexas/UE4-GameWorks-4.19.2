@@ -99,7 +99,7 @@ public:
 
 		if (UnjitteredPrevWorldToClip.IsBound())
 		{
-			FMatrix UnjitteredViewProjectionMatrix = View.PrevViewMatrices.GetViewMatrix() * View.PrevViewMatrices.ComputeProjectionNoAAMatrix();
+			FMatrix UnjitteredViewProjectionMatrix = View.PrevViewInfo.ViewMatrices.GetViewMatrix() * View.PrevViewInfo.ViewMatrices.ComputeProjectionNoAAMatrix();
 			SetShaderValue(RHICmdList, ShaderRHI, UnjitteredPrevWorldToClip, UnjitteredViewProjectionMatrix);
 		}
 

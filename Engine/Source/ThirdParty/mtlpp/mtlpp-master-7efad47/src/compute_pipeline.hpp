@@ -7,28 +7,57 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_ComputePipeline.hpp"
 #include "device.hpp"
 #include "argument.hpp"
+#include "pipeline.hpp"
 #include "stage_input_output_descriptor.hpp"
 
-MTLPP_CLASS(MTLComputePipelineReflection);
-MTLPP_CLASS(MTLComputePipelineDescriptor);
-MTLPP_PROTOCOL(MTLComputePipelineState);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
 	class PipelineBufferDescriptor;
 	
-    class ComputePipelineReflection : public ns::Object<MTLComputePipelineReflection*>
+    class AutoReleasedComputePipelineReflection : public ns::Object<MTLComputePipelineReflection*, true>
     {
+		AutoReleasedComputePipelineReflection(const AutoReleasedComputePipelineReflection& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedComputePipelineReflection(AutoReleasedComputePipelineReflection&& rhs) = delete;
+#endif
+		AutoReleasedComputePipelineReflection& operator=(const AutoReleasedComputePipelineReflection& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedComputePipelineReflection& operator=(AutoReleasedComputePipelineReflection&& rhs) = delete;
+#endif
+		
+		friend class ComputePipelineReflection;
     public:
-        ComputePipelineReflection();
-        ComputePipelineReflection(MTLComputePipelineReflection* handle) : ns::Object<MTLComputePipelineReflection*>(handle) { }
+        AutoReleasedComputePipelineReflection();
+        AutoReleasedComputePipelineReflection(MTLComputePipelineReflection* handle) : ns::Object<MTLComputePipelineReflection*, true>(handle) { }
 
         ns::Array<Argument> GetArguments() const;
     }
     MTLPP_AVAILABLE(10_11, 9_0);
+	
+	class ComputePipelineReflection : public ns::Object<MTLComputePipelineReflection*>
+	{
+	public:
+		ComputePipelineReflection();
+		ComputePipelineReflection(MTLComputePipelineReflection* handle) : ns::Object<MTLComputePipelineReflection*>(handle) { }
+		ComputePipelineReflection(const AutoReleasedComputePipelineReflection& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		ComputePipelineReflection(const AutoReleasedComputePipelineReflection&& rhs);
+#endif
+		ComputePipelineReflection& operator=(const AutoReleasedComputePipelineReflection& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		ComputePipelineReflection& operator=(AutoReleasedComputePipelineReflection&& rhs);
+#endif
+		
+		ns::Array<Argument> GetArguments() const;
+	}
+	MTLPP_AVAILABLE(10_11, 9_0);
 
     class ComputePipelineDescriptor : public ns::Object<MTLComputePipelineDescriptor*>
     {
@@ -46,7 +75,6 @@ namespace mtlpp
         void SetComputeFunction(const Function& function);
         void SetThreadGroupSizeIsMultipleOfThreadExecutionWidth(bool value);
         void SetStageInputDescriptor(const StageInputOutputDescriptor& stageInputDescriptor) const MTLPP_AVAILABLE(10_12, 10_0);
-		void SetBuffers(ns::Array<PipelineBufferDescriptor> const& array) MTLPP_AVAILABLE(10_13, 11_0);
 
         void Reset();
     }
@@ -59,11 +87,13 @@ namespace mtlpp
         ComputePipelineState(ns::Protocol<id<MTLComputePipelineState>>::type handle) : ns::Object<ns::Protocol<id<MTLComputePipelineState>>::type>(handle) { }
 
         Device   GetDevice() const;
-        uint32_t GetMaxTotalThreadsPerThreadgroup() const;
-        uint32_t GetThreadExecutionWidth() const;
-		uint32_t GetStaticThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
+        NSUInteger GetMaxTotalThreadsPerThreadgroup() const;
+        NSUInteger GetThreadExecutionWidth() const;
+		NSUInteger GetStaticThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
 		
-		uint32_t GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) MTLPP_AVAILABLE_IOS(11_0);
+		NSUInteger GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

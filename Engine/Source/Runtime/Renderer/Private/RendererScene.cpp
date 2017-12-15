@@ -935,7 +935,6 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	PrimitiveSceneProxy->GetPrimitiveSceneInfo()->RemoveFromScene(bUpdateStaticDrawLists);
 	
 	// Update the primitive motion blur information.
-	// hack
 	FScene* Scene = (FScene*)&PrimitiveSceneProxy->GetScene();
 
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
@@ -948,7 +947,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
 	if (!RHISupportsVolumeTextures(GetFeatureLevel())
-		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
+		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting() || PrimitiveSceneProxy->GetLightmapType() == ELightmapType::ForceVolumetric))
 	{
 		PrimitiveSceneProxy->GetPrimitiveSceneInfo()->MarkPrecomputedLightingBufferDirty();
 	}

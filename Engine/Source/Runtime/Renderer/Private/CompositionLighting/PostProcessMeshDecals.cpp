@@ -30,7 +30,7 @@
 class FMeshDecalAccumulatePolicy
 {	
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return Material && Material->IsDeferredDecal() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
@@ -54,9 +54,9 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FMeshDecalAccumulatePolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return FMeshDecalAccumulatePolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 public:
@@ -88,10 +88,10 @@ protected:
 
 	FMeshDecalHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& FMeshDecalAccumulatePolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& FMeshDecalAccumulatePolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -110,10 +110,10 @@ protected:
 
 	FMeshDecalDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& FMeshDecalAccumulatePolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& FMeshDecalAccumulatePolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -130,9 +130,9 @@ class FMeshDecalsPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FMeshDecalsPS, MeshMaterial);
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		return FMeshDecalAccumulatePolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return FMeshDecalAccumulatePolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	FMeshDecalsPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

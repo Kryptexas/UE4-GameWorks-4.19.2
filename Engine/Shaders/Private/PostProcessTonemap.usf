@@ -528,7 +528,14 @@ float4 TonemapCommonPS(
 		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
 		{
 			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
+		}		
+		else if (GetOutputDevice() == 7)
+		{
+			OutColor.xyz = ST2084ToLinear(OutColor.xyz);
 		}
+		
+
+
 	#endif
 
 #if DEBUG_TONEMAPPER

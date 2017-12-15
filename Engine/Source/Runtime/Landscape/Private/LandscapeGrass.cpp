@@ -199,7 +199,7 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return ShouldCacheLandscapeGrassShaders(Platform, Material, VertexFactoryType);
 	}
@@ -231,7 +231,7 @@ class FLandscapeGrassWeightPS : public FMeshMaterialShader
 	FShaderParameter OutputPassParameter;
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return ShouldCacheLandscapeGrassShaders(Platform, Material, VertexFactoryType);
 	}

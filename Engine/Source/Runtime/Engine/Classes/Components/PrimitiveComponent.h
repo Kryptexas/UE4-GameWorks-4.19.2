@@ -214,6 +214,9 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Component for HLOD Mesh generation"))
 	uint8 bEnableAutoLODGeneration : 1;
 #endif 
+	/** Controls the type of lightmap used for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	ELightmapType LightmapType;
 
 public:
 
@@ -409,13 +412,8 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Shadow Two Sided"))
 	uint8 bCastShadowAsTwoSided:1;
 
-	/** 
-	 * Whether to light this primitive as if it were static, including generating lightmaps.  
-	 * This only has an effect for component types that can bake lighting, like static mesh components.
-	 * This is useful for moving meshes that don't change significantly.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
-	uint8 bLightAsIfStatic:1;
+	UPROPERTY()
+	uint8 bLightAsIfStatic_DEPRECATED:1;
 
 	/** 
 	 * Whether to light this component and any attachments as a group.  This only has effect on the root component of an attachment tree.

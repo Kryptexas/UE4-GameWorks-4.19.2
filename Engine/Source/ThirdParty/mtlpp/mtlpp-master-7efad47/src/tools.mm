@@ -1,13 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "tools.hpp"
-
-#include "library.hpp"
-#if __OBJC__
 #include <Foundation/Foundation.h>
 #include <Foundation/NSTask.h>
 #include <Metal/MTLLibrary.h>
-#endif
+
+#include "tools.hpp"
+
+#include "library.hpp"
+
+MTLPP_BEGIN
 
 @interface NSAutoReadPipe : NSObject
 
@@ -109,7 +110,7 @@ namespace mtlpp
 		@"watchos",
 	};
 	
-	bool Compiler::Compile(const char* source, ns::String const& output, const CompilerOptions& options, ns::Error* error)
+	bool Compiler::Compile(const char* source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error)
 	{
 		bool bOK = false;
 		{
@@ -139,7 +140,7 @@ namespace mtlpp
 		return bOK;
 	}
 	
-	bool Compiler::Compile(ns::String const& source, ns::String const& output, const CompilerOptions& options, ns::Error* error)
+	bool Compiler::Compile(ns::String const& source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error)
 	{
 		bool bOK = false;
 		{
@@ -212,7 +213,7 @@ namespace mtlpp
 		return bOK;
 	}
 	
-	bool Compiler::Link(ns::Array<ns::String> const& source, ns::String const& output, const CompilerOptions& options, ns::Error* error)
+	bool Compiler::Link(ns::Array<ns::String> const& source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error)
 	{
 		bool bOK = false;
 		{
@@ -355,3 +356,5 @@ namespace mtlpp
 		return bOK;
 	}
 }
+
+MTLPP_END

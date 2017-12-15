@@ -385,7 +385,34 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 			NewShaderString = [NewShaderString stringByReplacingOccurrencesOfString:@"#pragma once" withString:@""];
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
-			CompileOptions.fastMathEnabled = (BOOL)(!(Header.CompileFlags & (1 << CFLAG_NoFastMath)));
+			
+#if DEBUG_METAL_SHADERS
+			static bool bForceFastMath = FParse::Param(FCommandLine::Get(), TEXT("metalfastmath"));
+			static bool bForceNoFastMath = FParse::Param(FCommandLine::Get(), TEXT("metalnofastmath"));
+			if (bForceNoFastMath)
+			{
+				CompileOptions.fastMathEnabled = NO;
+			}
+			else if (bForceFastMath)
+			{
+				CompileOptions.fastMathEnabled = YES;
+			}
+			else
+#endif
+			{
+				CompileOptions.fastMathEnabled = (BOOL)(!(Header.CompileFlags & (1 << CFLAG_NoFastMath)));
+			}
+			
+#if !PLATFORM_MAC || DEBUG_METAL_SHADERS
+			NSMutableDictionary *PreprocessorMacros = [NSMutableDictionary new];
+#if !PLATFORM_MAC // Pretty sure that as_type-casts work on macOS, but they don't for half2<->uint on older versions of the iOS runtime compiler.
+			[PreprocessorMacros addEntriesFromDictionary: @{ @"METAL_RUNTIME_COMPILER" : @(1)}];
+#endif
+#if DEBUG_METAL_SHADERS
+			[PreprocessorMacros addEntriesFromDictionary: @{ @"MTLSL_ENABLE_DEBUG_INFO" : @(1)}];
+#endif
+			[CompileOptions setPreprocessorMacros : PreprocessorMacros];
+#endif
 			if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesShaderVersions))
 			{
 				if (Header.Version < 3)
@@ -401,10 +428,6 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 					CompileOptions.languageVersion = (MTLLanguageVersion)(2 << 16);
 				}
 			}
-	#if DEBUG_METAL_SHADERS
-			NSDictionary *PreprocessorMacros = @{ @"MTLSL_ENABLE_DEBUG_INFO" : @(1)};
-			[CompileOptions setPreprocessorMacros : PreprocessorMacros];
-	#endif
 			Library = [GetMetalDeviceContext().GetDevice() newLibraryWithSource:NewShaderString options : CompileOptions error : &Error];
 			[CompileOptions release];
 			

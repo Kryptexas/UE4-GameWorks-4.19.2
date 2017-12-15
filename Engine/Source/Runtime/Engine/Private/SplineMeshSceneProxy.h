@@ -26,10 +26,10 @@ public:
 	}
 
 	/** Should we cache the material's shadertype on this platform with this vertex factory? */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Material->IsUsedWithSplineMeshes() || Material->IsSpecialEngineMaterial())
-			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
+			&& FLocalVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
 	}
 
 	/** Modify compile environment to enable spline deformation */

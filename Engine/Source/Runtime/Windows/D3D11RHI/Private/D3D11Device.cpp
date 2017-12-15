@@ -239,14 +239,6 @@ void FD3D11DynamicRHI::Shutdown()
 	// Cleanup the D3D device.
 	CleanupD3DDevice();
 
-	// Shut down the AMD AGS utility library
-	if (AmdAgsContext != NULL)
-	{
-		agsDeInit(AmdAgsContext);
-		GRHIDeviceIsAMDPreGCNArchitecture = false;
-		AmdAgsContext = NULL;
-	}
-
 	// Release buffered timestamp queries
 	GPUProfilingData.FrameTiming.ReleaseResource();
 
@@ -466,14 +458,6 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 
 		check(!GIsCriticalError);
 
-#if PLATFORM_DESKTOP
-		// Clean up the extensions
-		if (AmdAgsContext != NULL)
-		{
-			agsDriverExtensionsDX11_DeInit(AmdAgsContext);
-		}
-#endif
-
 		// Ask all initialized FRenderResources to release their RHI resources.
 		for(TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList());ResourceIt;ResourceIt.Next())
 		{
@@ -511,6 +495,17 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 
 		ReleasePooledUniformBuffers();
 		ReleasePooledTextures();
+
+		// Clean up the AMD extensions and shut down the AMD AGS utility library
+		if (AmdAgsContext != NULL)
+		{
+			// AGS is holding an extra reference to the immediate context. Release it before calling DestroyDevice.
+			Direct3DDeviceIMContext->Release();
+			agsDriverExtensionsDX11_DestroyDevice(AmdAgsContext, Direct3DDevice, NULL);
+			agsDeInit(AmdAgsContext);
+			GRHIDeviceIsAMDPreGCNArchitecture = false;
+			AmdAgsContext = NULL;
+		}
 
 		// When running with D3D debug, clear state and flush the device to get rid of spurious live objects in D3D11's report.
 		if (D3D11RHI_ShouldCreateWithD3DDebug())

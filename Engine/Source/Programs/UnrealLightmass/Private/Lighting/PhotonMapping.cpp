@@ -355,36 +355,36 @@ void FStaticLightingSystem::EmitDirectPhotons(
 				{
 					NumDirectIrradiancePhotons += IrradiancePhotons[ArrayIndex].Num();
 				}
-				DebugOutput.IrradiancePhotons.Empty(NumDirectIrradiancePhotons);
+				StartupDebugOutput.IrradiancePhotons.Empty(NumDirectIrradiancePhotons);
 				for (int32 ArrayIndex = 0; ArrayIndex < IrradiancePhotons.Num(); ArrayIndex++)
 				{
 					for (int32 i = 0; i < IrradiancePhotons[ArrayIndex].Num(); i++)
 					{
-						DebugOutput.IrradiancePhotons.Add(FDebugPhoton(0, IrradiancePhotons[ArrayIndex][i].GetPosition(), IrradiancePhotons[ArrayIndex][i].GetSurfaceNormal(), IrradiancePhotons[ArrayIndex][i].GetSurfaceNormal()));
+						StartupDebugOutput.IrradiancePhotons.Add(FDebugPhoton(0, IrradiancePhotons[ArrayIndex][i].GetPosition(), IrradiancePhotons[ArrayIndex][i].GetSurfaceNormal(), IrradiancePhotons[ArrayIndex][i].GetSurfaceNormal()));
 					}
 				}
 			}
 			else
 			{
-				DebugOutput.DirectPhotons.Empty(Stats.NumDirectPhotonsGathered);
+				StartupDebugOutput.DirectPhotons.Empty(Stats.NumDirectPhotonsGathered);
 				for (int32 OutputIndex = 0; OutputIndex < DirectPhotonEmittingOutputs.Num(); OutputIndex++)
 				{
 					const FDirectPhotonEmittingOutput& CurrentOutput = DirectPhotonEmittingOutputs[OutputIndex];
 					for (int32 i = 0; i < CurrentOutput.DirectPhotons.Num(); i++)
 					{
-						DebugOutput.DirectPhotons.Add(FDebugPhoton(CurrentOutput.DirectPhotons[i].GetId(), CurrentOutput.DirectPhotons[i].GetPosition(), CurrentOutput.DirectPhotons[i].GetIncidentDirection(), CurrentOutput.DirectPhotons[i].GetSurfaceNormal()));
+						StartupDebugOutput.DirectPhotons.Add(FDebugPhoton(CurrentOutput.DirectPhotons[i].GetId(), CurrentOutput.DirectPhotons[i].GetPosition(), CurrentOutput.DirectPhotons[i].GetIncidentDirection(), CurrentOutput.DirectPhotons[i].GetSurfaceNormal()));
 					}
 				}
 			}
 		}
 		if (GeneralSettings.ViewSingleBounceNumber != 0)
 		{
-			DebugOutput.IndirectPhotonPaths.Empty(NumIndirectPhotonPathsGathered);
+			StartupDebugOutput.IndirectPhotonPaths.Empty(NumIndirectPhotonPathsGathered);
 			for (int32 LightIndex = 0; LightIndex < IndirectPathRays.Num(); LightIndex++)
 			{
 				for (int32 RayIndex = 0; RayIndex < IndirectPathRays[LightIndex].Num(); RayIndex++)
 				{
-					DebugOutput.IndirectPhotonPaths.Add(FDebugStaticLightingRay(
+					StartupDebugOutput.IndirectPhotonPaths.Add(FDebugStaticLightingRay(
 						IndirectPathRays[LightIndex][RayIndex].Start, 
 						IndirectPathRays[LightIndex][RayIndex].Start + IndirectPathRays[LightIndex][RayIndex].UnitDirection * IndirectPathRays[LightIndex][RayIndex].Length,
 						true));
@@ -834,12 +834,12 @@ void FStaticLightingSystem::EmitIndirectPhotons(
 		{
 			NumIndirectIrradiancePhotons += IrradiancePhotons[RangeIndex].Num();
 		}
-		DebugOutput.IrradiancePhotons.Empty(NumIndirectIrradiancePhotons);
+		StartupDebugOutput.IrradiancePhotons.Empty(NumIndirectIrradiancePhotons);
 		for (int32 RangeIndex = NumPhotonWorkRanges; RangeIndex < IrradiancePhotons.Num(); RangeIndex++)
 		{
 			for (int32 i = 0; i < IrradiancePhotons[RangeIndex].Num(); i++)
 			{
-				DebugOutput.IrradiancePhotons.Add(FDebugPhoton(0, IrradiancePhotons[RangeIndex][i].GetPosition(), IrradiancePhotons[RangeIndex][i].GetSurfaceNormal(), IrradiancePhotons[RangeIndex][i].GetSurfaceNormal()));
+				StartupDebugOutput.IrradiancePhotons.Add(FDebugPhoton(0, IrradiancePhotons[RangeIndex][i].GetPosition(), IrradiancePhotons[RangeIndex][i].GetSurfaceNormal(), IrradiancePhotons[RangeIndex][i].GetSurfaceNormal()));
 			}
 		}
 	}
@@ -1070,11 +1070,11 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 						|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber > 0))
 					{
 						FScopeLock DebugOutputLock(&DebugOutputSync);
-						if (DebugOutput.IndirectPhotons.Num() == 0)
+						if (StartupDebugOutput.IndirectPhotons.Num() == 0)
 						{
-							DebugOutput.IndirectPhotons.Empty(FMath::TruncToInt(NumIndirectPhotonsToEmit * IndirectPhotonEfficiency));
+							StartupDebugOutput.IndirectPhotons.Empty(FMath::TruncToInt(NumIndirectPhotonsToEmit * IndirectPhotonEfficiency));
 						}
-						DebugOutput.IndirectPhotons.Add(FDebugPhoton(NewPhoton.GetId(), NewPhoton.GetPosition(), SampleRay.Start - NewPhoton.GetPosition(), NewPhoton.GetSurfaceNormal()));
+						StartupDebugOutput.IndirectPhotons.Add(FDebugPhoton(NewPhoton.GetId(), NewPhoton.GetPosition(), SampleRay.Start - NewPhoton.GetPosition(), NewPhoton.GetSurfaceNormal()));
 					}
 #endif
 					// Create an irradiance photon for a fraction of the deposited photons
@@ -1695,8 +1695,8 @@ bool FStaticLightingSystem::FindAnyNearbyPhoton(
 					&& PhotonMappingSettings.bVisualizePhotonGathers
 					&& &PhotonMap == &DirectPhotonMap)
 				{
-					DebugOutput.bDirectPhotonValid = true;
-					DebugOutput.GatheredDirectPhoton = FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal());
+					StartupDebugOutput.bDirectPhotonValid = true;
+					StartupDebugOutput.GatheredDirectPhoton = FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal());
 				}
 #endif
 				return true;
@@ -1737,7 +1737,7 @@ float FStaticLightingSystem::FindNearbyPhotonsIterative(
 	{
 		// Verify that only one search is debugged
 		// This will not always catch multiple searches due to re-entrance by multiple threads
-		checkSlow(DebugOutput.GatheredPhotonNodes.Num() == 0);
+		checkSlow(StartupDebugOutput.GatheredPhotonNodes.Num() == 0);
 	}
 #endif
 
@@ -1748,7 +1748,7 @@ float FStaticLightingSystem::FindNearbyPhotonsIterative(
 		if (bDebugSearchProcess)
 		{
 			// Only capture the nodes visited on the last iteration
-			DebugOutput.GatheredPhotonNodes.Empty();
+			StartupDebugOutput.GatheredPhotonNodes.Empty();
 		}
 #endif
 		FurthestPhotonDistanceSquared = SearchDistance * SearchDistance;
@@ -1775,7 +1775,7 @@ float FStaticLightingSystem::FindNearbyPhotonsIterative(
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 								if (bDebugSearchProcess)
 								{
-									DebugOutput.GatheredPhotonNodes.Add(FDebugOctreeNode(ChildContext.Bounds.Center, ChildContext.Bounds.Extent));
+									StartupDebugOutput.GatheredPhotonNodes.Add(FDebugOctreeNode(ChildContext.Bounds.Center, ChildContext.Bounds.Extent));
 								}
 #endif
 								OctreeIt.PushChild(ChildRef);
@@ -1841,7 +1841,7 @@ float FStaticLightingSystem::FindNearbyPhotonsIterative(
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 				if (bDebugSearchProcess)
 				{
-					DebugOutput.IrradiancePhotons.Add(FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal()));
+					StartupDebugOutput.IrradiancePhotons.Add(FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal()));
 				}
 #endif
 			}
@@ -1859,14 +1859,14 @@ float FStaticLightingSystem::FindNearbyPhotonsIterative(
 		{
 			for (int32 i = 0; i < FoundPhotons.Num(); i++)
 			{
-				DebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
+				StartupDebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
 			}
 		}
 		else
 		{
 			for (int32 i = 0; i < FoundPhotons.Num(); i++)
 			{
-				DebugOutput.GatheredPhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
+				StartupDebugOutput.GatheredPhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
 			}
 		}
 	}
@@ -1985,7 +1985,7 @@ float FStaticLightingSystem::FindNearbyPhotonsInVolumeIterative(
 		for (int32 i = 0; i < FoundPhotonSegments.Num(); i++)
 		{
 			const FPhoton& Photon = *FoundPhotonSegments[i].Photon;
-			DebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(Photon.GetId(), Photon.GetPosition(), Photon.GetIncidentDirection(), Photon.GetSurfaceNormal()));
+			StartupDebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(Photon.GetId(), Photon.GetPosition(), Photon.GetIncidentDirection(), Photon.GetSurfaceNormal()));
 		}
 	}
 #endif
@@ -2027,7 +2027,7 @@ float FStaticLightingSystem::FindNearbyPhotonsSorted(
 	{
 		// Verify that only one search is debugged
 		// This will not always catch multiple searches due to re-entrance by multiple threads
-		checkSlow(DebugOutput.GatheredPhotonNodes.Num() == 0);
+		checkSlow(StartupDebugOutput.GatheredPhotonNodes.Num() == 0);
 	}
 #endif
 
@@ -2100,7 +2100,7 @@ float FStaticLightingSystem::FindNearbyPhotonsSorted(
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 				if (bDebugSearchProcess)
 				{
-					DebugOutput.IrradiancePhotons.Add(FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal()));
+					StartupDebugOutput.IrradiancePhotons.Add(FDebugPhoton(PhotonElement.Photon.GetId(), PhotonElement.Photon.GetPosition(), PhotonElement.Photon.GetIncidentDirection(), PhotonElement.Photon.GetSurfaceNormal()));
 				}
 #endif
 			}
@@ -2129,7 +2129,7 @@ float FStaticLightingSystem::FindNearbyPhotonsSorted(
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 						if (bDebugSearchProcess)
 						{
-							DebugOutput.GatheredPhotonNodes.Add(FDebugOctreeNode(ChildContext.Bounds.Center, ChildContext.Bounds.Extent));
+							StartupDebugOutput.GatheredPhotonNodes.Add(FDebugOctreeNode(ChildContext.Bounds.Center, ChildContext.Bounds.Extent));
 						}
 #endif
 						bAllNodesZeroDistance = bAllNodesZeroDistance && ClosestChildPointDistanceSquared < DELTA;
@@ -2167,14 +2167,14 @@ float FStaticLightingSystem::FindNearbyPhotonsSorted(
 		{
 			for (int32 i = 0; i < FoundPhotons.Num(); i++)
 			{
-				DebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
+				StartupDebugOutput.GatheredImportancePhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
 			}
 		}
 		else
 		{
 			for (int32 i = 0; i < FoundPhotons.Num(); i++)
 			{
-				DebugOutput.GatheredPhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
+				StartupDebugOutput.GatheredPhotons.Add(FDebugPhoton(FoundPhotons[i].GetId(), FoundPhotons[i].GetPosition(), FoundPhotons[i].GetIncidentDirection(), FoundPhotons[i].GetSurfaceNormal()));
 			}
 		}
 	}
@@ -2311,7 +2311,7 @@ FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
 				{
 					DebugRay.End = Intersection.IntersectionVertex.WorldPosition;
 				}
-				DebugOutput.ShadowRays.Add(DebugRay);
+				StartupDebugOutput.ShadowRays.Add(DebugRay);
 			}
 #endif
 			if (!Intersection.bIntersects)
@@ -2326,7 +2326,7 @@ FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisLookup && ClosestPhoton != NULL && PhotonMappingSettings.bVisualizePhotonGathers)
 	{
-		DebugOutput.GatheredPhotons.Add(FDebugPhoton(0, ClosestPhoton->GetPosition(), ClosestPhoton->GetSurfaceNormal(), ClosestPhoton->GetSurfaceNormal()));
+		StartupDebugOutput.GatheredPhotons.Add(FDebugPhoton(0, ClosestPhoton->GetPosition(), ClosestPhoton->GetSurfaceNormal(), ClosestPhoton->GetSurfaceNormal()));
 	}
 #endif
 

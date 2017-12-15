@@ -23,9 +23,9 @@ class FMobileDownsamplePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FMobileDownsamplePS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsMobilePlatform(Platform);
+		return IsMobilePlatform(Parameters.Platform);
 	}
 
 	FMobileDownsamplePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :

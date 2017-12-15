@@ -6,6 +6,12 @@ D3D12CommandContext.cpp: RHI  Command Context implementation.
 
 #include "D3D12RHIPrivate.h"
 
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+	#include "amd_ags.h"
+#include "HideWindowsPlatformTypes.h"
+#endif
+
 #if PLATFORM_XBOXONE
 // @TODO: We fixed this on PC. Need to check it works on XB before re-enabling. 
 // Aggressive batching saves ~0.1ms on the RHI thread, reduces executecommandlist calls by around 25%
@@ -28,6 +34,16 @@ namespace ConstantAllocatorSizesKB
 	int32 Graphics = 3072; //x4
  	int32 AsyncCompute = 3072; // x1
 }
+// We don't yet have a way to auto-detect that the Radeon Developer Panel is running
+// with profiling enabled, so for now, we have to manually toggle this console var.
+// It needs to be set before device creation, so it's read only.
+int32 GEmitRgpFrameMarkers = 0;
+static FAutoConsoleVariableRef CVarEmitRgpFrameMarkers(
+	TEXT("D3D12.EmitRgpFrameMarkers"),
+	GEmitRgpFrameMarkers,
+	TEXT("Enables/Disables frame markers for AMD's RGP tool."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
+	);
 
 static FAutoConsoleVariableRef CVarDefaultGfxCommandContextConstantAllocatorSizeKB(
 	TEXT("D3D12.DefaultGfxCommandContextConstantAllocatorSizeKB"),
@@ -129,6 +145,14 @@ void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 		GetParentDevice()->PushGPUEvent(Name, Color);
 	}
 
+#if PLATFORM_WINDOWS
+	AGSContext* const AmdAgsContext = OwningRHI.GetAmdAgsContext();
+	if (GEmitRgpFrameMarkers && AmdAgsContext)
+	{
+		agsDriverExtensionsDX12_PushMarker(AmdAgsContext, CommandListHandle.GraphicsCommandList(), TCHAR_TO_ANSI(Name));
+	}
+#endif
+
 #if USE_PIX
 	PIXBeginEvent(CommandListHandle.GraphicsCommandList(), PIX_COLOR(Color.R, Color.G, Color.B), Name);
 #endif
@@ -140,6 +164,14 @@ void FD3D12CommandContext::RHIPopEvent()
 	{
 		GetParentDevice()->PopGPUEvent();
 	}
+
+#if PLATFORM_WINDOWS
+	AGSContext* const AmdAgsContext = OwningRHI.GetAmdAgsContext();
+	if (GEmitRgpFrameMarkers && AmdAgsContext)
+	{
+		agsDriverExtensionsDX12_PopMarker(AmdAgsContext, CommandListHandle.GraphicsCommandList());
+	}
+#endif
 
 #if USE_PIX
 	PIXEndEvent(CommandListHandle.GraphicsCommandList());

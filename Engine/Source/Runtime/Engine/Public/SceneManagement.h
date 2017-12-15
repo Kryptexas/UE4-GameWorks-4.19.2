@@ -322,6 +322,14 @@ public:
 		Result.Type = LMIT_None;
 		return Result;
 	}
+
+	static FLightMapInteraction GlobalVolume()
+	{
+		FLightMapInteraction Result;
+		Result.Type = LMIT_GlobalVolume;
+		return Result;
+	}
+
 	static FLightMapInteraction Texture(
 		const class ULightMapTexture2D* const* InTextures,
 		const ULightMapTexture2D* InSkyOcclusionTexture,
@@ -506,6 +514,14 @@ public:
 		Result.Type = SMIT_None;
 		return Result;
 	}
+
+	static FShadowMapInteraction GlobalVolume()
+	{
+		FShadowMapInteraction Result;
+		Result.Type = SMIT_GlobalVolume;
+		return Result;
+	}
+
 	static FShadowMapInteraction Texture(
 		class UShadowMapTexture2D* InTexture,
 		const FVector2D& InCoordinateScale,
@@ -591,7 +607,8 @@ class FLightCacheInterface
 {
 public:
 	FLightCacheInterface(const FLightMap* InLightMap, const FShadowMap* InShadowMap)
-		: LightMap(InLightMap)
+		: bGlobalVolumeLightmap(false)
+		, LightMap(InLightMap)
 		, ShadowMap(InShadowMap)
 	{
 	}
@@ -631,6 +648,11 @@ public:
 		return ShadowMap;
 	}
 
+	void SetGlobalVolumeLightmap(bool bInGlobalVolumeLightmap)
+	{
+		bGlobalVolumeLightmap = bInGlobalVolumeLightmap;
+	}
+
 	// WARNING : This can be called with buffers valid for a single frame only, don't cache anywhere. See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 	void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer)
 	{
@@ -647,6 +669,9 @@ public:
 	ENGINE_API FShadowMapInteraction GetShadowMapInteraction() const;
 
 private:
+
+	bool bGlobalVolumeLightmap;
+
 	// The light-map used by the element. may be 0
 	const FLightMap* LightMap;
 

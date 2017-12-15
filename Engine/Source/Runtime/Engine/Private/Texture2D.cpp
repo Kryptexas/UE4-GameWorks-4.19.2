@@ -1005,11 +1005,31 @@ void UTexture2D::SetForceMipLevelsToBeResident( float Seconds, int32 CinematicTe
 
 int32 UTexture2D::Blueprint_GetSizeX() const
 {
+#if WITH_EDITORONLY_DATA
+	// When cooking, blueprint construction scripts are ran before textures get postloaded.
+	// In that state, the texture size is 0. Here we compute the resolution once cooked.
+	if (!GetSizeX())
+	{
+		const UTextureLODSettings* LODSettings = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings();
+		const int32 CookedLODBias = LODSettings->CalculateLODBias(Source.SizeX, Source.SizeY, LODGroup, LODBias, 0, MipGenSettings);
+		return FMath::Max<int32>(Source.SizeX >> CookedLODBias, 1);
+	}
+#endif
 	return GetSizeX();
 }
 
 int32 UTexture2D::Blueprint_GetSizeY() const
 {
+#if WITH_EDITORONLY_DATA
+	// When cooking, blueprint construction scripts are ran before textures get postloaded.
+	// In that state, the texture size is 0. Here we compute the resolution once cooked.
+	if (!GetSizeY())
+	{
+		const UTextureLODSettings* LODSettings = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings();
+		const int32 CookedLODBias = LODSettings->CalculateLODBias(Source.SizeX, Source.SizeY, LODGroup, LODBias, 0, MipGenSettings);
+		return FMath::Max<int32>(Source.SizeY >> CookedLODBias, 1);
+	}
+#endif
 	return GetSizeY();
 }
 

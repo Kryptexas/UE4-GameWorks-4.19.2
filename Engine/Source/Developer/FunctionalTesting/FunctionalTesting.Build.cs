@@ -19,9 +19,14 @@ public class FunctionalTesting : ModuleRules
                 "AssetRegistry",
                 "RHI",
                 "UMG",
-				"AutomationController"
+				"AutomationController",
             }
         );
+
+        if (Target.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
+		}
 
         PrivateIncludePaths.AddRange(
             new string[]

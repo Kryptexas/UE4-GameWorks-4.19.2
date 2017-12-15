@@ -15,7 +15,7 @@ class FRCPassPostProcessInput : public TRenderingCompositePassBase<0, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessInput(TRefCountPtr<IPooledRenderTarget>& InData);
+	FRCPassPostProcessInput(const TRefCountPtr<IPooledRenderTarget>& InData);
 
 	// interface FRenderingCompositePass ---------
 

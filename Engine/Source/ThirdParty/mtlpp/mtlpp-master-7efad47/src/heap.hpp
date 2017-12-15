@@ -7,7 +7,9 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Heap.hpp"
 #include "ns.hpp"
 #include "device.hpp"
 #include "resource.hpp"
@@ -15,8 +17,7 @@
 #include "texture.hpp"
 #include "types.hpp"
 
-MTLPP_CLASS(MTLHeapDescriptor);
-MTLPP_PROTOCOL(MTLHeap);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -25,11 +26,11 @@ namespace mtlpp
     public:
         HeapDescriptor(MTLHeapDescriptor* handle) : ns::Object<MTLHeapDescriptor*>(handle) { }
 
-        uint32_t     GetSize() const;
+        NSUInteger     GetSize() const;
         StorageMode  GetStorageMode() const;
         CpuCacheMode GetCpuCacheMode() const;
 
-        void SetSize(uint32_t size) const;
+        void SetSize(NSUInteger size) const;
         void SetStorageMode(StorageMode storageMode) const;
         void SetCpuCacheMode(CpuCacheMode cpuCacheMode) const;
     }
@@ -44,16 +45,18 @@ namespace mtlpp
         Device       GetDevice() const;
         StorageMode  GetStorageMode() const;
         CpuCacheMode GetCpuCacheMode() const;
-        uint32_t     GetSize() const;
-        uint32_t     GetUsedSize() const;
-		uint32_t	 GetCurrentAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
+        NSUInteger     GetSize() const;
+        NSUInteger     GetUsedSize() const;
+		NSUInteger	 GetCurrentAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
 
         void SetLabel(const ns::String& label);
 
-        uint32_t MaxAvailableSizeWithAlignment(uint32_t alignment);
-        Buffer NewBuffer(uint32_t length, ResourceOptions options);
+        NSUInteger MaxAvailableSizeWithAlignment(NSUInteger alignment);
+        Buffer NewBuffer(NSUInteger length, ResourceOptions options);
         Texture NewTexture(const TextureDescriptor& desc);
         PurgeableState SetPurgeableState(PurgeableState state);
     }
     MTLPP_AVAILABLE(10_13, 10_0);
 }
+
+MTLPP_END

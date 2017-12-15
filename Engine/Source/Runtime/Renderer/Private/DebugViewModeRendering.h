@@ -40,7 +40,7 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return AllowDebugViewVSDSHS(Platform) && (Material->IsDefaultMaterial() || Material->HasVertexPositionOffsetConnected() || Material->GetTessellationMode() != MTM_NoTessellation);
 	}
@@ -108,9 +108,9 @@ class FDebugViewModeHS : public FBaseHS
 	DECLARE_SHADER_TYPE(FDebugViewModeHS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -132,9 +132,9 @@ class FDebugViewModeDS : public FBaseDS
 	DECLARE_SHADER_TYPE(FDebugViewModeDS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCache(Platform,Material,VertexFactoryType);		
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCompilePermutation(Platform,Material,VertexFactoryType);		
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)

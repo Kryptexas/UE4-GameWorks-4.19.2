@@ -121,7 +121,7 @@ static const size_t kMaxBytesPerFrame = 1024*1024;
     pipelineStateDescriptor.SetDepthAttachmentPixelFormat(mtlpp::PixelFormat(_view.depthStencilPixelFormat));
     pipelineStateDescriptor.SetStencilAttachmentPixelFormat(mtlpp::PixelFormat(_view.depthStencilPixelFormat));
     
-    ns::Error error;
+    ns::AutoReleasedError error;
     _pipelineState = _device.NewRenderPipelineState(pipelineStateDescriptor, &error);
     if (!_pipelineState) {
         NSLog(@"Failed to created pipeline state, error %s", error.GetLocalizedDescription().GetCStr());

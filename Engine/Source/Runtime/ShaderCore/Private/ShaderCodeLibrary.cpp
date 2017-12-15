@@ -91,9 +91,9 @@ struct FShaderCodeEntry
 	// Transient
 	TArray<uint8> LoadedCode;
 	int32 NumRefs;
-#if DO_CHECK
-	volatile int32 NumPendingLoadRequests;
-#endif
+
+	// Async Code Request
+	IAsyncReadRequest* AsynReq;
 
 	FShaderCodeEntry()
 		: Size(0) 
@@ -101,9 +101,7 @@ struct FShaderCodeEntry
 		, UncompressedSize(0)
 		, Frequency(0)
 		, NumRefs(0)
-#if DO_CHECK
-		, NumPendingLoadRequests(0)
-#endif
+		, AsynReq(nullptr)
 	{}
 };
 
@@ -150,11 +148,12 @@ public:
 		FShaderCodeEntry* Entry = Shaders.Find(Hash);
 		if (Entry)
 		{
-			FScopeLock ScopeLock(&ReadRequestLock);
+			// Ensure we have the code
+			ShaderCodeEntryCodeReadUpdate(Entry, 0.0);
 
 			check(Entry->NumRefs > 0);
 			check(Entry->LoadedCode.Num() != 0);
-			check(Entry->NumPendingLoadRequests == 0);
+			check(Entry->AsynReq == nullptr);
 
 			OutSize = Entry->UncompressedSize;
 			return &Entry->LoadedCode;
@@ -174,16 +173,16 @@ public:
 			if (CodeNumRefs == 0)
 			{
 				check(Entry->LoadedCode.Num() == 0);
-				check(FPlatformAtomics::InterlockedIncrement(&Entry->NumPendingLoadRequests) == 1);
+				check(Entry->AsynReq == nullptr);
 
 				int64 ReadSize = Entry->Size;
 				int64 ReadOffset = LibraryCodeOffset + Entry->Offset;
 				Entry->LoadedCode.SetNumUninitialized(ReadSize);
-				IAsyncReadRequest* AsynReq = LibraryAsyncFileHandle->ReadRequest(ReadOffset, ReadSize, AIOP_Normal, nullptr, Entry->LoadedCode.GetData());
+				Entry->AsynReq = LibraryAsyncFileHandle->ReadRequest(ReadOffset, ReadSize, AIOP_Normal, nullptr, Entry->LoadedCode.GetData());
 				
-				FExternalReadCallback ExternalReadCallback = [this, Entry, AsynReq](double ReaminingTime)
+				FExternalReadCallback ExternalReadCallback = [this, Entry](double ReaminingTime)
 				{
-					return this->OnExternalReadCallback(AsynReq, Entry, ReaminingTime);
+					return this->ShaderCodeEntryCodeReadUpdate(Entry, ReaminingTime);
 				};
 												
 				if (!Ar || !Ar->AttachExternalReadDependency(ExternalReadCallback))
@@ -205,17 +204,26 @@ public:
 		return false;
 	}
 
-	bool OnExternalReadCallback(IAsyncReadRequest* AsynReq, FShaderCodeEntry* Entry, double RemainingTime)
+	bool ShaderCodeEntryCodeReadUpdate(FShaderCodeEntry* Entry, double RemainingTime)
 	{
-		if (!AsynReq->WaitCompletion(RemainingTime))
+		if(Entry->AsynReq != nullptr)
 		{
-			return false;
+			// Lazy acquire lock if and only if we have a request active
+			FScopeLock ScopeLock(&ReadRequestLock);
+			
+			// Make sure we've not been beaten to this by a force block load or an async callback
+			if(Entry->AsynReq != nullptr)
+			{
+				if (!Entry->AsynReq->WaitCompletion(RemainingTime))
+				{
+					return false;
+				}
+				
+				delete Entry->AsynReq;
+				Entry->AsynReq = nullptr;
+			}
 		}
-		delete AsynReq;
-
-		// There must be only one request
-		check(FPlatformAtomics::InterlockedDecrement(&Entry->NumPendingLoadRequests) == 0);
-
+		
 		return true;
 	}
 
@@ -230,7 +238,7 @@ public:
 			if (Entry->NumRefs == 0)
 			{
 				// Do not attempt to release shader code while it's loading
-				check(Entry->NumPendingLoadRequests == 0);
+				check(Entry->AsynReq == nullptr);
 
 				// free code mem
 				Entry->LoadedCode.Empty();

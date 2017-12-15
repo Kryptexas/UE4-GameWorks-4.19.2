@@ -194,7 +194,7 @@ public:
 	{
 		// Set up the mapping from VertexFactory.usf to the vertex factory type's source code.
 		FString VertexFactoryIncludeString = FString::Printf( TEXT("#include \"%s\""), GetShaderFilename() );
-		OutEnvironment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/VertexFactory.ush"), StringToArray<ANSICHAR>(*VertexFactoryIncludeString, VertexFactoryIncludeString.Len() + 1));
+		OutEnvironment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/VertexFactory.ush"), VertexFactoryIncludeString);
 
 		OutEnvironment.SetDefine(TEXT("HAS_PRIMITIVE_UNIFORM_BUFFER"), 1);
 
@@ -302,7 +302,7 @@ extern SHADERCORE_API FVertexFactoryType* FindVertexFactoryType(FName TypeName);
 		bPrecisePrevWorldPos, \
 		bSupportsPositionOnly, \
 		Construct##FactoryClass##ShaderParameters, \
-		FactoryClass::ShouldCache, \
+		FactoryClass::ShouldCompilePermutation, \
 		FactoryClass::ModifyCompilationEnvironment, \
 		FactoryClass::SupportsTessellationShaders \
 		); \
@@ -435,7 +435,7 @@ public:
 	{ 
 		check(InFeatureLevel != ERHIFeatureLevel::Num);
 		static const auto MetalCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || (MetalCVar && MetalCVar->GetInt() != 0 && IsPCPlatform(GMaxRHIShaderPlatform)));
+		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || (MetalCVar && MetalCVar->GetInt() != 0 && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) >= 2));
 	}
 
 protected:

@@ -23,9 +23,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) || (Platform == SP_PCD3D_ES2);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) || (Parameters.Platform == SP_PCD3D_ES2);
 	}
 };
 
@@ -58,9 +58,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, FTextureRHIParamRef Texture2DMS, FTextureRHIParamRef FMaskTexture2D, FIntPoint Origin)
@@ -74,9 +74,9 @@ public:
 		SetShaderValue(RHICmdList, PixelShaderRHI, ResolveOrigin, FVector2D(Origin));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("WIDE_RESOLVE_WIDTH"), Width);
 		OutEnvironment.SetDefine(TEXT("MSAA_SAMPLE_COUNT"), MSAASampleCount);
 		OutEnvironment.SetDefine(TEXT("USE_FMASK"), UseFMask);

@@ -7,10 +7,12 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CommandEncoder.hpp"
 #include "ns.hpp"
 
-MTLPP_PROTOCOL(MTLCommandEncoder);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -45,3 +47,5 @@ namespace mtlpp
 }
 
 #include "command_encoder.mm"
+
+MTLPP_END

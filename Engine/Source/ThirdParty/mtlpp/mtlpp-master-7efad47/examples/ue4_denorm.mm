@@ -78,12 +78,12 @@ int main()
 	g_device = mtlpp::Device::CreateSystemDefaultDevice();
     g_commandQueue = g_device->NewCommandQueue();
 
-	ns::Error Error;
-    mtlpp::Library library = g_device->NewLibrary(shadersSrc, mtlpp::CompileOptions(), &Error);
+	ns::AutoReleasedError AutoReleasedError;
+    mtlpp::Library library = g_device->NewLibrary(shadersSrc, mtlpp::CompileOptions(), &AutoReleasedError);
 	
-	if (Error.GetPtr())
+	if (AutoReleasedError.GetPtr())
 	{
-		printf("Error: %s", Error.GetLocalizedDescription().GetCStr());
+		printf("AutoReleasedError: %s", AutoReleasedError.GetLocalizedDescription().GetCStr());
 	}
 	assert(library.GetPtr());
 	

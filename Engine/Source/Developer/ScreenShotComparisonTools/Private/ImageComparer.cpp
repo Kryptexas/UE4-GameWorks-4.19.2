@@ -311,8 +311,11 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 
 	// Compare the smallest shared dimensions, this will be a forced failure
 	// but still offer a delta for context to the result reviewer
-	const int32 CompareWidth = FMath::Min(ImageA->Width, ImageB->Width);
-	const int32 CompareHeight = FMath::Min(ImageA->Height, ImageB->Height);
+	const int32 MinWidth = FMath::Min(ImageA->Width, ImageB->Width);
+	const int32 MinHeight = FMath::Min(ImageA->Height, ImageB->Height);
+
+	const int32 CompareWidth = FMath::Max(ImageA->Width, ImageB->Width);
+	const int32 CompareHeight = FMath::Max(ImageA->Height, ImageB->Height);
 
 	FImageDelta ImageDelta(CompareWidth, CompareHeight);
 
@@ -329,6 +332,16 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 	{
 		for ( int Y = 0; Y < CompareHeight; Y++ )
 		{
+			// If different sizes, fail comparisons outside the bounds of the smaller image
+			if ( ColumnIndex >= MinWidth || Y >= MinHeight )
+			{
+				ImageDelta.SetErrorPixel(ColumnIndex, Y, FColor(255, 0, 0, 255));
+				FPlatformAtomics::InterlockedIncrement(&MismatchCount);
+				int32 SpacialHash = ( ( Y / BlockSizeY ) * 10 + ( ColumnIndex / BlockSizeX ) );
+				FPlatformAtomics::InterlockedIncrement(&LocalMismatches[SpacialHash]);
+				continue;
+			}
+
 			FColor PixelA = ImageA->GetPixel(ColumnIndex, Y);
 			FColor PixelB = ImageB->GetPixel(ColumnIndex, Y);
 
@@ -397,6 +410,10 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 	// In the case of differently sized images we force a failure
 	if ( ImageA->Width != ImageB->Width || ImageA->Height != ImageB->Height )
 	{
+		Results.ErrorMessage = FText::FormatNamed(LOCTEXT("DifferentImageSizes", "Image comparison failed as sizes do not match, {WidthA}x{HeightA} vs {WidthB}x{HeightB}"),
+			TEXT("WidthA"), ImageA->Width, TEXT("HeightA"), ImageA->Height,
+			TEXT("WidthB"), ImageB->Width, TEXT("HeightB"), ImageB->Height);
+
 		Results.Tolerance = Tolerance;
 		Results.MaxLocalDifference = 1.0f;
 		Results.GlobalDifference = 1.0f;

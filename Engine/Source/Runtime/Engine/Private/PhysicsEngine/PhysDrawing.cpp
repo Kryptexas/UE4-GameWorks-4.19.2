@@ -589,7 +589,10 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 
 				// Only continue if we actually got some valid geometry
 				// Will crash if we try to init buffers with no data
-				if(ThisGeom.RenderInfo->HasValidGeometry())
+				if(ThisGeom.RenderInfo->VertexBuffers
+					&& ThisGeom.RenderInfo->IndexBuffer
+					&& OutVerts.Num() > 0
+					&& ThisGeom.RenderInfo->IndexBuffer->Indices.Num() > 0)
 				{
 					ThisGeom.RenderInfo->IndexBuffer->InitResource();
 

@@ -5,16 +5,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "drawable.hpp"
 #include <Metal/MTLDrawable.h>
+#include "drawable.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
     double Drawable::GetPresentedTime() const
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
-        return [(id<MTLDrawable>)m_ptr presentedTime];
+#if MTLPP_IS_AVAILABLE_AX(10_3)
+		return m_table->PresentedTime(m_ptr);
 #else
         return 0.0;
 #endif
@@ -23,8 +25,8 @@ namespace mtlpp
     uint64_t Drawable::GetDrawableID() const
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
-        return [(id<MTLDrawable>)m_ptr drawableID];
+#if MTLPP_IS_AVAILABLE_AX(10_3)
+		return m_table->DrawableID(m_ptr);
 #else
         return 0;
 #endif
@@ -33,32 +35,35 @@ namespace mtlpp
     void Drawable::Present()
     {
         Validate();
-        [(id<MTLDrawable>)m_ptr present];
+		m_table->Present(m_ptr);
     }
 
     void Drawable::PresentAtTime(double presentationTime)
     {
         Validate();
-        [(id<MTLDrawable>)m_ptr presentAtTime:presentationTime];
+		m_table->PresentAtTime(m_ptr, presentationTime);
     }
 
     void Drawable::PresentAfterMinimumDuration(double duration)
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
-        [(id<MTLDrawable>)m_ptr presentAfterMinimumDuration:duration];
+#if MTLPP_IS_AVAILABLE_AX(10_3)
+		m_table->PresentAfterMinimumDuration(m_ptr, duration);
 #endif
     }
 
-    void Drawable::AddPresentedHandler(std::function<void(const Drawable&)> handler)
+    void Drawable::AddPresentedHandler(PresentHandler handler)
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
-        [(id<MTLDrawable>)m_ptr addPresentedHandler:^(id <MTLDrawable> mtlDrawable){
-            Drawable drawable(mtlDrawable);
-            handler(drawable);
-        }];
+#if MTLPP_IS_AVAILABLE_AX(10_3)
+		ITable* table = m_table;
+		m_table->AddPresentedHandler(m_ptr, ^(id <MTLDrawable> mtlDrawable){
+			Drawable drawable(mtlDrawable, table);
+			handler(drawable);
+		});
 #endif
     }
 
 }
+
+MTLPP_END

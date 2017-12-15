@@ -7,12 +7,11 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "device.hpp"
 
-MTLPP_CLASS(MTLBufferLayoutDescriptor);
-MTLPP_CLASS(MTLAttributeDescriptor);
-MTLPP_CLASS(MTLStageInputOutputDescriptor);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -120,13 +119,13 @@ namespace mtlpp
         BufferLayoutDescriptor();
         BufferLayoutDescriptor(MTLBufferLayoutDescriptor* handle) : ns::Object<MTLBufferLayoutDescriptor*>(handle) { }
 
-        uint32_t     GetStride() const;
+        NSUInteger     GetStride() const;
         StepFunction GetStepFunction() const;
-        uint32_t     GetStepRate() const;
+        NSUInteger     GetStepRate() const;
 
-        void SetStride(uint32_t stride);
+        void SetStride(NSUInteger stride);
         void SetStepFunction(StepFunction stepFunction);
-        void SetStepRate(uint32_t stepRate);
+        void SetStepRate(NSUInteger stepRate);
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
@@ -137,12 +136,12 @@ namespace mtlpp
         AttributeDescriptor(MTLAttributeDescriptor* handle) : ns::Object<MTLAttributeDescriptor*>(handle) { }
 
         AttributeFormat GetFormat() const;
-        uint32_t        GetOffset() const;
-        uint32_t        GetBufferIndex() const;
+        NSUInteger        GetOffset() const;
+        NSUInteger        GetBufferIndex() const;
 
         void SetFormat(AttributeFormat format);
-        void SetOffset(uint32_t offset);
-        void SetBufferIndex(uint32_t bufferIndex);
+        void SetOffset(NSUInteger offset);
+        void SetBufferIndex(NSUInteger bufferIndex);
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 
@@ -156,12 +155,14 @@ namespace mtlpp
         ns::Array<BufferLayoutDescriptor> GetLayouts() const;
         ns::Array<AttributeDescriptor>    GetAttributes() const;
         IndexType                         GetIndexType() const;
-        uint32_t                          GetIndexBufferIndex() const;
+        NSUInteger                          GetIndexBufferIndex() const;
 
         void SetIndexType(IndexType indexType);
-        void SetIndexBufferIndex(uint32_t indexBufferIndex);
+        void SetIndexBufferIndex(NSUInteger indexBufferIndex);
 
         void Reset();
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 }
+
+MTLPP_END

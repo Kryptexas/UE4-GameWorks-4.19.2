@@ -385,8 +385,10 @@ void UPointLightComponent::PushRadiusToRenderThread()
 	}
 }
 
-float UPointLightComponent::GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits)
+float UPointLightComponent::GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits, float CosHalfConeAngle)
 {
+	FMath::Clamp<float>(CosHalfConeAngle, -1, 1 - KINDA_SMALL_NUMBER);
+
 	if (SrcUnits == TargetUnits)
 	{
 		return 1.f;
@@ -401,7 +403,7 @@ float UPointLightComponent::GetUnitsConversionFactor(ELightUnits SrcUnits, ELigh
 		}
 		else if (SrcUnits == ELightUnits::Lumens)
 		{
-			CnvFactor = 100.f * 100.f / 4 / PI;
+			CnvFactor = 100.f * 100.f / 2.f / PI / (1.f - CosHalfConeAngle);
 		}
 		else
 		{
@@ -414,7 +416,7 @@ float UPointLightComponent::GetUnitsConversionFactor(ELightUnits SrcUnits, ELigh
 		}
 		else if (TargetUnits == ELightUnits::Lumens)
 		{
-			CnvFactor *= 4.f  * PI / 100.f / 100.f;
+			CnvFactor *= 2.f  * PI * (1.f - CosHalfConeAngle) / 100.f / 100.f;
 		}
 		else
 		{

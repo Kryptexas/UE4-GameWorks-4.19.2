@@ -5,29 +5,31 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLResource.h>
 #include "resource.hpp"
 #include "heap.hpp"
-#include <Metal/MTLResource.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
     ns::String Resource::GetLabel() const
     {
         Validate();
-        return [(id<MTLResource>)m_ptr label];
+		return ((IMPTableResource<Resource::Type>*)m_table)->Label(m_ptr);
     }
 
     CpuCacheMode Resource::GetCpuCacheMode() const
     {
         Validate();
-        return CpuCacheMode([(id<MTLResource>)m_ptr cpuCacheMode]);
+		return CpuCacheMode(((IMPTableResource<Resource::Type>*)m_table)->CpuCacheMode(m_ptr));
     }
 
     StorageMode Resource::GetStorageMode() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return StorageMode([(id<MTLResource>)m_ptr storageMode]);
+        return StorageMode(((IMPTableResource<Resource::Type>*)m_table)->StorageMode(m_ptr));
 #else
         return StorageMode(0);
 #endif
@@ -36,25 +38,27 @@ namespace mtlpp
     Heap Resource::GetHeap() const
     {
         Validate();
-		if(@available(macOS 10.13, iOS 10.0, *))
-			return [(id<MTLResource>)m_ptr heap];
-		else
+#if MTLPP_IS_AVAILABLE(10_13, 10_0)
+			return ((IMPTableResource<Resource::Type>*)m_table)->Heap(m_ptr);
+#else
 			return nullptr;
+#endif
     }
 
     bool Resource::IsAliasable() const
     {
         Validate();
-		if(@available(macOS 10.13, iOS 10.0, *))
-			return [(id<MTLResource>)m_ptr isAliasable];
-		else
+#if MTLPP_IS_AVAILABLE(10_13, 10_0)
+			return ((IMPTableResource<Resource::Type>*)m_table)->IsAliasable(m_ptr);
+#else
 			return false;
+#endif
     }
 	
-	uint32_t Resource::GetAllocatedSize() const
+	NSUInteger Resource::GetAllocatedSize() const
 	{
-#if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(id<MTLResource>)m_ptr allocatedSize];
+#if MTLPP_IS_AVAILABLE(10_13, 10_0)
+		return ((IMPTableResource<Resource::Type>*)m_table)->AllocatedSize(m_ptr);
 #else
 		return 0;
 #endif
@@ -63,19 +67,22 @@ namespace mtlpp
     void Resource::SetLabel(const ns::String& label)
     {
         Validate();
-        [(id<MTLResource>)m_ptr setLabel:(NSString*)label.GetPtr()];
+		((IMPTableResource<Resource::Type>*)m_table)->SetLabel(m_ptr, label.GetPtr());
     }
 
     PurgeableState Resource::SetPurgeableState(PurgeableState state)
     {
         Validate();
-        return PurgeableState([(id<MTLResource>)m_ptr setPurgeableState:MTLPurgeableState(state)]);
+		return (PurgeableState)((IMPTableResource<Resource::Type>*)m_table)->SetPurgeableState(m_ptr, MTLPurgeableState(state));
     }
 
     void Resource::MakeAliasable() const
     {
         Validate();
-		if(@available(macOS 10.13, iOS 10.0, *))
-			[(id<MTLResource>)m_ptr makeAliasable];
+#if MTLPP_IS_AVAILABLE(10_13, 10_0)
+			((IMPTableResource<Resource::Type>*)m_table)->MakeAliasable(m_ptr);
+#endif
     }
 }
+
+MTLPP_END

@@ -5298,6 +5298,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 		
 		// Done with the request
 		FScreenshotRequest::Reset();
+		FScreenshotRequest::OnScreenshotRequestProcessed().ExecuteIfBound();
 
 		// Re-enable screen messages - if we are NOT capturing a movie
 		GAreScreenMessagesEnabled = GScreenMessagesRestoreState;

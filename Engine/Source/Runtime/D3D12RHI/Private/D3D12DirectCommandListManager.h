@@ -8,6 +8,7 @@
 #define DEBUG_FENCES 0
 
 extern int32 GCommandListBatchingMode;
+extern int32 GEmitRgpFrameMarkers;
 
 enum ECommandListBatchMode
 {

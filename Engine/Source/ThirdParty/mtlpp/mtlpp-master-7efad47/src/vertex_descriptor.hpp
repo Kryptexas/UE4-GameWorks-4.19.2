@@ -7,12 +7,11 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "ns.hpp"
 
-MTLPP_CLASS(MTLVertexBufferLayoutDescriptor);
-MTLPP_CLASS(MTLVertexAttributeDescriptor);
-MTLPP_CLASS(MTLVertexDescriptor);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -106,13 +105,13 @@ namespace mtlpp
         VertexBufferLayoutDescriptor();
         VertexBufferLayoutDescriptor(MTLVertexBufferLayoutDescriptor* handle) : ns::Object<MTLVertexBufferLayoutDescriptor*>(handle) { }
 
-        uint32_t           GetStride() const;
+        NSUInteger           GetStride() const;
         VertexStepFunction GetStepFunction() const;
-        uint32_t           GetStepRate() const;
+        NSUInteger           GetStepRate() const;
 
-        void SetStride(uint32_t stride);
+        void SetStride(NSUInteger stride);
         void SetStepFunction(VertexStepFunction stepFunction);
-        void SetStepRate(uint32_t stepRate);
+        void SetStepRate(NSUInteger stepRate);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
@@ -123,12 +122,12 @@ namespace mtlpp
         VertexAttributeDescriptor(MTLVertexAttributeDescriptor* handle) : ns::Object<MTLVertexAttributeDescriptor*>(handle) { }
 
         VertexFormat GetFormat() const;
-        uint32_t     GetOffset() const;
-        uint32_t     GetBufferIndex() const;
+        NSUInteger     GetOffset() const;
+        NSUInteger     GetBufferIndex() const;
 
         void SetFormat(VertexFormat format);
-        void SetOffset(uint32_t offset);
-        void SetBufferIndex(uint32_t bufferIndex);
+        void SetOffset(NSUInteger offset);
+        void SetBufferIndex(NSUInteger bufferIndex);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
@@ -145,3 +144,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

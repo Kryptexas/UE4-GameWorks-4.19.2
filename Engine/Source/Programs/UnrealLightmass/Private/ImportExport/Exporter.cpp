@@ -173,15 +173,12 @@ namespace Lightmass
 		}
 	}
 
-	/** Creates a new channel and exports everything in DebugOutput. */
-	void FLightmassSolverExporter::ExportDebugInfo(const FDebugLightingOutput& DebugOutput) const
+	void FLightmassSolverExporter::WriteDebugLightingOutput(const FDebugLightingOutput& DebugOutput) const
 	{
-		const FString ChannelName = CreateChannelName(DebugOutputGuid, LM_DEBUGOUTPUT_VERSION, LM_DEBUGOUTPUT_EXTENSION);
-		const int32 ErrorCode = Swarm->OpenChannel(*ChannelName, LM_DEBUGOUTPUT_CHANNEL_FLAGS, true);
+		Swarm->Write(&DebugOutput.bValid, sizeof(DebugOutput.bValid));
 
-		if( ErrorCode >= 0 )
+		if (DebugOutput.bValid)
 		{
-			Swarm->Write(&DebugOutput.bValid, sizeof(DebugOutput.bValid));
 			WriteArray(DebugOutput.PathRays);
 			WriteArray(DebugOutput.ShadowRays);
 			WriteArray(DebugOutput.IndirectPhotonPaths);
@@ -199,12 +196,6 @@ namespace Lightmass
 			Swarm->Write(&DebugOutput.TexelCorners, sizeof(DebugOutput.TexelCorners));
 			Swarm->Write(&DebugOutput.bCornerValid, sizeof(DebugOutput.bCornerValid));
 			Swarm->Write(&DebugOutput.SampleRadius, sizeof(DebugOutput.SampleRadius));
-
-			Swarm->CloseCurrentChannel();
-		}
-		else
-		{
-			UE_LOG(LogLightmass, Log, TEXT("Failed to open debug output channel!"));
 		}
 	}
 
@@ -453,6 +444,8 @@ namespace Lightmass
 			Swarm->Write(OutData->GetCompressedData(), OutData->CompressedDataSize ? OutData->CompressedDataSize : OutData->UncompressedDataSize);
 		}
 
+		WriteDebugLightingOutput(LightingData.DebugOutput);
+
 		// free up the calculated data
 		delete LightingData.LightMapData;
 		LightingData.ShadowMaps.Empty();
@@ -515,6 +508,8 @@ namespace Lightmass
 				WriteArray(TaskData.BrickData[BrickIndex].DirectionalLightShadowing);
 				WriteArray(TaskData.BrickData[BrickIndex].VoxelImportProcessingData);
 			}
+
+			WriteDebugLightingOutput(TaskData.DebugOutput);
 			
 			Swarm->CloseCurrentChannel();
 		}

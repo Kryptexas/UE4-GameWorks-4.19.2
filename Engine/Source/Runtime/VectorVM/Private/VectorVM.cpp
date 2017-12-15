@@ -803,7 +803,7 @@ namespace VectorVMNoise
 	static void Noise2D(FVectorVMContext& Context) { FScalarKernelNoise2D_iNoise::Exec(Context); }
 	static void Noise3D(FVectorVMContext& Context)
 	{
-		//Basic scalar implementation of perlin's improved noise until I can spend some quality time exploring vectorized implementations of Marc O's noise from Random.usf.
+		//Basic scalar implementation of perlin's improved noise until I can spend some quality time exploring vectorized implementations of Marc O's noise from Random.ush.
 		//http://mrl.nyu.edu/~perlin/noise/
 		FScalarKernelNoise3D_iNoise::Exec(Context);
 	}

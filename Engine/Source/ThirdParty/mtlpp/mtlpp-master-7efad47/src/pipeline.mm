@@ -1,7 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "pipeline.hpp"
 #include <Metal/MTLPipeline.h>
+#include "pipeline.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -31,3 +33,5 @@ namespace mtlpp
 	}
 	
 }
+
+MTLPP_END

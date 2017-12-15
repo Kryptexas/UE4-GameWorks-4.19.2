@@ -142,6 +142,7 @@ struct FMetalShaderBindings
 	uint8	NumUniformBuffers;
 	uint8	NumUAVs;
 	bool	bHasRegularUniformBuffers;
+	bool	bDiscards;
 
 	FMetalShaderBindings() :
 		LinearBuffer(0),
@@ -151,7 +152,8 @@ struct FMetalShaderBindings
 		NumSamplers(0),
 		NumUniformBuffers(0),
 		NumUAVs(0),
-		bHasRegularUniformBuffers(false)
+		bHasRegularUniformBuffers(false),
+		bDiscards(false)
 	{
 	}
 };
@@ -170,6 +172,7 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderBindings& Bindings)
 	Ar << Bindings.NumUniformBuffers;
 	Ar << Bindings.NumUAVs;
 	Ar << Bindings.bHasRegularUniformBuffers;
+	Ar << Bindings.bDiscards;
 	return Ar;
 }
 
@@ -262,9 +265,9 @@ struct FMetalCodeHeader
 	
 	uint16 CompileFlags;
 	
-	uint8 NumThreadsX;
-	uint8 NumThreadsY;
-	uint8 NumThreadsZ;
+	uint32 NumThreadsX;
+	uint32 NumThreadsY;
+	uint32 NumThreadsZ;
 	
 	uint8 Version;
 	int8 SideTable;

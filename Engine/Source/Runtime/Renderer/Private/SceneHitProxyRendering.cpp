@@ -43,7 +43,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile the hit proxy vertex shader on PC
 		return IsPCPlatform(Platform)
@@ -75,10 +75,10 @@ protected:
 		FBaseHS(Initializer)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& FHitProxyVS::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& FHitProxyVS::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 };
 
@@ -97,10 +97,10 @@ protected:
 		FBaseDS(Initializer)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& FHitProxyVS::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& FHitProxyVS::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 };
 
@@ -115,7 +115,7 @@ class FHitProxyPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FHitProxyPS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile the hit proxy vertex shader on PC
 		return IsPCPlatform(Platform) 

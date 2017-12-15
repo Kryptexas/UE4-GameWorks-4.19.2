@@ -348,6 +348,9 @@ FPostProcessSettings::FPostProcessSettings()
 	ColorCorrectionShadowsMax = 0.09f;
 	ColorCorrectionHighlightsMin = 0.5f;
 
+	BlueCorrection = 0.6f;
+	ExpandGamut = 1.0f;
+
 	// default values:
 	FilmWhitePoint = FLinearColor(1.0f, 1.0f, 1.0f);
 	FilmSaturation = 1.0f;

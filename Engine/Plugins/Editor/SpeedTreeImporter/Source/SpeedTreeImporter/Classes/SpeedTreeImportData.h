@@ -55,15 +55,15 @@ class USpeedTreeImportData : public UAssetImportData
 	TEnumAsByte<enum EImportGeometryType> ImportGeometryType;
 
 	/** Choose weather painted foliage or individual actor */
-	UPROPERTY(EditAnywhere, config, Category=Mesh, meta = (DisplayName = "LOD Setup"))
+	UPROPERTY(EditAnywhere, config, Category=Mesh, meta = (DisplayName = "LOD Setup", SpeedTreeVersion = "8"))
 	TEnumAsByte<enum EImportLODType> LODType;
 
 	/**  */
-	UPROPERTY(EditAnywhere, config, Category=Mesh, meta = (DisplayName = "Setup Collision"))
+	UPROPERTY(EditAnywhere, config, Category=Mesh, meta = (DisplayName = "Include Collision", SpeedTreeVersion = "8"))
 	uint32 IncludeCollision : 1;
 
 	/**  */
-	UPROPERTY(EditAnywhere, config, Category=Materials, meta = (DisplayName = "Create Materials"))
+	UPROPERTY(EditAnywhere, config, Category=Materials, meta = (DisplayName = "Create Materials", SpeedTreeVersion = "8"))
 	uint32 MakeMaterialsCheck : 1;
 	
 	/**  */
@@ -91,7 +91,11 @@ class USpeedTreeImportData : public UAssetImportData
 	uint32 IncludeColorAdjustment : 1;
 	
 	/**  */
-	UPROPERTY(EditAnywhere, config, Category = Materials, meta = (EditCondition = "MakeMaterialsCheck", DisplayName = "Include Vertex Processing"))
+	UPROPERTY(EditAnywhere, config, Category = Materials, meta = (EditCondition = "MakeMaterialsCheck", DisplayName = "Include Subsurface", SpeedTreeVersion = "8"))
+	uint32 IncludeSubsurface : 1;
+
+	/**  */
+	UPROPERTY(EditAnywhere, config, Category = Materials, meta = (EditCondition = "MakeMaterialsCheck", DisplayName = "Include Vertex Processing", SpeedTreeVersion = "8"))
 	uint32 IncludeVertexProcessingCheck : 1;
 
 	/**  */

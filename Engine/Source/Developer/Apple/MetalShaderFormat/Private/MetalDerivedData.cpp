@@ -185,9 +185,9 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 	FString MetalPath = GetMetalBinaryPath(ShaderPlatform);
 	FString MetalToolsPath = GetMetalToolsPath(ShaderPlatform);
 	FString MetalLibPath = MetalToolsPath + TEXT("/metallib");
-
+	
 	FString IncludeArgs = Job.IncludeDir.Len() ? FString::Printf(TEXT("-I %s"), *Job.IncludeDir) : TEXT("");
-
+	
 	FString MetalParams;
 	if (Job.bCompileAsPCH)
 	{
@@ -207,14 +207,14 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 		// PCH 
 		bool bUseSharedPCH = Job.InputPCHFile.Len() && IFileManager::Get().FileExists(*Job.InputPCHFile);
 		if (bUseSharedPCH)
-		{
-			CopyLocalFileToRemote(Job.InputPCHFile, RemoteInputPCHFile);
+        {
+            CopyLocalFileToRemote(Job.InputPCHFile, RemoteInputPCHFile);
 			MetalParams = FString::Printf(TEXT("-include-pch %s %s %s %s -Wno-null-character -fbracket-depth=1024 %s %s %s %s -o %s"), *RemoteInputPCHFile, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *Job.Defines, *IncludeArgs, *RemoteInputFile, *RemoteObjFile);
-		}
-		else
-		{
-			MetalParams = FString::Printf(TEXT("%s %s %s -Wno-null-character -fbracket-depth=1024 %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *Job.Defines, *IncludeArgs, *RemoteInputFile, *RemoteObjFile);
-		}
+        }
+        else
+        {
+            MetalParams = FString::Printf(TEXT("%s %s %s -Wno-null-character -fbracket-depth=1024 %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *Job.Defines, *IncludeArgs, *RemoteInputFile, *RemoteObjFile);
+        }
 	}
 
 	TCHAR const* CompileType = bRemoteBuildingConfigured ? TEXT("remotely") : TEXT("locally");

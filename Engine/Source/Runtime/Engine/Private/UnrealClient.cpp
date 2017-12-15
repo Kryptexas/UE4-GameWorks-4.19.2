@@ -363,6 +363,7 @@ TArray<FColor>* FScreenshotRequest::GetHighresScreenshotMaskColorArray()
 }
 
 
+FOnScreenshotRequestProcessed FScreenshotRequest::ScreenshotProcessedDelegate;
 bool FScreenshotRequest::bIsScreenshotRequested = false;
 FString FScreenshotRequest::Filename;
 FString FScreenshotRequest::NextScreenshotName;

@@ -192,7 +192,7 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 	Input.VirtualSourceFilePath = TEXT("/Engine/Private/NiagaraEmitterInstanceShader.usf");
 	Input.EntryPointName = TEXT("SimulateMain");
 	Input.Environment.SetDefine(TEXT("VM_SIMULATION"), 1);
-	Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), StringToArray<ANSICHAR>(*TranslatedHLSL, TranslatedHLSL.Len() + 1));
+	Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), TranslatedHLSL);
 	FShaderCompilerOutput Output;
 
 	FVectorVMCompilationOutput CompilationOutput;

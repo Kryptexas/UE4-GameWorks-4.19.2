@@ -38,6 +38,7 @@ public class D3D12RHI : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "AMD_AGS");
 		}
 	}
 }

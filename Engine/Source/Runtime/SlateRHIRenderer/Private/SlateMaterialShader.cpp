@@ -23,7 +23,7 @@ void FSlateMaterialShaderVS::ModifyCompilationEnvironment(EShaderPlatform Platfo
 	FMaterialShader::ModifyCompilationEnvironment( Platform, Material, OutEnvironment );
 }
 
-bool FSlateMaterialShaderVS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+bool FSlateMaterialShaderVS::ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 {
 	return Material->GetMaterialDomain() == MD_UI;
 }
@@ -58,7 +58,7 @@ bool FSlateMaterialShaderVS::Serialize(FArchive& Ar)
 }
 
 
-bool FSlateMaterialShaderPS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+bool FSlateMaterialShaderPS::ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 {
 	return Material->GetMaterialDomain() == MD_UI;
 }

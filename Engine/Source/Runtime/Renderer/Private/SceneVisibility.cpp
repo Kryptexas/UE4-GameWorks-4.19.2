@@ -2447,17 +2447,34 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			// no TemporalAA
 			ViewState->OnFrameRenderingSetup(1, ViewFamily);
 
-			ViewState->TemporalAAHistory.SafeRelease();
-			ViewState->PendingTemporalAAHistory.SafeRelease();
+			ViewState->PrevFrameViewInfo.TemporalAAHistory.SafeRelease();
+			ViewState->PendingPrevFrameViewInfo.TemporalAAHistory.SafeRelease();
+		}
+
+		// Setup a new FPreviousViewInfo from current frame infos.
+		FPreviousViewInfo NewPrevViewInfo;
+		{
+			NewPrevViewInfo.ViewMatrices = View.ViewMatrices;
 		}
 
 		if ( ViewState )
 		{
+			if (!ViewFamily.EngineShowFlags.HitProxies)
+			{
+				// If world is not pause, commit pending previous frame info to ViewState.
+				if (!ViewFamily.bWorldIsPaused)
+				{
+					ViewState->PrevFrameViewInfo = ViewState->PendingPrevFrameViewInfo;
+				}
+
+				// Setup new PendingPrevFrameViewInfo for next frame.
+				ViewState->PendingPrevFrameViewInfo = NewPrevViewInfo;
+			}
+
 			// update previous frame matrices in case world origin was rebased on this frame
 			if (!View.OriginOffsetThisFrame.IsZero())
 			{
-				ViewState->PrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
-				ViewState->PendingPrevViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
+				ViewState->PrevFrameViewInfo.ViewMatrices.ApplyWorldOffset(View.OriginOffsetThisFrame);
 			}
 			
 			// determine if we are initializing or we should reset the persistent state
@@ -2484,37 +2501,25 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			{
 				bool bResetCamera = bFirstFrameOrTimeWasReset
 					|| View.bCameraCut
-					|| IsLargeCameraMovement(View, ViewState->PrevViewMatrices.GetViewMatrix(), ViewState->PrevViewMatrices.GetViewOrigin(), 45.0f, 10000.0f);
+					|| IsLargeCameraMovement(View, ViewState->PrevFrameViewInfo.ViewMatrices.GetViewMatrix(), ViewState->PrevFrameViewInfo.ViewMatrices.GetViewOrigin(), 45.0f, 10000.0f);
 
 				if (bResetCamera)
 				{
-					ViewState->PrevViewMatrices = View.ViewMatrices;
-
-					ViewState->PendingPrevViewMatrices = ViewState->PrevViewMatrices;
+					View.PrevViewInfo = NewPrevViewInfo;
+					ViewState->PrevFrameViewInfo = NewPrevViewInfo;
 
 					// PT: If the motion blur shader is the last shader in the post-processing chain then it is the one that is
 					//     adjusting for the viewport offset.  So it is always required and we can't just disable the work the
 					//     shader does.  The correct fix would be to disable the effect when we don't need it and to properly mark
 					//     the uber-postprocessing effect as the last effect in the chain.
 
-					View.bPrevTransformsReset				= true;
+					View.bPrevTransformsReset = true;
 				}
 				else
 				{
-					// check for pause so we can keep motion blur in paused mode (doesn't work in editor)
-					if(!ViewFamily.bWorldIsPaused)
-					{
-						ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
-						if( ViewState->PendingTemporalAAHistory.IsValid() )
-						{
-							ViewState->TemporalAAHistory = ViewState->PendingTemporalAAHistory;
-							ViewState->PendingTemporalAAHistory.SafeRelease();
-						}
-
-						// pending is needed as we are in init view and still need to render.
-						ViewState->PendingPrevViewMatrices = View.ViewMatrices;
-					}
+					View.PrevViewInfo = ViewState->PrevFrameViewInfo;
 				}
+
 				// we don't use DeltaTime as it can be 0 (in editor) and is computed by subtracting floats (loses precision over time)
 				// Clamp DeltaWorldTime to reasonable values for the purposes of motion blur, things like TimeDilation can make it very small
 				if (!ViewFamily.bWorldIsPaused)
@@ -2524,8 +2529,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 					ViewState->MotionBlurTimeScale = bEnableTimeScale ? (1.0f / (FMath::Max(View.Family->DeltaWorldTime, .00833f) * 30.0f)) : FixedBlurTimeScale;
 				}
-
-				View.PrevViewMatrices = ViewState->PrevViewMatrices;
 			}
 
 			ViewState->PrevFrameNumber = ViewState->PendingPrevFrameNumber;
@@ -2535,6 +2538,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			ViewState->UpdateLastRenderTime(*View.Family);
 
 			ViewState->UpdateTemporalLODTransition(View);
+		}
+		else
+		{
+			// Without a viewstate, we just assume that camera has not moved.
+			View.PrevViewInfo = NewPrevViewInfo;
 		}
 	}
 }
@@ -3050,7 +3058,7 @@ uint32 GetShadowQuality();
  * Check visibility, sort translucent items, etc.
  */
 bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents, FGraphEventArray& UpdateViewCustomDataEvents)
-{	
+{
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_InitViews, FColor::Emerald);
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 

@@ -1656,7 +1656,7 @@ protected:
             expr->operands[0]->accept(this);
             ralloc_asprintf_append(buffer, ")");
         }
-		else if (Backend.Version >= 2 && Backend.bForceInvariance && numOps == 2 && op == ir_binop_mul && expr->operands[0]->type == expr->operands[1]->type && expr->operands[0]->type->is_float())
+		else if (Backend.Version >= 2 && numOps == 2 && op == ir_binop_mul && expr->operands[0]->type == expr->operands[1]->type && expr->operands[0]->type->is_float())
 		{
 			ralloc_asprintf_append(buffer, "fma(");
 			expr->operands[0]->accept(this);

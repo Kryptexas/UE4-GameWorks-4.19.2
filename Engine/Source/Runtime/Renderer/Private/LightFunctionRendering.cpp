@@ -36,7 +36,7 @@ public:
 	  * as 'UsedAsLightFunction' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
@@ -93,7 +93,7 @@ public:
 	  * as 'UsedAsLightFunction' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}

@@ -13,7 +13,9 @@
 #include "ShaderParameters.h"
 #include "RenderingThread.h"
 #include "ShaderCore.h"
+#include "ShaderPermutation.h"
 #include "Serialization/ArchiveProxy.h"
+#include "UObject/RenderingObjectVersion.h"
 
 // For FShaderUniformBufferParameter
 
@@ -33,6 +35,62 @@ class FVertexFactoryType;
 /** Used to identify the global shader map. */
 extern SHADERCORE_API FSHAHash GGlobalShaderMapHash;
 
+
+/** Define a shader permutation uniquely according to its type, and permutation id.*/
+template<typename MetaShaderType>
+struct TShaderTypePermutation
+{
+	MetaShaderType* const Type;
+	const int32 PermutationId;
+
+	TShaderTypePermutation(MetaShaderType* InType, int32 InPermutationId)
+		: Type(InType)
+		, PermutationId(InPermutationId)
+	{
+	}
+
+	FORCEINLINE bool operator==(const TShaderTypePermutation& Other)const
+	{
+		return Type == Other.Type && PermutationId == Other.PermutationId;
+	}
+
+	FORCEINLINE bool operator!=(const TShaderTypePermutation& Other)const
+	{
+		return !(*this == Other);
+	}
+};
+
+using FShaderPermutation = TShaderTypePermutation<FShaderType>;
+
+template<typename MetaShaderType>
+FORCEINLINE uint32 GetTypeHash(const TShaderTypePermutation<MetaShaderType>& Var)
+{
+	return HashCombine(GetTypeHash(Var.Type), (uint32)Var.PermutationId);
+}
+
+/** Used to compare order shader types permutation deterministically. */
+template<typename MetaShaderType>
+class TCompareShaderTypePermutation
+{
+public:
+	FORCEINLINE bool operator()(const TShaderTypePermutation<MetaShaderType>& A, const TShaderTypePermutation<MetaShaderType>& B) const
+	{
+		int32 AL = FCString::Strlen(A.Type->GetName());
+		int32 BL = FCString::Strlen(B.Type->GetName());
+		if (AL == BL)
+		{
+			int32 StrCmp = FCString::Strncmp(A.Type->GetName(), B.Type->GetName(), AL);
+			if (StrCmp != 0)
+			{
+				return StrCmp > 0;
+			}
+			return A.PermutationId > B.PermutationId;
+		}
+		return AL > BL;
+	}
+};
+
+
 /** 
  * Uniquely identifies an FShaderResource.  
  * Used to link FShaders to FShaderResources on load. 
@@ -43,11 +101,14 @@ public:
 
 	FShaderResourceId() {}
 
-	FShaderResourceId(const FShaderCompilerOutput& Output, const TCHAR* InSpecificShaderTypeName) :
-		Target(Output.Target),
-		OutputHash(Output.OutputHash),
-		SpecificShaderTypeName(InSpecificShaderTypeName)
-	{}
+	FShaderResourceId(const FShaderTarget& InTarget, const FSHAHash& InOutputHash, const TCHAR* InSpecificShaderTypeName, int32 InSpecificPermutationId) :
+		Target(InTarget),
+		OutputHash(InOutputHash),
+		SpecificShaderTypeName(InSpecificShaderTypeName),
+		SpecificPermutationId(InSpecificPermutationId)
+	{
+		check(!(SpecificShaderTypeName == nullptr && InSpecificPermutationId != 0));
+	}
 
 	friend inline uint32 GetTypeHash( const FShaderResourceId& Id )
 	{
@@ -58,6 +119,7 @@ public:
 	{
 		return X.Target == Y.Target 
 			&& X.OutputHash == Y.OutputHash 
+			&& X.SpecificPermutationId == Y.SpecificPermutationId
 			&& ((X.SpecificShaderTypeName == NULL && Y.SpecificShaderTypeName == NULL)
 				|| (FCString::Strcmp(X.SpecificShaderTypeName, Y.SpecificShaderTypeName) == 0));
 	}
@@ -69,6 +131,8 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar, FShaderResourceId& Id)
 	{
+		Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 		Ar << Id.Target << Id.OutputHash;
 
 		if (Ar.IsSaving())
@@ -77,6 +141,11 @@ public:
 		}
 
 		Ar << Id.SpecificShaderTypeStorage;
+
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ShaderPermutationId)
+		{
+			Ar << Id.SpecificPermutationId;
+		}
 
 		if (Ar.IsLoading())
 		{
@@ -103,6 +172,9 @@ public:
 
 	/** Stores the memory for SpecificShaderTypeName if this is a standalone Id, otherwise is empty and SpecificShaderTypeName points to an FShaderType name. */
 	FString SpecificShaderTypeStorage;
+
+	/** Specific permutation identifier of the shader when SpecificShaderTypeName is non null, ignored otherwise. */
+	int32 SpecificPermutationId;
 };
 
 /** 
@@ -118,7 +190,7 @@ public:
 	SHADERCORE_API FShaderResource();
 
 	/** Constructor used when creating a new shader resource from compiled output. */
-	FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType);
+	FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType, int32 InSpecificPermutationId);
 
 	~FShaderResource();
 
@@ -212,7 +284,7 @@ public:
 	 * Finds a matching shader resource in memory or creates a new one with the given compiler output.  
 	 * SpecificType can be NULL
 	 */
-	SHADERCORE_API static FShaderResource* FindOrCreateShaderResource(const FShaderCompilerOutput& Output, class FShaderType* SpecificType);
+	SHADERCORE_API static FShaderResource* FindOrCreateShaderResource(const FShaderCompilerOutput& Output, class FShaderType* SpecificType, int32 SpecificPermutationId);
 
 	/** Return a list of all shader Ids currently known */
 	SHADERCORE_API static void GetAllShaderResourceId(TArray<FShaderResourceId>& Ids);
@@ -260,6 +332,9 @@ private:
 	/** If not NULL, the shader type this resource must be used with. */
 	class FShaderType* SpecificType;
 
+	/** Specific permutation identifier of the shader when SpecificType is non null, ignored otherwise. */
+	int32 SpecificPermutationId;
+
 	/** The number of instructions the shader takes to execute. */
 	uint32 NumInstructions;
 
@@ -271,7 +346,7 @@ private:
 
 	/** A 'canary' used to detect when a stale shader resource is being rendered with. */
 	uint32 Canary;
-	
+
 
 	/** Whether the shader code is stored in a shader library. */
 	bool bCodeInSharedLocation;
@@ -358,7 +433,7 @@ public:
 };
 
 /** 
- * Uniquely identifies an FShader.  
+ * Uniquely identifies an FShader instance.  
  * Used to link FMaterialShaderMaps and FShaders on load. 
  */
 class FShaderId
@@ -393,6 +468,9 @@ public:
 	/** Shader type */
 	FShaderType* ShaderType;
 
+	/** Unique permutation identifier within the ShaderType. */
+	int32 PermutationId;
+
 	/** Used to detect changes to the shader source files. */
 	FSHAHash SourceHash;
 
@@ -403,12 +481,13 @@ public:
 	FShaderTarget Target;
 
 	/** Create a minimally initialized Id.  Members will have to be assigned individually. */
-	FShaderId(const FSerializationHistory& InSerializationHistory) : 
-		SerializationHistory(InSerializationHistory)
+	FShaderId(const FSerializationHistory& InSerializationHistory)
+		: PermutationId(0)
+		, SerializationHistory(InSerializationHistory)
 	{}
 
 	/** Creates an Id for the given material, vertex factory, shader type and target. */
-	SHADERCORE_API FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget);
+	SHADERCORE_API FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, int32 PermutationId, FShaderTarget InTarget);
 
 	friend inline uint32 GetTypeHash( const FShaderId& Id )
 	{
@@ -424,7 +503,8 @@ public:
 			&& ((X.VFSerializationHistory == NULL && Y.VFSerializationHistory == NULL)
 				|| (X.VFSerializationHistory != NULL && Y.VFSerializationHistory != NULL &&
 					*X.VFSerializationHistory == *Y.VFSerializationHistory))
-			&& X.ShaderType == Y.ShaderType 
+			&& X.ShaderType == Y.ShaderType
+			&& X.PermutationId == Y.PermutationId 
 			&& X.SourceHash == Y.SourceHash 
 			&& X.SerializationHistory == Y.SerializationHistory
 			&& X.Target == Y.Target;
@@ -466,6 +546,9 @@ public:
 	/** Shader type name */
 	FString ShaderTypeName;
 
+	/** Unique permutation identifier within the ShaderType. */
+	int32 PermutationId;
+
 	/** Used to detect changes to the shader source files. */
 	FSHAHash SourceHash;
 
@@ -503,9 +586,11 @@ public:
 		FSHAHash MaterialShaderMapHash;
 		const FShaderPipelineType* ShaderPipeline;
 		FVertexFactoryType* VertexFactoryType;
+		int32 PermutationId;
 
 		CompiledShaderInitializerType(
 			FShaderType* InType,
+			int32 InPermutationId,
 			const FShaderCompilerOutput& CompilerOutput,
 			FShaderResource* InResource,
 			const FSHAHash& InMaterialShaderMapHash,
@@ -520,7 +605,8 @@ public:
 			Resource(InResource),
 			MaterialShaderMapHash(InMaterialShaderMapHash),
 			ShaderPipeline(InShaderPipeline),
-			VertexFactoryType(InVertexFactoryType)
+			VertexFactoryType(InVertexFactoryType),
+			PermutationId(InPermutationId)
 		{}
 	};
 
@@ -593,9 +679,10 @@ public:
 	{
 		return Resource->GetComputeShader();
 	}
-	
+
 	// Accessors.
 	inline FShaderType* GetType() const { return Type; }
+	inline int32 GetPermutationId() const { return PermutationId; }
 	inline uint32 GetNumInstructions() const { return Resource->NumInstructions; }
 	inline uint32 GetNumTextureSamplers() const { return Resource->NumTextureSamplers; }
 	inline const TArray<uint8>& GetCode() const { return Resource->Code; }
@@ -727,6 +814,7 @@ public:
 		SerializedResource = nullptr;
 	}
 
+
 protected:
 
 	/** Indexed the same as UniformBufferParameters.  Packed densely for coherent traversal. */
@@ -762,6 +850,9 @@ private:
 	/** Shader Type metadata for this shader. */
 	FShaderType* Type;
 
+	/** Unique permutation identifier of the shader in the shader type. */
+	int32 PermutationId;
+
 	/** Hash of this shader's source files generated at compile time, and stored to allow creating an FShaderId. */
 	FSHAHash SourceHash;
 
@@ -786,7 +877,12 @@ public:
 	static const uint32 ShaderMagic_Initialized = 0x335b43ab;
 };
 
-/** An object which is used to serialize/deserialize, compile, and cache a particular shader class. */
+/**
+ * An object which is used to serialize/deserialize, compile, and cache a particular shader class.
+ *
+ * A shader type can manage multiple instance of FShader across mutiple dimensions such as EShaderPlatform, or permutation id.
+ * The number of permutation of a shader type is simply given by GetPermutationCount().
+ */
 class SHADERCORE_API FShaderType
 {
 public:
@@ -829,6 +925,7 @@ public:
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,
+		int32 TotalPermutationCount,
 		ConstructSerializedType InConstructSerializedRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef);
 
@@ -914,6 +1011,12 @@ public:
 	{
 		return ShaderIdMap.Num();
 	}
+
+	inline int32 GetPermutationCount() const
+	{
+		return TotalPermutationCount;
+	}
+
 	inline const FSerializationHistory& GetSerializationHistory() const
 	{
 		return SerializationHistory;
@@ -968,6 +1071,7 @@ private:
 	const TCHAR* SourceFilename;
 	const TCHAR* FunctionName;
 	uint32 Frequency;
+	int32 TotalPermutationCount;
 
 	ConstructSerializedType ConstructSerializedRef;
 	GetStreamOutElementsType GetStreamOutElementsRef;
@@ -1006,16 +1110,21 @@ private:
  * @param ShaderMetaTypeShortcut - The shortcut for the shader meta type: simple, material, meshmaterial, etc.  The shader meta type
  *	controls 
  */
-#define DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,RequiredAPI) \
+#define DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,RequiredAPI, ...) \
 	public: \
-	typedef F##ShaderMetaTypeShortcut##ShaderType ShaderMetaType; \
+	using FPermutationDomain = FShaderPermutationNone; \
+	using ShaderMetaType = F##ShaderMetaTypeShortcut##ShaderType; \
+	\
 	static RequiredAPI ShaderMetaType StaticType; \
+	\
 	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
 	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
 	{ return new ShaderClass(Initializer); } \
+	\
 	virtual uint32 GetTypeSize() const override { return sizeof(*this); }
-#define DECLARE_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut) \
-	DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,)
+
+#define DECLARE_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,...) \
+	DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,, ##__VA_ARGS__)
 
 #if !UE_BUILD_DOCS
 /** A macro to implement a shader type. */
@@ -1026,10 +1135,11 @@ private:
 		SourceFilename, \
 		FunctionName, \
 		Frequency, \
+		1, \
 		ShaderClass::ConstructSerializedInstance, \
 		ShaderClass::ConstructCompiledInstance, \
 		ShaderClass::ModifyCompilationEnvironment, \
-		ShaderClass::ShouldCache, \
+		ShaderClass::ShouldCompilePermutation, \
 		ShaderClass::GetStreamOutElements \
 		);
 
@@ -1041,10 +1151,11 @@ private:
 		SourceFilename, \
 		FunctionName, \
 		Frequency, \
+		1, \
 		ShaderClass::ConstructSerializedInstance, \
 		ShaderClass::ConstructCompiledInstance, \
 		ShaderClass::ModifyCompilationEnvironment, \
-		ShaderClass::ShouldCache, \
+		ShaderClass::ShouldCompilePermutation, \
 		ShaderClass::GetStreamOutElements \
 		);
 
@@ -1056,10 +1167,11 @@ private:
 	ShaderClass::GetSourceFilename(), \
 	ShaderClass::GetFunctionName(), \
 	Frequency, \
+	1, \
 	ShaderClass::ConstructSerializedInstance, \
 	ShaderClass::ConstructCompiledInstance, \
 	ShaderClass::ModifyCompilationEnvironment, \
-	ShaderClass::ShouldCache, \
+	ShaderClass::ShouldCompilePermutation, \
 	ShaderClass::GetStreamOutElements \
 	);
 
@@ -1071,10 +1183,11 @@ private:
 	ShaderClass::GetSourceFilename(), \
 	ShaderClass::GetFunctionName(), \
 	Frequency, \
+	1, \
 	ShaderClass::ConstructSerializedInstance, \
 	ShaderClass::ConstructCompiledInstance, \
 	ShaderClass::ModifyCompilationEnvironment, \
-	ShaderClass::ShouldCache, \
+	ShaderClass::ShouldCompilePermutation, \
 	ShaderClass::GetStreamOutElements \
 	);
 #endif
@@ -1192,26 +1305,38 @@ class FShaderTypeDependency
 {
 public:
 
-	FShaderTypeDependency() :
-		ShaderType(nullptr)
+	FShaderTypeDependency()
+		: ShaderType(nullptr)
+		, PermutationId(0)
 	{}
 
 	/** Shader type */
 	FShaderType* ShaderType;
+
+	/** Unique permutation identifier of the global shader type. */
+	int32 PermutationId;
 
 	/** Used to detect changes to the shader source files. */
 	FSHAHash SourceHash;
 
 	friend FArchive& operator<<(FArchive& Ar,class FShaderTypeDependency& Ref)
 	{
+		Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 		Ar << Ref.ShaderType;
 		Ar << Ref.SourceHash;
+
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ShaderPermutationId)
+		{
+			Ar << Ref.PermutationId;
+		}
+
 		return Ar;
 	}
 
 	bool operator==(const FShaderTypeDependency& Reference) const
 	{
-		return ShaderType == Reference.ShaderType && SourceHash == Reference.SourceHash;
+		return ShaderType == Reference.ShaderType && PermutationId == Reference.PermutationId && SourceHash == Reference.SourceHash;
 	}
 };
 
@@ -1450,6 +1575,9 @@ private:
 	bool bHasBeenRegistered;
 
 public:
+
+	using FShaderPrimaryKey = TShaderTypePermutation<FShaderType>;
+
 	/** Default constructor. */
 	TShaderMap(EShaderPlatform InPlatform)
 		: Platform(InPlatform)
@@ -1466,49 +1594,49 @@ public:
 
 	/** Finds the shader with the given type.  Asserts on failure. */
 	template<typename ShaderType>
-	ShaderType* GetShader() const
+	ShaderType* GetShader(int32 PermutationId = 0) const
 	{
 		check(bHasBeenRegistered);
-		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(&ShaderType::StaticType);
+		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(FShaderPrimaryKey(&ShaderType::StaticType, PermutationId));
 		checkf(ShaderRef != NULL && *ShaderRef != nullptr, TEXT("Failed to find shader type %s in Platform %s"), ShaderType::StaticType.GetName(), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
 		return (ShaderType*)((*ShaderRef)->GetShaderChecked());
 	}
 
 	/** Finds the shader with the given type.  May return NULL. */
-	FShader* GetShader(FShaderType* ShaderType) const
+	FShader* GetShader(FShaderType* ShaderType, int32 PermutationId = 0) const
 	{
 		check(bHasBeenRegistered);
-		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(ShaderType);
+		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(FShaderPrimaryKey(ShaderType, PermutationId));
 		return ShaderRef ? (*ShaderRef)->GetShaderChecked() : nullptr;
 	}
 
 	/** Finds the shader with the given type. */
-	bool HasShader(FShaderType* Type) const
+	bool HasShader(FShaderType* Type, int32 PermutationId) const
 	{
 		check(bHasBeenRegistered);
-		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(Type);
+		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(FShaderPrimaryKey(Type, PermutationId));
 		return ShaderRef != nullptr && *ShaderRef != nullptr;
 	}
 
-	inline const TMap<FShaderType*,TRefCountPtr<FShader> >& GetShaders() const
+	inline const TMap<FShaderPrimaryKey,TRefCountPtr<FShader> >& GetShaders() const
 	{
 		check(bHasBeenRegistered);
 		return Shaders;
 	}
 
-	void AddShader(FShaderType* Type, FShader* Shader)
+	void AddShader(FShaderType* Type, int32 PermutationId, FShader* Shader)
 	{
 		check(Type);
-		Shaders.Add(Type, Shader);
+		Shaders.Add(FShaderPrimaryKey(Type, PermutationId), Shader);
 	}
 
 	/**
 	 * Removes the shader of the given type from the shader map
 	 * @param Type Shader type to remove the entry for 
 	 */
-	void RemoveShaderType(FShaderType* Type)
+	void RemoveShaderTypePermutaion(FShaderType* Type, int32 PermutationId)
 	{
-		Shaders.Remove(Type);
+		Shaders.Remove(FShaderPrimaryKey(Type, PermutationId));
 	}
 
 
@@ -1529,7 +1657,7 @@ public:
 	void GetShaderList(TMap<FShaderId, FShader*>& OutShaders) const
 	{
 		check(bHasBeenRegistered);
-		for(TMap<FShaderType*,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
+		for(TMap<FShaderPrimaryKey,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
 		{
 			if(ShaderIt.Value())
 			{
@@ -1562,7 +1690,7 @@ public:
 		check(bHasBeenRegistered);
 		uint32 MaxTextureSamplers = 0;
 
-		for (TMap<FShaderType*,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
+		for (TMap<FShaderPrimaryKey,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
 		{
 			if (ShaderIt.Value())
 			{
@@ -1657,17 +1785,16 @@ public:
 
 			// Sort the shaders by type name before saving, to make sure the saved result is binary equivalent to what is generated on other machines, 
 			// Which is a requirement of the Derived Data Cache.
-			TArray<FShaderType*> SortedShaders;
-			Shaders.GenerateKeyArray(SortedShaders);
-			SortedShaders.Sort(FCompareShaderTypes());
+			auto SortedShaders = Shaders;
+			SortedShaders.KeySort(TCompareShaderTypePermutation<FShaderType>());
 
-			for (FShaderType* Type : SortedShaders)
+			for (TMap<FShaderPrimaryKey, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
 			{
+				FShader* CurrentShader = ShaderIt.Value();
+				FShaderType* Type = ShaderIt.Key().Type;
 				check(Type);
 				checkSlow(FName(Type->GetName()) != NAME_None);
-
 				Ar << Type;
-				FShader* CurrentShader = Shaders.FindChecked(Type);
 				SerializeShaderForSaving(CurrentShader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 			}
 
@@ -1778,7 +1905,7 @@ public:
 				// Register the shader now that it is valid, so that it can be reused
 				Shader->Register();
 			}
-			AddShader(Shader->GetType(), Shader);
+			AddShader(Shader->GetType(), Shader->GetPermutationId(), Shader);
 		}
 		SerializedShaders.Empty();
 
@@ -1877,11 +2004,11 @@ public:
 		ShaderPipelines.Add(Type, ShaderPipeline);
 	}
 
-	uint32 GetMaxNumInstructionsForShader(const FShaderType* ShaderType) const
+	uint32 GetMaxNumInstructionsForShader(FShaderType* ShaderType) const
 	{
 		check(bHasBeenRegistered);
 		uint32 MaxNumInstructions = 0;
-		auto* FoundShader = Shaders.Find(ShaderType);
+		const TRefCountPtr<FShader>* FoundShader = Shaders.Find(FShaderPrimaryKey(ShaderType, 0));
 		if (FoundShader && *FoundShader)
 		{
 			MaxNumInstructions = FMath::Max(MaxNumInstructions, (*FoundShader)->GetNumInstructions());
@@ -1914,7 +2041,7 @@ protected:
 		ShaderPipelines.Empty();
 	}
 
-	TMap<FShaderType*, TRefCountPtr<FShader> > Shaders;
+	TMap<FShaderPrimaryKey, TRefCountPtr<FShader> > Shaders;
 	TMap<const FShaderPipelineType*, FShaderPipeline*> ShaderPipelines;
 };
 
@@ -1923,17 +2050,30 @@ template<typename ShaderType>
 class TShaderMapRef
 {
 public:
-	TShaderMapRef(const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex):
-	 Shader(ShaderIndex->template GetShader<ShaderType>()) // gcc3 needs the template quantifier so it knows the < is not a less-than
-	{}
+	TShaderMapRef(const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex)
+		: Shader(ShaderIndex->template GetShader<ShaderType>(/* PermutationId = */ 0)) // gcc3 needs the template quantifier so it knows the < is not a less-than
+	{
+		static_assert(
+			TIsSame<typename ShaderType::FPermutationDomain, FShaderPermutationNone>::Value,
+			"Missing permutation vector argument for shader that have a permutation domain.");
+	}
+
+	TShaderMapRef(
+		const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex,
+		const typename ShaderType::FPermutationDomain& PermutationVector)
+		: Shader(ShaderIndex->template GetShader<ShaderType>(PermutationVector.ToDimensionValueId())) // gcc3 needs the template quantifier so it knows the < is not a less-than
+	{ }
+
 	FORCEINLINE ShaderType* operator->() const
 	{
 		return Shader;
 	}
+
 	FORCEINLINE ShaderType* operator*() const
 	{
 		return Shader;
 	}
+
 private:
 	ShaderType* Shader;
 };

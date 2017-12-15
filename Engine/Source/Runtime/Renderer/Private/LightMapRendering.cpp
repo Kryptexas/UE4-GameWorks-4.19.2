@@ -101,23 +101,15 @@ void InterpolateVolumetricLightmap(
 	checkSlow(VolumetricLightmapSceneData.HasData());
 	const FPrecomputedVolumetricLightmapData& VolumetricLightmapData = *VolumetricLightmapSceneData.GetLevelVolumetricLightmap()->Data;
 	
-	const FBox& VolumeBounds = VolumetricLightmapData.GetBounds();
-	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
-	const FVector VolumeWorldToUVScale = InvVolumeSize;
-	const FVector VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
-
-	FVector IndirectionDataSourceCoordinate = (LookupPosition * VolumeWorldToUVScale + VolumeWorldToUVAdd) * FVector(VolumetricLightmapData.IndirectionTextureDimensions);
-	IndirectionDataSourceCoordinate.X = FMath::Clamp<float>(IndirectionDataSourceCoordinate.X, 0.0f, VolumetricLightmapData.IndirectionTextureDimensions.X - .01f);
-	IndirectionDataSourceCoordinate.Y = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Y, 0.0f, VolumetricLightmapData.IndirectionTextureDimensions.Y - .01f);
-	IndirectionDataSourceCoordinate.Z = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Z, 0.0f, VolumetricLightmapData.IndirectionTextureDimensions.Z - .01f);
-
-	FIntVector IndirectionBrickOffset;
-	int32 IndirectionBrickSize;
+	const FVector IndirectionDataSourceCoordinate = ComputeIndirectionCoordinate(LookupPosition, VolumetricLightmapData.GetBounds(), VolumetricLightmapData.IndirectionTextureDimensions);
 
 	check(VolumetricLightmapData.IndirectionTexture.Data.Num() > 0);
 	checkSlow(GPixelFormats[VolumetricLightmapData.IndirectionTexture.Format].BlockBytes == sizeof(uint8) * 4);
 	const int32 NumIndirectionTexels = VolumetricLightmapData.IndirectionTextureDimensions.X * VolumetricLightmapData.IndirectionTextureDimensions.Y * VolumetricLightmapData.IndirectionTextureDimensions.Z;
 	check(VolumetricLightmapData.IndirectionTexture.Data.Num() * VolumetricLightmapData.IndirectionTexture.Data.GetTypeSize() == NumIndirectionTexels * sizeof(uint8) * 4);
+	
+	FIntVector IndirectionBrickOffset;
+	int32 IndirectionBrickSize;
 	SampleIndirectionTexture(IndirectionDataSourceCoordinate, VolumetricLightmapData.IndirectionTextureDimensions, VolumetricLightmapData.IndirectionTexture.Data.GetData(), IndirectionBrickOffset, IndirectionBrickSize);
 
 	const FVector BrickTextureCoordinate = ComputeBrickTextureCoordinate(IndirectionDataSourceCoordinate, IndirectionBrickOffset, IndirectionBrickSize, VolumetricLightmapData.BrickSize);

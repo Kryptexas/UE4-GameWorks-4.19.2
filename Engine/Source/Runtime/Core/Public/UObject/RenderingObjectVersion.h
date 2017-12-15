@@ -67,6 +67,11 @@ struct CORE_API FRenderingObjectVersion
 		// FModelVertexBuffer does serialize a regular TArray instead of a TResourceArray
 		ModelVertexBufferSerialization,
 
+		ReplaceLightAsIfStatic,
+
+		// Added per FShaderType permutation id.
+		ShaderPermutationId,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

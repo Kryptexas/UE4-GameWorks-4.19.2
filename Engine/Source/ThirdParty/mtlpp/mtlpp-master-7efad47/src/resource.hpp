@@ -7,18 +7,49 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Resource.hpp"
+#include "imp_Buffer.hpp"
+#include "imp_Texture.hpp"
 #include "ns.hpp"
 
-MTLPP_PROTOCOL(MTLResource);
+MTLPP_BEGIN
+
+namespace ue4
+{
+	template<>
+	inline IMPTable<id<MTLResource>, void>* CreateIMPTable(id<MTLResource> handle)
+	{
+		if (handle)
+		{
+			static Protocol* textureProto = objc_getProtocol("MTLTexture");
+			static Protocol* bufferProto = objc_getProtocol("MTLBuffer");
+			static Class debugTexture = objc_lookUpClass("MTLDebugTexture");
+			static Class debugBuffer = objc_lookUpClass("MTLDebugBuffer");
+			Class cls = object_getClass(handle);
+			if (cls == debugTexture || class_conformsToProtocol(cls, textureProto))
+			{
+				IMPTable<id<MTLTexture>, void>* table = imp_cache<id<MTLTexture>, void>::Register((id<MTLTexture>)handle);
+				return (IMPTable<id<MTLResource>, void>*)table;
+			}
+			else if (cls == debugBuffer || class_conformsToProtocol(cls, bufferProto))
+			{
+				IMPTable<id<MTLBuffer>, void>* table = imp_cache<id<MTLBuffer>, void>::Register((id<MTLBuffer>)handle);
+				return (IMPTable<id<MTLResource>, void>*)table;
+			}
+		}
+		return nullptr;
+	}
+}
 
 namespace mtlpp
 {
     class Heap;
 
-    static const uint32_t ResourceCpuCacheModeShift        = 0;
-    static const uint32_t ResourceStorageModeShift         = 4;
-    static const uint32_t ResourceHazardTrackingModeShift  = 8;
+    static const NSUInteger ResourceCpuCacheModeShift        = 0;
+    static const NSUInteger ResourceStorageModeShift         = 4;
+    static const NSUInteger ResourceHazardTrackingModeShift  = 8;
 
     enum class PurgeableState
     {
@@ -45,15 +76,15 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 9_0);
 
-    enum class ResourceOptions
+    enum ResourceOptions
     {
-        CpuCacheModeDefaultCache                                = uint32_t(CpuCacheMode::DefaultCache)  << ResourceCpuCacheModeShift,
-        CpuCacheModeWriteCombined                               = uint32_t(CpuCacheMode::WriteCombined) << ResourceCpuCacheModeShift,
+        CpuCacheModeDefaultCache                                = NSUInteger(CpuCacheMode::DefaultCache)  << ResourceCpuCacheModeShift,
+        CpuCacheModeWriteCombined                               = NSUInteger(CpuCacheMode::WriteCombined) << ResourceCpuCacheModeShift,
 
-        StorageModeShared           MTLPP_AVAILABLE(10_11, 9_0) = uint32_t(StorageMode::Shared)     << ResourceStorageModeShift,
-        StorageModeManaged          MTLPP_AVAILABLE(10_11, NA)  = uint32_t(StorageMode::Managed)    << ResourceStorageModeShift,
-        StorageModePrivate          MTLPP_AVAILABLE(10_11, 9_0) = uint32_t(StorageMode::Private)    << ResourceStorageModeShift,
-        StorageModeMemoryless       MTLPP_AVAILABLE(NA, 10_0)   = uint32_t(StorageMode::Memoryless) << ResourceStorageModeShift,
+        StorageModeShared           MTLPP_AVAILABLE(10_11, 9_0) = NSUInteger(StorageMode::Shared)     << ResourceStorageModeShift,
+        StorageModeManaged          MTLPP_AVAILABLE(10_11, NA)  = NSUInteger(StorageMode::Managed)    << ResourceStorageModeShift,
+        StorageModePrivate          MTLPP_AVAILABLE(10_11, 9_0) = NSUInteger(StorageMode::Private)    << ResourceStorageModeShift,
+        StorageModeMemoryless       MTLPP_AVAILABLE(NA, 10_0)   = NSUInteger(StorageMode::Memoryless) << ResourceStorageModeShift,
 
         HazardTrackingModeUntracked MTLPP_AVAILABLE(NA, 10_0)   = 0x1 << ResourceHazardTrackingModeShift,
 
@@ -73,7 +104,7 @@ namespace mtlpp
         StorageMode  GetStorageMode() const MTLPP_AVAILABLE(10_11, 9_0);
         Heap         GetHeap() const MTLPP_AVAILABLE(10_13, 10_0);
         bool         IsAliasable() const MTLPP_AVAILABLE(10_13, 10_0);
-		uint32_t	 GetAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
+		NSUInteger	 GetAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
 
         void SetLabel(const ns::String& label);
 
@@ -82,3 +113,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

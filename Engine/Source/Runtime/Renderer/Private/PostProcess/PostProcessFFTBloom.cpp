@@ -39,15 +39,15 @@ public:
 			  (DstBufferExtent,      TEXT("DstBufferExtent"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Parameters.Platform) || RHIGetShaderLanguageVersion(Parameters.Platform) >= 2) && (Parameters.Platform != SP_METAL_MRT);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		
 		OutEnvironment.SetDefine(TEXT("INCLUDE_RESIZE_AND_CENTER"), 1);
 		OutEnvironment.SetDefine(TEXT("THREADS_PER_GROUP"), FResizeAndCenterTextureCS::NumThreadsPerGroup());
@@ -136,15 +136,15 @@ public:
 			(UVCenter,                    TEXT("UVCenter"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Parameters.Platform) || RHIGetShaderLanguageVersion(Parameters.Platform) >= 2) && (Parameters.Platform != SP_METAL_MRT);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("INCLUDE_CAPTURE_KERNEL_WEIGHTS"), 1);
 	}
 
@@ -225,15 +225,15 @@ public:
 			  (HalfBufferSize,      TEXT("HalfBufferSize"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Parameters.Platform) || RHIGetShaderLanguageVersion(Parameters.Platform) >= 2) && (Parameters.Platform != SP_METAL_MRT);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("INCLUDE_BLEND_LOW_RES"), 1);
 		OutEnvironment.SetDefine(TEXT("THREADS_PER_GROUP"), FBlendLowResCS::NumThreadsPerGroup());
 	}
@@ -323,15 +323,14 @@ public:
 		      (SrcRect,      TEXT("SrcRect"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Parameters.Platform) || RHIGetShaderLanguageVersion(Parameters.Platform) >= 2) && (Parameters.Platform != SP_METAL_MRT);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("INCLUDE_PASSTHROUGH"), 1);
 		OutEnvironment.SetDefine(TEXT("THREADS_PER_GROUP"), FPassThroughCS::NumThreadsPerGroup());
 	}

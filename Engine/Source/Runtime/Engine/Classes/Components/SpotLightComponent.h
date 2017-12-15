@@ -46,6 +46,8 @@ class ENGINE_API USpotLightComponent : public UPointLightComponent
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
 	virtual float ComputeLightBrightness() const override;
 
+	float GetCosHalfConeAngle() const;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

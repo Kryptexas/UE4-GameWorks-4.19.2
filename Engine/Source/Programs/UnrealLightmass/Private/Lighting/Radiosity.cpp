@@ -230,7 +230,7 @@ void FStaticLightingSystem::RadiositySetupThreadLoop(int32 ThreadIndex, bool bIs
 void FStaticLightingSystem::RadiositySetupTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.RadiositySetupThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
@@ -542,7 +542,7 @@ void FStaticLightingSystem::RadiosityIterationThreadLoop(int32 ThreadIndex, bool
 void FStaticLightingSystem::RadiosityIterationTextureMapping(FStaticLightingTextureMapping* TextureMapping, int32 PassIndex)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.RadiosityIterationThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 

@@ -589,8 +589,12 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 	GlobalDistanceFieldTexture3_UB = BlackVolume;
 	GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 
-	SharedBilinearWrapSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	SharedBilinearClampSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	SharedPointWrappedSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	SharedPointClampedSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	SharedBilinearWrappedSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	SharedBilinearClampedSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	SharedTrilinearWrappedSampler = TStaticSamplerState<SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	SharedTrilinearClampedSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 }
 
 FInstancedViewUniformShaderParameters::FInstancedViewUniformShaderParameters()
@@ -630,25 +634,49 @@ void InitializeSharedSamplerStates()
 
 FLightMapInteraction FLightCacheInterface::GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 {
+	if (bGlobalVolumeLightmap)
+	{
+		return FLightMapInteraction::GlobalVolume();
+	}
+
 	return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
 }
 
 FShadowMapInteraction FLightCacheInterface::GetShadowMapInteraction() const
 {
+	if (bGlobalVolumeLightmap)
+	{
+		return FShadowMapInteraction::GlobalVolume();
+	}
+
 	return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
 }
 
 ELightInteractionType FLightCacheInterface::GetStaticInteraction(const FLightSceneProxy* LightSceneProxy, const TArray<FGuid>& IrrelevantLights) const
 {
+	if (bGlobalVolumeLightmap)
+	{
+		if (LightSceneProxy->HasStaticLighting())
+		{
+			return LIT_CachedLightMap;
+		}
+		else if (LightSceneProxy->HasStaticShadowing())
+		{
+			return LIT_CachedSignedDistanceFieldShadowMap2D;
+		}
+		else
+		{
+			return LIT_MAX;
+		}
+	}
+
 	ELightInteractionType Ret = LIT_MAX;
 
 	// Check if the light has static lighting or shadowing.
-	// This directly accesses the component's static lighting with the assumption that it won't be changed without synchronizing with the rendering thread.
 	if(LightSceneProxy->HasStaticShadowing())
 	{
 		const FGuid LightGuid = LightSceneProxy->GetLightGuid();
 
-		// this code was unified, in some place IrrelevantLights was checked after LightMap and ShadowMap
 		if(IrrelevantLights.Contains(LightGuid))
 		{
 			Ret = LIT_CachedIrrelevant;

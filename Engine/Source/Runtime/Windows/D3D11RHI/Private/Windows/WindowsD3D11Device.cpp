@@ -116,6 +116,13 @@ static FAutoConsoleVariableRef CVarDX11NumGPUs(
 	ECVF_Default
 	);
 
+static TAutoConsoleVariable<int32> CVarDisableEngineAndAppRegistration(
+	TEXT("r.DisableEngineAndAppRegistration"),
+	0,
+	TEXT("If true, disables engine and app registration, to disable GPU driver optimizations during debugging and development\n")
+	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
+	ECVF_Default);
+
 /**
  * Console variables used by the D3D11 RHI device.
  */
@@ -353,7 +360,7 @@ static void SetHDRMonitorModeAMD(uint32 IHVDisplayIndex, bool bEnableHDR, EDispl
 		AGSDisplaySettings HDRDisplaySettings;
 		FMemory::Memzero(&HDRDisplaySettings, sizeof(HDRDisplaySettings));
 
-		HDRDisplaySettings.mode = bEnableHDR ? AGSDisplaySettings::Mode_scRGB : AGSDisplaySettings::Mode_SDR;
+		HDRDisplaySettings.mode = bEnableHDR ? AGSDisplaySettings::Mode_HDR10_scRGB : AGSDisplaySettings::Mode_SDR;
 
 		if (bEnableHDR)
 		{
@@ -1026,6 +1033,9 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			else
 			{
 				FMemory::Memzero(&AmdInfo, sizeof(AmdInfo));
+				// If agsInit returns anything but AGS_SUCCESS, the context pointer should be
+				// guaranteed to be NULL, but we'll set it here explicitly, just to be safe.
+				AmdAgsContext = NULL;
 			}
 		}
 		else
@@ -1040,19 +1050,70 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			DeviceFlags &= ~D3D11_CREATE_DEVICE_SINGLETHREADED;
 		}
 
-		// Creating the Direct3D device.
-		VERIFYD3D11RESULT(D3D11CreateDevice(
-			Adapter,
-			DriverType,
-			NULL,
-			DeviceFlags,
-			&FeatureLevel,
-			1,
-			D3D11_SDK_VERSION,
-			Direct3DDevice.GetInitReference(),
-			&ActualFeatureLevel,
-			Direct3DDeviceIMContext.GetInitReference()
-		));
+		uint32 AmdSupportedExtensionFlags = 0;
+		if (IsRHIDeviceAMD() && AmdAgsContext)
+		{
+			AGSDX11DeviceCreationParams DeviceCreationParams = 
+			{
+				Adapter,
+				DriverType,
+				NULL,
+				DeviceFlags,
+				&FeatureLevel,
+				1,
+				D3D11_SDK_VERSION,
+				NULL
+			};
+
+			// Engine registration can be disabled via console var. Also disable automatically if ShaderDevelopmentMode is on.
+			static const auto CVarShaderDevelopmentMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShaderDevelopmentMode"));
+			const bool bDisableEngineRegistration = (CVarShaderDevelopmentMode->GetValueOnAnyThread() != 0) || (CVarDisableEngineAndAppRegistration.GetValueOnAnyThread() != 0);
+			const bool bDisableAppRegistration = bDisableEngineRegistration || !FApp::HasProjectName();
+
+			AGSDX11ExtensionParams AmdExtensionParams;
+			// The AMD shader extensions are currently unused in UE4, but we have to set the associated UAV slot
+			// to something in the call below (default is 7, so just use that)
+			AmdExtensionParams.uavSlot = 7;
+
+			// Register the engine name with the AMD driver, e.g. "UnrealEngine4.19", unless disabled
+			// (note: to specify nothing for pEngineName below, you need to pass an empty string, not a null pointer)
+			FString EngineName = FApp::GetEpicProductIdentifier() + FEngineVersion::Current().ToString(EVersionComponent::Minor);
+			AmdExtensionParams.pEngineName = bDisableEngineRegistration ? TEXT("") : *EngineName;
+			AmdExtensionParams.engineVersion = AGS_UNSPECIFIED_VERSION;
+
+			// Register the project name with the AMD driver, unless disabled or no project name
+			// (note: to specify nothing for pAppName below, you need to pass an empty string, not a null pointer)
+			AmdExtensionParams.pAppName = bDisableAppRegistration ? TEXT("") : FApp::GetProjectName();
+			AmdExtensionParams.appVersion = AGS_UNSPECIFIED_VERSION;
+
+			AGSDX11ReturnedParams DeviceCreationReturnedParams;
+			VERIFYD3D11RESULT(agsDriverExtensionsDX11_CreateDevice(
+				AmdAgsContext,
+				&DeviceCreationParams,
+				&AmdExtensionParams,
+				&DeviceCreationReturnedParams) == AGS_SUCCESS ? S_OK : E_FAIL
+			);
+			Direct3DDevice = DeviceCreationReturnedParams.pDevice;
+			ActualFeatureLevel = DeviceCreationReturnedParams.FeatureLevel;
+			Direct3DDeviceIMContext = DeviceCreationReturnedParams.pImmediateContext;
+			AmdSupportedExtensionFlags = DeviceCreationReturnedParams.extensionsSupported;
+		}
+		else
+		{
+			// Creating the Direct3D device.
+			VERIFYD3D11RESULT(D3D11CreateDevice(
+				Adapter,
+				DriverType,
+				NULL,
+				DeviceFlags,
+				&FeatureLevel,
+				1,
+				D3D11_SDK_VERSION,
+				Direct3DDevice.GetInitReference(),
+				&ActualFeatureLevel,
+				Direct3DDeviceIMContext.GetInitReference()
+			));
+		}
 
 		// We should get the feature level we asked for as earlier we checked to ensure it is supported.
 		check(ActualFeatureLevel == FeatureLevel);
@@ -1140,16 +1201,9 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 #endif
 		}
-		else if( IsRHIDeviceAMD() )
+		else if (IsRHIDeviceAMD() && AmdAgsContext)
 		{
-			// The AMD shader extensions are currently unused in UE4, but we have to set the associated UAV slot
-			// to something in the call below (default is 7, so just use that)
-			const uint32 AmdShaderExtensionUavSlot = 7;
-
-			// Initialize AGS's driver extensions
-			uint32 AmdSupportedExtensionFlags = 0;
-			auto AmdAgsResult = agsDriverExtensionsDX11_Init(AmdAgsContext, Direct3DDevice, AmdShaderExtensionUavSlot, &AmdSupportedExtensionFlags);
-			if (AmdAgsResult == AGS_SUCCESS && (AmdSupportedExtensionFlags & AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST) != 0)
+			if ((AmdSupportedExtensionFlags & AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST) != 0)
 			{
 				GSupportsDepthBoundsTest = true;
 			}

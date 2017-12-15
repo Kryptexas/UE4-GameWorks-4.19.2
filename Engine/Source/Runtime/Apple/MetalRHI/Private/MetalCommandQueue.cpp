@@ -211,7 +211,7 @@ FMetalCommandQueue::~FMetalCommandQueue(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 {
-	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs")) && [CommandQueue.device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location == NSNotFound;
 	id<MTLCommandBuffer> CmdBuffer = nil;
 	@autoreleasepool
 	{
@@ -222,7 +222,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 		}
 		else if (RuntimeDebuggingLevel == EMetalDebugLevelLogDebugGroups)
 		{
-			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [NSMutableArray new];
+			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [[NSMutableArray new] autorelease];
 		}
 	}
 	INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);

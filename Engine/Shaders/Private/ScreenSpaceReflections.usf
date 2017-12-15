@@ -16,6 +16,8 @@
 // define can be removed or used to judge the quality difference or profile on different platforms
 #define RANDOM_OPTIMZATION 1
 
+#define SSR_CONE_QUALITY 5
+
 // .r:Intensity in 0..1 range .g:RoughnessMaskMul, b:EnableDiscard for FPostProcessScreenSpaceReflectionsStencilPS, a:(bTemporalAAIsOn?TemporalAAIndex:StateFrameIndexMod8)*1551
 float4 SSRParams;
 

@@ -48,7 +48,7 @@ class FShadowDepthVS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FShadowDepthVS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return false;
 	}
@@ -164,7 +164,7 @@ public:
 
 	TShadowDepthVS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
 		const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
@@ -242,11 +242,11 @@ public:
 
 	TShadowDepthHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use ShouldCache from vertex shader
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false>::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -333,11 +333,11 @@ public:
 
 	TShadowDepthDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use ShouldCache from vertex shader
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false>::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TShadowDepthVS<ShaderMode, bRenderReflectiveShadowMap, false>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -353,9 +353,9 @@ class FOnePassPointShadowDepthGS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FOnePassPointShadowDepthGS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return RHISupportsGeometryShaders(Platform) && TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ShouldCache(Platform, Material, VertexFactoryType);
+		return RHISupportsGeometryShaders(Platform) && TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -576,7 +576,7 @@ class TShadowDepthPS : public TShadowDepthBasePS<bRenderReflectiveShadowMap>
 	DECLARE_SHADER_TYPE(TShadowDepthPS, MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		if (!IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 		{
@@ -1530,9 +1530,9 @@ class FCopyShadowMapsCubeGS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopyShadowMapsCubeGS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return RHISupportsGeometryShaders(Platform) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return RHISupportsGeometryShaders(Parameters.Platform) && IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FCopyShadowMapsCubeGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -1549,14 +1549,9 @@ class FCopyShadowMapsCubePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopyShadowMapsCubePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FCopyShadowMapsCubePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -1594,14 +1589,9 @@ class FCopyShadowMaps2DPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopyShadowMaps2DPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FCopyShadowMaps2DPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

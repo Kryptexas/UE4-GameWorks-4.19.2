@@ -223,6 +223,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	void SetCubemapBlend(UTextureCube* SourceCubemap, UTextureCube* DestinationCubemap, float InBlendFraction);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetLowerHemisphereColor(const FLinearColor& InLowerHemisphereColor);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetOcclusionTint(const FColor& InTint);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")

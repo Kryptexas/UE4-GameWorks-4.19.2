@@ -7,12 +7,13 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Sampler.hpp"
 #include "depth_stencil.hpp"
 #include "device.hpp"
 
-MTLPP_CLASS(MTLSamplerDescriptor);
-MTLPP_PROTOCOL(MTLSamplerState);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -58,7 +59,7 @@ namespace mtlpp
         SamplerMinMagFilter GetMinFilter() const;
         SamplerMinMagFilter GetMagFilter() const;
         SamplerMipFilter    GetMipFilter() const;
-        uint32_t            GetMaxAnisotropy() const;
+        NSUInteger            GetMaxAnisotropy() const;
         SamplerAddressMode  GetSAddressMode() const;
         SamplerAddressMode  GetTAddressMode() const;
         SamplerAddressMode  GetRAddressMode() const;
@@ -74,7 +75,7 @@ namespace mtlpp
         void SetMinFilter(SamplerMinMagFilter minFilter);
         void SetMagFilter(SamplerMinMagFilter magFilter);
         void SetMipFilter(SamplerMipFilter mipFilter);
-        void SetMaxAnisotropy(uint32_t maxAnisotropy);
+        void SetMaxAnisotropy(NSUInteger maxAnisotropy);
         void SetSAddressMode(SamplerAddressMode sAddressMode);
         void SetTAddressMode(SamplerAddressMode tAddressMode);
         void SetRAddressMode(SamplerAddressMode rAddressMode);
@@ -99,3 +100,4 @@ namespace mtlpp
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

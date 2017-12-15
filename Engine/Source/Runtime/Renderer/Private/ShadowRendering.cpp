@@ -156,11 +156,6 @@ TGlobalResource<StencilingGeometry::FStencilConeIndexBuffer> StencilingGeometry:
 	FShadowVolumeBoundProjectionVS
 -----------------------------------------------------------------------------*/
 
-bool FShadowVolumeBoundProjectionVS::ShouldCache(EShaderPlatform Platform)
-{
-	return true;
-}
-
 void FShadowVolumeBoundProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 {
 	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(),View.ViewUniformBuffer);

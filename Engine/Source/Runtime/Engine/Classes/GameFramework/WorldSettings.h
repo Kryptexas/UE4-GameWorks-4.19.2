@@ -19,10 +19,10 @@ class UNetConnection;
 UENUM()
 enum EVisibilityAggressiveness
 {
-	VIS_LeastAggressive,
-	VIS_ModeratelyAggressive,
-	VIS_MostAggressive,
-	VIS_Max,
+	VIS_LeastAggressive UMETA(DisplayName = "Least Aggressive"),
+	VIS_ModeratelyAggressive UMETA(DisplayName = "Moderately Aggressive"),
+	VIS_MostAggressive UMETA(DisplayName = "Most Aggressive"),
+	VIS_Max UMETA(Hidden),
 };
 
 UENUM()
@@ -34,14 +34,14 @@ enum EVolumeLightingMethod
 	 * Positions outside of the Importance Volume reuse the border texels of the Volumetric Lightmap (clamp addressing).
 	 * On mobile, interpolation is done on the CPU at the center of each object's bounds.
 	 */
-	VLM_VolumetricLightmap,
+	VLM_VolumetricLightmap UMETA(DisplayName = "Volumetric Lightmap"),
 
 	/** 
 	 * Volume lighting samples are placed on top of static surfaces at medium density, and everywhere else in the Lightmass Importance Volume at low density.  Positions outside of the Importance Volume will have no indirect lighting.
 	 * This method requires CPU interpolation so the Indirect Lighting Cache is used to interpolate results for each dynamic object, adding Rendering Thread overhead.  
 	 * Volumetric Fog cannot be affected by precomputed lighting with this method.
 	 */
-	VLM_SparseVolumeLightingSamples,
+	VLM_SparseVolumeLightingSamples UMETA(DisplayName = "Sparse Volume Lighting Samples"),
 };
 
 USTRUCT()
@@ -130,6 +130,15 @@ struct FLightmassWorldInfoSettings
 	float VolumetricLightmapMaximumBrickMemoryMb;
 
 	/** 
+	 * Controls how much smoothing should be done to Volumetric Lightmap samples during Spherical Harmonic de-ringing.  
+	 * Whenever highly directional lighting is stored in a Spherical Harmonic, a ringing artifact occurs which manifests as unexpected black areas on the opposite side.
+	 * Smoothing can reduce this artifact.  Smoothing is only applied when the ringing artifact is present.
+	 * 0 = no smoothing, 1 = strong smooth (little directionality in lighting).
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting, meta=(UIMin = "0", UIMax = "1"))
+	float VolumetricLightmapSphericalHarmonicSmoothing;
+
+	/** 
 	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
 	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times, but less accurate transitions between lighting areas.
 	 */
@@ -197,6 +206,7 @@ struct FLightmassWorldInfoSettings
 		, VolumeLightingMethod(VLM_VolumetricLightmap)
 		, VolumetricLightmapDetailCellSize(200)
 		, VolumetricLightmapMaximumBrickMemoryMb(30)
+		, VolumetricLightmapSphericalHarmonicSmoothing(.02f)
 		, VolumeLightSamplePlacementScale(1)
 		, bUseAmbientOcclusion(false)
 		, bGenerateAmbientOcclusionMaterialMask(false)

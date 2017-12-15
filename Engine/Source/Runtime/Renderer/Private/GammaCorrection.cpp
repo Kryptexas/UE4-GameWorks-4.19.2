@@ -22,7 +22,7 @@ class FGammaCorrectionPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FGammaCorrectionPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -64,7 +64,7 @@ class FGammaCorrectionVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FGammaCorrectionVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

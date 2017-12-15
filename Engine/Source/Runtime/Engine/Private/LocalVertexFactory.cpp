@@ -118,7 +118,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, F
 /**
  * Should we cache the material's shadertype on this platform with this vertex factory? 
  */
-bool FLocalVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FLocalVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return true; 
 }

@@ -152,7 +152,7 @@ static void StartSetSplashText( const SplashTextType::Type InType, const FText& 
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	NSMutableParagraphStyle *style =[[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+	NSMutableParagraphStyle *style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 	[style setAlignment : align];
 
 	NSDictionary* Dict =

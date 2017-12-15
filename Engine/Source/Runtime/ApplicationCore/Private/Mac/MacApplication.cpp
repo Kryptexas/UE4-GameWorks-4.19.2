@@ -106,6 +106,7 @@ FMacApplication::FMacApplication()
 		MTRegisterContactFrameCallback((void*)Device, FMacApplication::MTContactCallback);
 		MTDeviceStart((void*)Device, 0);
 	}
+	[MultiTouchDevices release];
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;

@@ -277,7 +277,7 @@ FShaderResourceViewRHIParamRef FMeshParticleVertexFactory::GetPreviousTransformB
 	return PrevTransformBuffer.SRV;
 }
 
-bool FMeshParticleVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FMeshParticleVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return (Material->IsUsedWithMeshParticles() || Material->IsSpecialEngineMaterial());
 }

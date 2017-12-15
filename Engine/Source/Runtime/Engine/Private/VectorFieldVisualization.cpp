@@ -128,7 +128,7 @@ void FVectorFieldVisualizationVertexFactory::ReleaseRHI()
 /**
  * Should we cache the material's shadertype on this platform with this vertex factory? 
  */
-bool FVectorFieldVisualizationVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FVectorFieldVisualizationVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return Material->IsSpecialEngineMaterial() && SupportsGPUParticles(Platform) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 }

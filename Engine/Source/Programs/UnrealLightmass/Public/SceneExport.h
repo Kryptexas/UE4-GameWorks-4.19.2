@@ -350,7 +350,8 @@ public:
 	 * Fraction of a cell's size to expand it by when voxelizing.  
 	 * Larger values add more resolution around geometry, improving the lighting gradients but costing more memory.
 	 */
-	float VoxelizationCellExpansionForGeometry;
+	float VoxelizationCellExpansionForSurfaceGeometry;
+	float VoxelizationCellExpansionForVolumeGeometry;
 	float VoxelizationCellExpansionForLights;
 
 	/** Bricks with RMSE below this value are culled. */
@@ -364,6 +365,9 @@ public:
 
 	/** Subdivide bricks when a static point or spot light affects some part of the brick with brightness higher than this. */
 	float LightBrightnessSubdivideThreshold;
+
+	/** Maximum desired curvature in the lighting stored in Volumetric Lightmaps, used to reduce Spherical Harmonic ringing via a windowing filter. */
+	float WindowingTargetLaplacian;
 };
 
 /** Settings for precomputed visibility. */
@@ -838,6 +842,7 @@ struct FSceneFileHeader
 
 	int32		NumImportanceVolumes;
 	int32		NumCharacterIndirectDetailVolumes;
+	int32		NumVolumetricLightmapDensityVolumes;
 	int32		NumPortals;
 	int32		NumDirectionalLights;
 	int32		NumPointLights;
@@ -852,6 +857,7 @@ struct FSceneFileHeader
 	int32		NumFluidSurfaceTextureMappings;
 	int32		NumLandscapeTextureMappings;
 	int32		NumSpeedTreeMappings;
+	int32		NumVolumeMappings;
 	int32		NumPrecomputedVisibilityBuckets;
 	int32		NumVolumetricLightmapTasks;
 };
@@ -1243,6 +1249,13 @@ struct FLandscapeStaticLightingMeshData
 	/** The number of quads we are expanding to eliminate seams. */
 	int32 ExpandQuadsX;
 	int32 ExpandQuadsY;
+};
+
+struct FVolumetricLightmapDensityVolumeData
+{
+	FBox Bounds;
+	FIntPoint AllowedMipLevelRange;
+	int32 NumPlanes;
 };
 
 #if !PLATFORM_MAC && !PLATFORM_LINUX

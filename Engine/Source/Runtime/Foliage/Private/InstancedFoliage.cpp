@@ -936,6 +936,12 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
+		if (Component->LightmapType != FoliageType->LightmapType)
+		{
+			Component->LightmapType = FoliageType->LightmapType;
+			bNeedsMarkRenderStateDirty = true;
+			bNeedsInvalidateLightingCache = true;
+		}
 		if (Component->bUseAsOccluder != FoliageType->bUseAsOccluder)
 		{
 			Component->bUseAsOccluder = FoliageType->bUseAsOccluder;

@@ -5,9 +5,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLRenderPass.h>
 #include "render_pass.hpp"
 #include "texture.hpp"
-#include <Metal/MTLRenderPass.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -24,24 +26,24 @@ namespace mtlpp
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetLevel() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetLevel() const
     {
        this-> Validate();
-        return uint32_t([this->m_ptr level]);
+        return NSUInteger([this->m_ptr level]);
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetSlice() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetSlice() const
     {
         this->Validate();
-        return uint32_t([this->m_ptr slice]);
+        return NSUInteger([this->m_ptr slice]);
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetDepthPlane() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetDepthPlane() const
     {
         this->Validate();
-        return uint32_t([this->m_ptr depthPlane]);
+        return NSUInteger([this->m_ptr depthPlane]);
     }
 
 	template<typename T>
@@ -52,24 +54,24 @@ namespace mtlpp
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveLevel() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetResolveLevel() const
     {
         this->Validate();
-        return uint32_t([this->m_ptr resolveLevel]);
+        return NSUInteger([this->m_ptr resolveLevel]);
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveSlice() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetResolveSlice() const
     {
         this->Validate();
-        return uint32_t([this->m_ptr resolveSlice]);
+        return NSUInteger([this->m_ptr resolveSlice]);
     }
 
 	template<typename T>
-    uint32_t RenderPassAttachmentDescriptor<T>::GetResolveDepthPlane() const
+    NSUInteger RenderPassAttachmentDescriptor<T>::GetResolveDepthPlane() const
     {
         this->Validate();
-        return uint32_t([this->m_ptr resolveDepthPlane]);
+        return NSUInteger([this->m_ptr resolveDepthPlane]);
     }
 
 	template<typename T>
@@ -105,21 +107,21 @@ namespace mtlpp
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetLevel(uint32_t level)
+    void RenderPassAttachmentDescriptor<T>::SetLevel(NSUInteger level)
     {
         this->Validate();
         [this->m_ptr setLevel:level];
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetSlice(uint32_t slice)
+    void RenderPassAttachmentDescriptor<T>::SetSlice(NSUInteger slice)
     {
         this->Validate();
         [this->m_ptr setSlice:slice];
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetDepthPlane(uint32_t depthPlane)
+    void RenderPassAttachmentDescriptor<T>::SetDepthPlane(NSUInteger depthPlane)
     {
         this->Validate();
         [this->m_ptr setDepthPlane:depthPlane];
@@ -133,21 +135,21 @@ namespace mtlpp
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetResolveLevel(uint32_t resolveLevel)
+    void RenderPassAttachmentDescriptor<T>::SetResolveLevel(NSUInteger resolveLevel)
     {
         this->Validate();
         [this->m_ptr setResolveLevel:resolveLevel];
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetResolveSlice(uint32_t resolveSlice)
+    void RenderPassAttachmentDescriptor<T>::SetResolveSlice(NSUInteger resolveSlice)
     {
         this->Validate();
         [this->m_ptr setResolveSlice:resolveSlice];
     }
 
 	template<typename T>
-    void RenderPassAttachmentDescriptor<T>::SetResolveDepthPlane(uint32_t resolveDepthPlane)
+    void RenderPassAttachmentDescriptor<T>::SetResolveDepthPlane(NSUInteger resolveDepthPlane)
     {
         this->Validate();
         [this->m_ptr setResolveDepthPlane:resolveDepthPlane];
@@ -209,7 +211,7 @@ namespace mtlpp
     MultisampleDepthResolveFilter RenderPassDepthAttachmentDescriptor::GetDepthResolveFilter() const
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
+#if MTLPP_IS_AVAILABLE_AX(9_0)
         return MultisampleDepthResolveFilter([(MTLRenderPassDepthAttachmentDescriptor*)m_ptr depthResolveFilter]);
 #else
         return MultisampleDepthResolveFilter(0);
@@ -225,7 +227,7 @@ namespace mtlpp
     void RenderPassDepthAttachmentDescriptor::SetDepthResolveFilter(MultisampleDepthResolveFilter depthResolveFilter)
     {
         Validate();
-#if MTLPP_PLATFORM_IOS
+#if MTLPP_IS_AVAILABLE_AX(9_0)
         [(MTLRenderPassDepthAttachmentDescriptor*)m_ptr setDepthResolveFilter:MTLMultisampleDepthResolveFilter(depthResolveFilter)];
 #endif
     }
@@ -235,10 +237,10 @@ namespace mtlpp
     {
     }
 
-    uint32_t RenderPassStencilAttachmentDescriptor::GetClearStencil() const
+    NSUInteger RenderPassStencilAttachmentDescriptor::GetClearStencil() const
     {
         Validate();
-        return uint32_t([(MTLRenderPassStencilAttachmentDescriptor*)m_ptr clearStencil]);
+        return NSUInteger([(MTLRenderPassStencilAttachmentDescriptor*)m_ptr clearStencil]);
     }
 
     void RenderPassStencilAttachmentDescriptor::SetClearStencil(uint32_t clearStencil)
@@ -255,7 +257,7 @@ namespace mtlpp
     ns::Array<RenderPassColorAttachmentDescriptor> RenderPassDescriptor::GetColorAttachments() const
     {
         Validate();
-        return (NSArray*)[(MTLRenderPassDescriptor*)m_ptr colorAttachments];
+		return (NSArray<RenderPassColorAttachmentDescriptor::Type>*)[(MTLRenderPassDescriptor*)m_ptr colorAttachments];
     }
 
     RenderPassDepthAttachmentDescriptor RenderPassDescriptor::GetDepthAttachment() const
@@ -276,11 +278,11 @@ namespace mtlpp
         return [(MTLRenderPassDescriptor*)m_ptr visibilityResultBuffer];
     }
 
-    uint32_t RenderPassDescriptor::GetRenderTargetArrayLength() const
+    NSUInteger RenderPassDescriptor::GetRenderTargetArrayLength() const
     {
         Validate();
-#if MTLPP_PLATFORM_MAC
-        return uint32_t([(MTLRenderPassDescriptor*)m_ptr renderTargetArrayLength]);
+#if MTLPP_IS_AVAILABLE_MAC(10_11)
+        return NSUInteger([(MTLRenderPassDescriptor*)m_ptr renderTargetArrayLength]);
 #else
         return 0;
 #endif
@@ -304,15 +306,15 @@ namespace mtlpp
         [(MTLRenderPassDescriptor*)m_ptr setVisibilityResultBuffer:(id<MTLBuffer>)visibilityResultBuffer.GetPtr()];
     }
 
-    void RenderPassDescriptor::SetRenderTargetArrayLength(uint32_t renderTargetArrayLength)
+    void RenderPassDescriptor::SetRenderTargetArrayLength(NSUInteger renderTargetArrayLength)
     {
         Validate();
-#if MTLPP_PLATFORM_MAC
+#if MTLPP_IS_AVAILABLE_MAC(10_11)
         [(MTLRenderPassDescriptor*)m_ptr setRenderTargetArrayLength:renderTargetArrayLength];
 #endif
     }
 	
-	void RenderPassDescriptor::SetSamplePositions(SamplePosition const* positions, uint32_t count)
+	void RenderPassDescriptor::SetSamplePositions(SamplePosition const* positions, NSUInteger count)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
@@ -320,7 +322,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetSamplePositions(SamplePosition const* positions, uint32_t count)
+	NSUInteger RenderPassDescriptor::GetSamplePositions(SamplePosition const* positions, NSUInteger count)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
@@ -330,7 +332,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetImageblockSampleLength() const
+	NSUInteger RenderPassDescriptor::GetImageblockSampleLength() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -340,7 +342,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetThreadgroupMemoryLength() const
+	NSUInteger RenderPassDescriptor::GetThreadgroupMemoryLength() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -350,7 +352,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetTileWidth() const
+	NSUInteger RenderPassDescriptor::GetTileWidth() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -360,7 +362,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetTileHeight() const
+	NSUInteger RenderPassDescriptor::GetTileHeight() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -370,7 +372,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetDefaultRasterSampleCount() const
+	NSUInteger RenderPassDescriptor::GetDefaultRasterSampleCount() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -380,7 +382,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetRenderTargetWidth() const
+	NSUInteger RenderPassDescriptor::GetRenderTargetWidth() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -390,7 +392,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t RenderPassDescriptor::GetRenderTargetHeight() const
+	NSUInteger RenderPassDescriptor::GetRenderTargetHeight() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -400,7 +402,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetImageblockSampleLength(uint32_t Val)
+	void RenderPassDescriptor::SetImageblockSampleLength(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -408,7 +410,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetThreadgroupMemoryLength(uint32_t Val)
+	void RenderPassDescriptor::SetThreadgroupMemoryLength(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -416,7 +418,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetTileWidth(uint32_t Val)
+	void RenderPassDescriptor::SetTileWidth(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -424,7 +426,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetTileHeight(uint32_t Val)
+	void RenderPassDescriptor::SetTileHeight(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -432,7 +434,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetDefaultRasterSampleCount(uint32_t Val)
+	void RenderPassDescriptor::SetDefaultRasterSampleCount(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -440,7 +442,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetRenderTargetWidth(uint32_t Val)
+	void RenderPassDescriptor::SetRenderTargetWidth(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -448,7 +450,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void RenderPassDescriptor::SetRenderTargetHeight(uint32_t Val)
+	void RenderPassDescriptor::SetRenderTargetHeight(NSUInteger Val)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -456,3 +458,5 @@ namespace mtlpp
 #endif
 	}
 }
+
+MTLPP_END

@@ -3155,33 +3155,6 @@ void FEngineLoop::Tick()
 			}
 		#endif
 
-		// beginning of RHI frame
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			BeginFrame,
-		{
-			GRHICommandList.LatchBypass();
-			GFrameNumberRenderThread++;
-
-			// If we are profiling, kick off a long GPU task to make the GPU always behind the CPU so that we
-			// won't get GPU idle time measured in profiling results
-			if (GTriggerGPUProfile && !GTriggerGPUHitchProfile)
-			{
-				IssueScalableLongGPUTask(RHICmdList);
-			}
-
-			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
-			GPU_STATS_BEGINFRAME(RHICmdList);
-			RHICmdList.BeginFrame();
-		});
-
-		#if !UE_SERVER && WITH_ENGINE
-		if (!GIsEditor && GEngine->GameViewport && GEngine->GameViewport->GetWorld() && GEngine->GameViewport->GetWorld()->IsCameraMoveable())
-		{
-			// When not in editor, we emit dynamic resolution's begin frame right after RHI's.
-			GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
-		}
-		#endif
-
 		FCoreDelegates::OnBeginFrame.Broadcast();
 
 		// flush debug output which has been buffered by other threads
@@ -3202,6 +3175,33 @@ void FEngineLoop::Tick()
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_UpdateTimeAndHandleMaxTickRate);
 			GEngine->UpdateTimeAndHandleMaxTickRate();
 		}
+
+		// beginning of RHI frame
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+			BeginFrame,
+			{
+				GRHICommandList.LatchBypass();
+				GFrameNumberRenderThread++;
+
+				// If we are profiling, kick off a long GPU task to make the GPU always behind the CPU so that we
+				// won't get GPU idle time measured in profiling results
+				if (GTriggerGPUProfile && !GTriggerGPUHitchProfile)
+				{
+					IssueScalableLongGPUTask(RHICmdList);
+				}
+
+				RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
+				GPU_STATS_BEGINFRAME(RHICmdList);
+				RHICmdList.BeginFrame();
+			});
+
+		#if !UE_SERVER && WITH_ENGINE
+		if (!GIsEditor && GEngine->GameViewport && GEngine->GameViewport->GetWorld() && GEngine->GameViewport->GetWorld()->IsCameraMoveable())
+		{
+			// When not in editor, we emit dynamic resolution's begin frame right after RHI's.
+			GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
+		}
+		#endif
 
 		// tick performance monitoring
 		{

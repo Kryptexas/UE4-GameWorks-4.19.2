@@ -31,7 +31,7 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) 
 			&& DoesPlatformSupportDistanceFieldGI(Platform)
@@ -114,7 +114,7 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) 
 			&& DoesPlatformSupportDistanceFieldGI(Platform)
@@ -402,7 +402,7 @@ class FEvaluateSurfelMaterialCS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FEvaluateSurfelMaterialCS,Material)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		//@todo - lit materials only 
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);

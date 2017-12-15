@@ -1945,7 +1945,7 @@ void FDynamicMeshEmitterData::GetParticlePrevTransform(
 	if (Source.CameraPayloadOffset != 0)
 	{
 		// Put the camera origin in the appropriate coordinate space.
-		FVector CameraPosition = ViewInfo->PrevViewMatrices.GetViewOrigin();
+		FVector CameraPosition = ViewInfo->PrevViewInfo.ViewMatrices.GetViewOrigin();
 		if (Source.bUseLocalSpace)
 		{
 			const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
@@ -1965,7 +1965,7 @@ void FDynamicMeshEmitterData::GetParticlePrevTransform(
 		MotionBlurPayload->PayloadPrevRotation,
 		CameraPayloadCameraOffset,
 		MotionBlurPayload->PayloadPrevOrbitOffset,
-		ViewInfo->PrevViewMatrices.GetViewOrigin(),
+		ViewInfo->PrevViewInfo.ViewMatrices.GetViewOrigin(),
 		ViewInfo->GetPrevViewDirection(),
 		OutTransformMat
 		);

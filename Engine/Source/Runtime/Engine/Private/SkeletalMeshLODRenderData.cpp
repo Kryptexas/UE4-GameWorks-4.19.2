@@ -14,26 +14,6 @@
 #include "MeshUtilities.h"
 #endif // WITH_EDITOR
 
-struct FIndexLengthPair
-{
-    uint32 Length;
-    uint32 Index;
-
-    /**
-    * Serializer
-    *
-    * @param Ar - archive to serialize with
-    * @param V - vertex to serialize
-    * @return archive that was used
-    */
-    friend FArchive& operator<<(FArchive& Ar, FIndexLengthPair& V)
-    {
-        Ar << V.Length
-            << V.Index;
-        return Ar;
-    }
-};
-
 // Serialization.
 FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
 {
@@ -54,6 +34,7 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
 	Ar << S.MaxBoneInfluences;
 	Ar << S.CorrespondClothAssetIndex;
 	Ar << S.ClothingData;
+    Ar << S.DuplicatedVerticesBuffer;
 
 	return Ar;
 }
@@ -170,6 +151,15 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 		AdjacencyMultiSizeIndexContainer.InitResources();
 		INC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0);
 	}
+
+    if (RHISupportsComputeShaders(GMaxRHIShaderPlatform))
+    {
+        for (auto& RenderSection : RenderSections)
+        {
+            check(RenderSection.DuplicatedVerticesBuffer.DupVertData.Num());
+            BeginInitResource(&RenderSection.DuplicatedVerticesBuffer);
+        }
+    }
 
 	if (RHISupportsComputeShaders(GMaxRHIShaderPlatform) && InMorphTargets.Num() > 0)
 	{
@@ -421,6 +411,11 @@ void FSkeletalMeshLODRenderData::ReleaseResources()
 	BeginReleaseResource(&SkinWeightVertexBuffer);
 	BeginReleaseResource(&StaticVertexBuffers.ColorVertexBuffer);
 	BeginReleaseResource(&ClothVertexBuffer);
+    for (auto& RenderSection : RenderSections)
+    {
+        check(RenderSection.DuplicatedVerticesBuffer.DupVertData.Num());
+        BeginReleaseResource(&RenderSection.DuplicatedVerticesBuffer);
+    }
 	BeginReleaseResource(&MorphTargetVertexInfoBuffers);
 }
 
@@ -450,81 +445,7 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* 
 		NewRenderSection.MaxBoneInfluences = ModelSection.MaxBoneInfluences;
 		NewRenderSection.CorrespondClothAssetIndex = ModelSection.CorrespondClothAssetIndex;
 		NewRenderSection.ClothingData = ModelSection.ClothingData;
-		
-        {
-
-//temporary disable until resource lifetimes are safe for all cases
-#if 0
-            // Create SRVs for Overlapping Vertices
-            const TMap<int32, TArray<int32>>& OverlappingVertices = ModelSection.OverlappingVertices;
-
-            int32 NumDups = 0;
-            for (auto Iter = OverlappingVertices.CreateConstIterator(); Iter; ++Iter)
-            {
-                const TArray<int32>& Array = Iter.Value();
-                NumDups += Array.Num();
-            }
-
-            TSkeletalMeshVertexData<uint32> DupVertData(true);
-            TSkeletalMeshVertexData<FIndexLengthPair> DupVertIndexData(true);
-            DupVertData.ResizeBuffer(NumDups ? NumDups : 1);
-            DupVertIndexData.ResizeBuffer(ModelSection.NumVertices);
-
-            uint8* VertData = DupVertData.GetDataPointer();
-            uint32 VertStride = DupVertData.GetStride();
-            check(VertStride == sizeof(uint32));
-
-            uint8* IndexData = DupVertIndexData.GetDataPointer();
-            uint32 IndexStride = DupVertIndexData.GetStride();
-            check(IndexStride == sizeof(FIndexLengthPair));
-
-            if (NumDups)
-            {
-                int32 SubIndex = 0;
-                for (int32 Index = 0; Index < ModelSection.NumVertices; ++Index)
-                {
-                    const TArray<int32>* Array = OverlappingVertices.Find(Index);
-                    FIndexLengthPair NewEntry;
-                    NewEntry.Length = (Array) ? Array->Num() : 0;
-                    NewEntry.Index = SubIndex;
-                    *((FIndexLengthPair*)(IndexData + Index * IndexStride)) = NewEntry;
-                    if (Array)
-                    {
-                        for (const int32 OverlappingVert : *Array)
-                        {
-                            *((uint32*)(VertData + SubIndex * VertStride)) = OverlappingVert;
-                            SubIndex++;
-                        }
-                    }
-                }
-                check(SubIndex == NumDups);
-            }
-            else
-            {
-                FMemory::Memzero(IndexData, ModelSection.NumVertices * sizeof(FIndexLengthPair));
-                FMemory::Memzero(VertData, sizeof(uint32));
-            }
-			
-            {
-                FResourceArrayInterface* ResourceArray = DupVertData.GetResourceArray();
-                check(ResourceArray->GetResourceDataSize() > 0);
-
-                FRHIResourceCreateInfo CreateInfo(ResourceArray);
-                NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-                NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferSRV = RHICreateShaderResourceView(NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferRHI, sizeof(uint32), PF_R32_UINT);
-            }
-
-            {
-                FResourceArrayInterface* ResourceArray = DupVertIndexData.GetResourceArray();
-                check(ResourceArray->GetResourceDataSize() > 0);
-
-                FRHIResourceCreateInfo CreateInfo(ResourceArray);
-                NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-                NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferSRV = RHICreateShaderResourceView(NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferRHI, sizeof(uint32), PF_R32_UINT);
-            }
-#endif
-        }
-
+		NewRenderSection.DuplicatedVerticesBuffer.Init(ModelSection.NumVertices, ModelSection.OverlappingVertices);
 		RenderSections.Add(NewRenderSection);
 	}
 

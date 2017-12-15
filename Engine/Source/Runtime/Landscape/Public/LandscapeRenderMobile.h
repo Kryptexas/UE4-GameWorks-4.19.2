@@ -51,7 +51,7 @@ public:
 	/**
 	* Should we cache the material's shadertype on this platform with this vertex factory? 
 	*/
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		auto FeatureLevel = GetMaxSupportedFeatureLevel(Platform);
 		return (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1) &&

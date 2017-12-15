@@ -25,7 +25,7 @@ class FVolumetricFogLightFunctionPS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FVolumetricFogLightFunctionPS,Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && DoesPlatformSupportVolumetricFog(Platform);
 	}

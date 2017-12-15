@@ -22,7 +22,7 @@ class FRequiredTextureResolutionPS : public FMeshMaterialShader, public IDebugVi
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return AllowDebugViewPS(DVSM_RequiredTextureResolution, Platform) && 
 			Material->GetFriendlyName().Contains(TEXT("FDebugViewModeMaterialProxy")) && 

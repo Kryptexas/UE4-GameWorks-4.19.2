@@ -7,10 +7,12 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CommandQueue.hpp"
 #include "ns.hpp"
 
-MTLPP_PROTOCOL(MTLCommandQueue);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -34,3 +36,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

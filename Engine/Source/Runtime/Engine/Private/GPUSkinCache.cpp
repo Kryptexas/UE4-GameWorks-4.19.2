@@ -96,11 +96,10 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheSceneMemoryLimitInMB(
 );
 
 ////temporary disable until resource lifetimes are safe for all cases
-static int32 GAllowDupedVertsForRecomputeTangentsTempDisable = 1;
-static int32 GAllowDupedVertsForRecomputeTangents = 1;
+static int32 GAllowDupedVertsForRecomputeTangents = 0;
 FAutoConsoleVariableRef CVarGPUSkinCacheAllowDupedVertesForRecomputeTangents(
 	TEXT("r.SkinCache.AllowDupedVertsForRecomputeTangents"),
-	GAllowDupedVertsForRecomputeTangentsTempDisable,
+	GAllowDupedVertsForRecomputeTangents,
 	TEXT("0: off (default)\n")
 	TEXT("1: Forces that vertices at the same position will be treated differently and has the potential to cause seams when verts are split.\n"),
 	ECVF_RenderThreadSafe
@@ -517,14 +516,14 @@ class TGPUSkinCacheCS : public FBaseGPUSkinCacheCS
 	DECLARE_SHADER_TYPE(TGPUSkinCacheCS, Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
 		const uint32 MorphBlend = bMorphBlend;
 		const uint32 ApexCloth = bApexCloth;
@@ -617,10 +616,10 @@ void FGPUSkinCache::TransitionAllToWriteable(FRHICommandList& RHICmdList)
 class FBaseRecomputeTangents : public FGlobalShader
 {
 public:
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return DoesPlatformSupportGPUSkinCache(Platform) && IsGPUSkinCacheAvailable();
+		return DoesPlatformSupportGPUSkinCache(Parameters.Platform) && IsGPUSkinCacheAvailable();
 	}
 
 	static const uint32 ThreadGroupSizeX = 64;
@@ -718,9 +717,9 @@ class FRecomputeTangentsPerTrianglePassCS : public FBaseRecomputeTangents
 
 	DECLARE_SHADER_TYPE(FRecomputeTangentsPerTrianglePassCS, Global);
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
 		OutEnvironment.SetDefine(TEXT("MERGE_DUPLICATED_VERTICES"), bMergeDuplicatedVerts);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
@@ -752,15 +751,15 @@ class FRecomputeTangentsPerVertexPassCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FRecomputeTangentsPerVertexPassCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return DoesPlatformSupportGPUSkinCache(Platform) && IsGPUSkinCacheAvailable();
+		return DoesPlatformSupportGPUSkinCache(Parameters.Platform) && IsGPUSkinCacheAvailable();
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		// this pass cannot read the input as it doesn't have the permutation
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), (uint32)0);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), ThreadGroupSizeX);
@@ -920,8 +919,9 @@ void FGPUSkinCache::DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdL
 
             if (!GAllowDupedVertsForRecomputeTangents)
             {
-                DispatchData.DuplicatedIndices = LodData.RenderSections[SectionIndex].DuplicatedVerticesIndexBuffer.VertexBufferSRV;
-                DispatchData.DuplicatedIndicesIndices = LodData.RenderSections[SectionIndex].LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferSRV;
+                check(LodData.RenderSections[SectionIndex].DuplicatedVerticesBuffer.DupVertData.Num() && LodData.RenderSections[SectionIndex].DuplicatedVerticesBuffer.DupVertIndexData.Num());
+                DispatchData.DuplicatedIndices = LodData.RenderSections[SectionIndex].DuplicatedVerticesBuffer.DuplicatedVerticesIndexBuffer.VertexBufferSRV;
+                DispatchData.DuplicatedIndicesIndices = LodData.RenderSections[SectionIndex].DuplicatedVerticesBuffer.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferSRV;
             }
 
 			INC_DWORD_STAT_BY(STAT_GPUSkinCache_NumTrianglesForRecomputeTangents, NumTriangles);

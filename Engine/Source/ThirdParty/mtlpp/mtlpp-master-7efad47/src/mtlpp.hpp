@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "ns.hpp"
 #include "argument.hpp"
 #include "argument_encoder.hpp"

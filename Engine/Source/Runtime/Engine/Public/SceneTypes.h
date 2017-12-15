@@ -101,7 +101,8 @@ enum ELightComponentType
 enum ELightMapInteractionType
 {
 	LMIT_None	= 0,
-	LMIT_Texture= 2,
+	LMIT_GlobalVolume = 1,
+	LMIT_Texture = 2,
 
 	LMIT_NumBits= 3
 };
@@ -109,6 +110,7 @@ enum ELightMapInteractionType
 enum EShadowMapInteractionType
 {
 	SMIT_None = 0,
+	SMIT_GlobalVolume = 1,
 	SMIT_Texture = 2,
 
 	SMIT_NumBits = 3

@@ -5,9 +5,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLRenderPipeline.h>
 #include "render_pipeline.hpp"
 #include "vertex_descriptor.hpp"
-#include <Metal/MTLRenderPipeline.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -124,22 +126,98 @@ namespace mtlpp
         [(MTLRenderPipelineColorAttachmentDescriptor*)m_ptr setWriteMask:MTLColorWriteMask(writeMask)];
     }
 
-    RenderPipelineReflection::RenderPipelineReflection() :
-        ns::Object<MTLRenderPipelineReflection*>([[MTLRenderPipelineReflection alloc] init], false)
+    AutoReleasedRenderPipelineReflection::AutoReleasedRenderPipelineReflection() :
+        ns::Object<MTLRenderPipelineReflection*, true>([[MTLRenderPipelineReflection alloc] init], false)
     {
     }
 
-    const ns::Array<Argument> RenderPipelineReflection::GetVertexArguments() const
+    const ns::Array<Argument> AutoReleasedRenderPipelineReflection::GetVertexArguments() const
     {
         Validate();
         return [(MTLRenderPipelineReflection*)m_ptr vertexArguments];
     }
 
-    const ns::Array<Argument> RenderPipelineReflection::GetFragmentArguments() const
+    const ns::Array<Argument> AutoReleasedRenderPipelineReflection::GetFragmentArguments() const
     {
         Validate();
         return [(MTLRenderPipelineReflection*)m_ptr fragmentArguments];
     }
+	
+	const ns::Array<Argument> AutoReleasedRenderPipelineReflection::GetTileArguments() const
+	{
+		Validate();
+#if MTLPP_IS_AVAILABLE_IOS(11_0)
+		return [(MTLRenderPipelineReflection*)m_ptr tileArguments];
+#else
+		return ns::Array<Argument>();
+#endif
+	}
+	
+	RenderPipelineReflection::RenderPipelineReflection() :
+	ns::Object<MTLRenderPipelineReflection*>([[MTLRenderPipelineReflection alloc] init], false)
+	{
+	}
+	
+	RenderPipelineReflection::RenderPipelineReflection(const AutoReleasedRenderPipelineReflection& rhs)
+	{
+		operator=(rhs);
+	}
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	RenderPipelineReflection::RenderPipelineReflection(const AutoReleasedRenderPipelineReflection&& rhs)
+	{
+		operator=(rhs);
+	}
+#endif
+	RenderPipelineReflection& RenderPipelineReflection::operator=(const AutoReleasedRenderPipelineReflection& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+		}
+		return *this;
+	}
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	RenderPipelineReflection& RenderPipelineReflection::operator=(AutoReleasedRenderPipelineReflection&& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+			rhs.m_ptr = nullptr;
+			rhs.m_table = nullptr;
+		}
+		return *this;
+	}
+#endif
+	
+	const ns::Array<Argument> RenderPipelineReflection::GetVertexArguments() const
+	{
+		Validate();
+		return [(MTLRenderPipelineReflection*)m_ptr vertexArguments];
+	}
+	
+	const ns::Array<Argument> RenderPipelineReflection::GetFragmentArguments() const
+	{
+		Validate();
+		return [(MTLRenderPipelineReflection*)m_ptr fragmentArguments];
+	}
 	
 	const ns::Array<Argument> RenderPipelineReflection::GetTileArguments() const
 	{
@@ -180,10 +258,10 @@ namespace mtlpp
         return [(MTLRenderPipelineDescriptor*)m_ptr vertexDescriptor];
     }
 
-    uint32_t RenderPipelineDescriptor::GetSampleCount() const
+    NSUInteger RenderPipelineDescriptor::GetSampleCount() const
     {
         Validate();
-        return uint32_t([(MTLRenderPipelineDescriptor*)m_ptr sampleCount]);
+        return NSUInteger([(MTLRenderPipelineDescriptor*)m_ptr sampleCount]);
     }
 
     bool RenderPipelineDescriptor::IsAlphaToCoverageEnabled() const
@@ -207,7 +285,7 @@ namespace mtlpp
     ns::Array<RenderPipelineColorAttachmentDescriptor> RenderPipelineDescriptor::GetColorAttachments() const
     {
         Validate();
-        return (NSArray*)[(MTLRenderPipelineDescriptor*)m_ptr colorAttachments];
+        return (NSArray<RenderPipelineColorAttachmentDescriptor::Type>*)[(MTLRenderPipelineDescriptor*)m_ptr colorAttachments];
     }
 
     PixelFormat RenderPipelineDescriptor::GetDepthAttachmentPixelFormat() const
@@ -225,7 +303,7 @@ namespace mtlpp
     PrimitiveTopologyClass RenderPipelineDescriptor::GetInputPrimitiveTopology() const
     {
         Validate();
-#if MTLPP_PLATFORM_MAC
+#if MTLPP_IS_AVAILABLE_MAC(10_12)
         return PrimitiveTopologyClass([(MTLRenderPipelineDescriptor*)m_ptr inputPrimitiveTopology]);
 #else
         return PrimitiveTopologyClass(0);
@@ -242,11 +320,11 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t RenderPipelineDescriptor::GetMaxTessellationFactor() const
+    NSUInteger RenderPipelineDescriptor::GetMaxTessellationFactor() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLRenderPipelineDescriptor*)m_ptr maxTessellationFactor]);
+        return NSUInteger([(MTLRenderPipelineDescriptor*)m_ptr maxTessellationFactor]);
 #else
         return 0;
 #endif
@@ -306,7 +384,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return (NSArray*)[(MTLRenderPipelineDescriptor*)m_ptr vertexBuffers];
+		return (NSArray<MTLPipelineBufferDescriptor*>*)[(MTLRenderPipelineDescriptor*)m_ptr vertexBuffers];
 #else
 		return ns::Array<PipelineBufferDescriptor>();
 #endif
@@ -316,7 +394,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return (NSArray*)[(MTLRenderPipelineDescriptor*)m_ptr fragmentBuffers];
+		return (NSArray<MTLPipelineBufferDescriptor*>*)[(MTLRenderPipelineDescriptor*)m_ptr fragmentBuffers];
 #else
 		return ns::Array<PipelineBufferDescriptor>();
 #endif
@@ -346,7 +424,7 @@ namespace mtlpp
         [(MTLRenderPipelineDescriptor*)m_ptr setVertexDescriptor:(MTLVertexDescriptor*)vertexDescriptor.GetPtr()];
     }
 
-    void RenderPipelineDescriptor::SetSampleCount(uint32_t sampleCount)
+    void RenderPipelineDescriptor::SetSampleCount(NSUInteger sampleCount)
     {
         Validate();
         [(MTLRenderPipelineDescriptor*)m_ptr setSampleCount:sampleCount];
@@ -385,7 +463,7 @@ namespace mtlpp
     void RenderPipelineDescriptor::SetInputPrimitiveTopology(PrimitiveTopologyClass inputPrimitiveTopology)
     {
         Validate();
-#if MTLPP_PLATFORM_MAC
+#if MTLPP_IS_AVAILABLE_MAC(10_12)
         [(MTLRenderPipelineDescriptor*)m_ptr setInputPrimitiveTopology:MTLPrimitiveTopologyClass(inputPrimitiveTopology)];
 #endif
     }
@@ -397,7 +475,7 @@ namespace mtlpp
 #endif
     }
 
-    void RenderPipelineDescriptor::SetMaxTessellationFactor(uint32_t maxTessellationFactor)
+    void RenderPipelineDescriptor::SetMaxTessellationFactor(NSUInteger maxTessellationFactor)
     {
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
         [(MTLRenderPipelineDescriptor*)m_ptr setMaxTessellationFactor:maxTessellationFactor];
@@ -438,20 +516,6 @@ namespace mtlpp
         [(MTLRenderPipelineDescriptor*)m_ptr setTessellationOutputWindingOrder:MTLWinding(tessellationOutputWindingOrder)];
 #endif
     }
-	
-	void RenderPipelineDescriptor::SetVertexBuffers(ns::Array<PipelineBufferDescriptor> const& array)
-	{
-#if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLRenderPipelineDescriptor*)m_ptr setVertexBuffers:(MTLPipelineBufferDescriptorArray*)array.GetPtr()];
-#endif
-	}
-	
-	void RenderPipelineDescriptor::SetFragmentBuffers(ns::Array<PipelineBufferDescriptor> const& array)
-	{
-#if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLRenderPipelineDescriptor*)m_ptr setFragmentBuffers:(MTLPipelineBufferDescriptorArray*)array.GetPtr()];
-#endif
-	}
 
     void RenderPipelineDescriptor::Reset()
     {
@@ -461,20 +525,20 @@ namespace mtlpp
     ns::String RenderPipelineState::GetLabel() const
     {
         Validate();
-        return [(id<MTLRenderPipelineState>)m_ptr label];
+		return m_table->Label(m_ptr);
     }
 
     Device RenderPipelineState::GetDevice() const
     {
         Validate();
-        return [(id<MTLRenderPipelineState>)m_ptr device];
+        return m_table->Device(m_ptr);
     }
 	
-	uint32_t RenderPipelineState::GetMaxTotalThreadsPerThreadgroup() const
+	NSUInteger RenderPipelineState::GetMaxTotalThreadsPerThreadgroup() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return [m_ptr maxTotalThreadsPerThreadgroup];
+		return m_table->maxTotalThreadsPerThreadgroup(m_ptr);
 #else
 		return 0;
 #endif
@@ -484,29 +548,29 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return [m_ptr threadgroupSizeMatchesTileSize];
+		return m_table->threadgroupSizeMatchesTileSize(m_ptr);
 #else
 		return false;
 #endif
 	}
 	
-	uint32_t RenderPipelineState::GetImageblockSampleLength() const
+	NSUInteger RenderPipelineState::GetImageblockSampleLength() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return [m_ptr imageblockSampleLength];
+		return m_table->imageblockSampleLength(m_ptr);
 #else
 		return 0;
 #endif
 	}
 	
-	uint32_t RenderPipelineState::GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) const
+	NSUInteger RenderPipelineState::GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return [m_ptr imageblockMemoryLengthForDimensions:MTLSizeMake(imageblockDimensions.Width, imageblockDimensions.Height, imageblockDimensions.Depth)];
+		return m_table->imageblockMemoryLengthForDimensions(m_ptr, imageblockDimensions);
 #else
-	return 0;
+		return 0;
 #endif
 	}
 	
@@ -548,7 +612,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t TileRenderPipelineDescriptor::GetRasterSampleCount() const
+	NSUInteger TileRenderPipelineDescriptor::GetRasterSampleCount() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -562,7 +626,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return (NSArray*)[m_ptr colorAttachments];
+		return (NSArray<MTLTileRenderPipelineColorAttachmentDescriptor*>*)[m_ptr colorAttachments];
 #else
 		return ns::Array<TileRenderPipelineColorAttachmentDescriptor>();
 #endif
@@ -582,7 +646,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return (NSArray*)[m_ptr tileBuffers];
+		return (NSArray<MTLPipelineBufferDescriptor*>*)[m_ptr tileBuffers];
 #else
 		return ns::Array<PipelineBufferDescriptor>();
 #endif
@@ -604,7 +668,7 @@ namespace mtlpp
 #endif
 	}
 	
-	void TileRenderPipelineDescriptor::SetRasterSampleCount(uint32_t sampleCount)
+	void TileRenderPipelineDescriptor::SetRasterSampleCount(NSUInteger sampleCount)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
@@ -620,14 +684,6 @@ namespace mtlpp
 #endif
 	}
 	
-	void TileRenderPipelineDescriptor::SetTileBuffers(ns::Array<PipelineBufferDescriptor> const& array)
-	{
-		Validate();
-#if MTLPP_IS_AVAILABLE_IOS(11_0)
-		[m_ptr setTileBuffers:(MTLPipelineBufferDescriptorArray*)array.GetPtr()];
-#endif
-	}
-	
 	void TileRenderPipelineDescriptor::Reset()
 	{
 		Validate();
@@ -636,3 +692,5 @@ namespace mtlpp
 #endif
 	}
 }
+
+MTLPP_END

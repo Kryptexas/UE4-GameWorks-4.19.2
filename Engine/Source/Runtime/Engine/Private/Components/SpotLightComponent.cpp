@@ -203,6 +203,13 @@ USpotLightComponent::USpotLightComponent(const FObjectInitializer& ObjectInitial
 	OuterConeAngle = 44.0f;
 }
 
+float USpotLightComponent::GetCosHalfConeAngle() const
+{
+	const float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
+	const float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f, ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
+	return FMath::Cos(ClampedOuterConeAngle);
+}
+
 void USpotLightComponent::SetInnerConeAngle(float NewInnerConeAngle)
 {
 	if (AreDynamicDataChangesAllowed(false)
@@ -235,10 +242,7 @@ float USpotLightComponent::ComputeLightBrightness() const
 		}
 		else if (IntensityUnits == ELightUnits::Lumens)
 		{
-			const float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
-			const float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f, ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
-			const float CosOuterCone = FMath::Cos(ClampedOuterConeAngle);
-			LightBrightness *= (100.f * 100.f / 2.f / PI / (1.f - CosOuterCone)); // Conversion from cm2 to m2 and cone remapping.
+			LightBrightness *= (100.f * 100.f / 2.f / PI / (1.f - GetCosHalfConeAngle())); // Conversion from cm2 to m2 and cone remapping.
 		}
 		else
 		{
@@ -265,13 +269,8 @@ FLightSceneProxy* USpotLightComponent::CreateSceneProxy() const
 
 FSphere USpotLightComponent::GetBoundingSphere() const
 {
-	float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
-	float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f,ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
-
-	float CosOuterCone = FMath::Cos(ClampedOuterConeAngle);
-
 	// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
-	const float BoundsRadius = FMath::Sqrt(1.25f * AttenuationRadius * AttenuationRadius - AttenuationRadius * AttenuationRadius * CosOuterCone);
+	const float BoundsRadius = FMath::Sqrt(1.25f * AttenuationRadius * AttenuationRadius - AttenuationRadius * AttenuationRadius * GetCosHalfConeAngle());
 	return FSphere(GetComponentTransform().GetLocation() + .5f * GetDirection() * AttenuationRadius, BoundsRadius);
 }
 

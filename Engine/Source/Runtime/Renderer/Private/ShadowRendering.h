@@ -1220,11 +1220,14 @@ public:
 		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform);
-	
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		return true;
+	}
+	
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)1);
 	}
 
@@ -1257,13 +1260,13 @@ public:
 	 * Add any defines required by the shader
 	 * @param OutEnvironment - shader environment to modify
 	 */
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)0);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -1322,10 +1325,6 @@ template<bool bModulatedShadows>
 class TShadowProjectionShaderParameters
 {
 public:
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-	}
-
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		DeferredParameters.Bind(ParameterMap);
@@ -1479,19 +1478,18 @@ public:
 		ShadowSharpen.Bind(Initializer.ParameterMap,TEXT("ShadowSharpen"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/**
 	 * Add any defines required by the shader
 	 * @param OutEnvironment - shader environment to modify
 	 */
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FShadowProjectionPixelShaderInterface::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		TShadowProjectionShaderParameters<bModulatedShadows>::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FShadowProjectionPixelShaderInterface::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SHADOW_QUALITY"), Quality);
 		OutEnvironment.SetDefine(TEXT("USE_FADE_PLANE"), (uint32)(bUseFadePlane ? 1 : 0));
 	}
@@ -1551,15 +1549,15 @@ class TModulatedShadowProjection : public TShadowProjectionPS<Quality, false, tr
 	DECLARE_SHADER_TYPE(TModulatedShadowProjection, Global);
 public:
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowProjectionPS<Quality, false, true>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowProjectionPS<Quality, false, true>::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MODULATED_SHADOWS"), 1);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsMobilePlatform(Platform);
+		return IsMobilePlatform(Parameters.Platform);
 	}
 
 	TModulatedShadowProjection() {}
@@ -1671,15 +1669,15 @@ class TShadowProjectionFromTranslucencyPS : public TShadowProjectionPS<Quality>
 	DECLARE_SHADER_TYPE(TShadowProjectionFromTranslucencyPS,Global);
 public:
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowProjectionPS<Quality>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowProjectionPS<Quality>::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("APPLY_TRANSLUCENCY_SHADOWS"), 1);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && TShadowProjectionPS<Quality>::ShouldCache(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && TShadowProjectionPS<Quality>::ShouldCompilePermutation(Parameters);
 	}
 
 	TShadowProjectionFromTranslucencyPS() {}
@@ -1829,15 +1827,15 @@ public:
 		PointLightDepthBiasParameters.Bind(Initializer.ParameterMap,TEXT("PointLightDepthBiasParameters"));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SHADOW_QUALITY"), Quality);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	void SetParameters(
@@ -1924,15 +1922,15 @@ public:
 		PCSSParameters.Bind(Initializer.ParameterMap, TEXT("PCSSParameters"));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_PCSS"), 1);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return TShadowProjectionPS<Quality, bUseFadePlane>::ShouldCache(Platform) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS);
+		return TShadowProjectionPS<Quality, bUseFadePlane>::ShouldCompilePermutation(Parameters) && (Parameters.Platform == SP_PCD3D_SM5 || Parameters.Platform == SP_VULKAN_SM5 || Parameters.Platform == SP_METAL_SM5 || Parameters.Platform == SP_METAL_SM5_NOTESS);
 	}
 
 	virtual void SetParameters(
@@ -1989,14 +1987,14 @@ public:
 		PCSSParameters.Bind(Initializer.ParameterMap, TEXT("PCSSParameters"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (Parameters.Platform == SP_PCD3D_SM5 || Parameters.Platform == SP_VULKAN_SM5 || Parameters.Platform == SP_METAL_SM5 || Parameters.Platform == SP_METAL_SM5_NOTESS);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_PCSS"), 1);
 		OutEnvironment.SetDefine(TEXT("SPOT_LIGHT_PCSS"), 1);
 	}

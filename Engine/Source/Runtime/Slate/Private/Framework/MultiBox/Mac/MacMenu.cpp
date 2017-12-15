@@ -119,7 +119,7 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
 			{
 				TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-				FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
+				FMacMenu* Menu = [[[FMacMenu alloc] initWithMenuEntryBlock:Block] autorelease];
 				NSString* Title = FSlateMacMenu::GetMenuItemTitle(Block);
 				[Menu setTitle:Title];
 
@@ -202,7 +202,7 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 					if (MenuItemState.IsSubMenu)
 					{
-						FMacMenu* SubMenu = [[FMacMenu alloc] initWithMenuEntryBlock:MenuItemState.Block];
+						FMacMenu* SubMenu = [[[FMacMenu alloc] initWithMenuEntryBlock:MenuItemState.Block] autorelease];
 						[MenuItem setSubmenu:SubMenu];
 					}
 
@@ -357,6 +357,7 @@ void FSlateMacMenu::UpdateCachedState()
 						ItemState.KeyEquivalent = [FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &ItemState.KeyModifiers) retain];
 						if (!ItemState.Icon)
 						{
+							SCOPED_AUTORELEASE_POOL;
 							ItemState.Icon = [FSlateMacMenu::GetMenuItemIcon(Block) retain];
 						}
 						ItemState.IsSubMenu = Block->bIsSubMenu;
@@ -452,7 +453,7 @@ NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>&
 		{
 			FSlateBrush const* IconBrush = Icon.GetIcon();
 			FName ResourceName = IconBrush->GetResourceName();
-			MenuImage = [[NSImage alloc] initWithContentsOfFile:ResourceName.ToString().GetNSString()];
+			MenuImage = [[[NSImage alloc] initWithContentsOfFile:ResourceName.ToString().GetNSString()] autorelease];
 			if (MenuImage)
 			{
 				[MenuImage setSize:NSMakeSize(16.0f, 16.0f)];

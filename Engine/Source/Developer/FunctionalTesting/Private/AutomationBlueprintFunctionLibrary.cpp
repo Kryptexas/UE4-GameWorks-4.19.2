@@ -11,6 +11,9 @@
 #include "Engine/GameViewportClient.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h"
+#endif
 #include "Tests/AutomationCommon.h"
 #include "Logging/MessageLog.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
@@ -196,6 +199,7 @@ public:
 		: World(InWorld)
 		, Name(InName)
 		, Options(InOptions)
+		, bNeedsViewportSizeRestore(false)
 	{
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
@@ -204,16 +208,31 @@ public:
 
 		if (!FPlatformProperties::HasFixedResolution())
 		{
-			FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
-			ViewportRestoreSize = GameViewport->GetSize();
-			FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(InOptions);
-			GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
+			FSceneViewport* GameViewport = GEngine->GameViewport ? GEngine->GameViewport->GetGameViewport() : nullptr;
+			if (GameViewport)
+			{
+#if WITH_EDITOR
+				// In the editor we can only attempt to re-size standalone viewports
+				UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);	
+
+				const bool bIsPIEViewport = GameViewport->IsPlayInEditorViewport();	
+				const bool bIsNewViewport = World.IsValid() && EditorEngine && EditorEngine->WorldIsPIEInNewViewport(World.Get());
+
+				if (!bIsPIEViewport || bIsNewViewport)
+#endif		
+				{
+					ViewportRestoreSize = GameViewport->GetSize();
+					FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(InOptions);
+					GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
+					bNeedsViewportSizeRestore = true;
+				}
+			}
 		}
 	}
 
 	virtual ~FAutomationScreenshotTaker()
 	{
-		if (!FPlatformProperties::HasFixedResolution())
+		if (!FPlatformProperties::HasFixedResolution() && bNeedsViewportSizeRestore)
 		{
 			FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
 			GameViewport->SetViewportSize(ViewportRestoreSize.X, ViewportRestoreSize.Y);
@@ -298,6 +317,7 @@ private:
 
 	FAutomationTestScreenshotEnvSetup EnvSetup;
 	FIntPoint ViewportRestoreSize;
+	bool bNeedsViewportSizeRestore;
 };
 
 #endif
@@ -366,8 +386,6 @@ FIntPoint UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(const
 bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObject* WorldContextObject, const FString& Name, FAutomationScreenshotOptions Options)
 {
 	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
-
-	FIntPoint ScreenshotRes = GetAutomationScreenshotSize(Options);
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(WorldContextObject ? WorldContextObject->GetWorld() : nullptr, Name, Options);

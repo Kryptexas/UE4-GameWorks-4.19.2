@@ -19,9 +19,9 @@ class TPostProcessLensFlareBasePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessLensFlareBasePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -39,10 +39,10 @@ public:
 	}
 
 	// FShader interface.
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		if (bClearRegion)
 		{
 			OutEnvironment.SetDefine(TEXT("CLEAR_REGION"), 1);
@@ -82,9 +82,9 @@ class FPostProcessLensFlaresPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessLensFlaresPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */

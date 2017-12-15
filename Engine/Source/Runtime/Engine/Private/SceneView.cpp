@@ -34,63 +34,7 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMobileDirectionalLightShaderParameters, TEXT("MobileDirectionalLight"));
-
-FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
-{
-	FBuiltinSamplersParameters UB;
-	UB.Bilinear = nullptr;
-	UB.BilinearClamped = nullptr;
-	UB.Point = nullptr;
-	UB.PointClamped = nullptr;
-	UB.Trilinear = nullptr;
-	UB.TrilinearClamped = nullptr;
-	SetContents(UB);
-}
-
-static TRefCountPtr<FRHISamplerState> BuiltinBilinear;
-static TRefCountPtr<FRHISamplerState> BuiltinBilinearClamped;
-static TRefCountPtr<FRHISamplerState> BuiltinPoint;
-static TRefCountPtr<FRHISamplerState> BuiltinPointClamped;
-static TRefCountPtr<FRHISamplerState> BuiltinTrilinear;
-static TRefCountPtr<FRHISamplerState> BuiltinTrilinearClamped;
-
-void FBuiltinSamplersUniformBuffer::InitDynamicRHI()
-{
-	BuiltinBilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinBilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp));
-	BuiltinPoint =				RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinPointClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Clamp, AM_Clamp, AM_Clamp));
-	BuiltinTrilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinTrilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp));
-
-	FBuiltinSamplersParameters UB;
-
-	UB.Bilinear =			BuiltinBilinear;
-	UB.BilinearClamped =	BuiltinBilinearClamped;
-	UB.Point =				BuiltinPoint;
-	UB.PointClamped =		BuiltinPointClamped;
-	UB.Trilinear =			BuiltinTrilinear;
-	UB.TrilinearClamped =	BuiltinTrilinearClamped;
-	SetContents(UB);
-
-	TUniformBuffer<FBuiltinSamplersParameters>::InitDynamicRHI();
-}
-
-void FBuiltinSamplersUniformBuffer::ReleaseDynamicRHI()
-{
-	TUniformBuffer<FBuiltinSamplersParameters>::ReleaseDynamicRHI();
-
-	BuiltinBilinear =			nullptr;
-	BuiltinBilinearClamped =	nullptr;
-	BuiltinPoint =				nullptr;
-	BuiltinPointClamped =		nullptr;
-	BuiltinTrilinear =			nullptr;
-	BuiltinTrilinearClamped =	nullptr;
-}
-
-TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
 
 
 static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
@@ -1293,6 +1237,9 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 
 		LERP_PP(ColorCorrectionShadowsMax);
 		LERP_PP(ColorCorrectionHighlightsMin);
+
+		LERP_PP(BlueCorrection);
+		LERP_PP(ExpandGamut);
 
 		LERP_PP(FilmWhitePoint);
 		LERP_PP(FilmSaturation);

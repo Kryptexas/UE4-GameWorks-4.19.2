@@ -45,6 +45,7 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 
 	NumImportanceVolumes = Other.NumImportanceVolumes;
 	NumCharacterIndirectDetailVolumes = Other.NumCharacterIndirectDetailVolumes;
+	NumVolumetricLightmapDensityVolumes = Other.NumVolumetricLightmapDensityVolumes;
 	NumDirectionalLights = Other.NumDirectionalLights;
 	NumPointLights = Other.NumPointLights;
 	NumSpotLights = Other.NumSpotLights;
@@ -58,6 +59,7 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 	NumFluidSurfaceTextureMappings = Other.NumFluidSurfaceTextureMappings;
 	NumLandscapeTextureMappings = Other.NumLandscapeTextureMappings;
 	NumSpeedTreeMappings = Other.NumSpeedTreeMappings;
+	NumVolumeMappings = Other.NumVolumeMappings;
 	NumPortals = Other.NumPortals;
 }
 
@@ -179,6 +181,20 @@ void FScene::Import( FLightmassImporter& Importer )
 	Importer.ImportData(&NumCameraTrackPositions);
 	Importer.ImportArray(CameraTrackPositions, NumCameraTrackPositions);
 
+	for (int32 VolumeIndex = 0; VolumeIndex < NumVolumetricLightmapDensityVolumes; VolumeIndex++)
+	{
+		FVolumetricLightmapDensityVolumeData LMVolumeData;
+		Importer.ImportData(&LMVolumeData);
+		static_assert(sizeof(LMVolumeData) == 40, "Update member copy");
+
+		FVolumetricLightmapDensityVolume LMVolume;
+		LMVolume.Bounds = LMVolumeData.Bounds;
+		LMVolume.AllowedMipLevelRange = LMVolumeData.AllowedMipLevelRange;
+		LMVolume.NumPlanes = LMVolumeData.NumPlanes;
+		Importer.ImportArray(LMVolume.Planes, LMVolume.NumPlanes);
+		VolumetricLightmapDensityVolumes.Add(LMVolume);
+	}
+
 	Importer.ImportArray(VolumetricLightmapTaskGuids, NumVolumetricLightmapTasks);
 
 	Importer.ImportObjectArray( DirectionalLights, NumDirectionalLights, Importer.GetLights() );
@@ -193,11 +209,14 @@ void FScene::Import( FLightmassImporter& Importer )
 	Importer.ImportObjectArray( TextureLightingMappings, NumStaticMeshTextureMappings, Importer.GetTextureMappings() );
 	Importer.ImportObjectArray( FluidMappings, NumFluidSurfaceTextureMappings, Importer.GetFluidMappings() );
 	Importer.ImportObjectArray( LandscapeMappings, NumLandscapeTextureMappings, Importer.GetLandscapeMappings() );
-
+	Importer.ImportObjectArray( VolumeMappings, NumVolumeMappings, Importer.GetVolumeMappings() );
 
 	DebugMapping = FindMappingByGuid(DebugInput.MappingGuid);
 	if (DebugMapping)
 	{
+#if !ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
+		checkf(false, TEXT("Texel Debugging active, but Lightmass was compiled with ALLOW_LIGHTMAP_SAMPLE_DEBUGGING == 0"));
+#endif
 		const FStaticLightingTextureMapping* TextureMapping = DebugMapping->GetTextureMapping();
 
 		// Verify debug input is valid, otherwise there will be an access violation later
@@ -353,6 +372,14 @@ const FStaticLightingMapping* FScene::FindMappingByGuid(FGuid FindGuid) const
 		}
 	}
 
+	for (int32 i = 0; i < VolumeMappings.Num(); i++)
+	{
+		if (VolumeMappings[i].Guid == FindGuid)
+		{
+			return &VolumeMappings[i];
+		}
+	}
+
 	return NULL;
 }
 
@@ -443,6 +470,33 @@ FBox FScene::GetVisibilityVolumeBounds() const
 	{
 		return FBox(FVector4(0,0,0),FVector4(0,0,0));
 	}
+}
+
+bool FScene::GetVolumetricLightmapAllowedMipRange(const FVector4& Position, FIntPoint& OutRange) const
+{
+	FIntPoint Range(INT_MAX, INT_MAX);
+
+	bool bVolumeFound = false;
+
+	for (int32 VolumeIndex = 0; VolumeIndex < VolumetricLightmapDensityVolumes.Num(); VolumeIndex++)
+	{
+		const FVolumetricLightmapDensityVolume& Volume = VolumetricLightmapDensityVolumes[VolumeIndex];
+		bool bInsideAllPlanes = true;
+		for (int32 PlaneIndex = 0; PlaneIndex < Volume.Planes.Num() && bInsideAllPlanes; PlaneIndex++)
+		{
+			const FPlane& Plane = Volume.Planes[PlaneIndex];
+			bInsideAllPlanes = bInsideAllPlanes && Plane.PlaneDot(Position) < 0.0f;
+		}
+		if (bInsideAllPlanes)
+		{
+			bVolumeFound = true;
+			Range.X = FMath::Min(Range.X, Volume.AllowedMipLevelRange.X);
+			Range.Y = FMath::Min(Range.Y, Volume.AllowedMipLevelRange.Y);
+		}
+	}
+
+	OutRange = Range;
+	return bVolumeFound;
 }
 
 /** Applies GeneralSettings.StaticLightingLevelScale to all scale dependent settings. */

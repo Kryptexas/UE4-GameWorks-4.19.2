@@ -7,6 +7,7 @@
 #include "Rendering/SkeletalMeshVertexBuffer.h"
 #include "Rendering/SkinWeightVertexBuffer.h"
 #include "Rendering/ColorVertexBuffer.h"
+#include "Rendering/SkeletalMeshDuplicatedVerticesBuffer.h"
 #include "Rendering/SkeletalMeshVertexClothBuffer.h"
 #include "Rendering/MorphTargetVertexInfoBuffers.h"
 #include "SkeletalMeshTypes.h"
@@ -58,8 +59,7 @@ struct FSkelMeshRenderSection
 	FClothingSectionData ClothingData;
 
     /** Index Buffer containting all duplicated vertices in the section and a buffer containing which indices into the index buffer are relevant per vertex **/
-    FVertexBufferAndSRV DuplicatedVerticesIndexBuffer;
-    FVertexBufferAndSRV LengthAndIndexDuplicatedVerticesIndexBuffer;
+    FDuplicatedVerticesBuffer DuplicatedVerticesBuffer;
 
 	FSkelMeshRenderSection()
 		: MaterialIndex(0)

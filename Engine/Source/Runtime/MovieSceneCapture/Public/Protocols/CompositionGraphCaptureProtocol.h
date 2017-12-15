@@ -22,6 +22,7 @@ enum EHDRCaptureGamut
 	HCGM_Rec2020 UMETA(DisplayName = "Rec.2020"),
 	HCGM_ACES UMETA(DisplayName = "ACES"),
 	HCGM_ACEScg UMETA(DisplayName = "ACEScg"),
+	HCGM_Linear UMETA(DisplayName = "Linear"),
 	HCGM_MAX,
 };
 

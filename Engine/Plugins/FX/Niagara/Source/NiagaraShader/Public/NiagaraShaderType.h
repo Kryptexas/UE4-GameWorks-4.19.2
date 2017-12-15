@@ -54,37 +54,41 @@ public:
 
 		CompiledShaderInitializerType(
 			FShaderType* InType,
+			int32 InPermutationId,
 			const FShaderCompilerOutput& CompilerOutput,
 			FShaderResource* InResource,
 			const FSHAHash& InNiagaraShaderMapHash,
 			const FString& InDebugDescription,
 			const TArray< FDIBufferDescriptorStore > &InDataInterfaceBufferDescriptors
 			)
-		: FGlobalShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource, InNiagaraShaderMapHash,nullptr,nullptr)
+		: FGlobalShaderType::CompiledShaderInitializerType(InType,InPermutationId,CompilerOutput,InResource, InNiagaraShaderMapHash,nullptr,nullptr)
 		, DebugDescription(InDebugDescription)
 		, DIBufferDescriptors(InDataInterfaceBufferDescriptors)
 		{}
 	};
 	typedef FShader* (*ConstructCompiledType)(const CompiledShaderInitializerType&);
-	typedef bool (*ShouldCacheType)(EShaderPlatform,const FNiagaraScript*);
-	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, const FNiagaraScript*, FShaderCompilerEnvironment&);
+	typedef bool (*ShouldCompilePermutationType)(EShaderPlatform,const FNiagaraScript*);
+	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform,const FNiagaraScript*, FShaderCompilerEnvironment&);
 
 	FNiagaraShaderType(
 		const TCHAR* InName,
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,					// ugly - ignored for Niagara shaders but needed for IMPLEMENT_SHADER_TYPE macro magic
+		int32 InTotalPermutationCount,
 		ConstructSerializedType InConstructSerializedRef,
 		ConstructCompiledType InConstructCompiledRef,
 		ModifyCompilationEnvironmentType InModifyCompilationEnvironmentRef,
-		ShouldCacheType InShouldCacheRef,
+		ShouldCompilePermutationType InShouldCompilePermutationRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef
 		):
-		FShaderType(EShaderTypeForDynamicCast::Niagara, InName, InSourceFilename, InFunctionName, SF_Compute, InConstructSerializedRef, InGetStreamOutElementsRef),
+		FShaderType(EShaderTypeForDynamicCast::Niagara, InName, InSourceFilename, InFunctionName, SF_Compute, InTotalPermutationCount, InConstructSerializedRef, InGetStreamOutElementsRef),
 		ConstructCompiledRef(InConstructCompiledRef),
-		ShouldCacheRef(InShouldCacheRef),
+		ShouldCompilePermutationRef(InShouldCompilePermutationRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
-	{}
+	{
+		check(InTotalPermutationCount == 1);
+	}
 
 	/**
 	 * Enqueues a compilation for a new shader of this type.
@@ -119,7 +123,7 @@ public:
 	 */
 	bool ShouldCache(EShaderPlatform Platform,const FNiagaraScript* Script) const
 	{
-		return (*ShouldCacheRef)(Platform, Script);
+		return (*ShouldCompilePermutationRef)(Platform, Script);
 	}
 
 protected:
@@ -137,6 +141,6 @@ protected:
 
 private:
 	ConstructCompiledType ConstructCompiledRef;
-	ShouldCacheType ShouldCacheRef;
+	ShouldCompilePermutationType ShouldCompilePermutationRef;
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };

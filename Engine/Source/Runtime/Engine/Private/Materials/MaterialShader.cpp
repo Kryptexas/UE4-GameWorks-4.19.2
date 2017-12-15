@@ -844,7 +844,7 @@ FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 	TArray<FShaderCommonCompileJob*>& NewJobs
 	)
 {
-	FShaderCompileJob* NewJob = new FShaderCompileJob(ShaderMapId, nullptr, this);
+	FShaderCompileJob* NewJob = new FShaderCompileJob(ShaderMapId, nullptr, this, /* PermutationId = */ 0);
 
 	NewJob->Input.SharedEnvironment = MaterialEnvironment;
 	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
@@ -916,7 +916,7 @@ FShader* FMaterialShaderType::FinishCompileShader(
 
 	// Reuse an existing resource with the same key or create a new one based on the compile output
 	// This allows FShaders to share compiled bytecode and RHI shader references
-	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType);
+	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType, /* PermutationId = */ 0);
 
 	if (ShaderPipelineType && !ShaderPipelineType->ShouldOptimizeUnusedOutputs())
 	{
@@ -925,7 +925,7 @@ FShader* FMaterialShaderType::FinishCompileShader(
 	}
 
 	// Find a shader with the same key in memory
-	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(MaterialShaderMapHash, ShaderPipelineType, CurrentJob.VFType, CurrentJob.ShaderType, CurrentJob.Input.Target));
+	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(MaterialShaderMapHash, ShaderPipelineType, CurrentJob.VFType, CurrentJob.ShaderType, /* PermutationId = */ 0, CurrentJob.Input.Target));
 
 	// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
 	if (!Shader)
@@ -1485,7 +1485,7 @@ void FMaterialShaderMap::Compile(
 					TArray<FString> ShaderErrors;
   
 					// Only compile the shader if we don't already have it
-					if (!HasShader(ShaderType))
+					if (!HasShader(ShaderType, /* PermutationId = */ 0))
 					{
 						auto* Job = ShaderType->BeginCompileShader(
 							CompilingId,
@@ -1611,8 +1611,8 @@ FShader* FMaterialShaderMap::ProcessCompilationResultsForSingleJob(FShaderCompil
 		check(Shader);
 		if (!ShaderPipeline)
 		{
-			check(!MeshShaderMap->HasShader(MeshMaterialShaderType));
-			MeshShaderMap->AddShader(MeshMaterialShaderType, Shader);
+			check(!MeshShaderMap->HasShader(MeshMaterialShaderType, /* PermutationId = */ 0));
+			MeshShaderMap->AddShader(MeshMaterialShaderType, /* PermutationId = */ 0, Shader);
 		}
 	}
 	else
@@ -1623,8 +1623,8 @@ FShader* FMaterialShaderMap::ProcessCompilationResultsForSingleJob(FShaderCompil
 		check(Shader);
 		if (!ShaderPipeline)
 		{
-			check(!HasShader(MaterialShaderType));
-			AddShader(MaterialShaderType, Shader);
+			check(!HasShader(MaterialShaderType, /* PermutationId = */ 0));
+			AddShader(MaterialShaderType, /* PermutationId = */ 0, Shader);
 		}
 	}
 
@@ -1821,7 +1821,7 @@ bool FMaterialShaderMap::IsMaterialShaderComplete(const FMaterial* Material, con
 {
 	// If we should cache this material, it's incomplete if the pipeline is missing or the shader itself is missing
 	if (ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material) &&
-		((Pipeline && !HasShaderPipeline(Pipeline)) || (!Pipeline && !HasShader((FShaderType*)ShaderType))))
+		((Pipeline && !HasShaderPipeline(Pipeline)) || (!Pipeline && !HasShader((FShaderType*)ShaderType, /* PermutationId = */ 0))))
 	{
 		if (!bSilent)
 		{
@@ -1945,13 +1945,13 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FMaterialShaderType* ShaderType = ShaderTypeIt->GetMaterialShaderType();
-		if (ShaderType && ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material) && !HasShader(ShaderType))
+		if (ShaderType && ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material) && !HasShader(ShaderType, /* PermutationId = */ 0))
 		{
-			FShaderId ShaderId(MaterialShaderMapHash, nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
+			FShaderId ShaderId(MaterialShaderMapHash, nullptr, nullptr, ShaderType, /** PermutationId = */ 0, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
 			FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 			if (FoundShader)
 			{
-				AddShader(ShaderType, FoundShader);
+				AddShader(ShaderType, /* PermutationId = */ 0, FoundShader);
 			}
 		}
 	}
@@ -1980,13 +1980,13 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 				for (auto* Shader : Stages)
 				{
 					FMaterialShaderType* ShaderType = (FMaterialShaderType*)Shader->GetMaterialShaderType();
-					if (!HasShader(ShaderType))
+					if (!HasShader(ShaderType, /* PermutationId = */ 0))
 					{
-						FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
+						FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, nullptr, ShaderType, /** PermutationId = */ 0, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
 						FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 						if (FoundShader)
 						{
-							AddShader(ShaderType, FoundShader);
+							AddShader(ShaderType, /* PermutationId = */ 0, FoundShader);
 							ShadersForPipeline.Add(FoundShader);
 						}
 					}
@@ -2056,7 +2056,7 @@ void FMaterialShaderMap::Register(EShaderPlatform InShaderPlatform)
 
 		for (int32 Index = 0; Index < MeshShaderMaps.Num(); Index++)
 		{
-			for (TMap<FShaderType*, TRefCountPtr<FShader> >::TConstIterator It(MeshShaderMaps[Index].GetShaders()); It; ++It)
+			for (TMap<FMeshMaterialShaderMap::FShaderPrimaryKey, TRefCountPtr<FShader> >::TConstIterator It(MeshShaderMaps[Index].GetShaders()); It; ++It)
 			{
 				FShader* Shader = It.Value();
 				if (Shader)
@@ -2137,7 +2137,7 @@ void FMaterialShaderMap::FlushShadersByShaderType(FShaderType* ShaderType)
 
 	if (ShaderType->GetMaterialShaderType())
 	{
-		RemoveShaderType(ShaderType->GetMaterialShaderType());	
+		RemoveShaderTypePermutaion(ShaderType->GetMaterialShaderType(), /* PermutationId = */ 0);	
 	}
 }
 

@@ -5,11 +5,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLLibrary.h>
 #include "library.hpp"
 #include "device.hpp"
 #include "function_constant_values.hpp"
 #include "argument_encoder.hpp"
-#include <Metal/MTLLibrary.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -24,10 +26,10 @@ namespace mtlpp
         return [(MTLVertexAttribute*)m_ptr name];
     }
 
-    uint32_t VertexAttribute::GetAttributeIndex() const
+    NSUInteger VertexAttribute::GetAttributeIndex() const
     {
         Validate();
-        return uint32_t([(MTLVertexAttribute*)m_ptr attributeIndex]);
+        return NSUInteger([(MTLVertexAttribute*)m_ptr attributeIndex]);
     }
 
     DataType VertexAttribute::GetAttributeType() const
@@ -81,11 +83,11 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t Attribute::GetAttributeIndex() const
+    NSUInteger Attribute::GetAttributeIndex() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLAttribute*)m_ptr attributeIndex]);
+        return NSUInteger([(MTLAttribute*)m_ptr attributeIndex]);
 #else
         return 0;
 #endif
@@ -160,11 +162,11 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t FunctionConstant::GetIndex() const
+    NSUInteger FunctionConstant::GetIndex() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLFunctionConstant*)m_ptr index]);
+        return NSUInteger([(MTLFunctionConstant*)m_ptr index]);
 #else
         return 0;
 #endif
@@ -184,7 +186,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(id<MTLFunction>)m_ptr label];
+        return m_table->Label(m_ptr);
 #else
         return nullptr;
 #endif
@@ -193,30 +195,30 @@ namespace mtlpp
     Device Function::GetDevice() const
     {
         Validate();
-        return [(id<MTLFunction>)m_ptr device];
+		return m_table->Device(m_ptr);
     }
 
     FunctionType Function::GetFunctionType() const
     {
         Validate();
-        return FunctionType([(id<MTLFunction>)m_ptr functionType]);
+		return FunctionType(m_table->FunctionType(m_ptr));
     }
 
     PatchType Function::GetPatchType() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return PatchType([(id<MTLFunction>)m_ptr patchType]);
+		return PatchType(m_table->PatchType(m_ptr));
 #else
         return PatchType(0);
 #endif
     }
 
-    int32_t Function::GetPatchControlPointCount() const
+    NSInteger Function::GetPatchControlPointCount() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return int32_t([(id<MTLFunction>)m_ptr patchControlPointCount]);
+		return m_table->PatchControlPointCount(m_ptr);
 #else
         return 0;
 #endif
@@ -225,14 +227,14 @@ namespace mtlpp
     const ns::Array<VertexAttribute> Function::GetVertexAttributes() const
     {
         Validate();
-        return [(id<MTLFunction>)m_ptr vertexAttributes];
+		return m_table->VertexAttributes(m_ptr);
     }
 
     const ns::Array<Attribute> Function::GetStageInputAttributes() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(id<MTLFunction>)m_ptr stageInputAttributes];
+		return m_table->StageInputAttributes(m_ptr);
 #else
         return nullptr;
 #endif
@@ -241,35 +243,36 @@ namespace mtlpp
     ns::String Function::GetName() const
     {
         Validate();
-        return [(id<MTLFunction>)m_ptr name];
+		return m_table->Name(m_ptr);
     }
 
     ns::Dictionary<ns::String, FunctionConstant> Function::GetFunctionConstants() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(id<MTLFunction>)m_ptr functionConstantsDictionary];
+		return m_table->FunctionConstantsDictionary(m_ptr);
 #else
         return nullptr;
 #endif
     }
 	
-	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(uint32_t index)
+	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(NSUInteger index)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(id<MTLFunction>)m_ptr newArgumentEncoderWithBufferIndex:index];
+		return m_table->NewArgumentEncoderWithBufferIndex(m_ptr, index);
 #else
 		return ArgumentEncoder();
 #endif
 	}
 
-	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(uint32_t index, Argument* reflection)
+	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(NSUInteger index, Argument* reflection)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
+		
 		MTLArgument* arg = nil;
-		ArgumentEncoder encoder( [(id<MTLFunction>)m_ptr newArgumentEncoderWithBufferIndex:index reflection:reflection ? &arg : nil] );
+		ArgumentEncoder encoder(m_table->NewArgumentEncoderWithBufferIndexreflection(m_ptr, index, reflection ? &arg : nil));
 		if (reflection) { *reflection = arg; }
 		return encoder;
 #else
@@ -281,11 +284,11 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(id<MTLFunction>)m_ptr setLabel:(NSString*)label.GetPtr()];
+		m_table->SetLabel(m_ptr, label.GetPtr());
 #endif
     }
 
-    ns::Dictionary<ns::String, ns::String> CompileOptions::GetPreprocessorMacros() const
+    ns::Dictionary<ns::String, ns::Object<NSObject*>> CompileOptions::GetPreprocessorMacros() const
     {
         Validate();
         return [(MTLCompileOptions*)m_ptr preprocessorMacros];
@@ -322,52 +325,48 @@ namespace mtlpp
     ns::String Library::GetLabel() const
     {
         Validate();
-        return [(id<MTLLibrary>)m_ptr label];
+		return m_table->Label(m_ptr);
     }
 
     void Library::SetLabel(const ns::String& label)
     {
         Validate();
-        [(id<MTLLibrary>)m_ptr setLabel:(NSString*)label.GetPtr()];
+		m_table->SetLabel(m_ptr, label.GetPtr());
     }
 
     ns::Array<ns::String> Library::GetFunctionNames() const
     {
         Validate();
-        return [(id<MTLLibrary>)m_ptr functionNames];
+		return m_table->FunctionNames(m_ptr);
     }
 
     Function Library::NewFunction(const ns::String& functionName) const
     {
         Validate();
-        return [(id<MTLLibrary>)m_ptr newFunctionWithName:(NSString*)functionName.GetPtr()];
+		return m_table->NewFunctionWithName(m_ptr, functionName.GetPtr());
     }
 
-    Function Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::Error* error) const
+    Function Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::AutoReleasedError* error) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        NSError** nsError = error ? (NSError**)error->GetInnerPtr() : nullptr;
-        return [(id<MTLLibrary>)m_ptr
-                                            newFunctionWithName:(NSString*)functionName.GetPtr()
-                                            constantValues:(MTLFunctionConstantValues*)constantValues.GetPtr()
-                                            error:nsError];
+		return m_table->NewFunctionWithNameconstantValueserror(m_ptr, functionName.GetPtr(), constantValues.GetPtr(), error ? (NSError**)error->GetInnerPtr() : nullptr);
 #else
         return nullptr;
 #endif
     }
 
-    void Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, std::function<void(const Function&, const ns::Error&)> completionHandler) const
+    void Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, FunctionHandler completionHandler) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(id<MTLLibrary>)m_ptr
-             newFunctionWithName:(NSString*)functionName.GetPtr()
-             constantValues:(MTLFunctionConstantValues*)constantValues.GetPtr()
-             completionHandler:^(id <MTLFunction> mtlFunction, NSError* error){
-                 completionHandler(mtlFunction, error);
-             }];
+		m_table->NewFunctionWithNameconstantValuescompletionHandler(m_ptr, functionName.GetPtr(), constantValues.GetPtr(), ^(id <MTLFunction> mtlFunction, NSError* error)
+		{
+			completionHandler(mtlFunction, error);
+		});
 #endif
     }
 
 }
+
+MTLPP_END

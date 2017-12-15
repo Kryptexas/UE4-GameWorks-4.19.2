@@ -32,7 +32,7 @@ class FBaseHS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FBaseHS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		if (!RHISupportsTessellation(Platform))
 		{
@@ -78,7 +78,7 @@ class FBaseDS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FBaseDS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		if (!RHISupportsTessellation(Platform))
 		{

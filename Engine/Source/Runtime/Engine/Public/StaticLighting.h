@@ -427,6 +427,45 @@ public:
 	}
 };
 
+/** 
+ * Represents an object which will use the global volumetric lightmap.
+ * Hack: currently represented as a texture mapping for Lightmass GI solver surface caching
+ */
+class FStaticLightingGlobalVolumeMapping : public FStaticLightingTextureMapping
+{
+public:
+
+	/** Initialization constructor. */
+	ENGINE_API FStaticLightingGlobalVolumeMapping(FStaticLightingMesh* InMesh, UObject* InOwner, int32 InSizeX, int32 InSizeY, int32 InLightmapTextureCoordinateIndex);
+
+	virtual void Apply(struct FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*,class FShadowMapData2D*>& ShadowMapData, ULevel* LightingScenario) override
+	{
+		// Should never be processed
+		check(false);
+	}
+
+#if WITH_EDITOR
+	virtual bool DebugThisMapping() const
+	{
+		return false;
+	}
+
+	/** 
+	 * Export static lighting mapping instance data to an exporter 
+	 * @param Exporter - export interface to process static lighting data
+	 */
+	UNREALED_API virtual void ExportMapping(class FLightmassExporter* Exporter) override;
+#endif	//WITH_EDITOR
+
+	/** Whether or not this mapping should be processed or imported */
+	virtual bool IsValidMapping() const {return true;}
+
+	virtual FString GetDescription() const
+	{
+		return FString(TEXT("VolumeMapping"));
+	}
+};
+
 /** The info about an actor component which the static lighting system needs. */
 struct FStaticLightingPrimitiveInfo
 {

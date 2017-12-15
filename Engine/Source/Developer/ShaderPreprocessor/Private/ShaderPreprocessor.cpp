@@ -67,8 +67,11 @@ private:
 
 			if (This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.Contains(VirtualFilePath))
 			{
-				FileContents = FString(UTF8_TO_TCHAR(
-					This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.FindRef(VirtualFilePath).GetData()));
+				FileContents = This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.FindRef(VirtualFilePath);
+			}
+			else if (This->ShaderInput.Environment.IncludeVirtualPathToExternalContentsMap.Contains(VirtualFilePath))
+			{
+				FileContents = *This->ShaderInput.Environment.IncludeVirtualPathToExternalContentsMap.FindRef(VirtualFilePath);
 			}
 			else
 			{

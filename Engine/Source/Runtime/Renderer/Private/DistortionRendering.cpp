@@ -47,9 +47,9 @@ class TDistortionApplyScreenPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDistortionApplyScreenPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return !UseMSAA || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return !UseMSAA || IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	TDistortionApplyScreenPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -124,9 +124,9 @@ private:
 	FShaderResourceParameter SceneColorTextureSampler;
 	FShaderParameter DistortionParams;
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_MSAA"), UseMSAA ? 1 : 0);
 	}
 };
@@ -148,9 +148,9 @@ class TDistortionMergePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDistortionMergePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !UseMSAA || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return !UseMSAA || IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	TDistortionMergePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -206,9 +206,9 @@ private:
 	FShaderResourceParameter SceneColorTexture;
 	FShaderResourceParameter SceneColorTextureSampler;
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_MSAA"), UseMSAA ? 1 : 0);
 	}
 };
@@ -227,7 +227,7 @@ VARIATION1(true);
 class FDistortMeshAccumulatePolicy
 {	
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return Material && IsTranslucentBlendMode(Material->GetBlendMode()) && Material->IsDistorted();
 	}
@@ -252,9 +252,9 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 public:
@@ -287,10 +287,10 @@ protected:
 
 	TDistortionMeshHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& DistortMeshPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -310,10 +310,10 @@ protected:
 
 	TDistortionMeshDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& DistortMeshPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -332,9 +332,9 @@ class TDistortionMeshPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(TDistortionMeshPS,MeshMaterial);
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	TDistortionMeshPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

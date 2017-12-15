@@ -61,12 +61,12 @@ class TSceneCapturePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TSceneCapturePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		const TCHAR* DefineName = GShaderSourceModeDefineName[CaptureSource];
 		if (DefineName)

@@ -163,9 +163,9 @@ public:
 		AOVolumeTextureSRV.Bind(Initializer.ParameterMap, TEXT("gAOVolumeTexture") );
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("LPV_MULTIPLE_BOUNCES"), (uint32)LPV_MULTIPLE_BOUNCES );
 		OutEnvironment.SetDefine( TEXT("LPV_GV_SH_ORDER"),			(uint32)LPV_GV_SH_ORDER );
 	}
@@ -406,12 +406,7 @@ class FLpvClearCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvClearCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvClearCS()	{	}
 
@@ -430,12 +425,7 @@ class FLpvClearGeometryVolumeCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvClearGeometryVolumeCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvClearGeometryVolumeCS()	{	}
 
@@ -454,12 +444,7 @@ class FLpvClearListsCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvClearListsCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvClearListsCS()	{	}
 
@@ -477,12 +462,7 @@ class FLpvInject_GenerateVplListsCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvInject_GenerateVplListsCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvInject_GenerateVplListsCS()	{	}
 
@@ -550,12 +530,7 @@ class FLpvInject_AccumulateVplListsCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvInject_AccumulateVplListsCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvInject_AccumulateVplListsCS()	{	}
 
@@ -573,12 +548,7 @@ class FLpvDirectionalOcclusionCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvDirectionalOcclusionCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvDirectionalOcclusionCS()	{	}
 
@@ -612,12 +582,7 @@ class FLpvCopyAOVolumeCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvCopyAOVolumeCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvCopyAOVolumeCS()	{	}
 
@@ -652,12 +617,7 @@ class FLpvBuildGeometryVolumeCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(FLpvBuildGeometryVolumeCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
-	}
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	FLpvBuildGeometryVolumeCS()	{	}
 
@@ -683,9 +643,9 @@ class TLpvPropagateCS : public FLpvWriteShaderCSBase
 	DECLARE_SHADER_TYPE(TLpvPropagateCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		CA_SUPPRESS(6313);
 		OutEnvironment.SetDefine(TEXT("LPV_SECONDARY_OCCLUSION"), (uint32)(ShaderFlags & PROPAGATE_SECONDARY_OCCLUSION ? 1 : 0));
@@ -695,7 +655,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("LPV_PROPAGATE_AO"), (uint32)(ShaderFlags & PROPAGATE_AO ? 1 : 0));
 		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
 
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 	}
 
 	TLpvPropagateCS()	{	}
@@ -777,15 +737,15 @@ class TLpvInject_LightCS : public FLpvInjectShader_Base
 	DECLARE_SHADER_TYPE(TLpvInject_LightCS,Global);
 
 public:
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		CA_SUPPRESS(6313);
 		OutEnvironment.SetDefine(TEXT("SHADOW_CASTING"),   (uint32)(InjectFlags & INJECT_SHADOW_CASTING ? 1 : 0));
 		CA_SUPPRESS(6313);
 		OutEnvironment.SetDefine(TEXT("SPOT_ATTENUATION"), (uint32)(InjectFlags & INJECT_SPOT_ATTENUATION ? 1 : 0));
-		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FLpvWriteShaderCSBase::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 	}
 
 	TLpvInject_LightCS()	{	}

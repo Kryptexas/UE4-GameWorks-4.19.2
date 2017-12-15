@@ -395,17 +395,17 @@ class FReflectionEnvironmentTiledDeferredPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FReflectionEnvironmentTiledDeferredPS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MAX_CAPTURES"), GMaxNumReflectionCaptures);
 		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
 	FReflectionEnvironmentTiledDeferredPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -518,9 +518,9 @@ public:
 	: FReflectionEnvironmentTiledDeferredPS(Initializer)
 	{}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FReflectionEnvironmentTiledDeferredPS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FReflectionEnvironmentTiledDeferredPS::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LIGHTMAPS"), bUseLightmaps);
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), bHasSkyLight);
 		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_BOX_CAPTURES"), bBoxCapturesOnly);
@@ -576,14 +576,9 @@ class FReflectionCaptureSpecularBouncePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FReflectionCaptureSpecularBouncePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */

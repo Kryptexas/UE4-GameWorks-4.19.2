@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "device.hpp"
 
-MTLPP_CLASS(MTLPipelineBufferDescriptor);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -29,3 +30,4 @@ namespace mtlpp
 	MTLPP_AVAILABLE(10_13, 11_0);
 }
 
+MTLPP_END

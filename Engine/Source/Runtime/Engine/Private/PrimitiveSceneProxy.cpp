@@ -39,6 +39,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	LevelColor(FLinearColor::White)
 ,	PropertyColor(FLinearColor::White)
 ,	Mobility(InComponent->Mobility)
+,	LightmapType(InComponent->LightmapType)
 ,	DrawInGame(InComponent->IsVisible())
 ,	DrawInEditor(InComponent->bVisible)
 ,	bRenderInMono(InComponent->bRenderInMono)
@@ -78,7 +79,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCastInsetShadow(InComponent->bSelfShadowOnly ? true : InComponent->bCastInsetShadow)	// Assumed to be enabled if bSelfShadowOnly is enabled.
 ,	bCastCinematicShadow(InComponent->bCastCinematicShadow)
 ,	bCastFarShadow(InComponent->bCastFarShadow)
-,	bLightAsIfStatic(InComponent->bLightAsIfStatic)
 ,	bLightAttachmentsAsGroup(InComponent->bLightAttachmentsAsGroup)
 ,	bSingleSampleShadowFromStationaryLights(InComponent->bSingleSampleShadowFromStationaryLights)
 ,	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer(false)
@@ -332,7 +332,9 @@ void FPrimitiveSceneProxy::ApplyLateUpdateTransform(const FMatrix& LateUpdateTra
 
 bool FPrimitiveSceneProxy::UseSingleSampleShadowFromStationaryLights() const 
 { 
-	return bSingleSampleShadowFromStationaryLights || CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0; 
+	return bSingleSampleShadowFromStationaryLights 
+		|| CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0
+		|| LightmapType == ELightmapType::ForceVolumetric; 
 }
 
 #if !UE_BUILD_SHIPPING

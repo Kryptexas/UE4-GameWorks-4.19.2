@@ -297,7 +297,7 @@ class FCopySceneColorPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopySceneColorPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); }
 
 	FCopySceneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -1179,7 +1179,7 @@ void FDeferredShadingSceneRenderer::SetupDownsampledTranslucencyViewUniformBuffe
 					ScaledSize,
 			FIntRect(View.ViewRect.Min.X * DownsamplingScale, View.ViewRect.Min.Y * DownsamplingScale, View.ViewRect.Max.X * DownsamplingScale, View.ViewRect.Max.Y * DownsamplingScale),
 					View.ViewMatrices,
-					View.PrevViewMatrices
+					View.PrevViewInfo.ViewMatrices
 				);
 
 				View.DownsampledTranslucencyViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(DownsampledTranslucencyParameters, UniformBuffer_SingleFrame);
@@ -1313,9 +1313,9 @@ class FTranslucencyUpsamplingPS : public FGlobalShader
 {
 protected:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */

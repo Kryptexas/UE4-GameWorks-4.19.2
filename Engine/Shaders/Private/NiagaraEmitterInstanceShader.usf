@@ -49,7 +49,7 @@ NiagaraSimulationShader.usf:
 	#define THREADGROUP_SIZE 64
 
 	// 4D random number generator inspired by PCGs (permuted congruential generator)
-	// COPY FROM RANDOM.USF, which we can't easily include here due to a sizable dependency chain
+	// COPY FROM RANDOM.USH, which we can't easily include here due to a sizable dependency chain
 	uint4 NiagaraRand4DPCG32(int4 p)
 	{
 		// taking a signed int then reinterpreting as unsigned gives good behavior for negatives

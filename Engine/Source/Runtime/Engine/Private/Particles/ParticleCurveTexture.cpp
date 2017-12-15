@@ -56,9 +56,9 @@ class FParticleCurveInjectionVS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -96,14 +96,9 @@ class FParticleCurveInjectionPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
-	}
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */

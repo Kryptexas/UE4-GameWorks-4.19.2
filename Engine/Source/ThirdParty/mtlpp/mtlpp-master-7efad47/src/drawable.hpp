@@ -7,27 +7,33 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Drawable.hpp"
 #include "ns.hpp"
 
-MTLPP_PROTOCOL(MTLDrawable);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
+	class Drawable;
+	typedef std::function<void(const Drawable&)> PresentHandler;
+	
     class Drawable : public ns::Object<ns::Protocol<id<MTLDrawable>>::type>
     {
     public:
         Drawable() { }
-        Drawable(ns::Protocol<id<MTLDrawable>>::type handle) : ns::Object<ns::Protocol<id<MTLDrawable>>::type>(handle) { }
+        Drawable(ns::Protocol<id<MTLDrawable>>::type handle, ITable* table = nullptr) : ns::Object<ns::Protocol<id<MTLDrawable>>::type>(handle, true, table) { }
 
-        double   GetPresentedTime() const MTLPP_AVAILABLE_IOS(10_3);
-        uint64_t GetDrawableID() const MTLPP_AVAILABLE_IOS(10_3);
+        double   GetPresentedTime() const MTLPP_AVAILABLE_AX(10_3);
+        uint64_t GetDrawableID() const MTLPP_AVAILABLE_AX(10_3);
 
         void Present();
         void PresentAtTime(double presentationTime);
-        void PresentAfterMinimumDuration(double duration) MTLPP_AVAILABLE_IOS(10_3);
-        void AddPresentedHandler(std::function<void(const Drawable&)> handler) MTLPP_AVAILABLE_IOS(10_3);
+        void PresentAfterMinimumDuration(double duration) MTLPP_AVAILABLE_AX(10_3);
+        void AddPresentedHandler(PresentHandler handler) MTLPP_AVAILABLE_AX(10_3);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

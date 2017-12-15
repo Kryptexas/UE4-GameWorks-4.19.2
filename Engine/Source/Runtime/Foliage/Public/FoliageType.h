@@ -282,6 +282,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
 	int32 OverriddenLightMapRes;
 
+	/** Controls the type of lightmap used for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	ELightmapType LightmapType;
+
 	/**
 	 * If enabled, foliage will render a pre-pass which allows it to occlude other primitives, and also allows 
 	 * it to correctly receive DBuffer decals. Enabling this setting may have a negative performance impact.

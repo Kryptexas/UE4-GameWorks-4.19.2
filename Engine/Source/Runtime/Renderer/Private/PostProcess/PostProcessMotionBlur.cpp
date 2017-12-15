@@ -99,14 +99,14 @@ class FPostProcessVelocityFlattenCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVelocityFlattenCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 	}
 
 	FPostProcessVelocityFlattenCS() {}
@@ -234,9 +234,9 @@ class FPostProcessVelocityScatterVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVelocityScatterVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	/** Default constructor. */
@@ -291,9 +291,9 @@ class FPostProcessVelocityScatterPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVelocityScatterPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	/** Default constructor. */
@@ -406,14 +406,9 @@ class FPostProcessVelocityGatherCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVelocityGatherCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	/** Default constructor. */
@@ -514,14 +509,14 @@ class FPostProcessMotionBlurPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessMotionBlurPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MOTION_BLUR_QUALITY"), Quality);
 		OutEnvironment.SetDefine(TEXT("MOTION_BLUR_INNER_LOOP_CONFIG"), InnerLoopConfig);
 	}
@@ -640,15 +635,15 @@ class FPostProcessMotionBlurCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessMotionBlurCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// CS Params
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GMotionBlurComputeTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GMotionBlurComputeTileSizeY);
 
@@ -876,8 +871,6 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 
 	if (bIsComputePass)
 	{
-		DestRect = {Context.SceneColorViewRect.Min, Context.SceneColorViewRect.Min + PassOutputs[0].RenderTargetDesc.Extent};
-	
 		// Common setup
 		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
 		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
@@ -893,7 +886,7 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncMotionBlur);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
-				DispatchCS(RHICmdListComputeImmediate, Context, DestRect, DestRenderTarget.UAV, Scale, InnerLoopConfig);
+				DispatchCS(RHICmdListComputeImmediate, Context, DestSize, DestRect, DestRenderTarget.UAV, Scale, InnerLoopConfig);
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
 			}
 			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
@@ -903,7 +896,7 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 			// Direct path
 			WaitForInputPassComputeFences(Context.RHICmdList);
 			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
-			DispatchCS(Context.RHICmdList, Context, DestRect, DestRenderTarget.UAV, Scale, InnerLoopConfig);			
+			DispatchCS(Context.RHICmdList, Context, DestSize, DestRect, DestRenderTarget.UAV, Scale, InnerLoopConfig);			
 			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
 		}
 	}
@@ -956,11 +949,10 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 }
 
 template <typename TRHICmdList>
-void FRCPassPostProcessMotionBlur::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale, uint32 InnerLoopConfig)
+void FRCPassPostProcessMotionBlur::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& DestSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale, uint32 InnerLoopConfig)
 {
 	auto ShaderMap = Context.GetShaderMap();
 
-	FIntPoint DestSize(DestRect.Width(), DestRect.Height());
 	uint32 GroupSizeX = FMath::DivideAndRoundUp(DestSize.X, GMotionBlurComputeTileSizeX);
 	uint32 GroupSizeY = FMath::DivideAndRoundUp(DestSize.Y, GMotionBlurComputeTileSizeY);
 
@@ -1047,9 +1039,9 @@ class FPostProcessVisualizeMotionBlurPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVisualizeMotionBlurPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -1108,8 +1100,8 @@ public:
 			// Instead of finding the world space position of the current pixel, calculate the world space position offset by the camera position, 
 			// then translate by the difference between last frame's camera position and this frame's camera position,
 			// then apply the rest of the transforms.  This effectively avoids precision issues near the extents of large levels whose world space position is very large.
-			FVector ViewOriginDelta = Context.View.ViewMatrices.GetViewOrigin() - Context.View.PrevViewMatrices.GetViewOrigin();
-			SetShaderValue(RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewMatrices.ComputeViewRotationProjectionMatrix());
+			FVector ViewOriginDelta = Context.View.ViewMatrices.GetViewOrigin() - Context.View.PrevViewInfo.ViewMatrices.GetViewOrigin();
+			SetShaderValue(RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewInfo.ViewMatrices.ComputeViewRotationProjectionMatrix());
 		}
 		else
 		{
@@ -1235,7 +1227,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 
 	Line = FString::Printf(TEXT("View=%.4x PrevView=%.4x"),
 		View.ViewMatrices.GetViewMatrix().ComputeHash() & 0xffff,
-		SceneViewState->PrevViewMatrices.GetViewMatrix().ComputeHash() & 0xffff);
+		View.PrevViewInfo.ViewMatrices.GetViewMatrix().ComputeHash() & 0xffff);
 	Canvas.DrawShadowedString(X, Y += YStep, TEXT("ViewMatrix:"), GetStatsFont(), FLinearColor(1, 1, 0));
 	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
 

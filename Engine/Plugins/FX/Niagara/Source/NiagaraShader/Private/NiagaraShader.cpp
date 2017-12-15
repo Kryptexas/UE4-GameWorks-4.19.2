@@ -189,7 +189,7 @@ FNiagaraShaderCompileJob* FNiagaraShaderType::BeginCompileShader(
 	NewJob->Input.VirtualSourceFilePath = TEXT("/Engine/Private/NiagaraEmitterInstanceShader.usf");
 	NewJob->Input.EntryPointName = TEXT("SimulateMainComputeCS");
 	NewJob->Input.Environment.SetDefine(TEXT("GPU_SIMULATION"), 1);
-	NewJob->Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), StringToArray<ANSICHAR>(*Script->HlslOutput, Script->HlslOutput.Len() + 1));
+	NewJob->Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), Script->HlslOutput);
 	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
 
 	UE_LOG(LogShaders, Verbose, TEXT("			%s"), GetName());
@@ -223,15 +223,16 @@ FShader* FNiagaraShaderType::FinishCompileShader(
 
 	// Reuse an existing resource with the same key or create a new one based on the compile output
 	// This allows FShaders to share compiled bytecode and RHI shader references
-	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType);
+	FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType, /* SpecificPermutationId = */ 0);
 
 	// Find a shader with the same key in memory
-	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(ShaderMapHash, nullptr, nullptr, CurrentJob.ShaderType, CurrentJob.Input.Target));
+	FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(ShaderMapHash, nullptr, nullptr, CurrentJob.ShaderType, /* SpecificPermutationId = */ 0, CurrentJob.Input.Target));
 
 	// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
 	if (!Shader)
 	{
-		Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, ShaderMapHash, InDebugDescription, CurrentJob.DIBufferDescriptors));
+		const int32 PermutationId = 0;
+		Shader = (*ConstructCompiledRef)(FNiagaraShaderType::CompiledShaderInitializerType(this, PermutationId, CurrentJob.Output, Resource, ShaderMapHash, InDebugDescription, CurrentJob.DIBufferDescriptors));
 		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), CurrentJob.Output.Target, nullptr);
 	}
 
@@ -633,7 +634,7 @@ void FNiagaraShaderMap::Compile(
 					TArray<FString> ShaderErrors;
   
 					// Only compile the shader if we don't already have it
-					if (!HasShader(ShaderType))
+					if (!HasShader(ShaderType, /* PermutationId = */ 0))
 					{
 						auto* Job = ShaderType->BeginCompileShader(
 							CompilingId,
@@ -691,8 +692,8 @@ FShader* FNiagaraShaderMap::ProcessCompilationResultsForSingleJob(FNiagaraShader
 	Shader = NiagaraShaderType->FinishCompileShader(ShaderMapHash, CurrentJob, FriendlyName);
 	FNiagaraShader *NiagaraShader = static_cast<FNiagaraShader*>(Shader);
 	check(Shader);
-	check(!HasShader(NiagaraShaderType));
-	AddShader(NiagaraShaderType, Shader);
+	check(!HasShader(NiagaraShaderType, /* PermutationId = */ 0));
+	AddShader(NiagaraShaderType, /* PermutationId = */ 0, Shader);
 
 	return Shader;
 }
@@ -757,7 +758,7 @@ bool FNiagaraShaderMap::TryToAddToExistingCompilationTask(FNiagaraScript* Script
 bool FNiagaraShaderMap::IsNiagaraShaderComplete(const FNiagaraScript* Script, const FNiagaraShaderType* ShaderType, bool bSilent)
 {
 	// If we should cache this script, it's incomplete if the shader is missing
-	if (ShouldCacheNiagaraShader(ShaderType, Platform, Script) &&	!HasShader((FShaderType*)ShaderType))
+	if (ShouldCacheNiagaraShader(ShaderType, Platform, Script) &&	!HasShader((FShaderType*)ShaderType, /* PermutationId = */ 0))
 	{
 		if (!bSilent)
 		{
@@ -818,13 +819,13 @@ void FNiagaraShaderMap::LoadMissingShadersFromMemory(const FNiagaraScript* Scrip
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FNiagaraShaderType* ShaderType = ShaderTypeIt->GetNiagaraShaderType();
-		if (ShaderType && ShouldCacheNiagaraShader(ShaderType, Platform, Script) && !HasShader(ShaderType))
+		if (ShaderType && ShouldCacheNiagaraShader(ShaderType, Platform, Script) && !HasShader(ShaderType, /* PermutationId = */ 0))
 		{
-			FShaderId ShaderId(ShaderMapHash, nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), Platform));
+			FShaderId ShaderId(ShaderMapHash, nullptr, nullptr, ShaderType, /** PermutationId = */ 0, FShaderTarget(ShaderType->GetFrequency(), Platform));
 			FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 			if (FoundShader)
 			{
-				AddShader(ShaderType, FoundShader);
+				AddShader(ShaderType, /* PermutationId = */ 0, FoundShader);
 			}
 		}
 	}
@@ -919,7 +920,7 @@ void FNiagaraShaderMap::FlushShadersByShaderType(FShaderType* ShaderType)
 {
 	if (ShaderType->GetNiagaraShaderType())
 	{
-		RemoveShaderType(ShaderType->GetNiagaraShaderType());	
+		RemoveShaderTypePermutaion(ShaderType->GetNiagaraShaderType(), /* PermutationId = */ 0);	
 	}
 }
 

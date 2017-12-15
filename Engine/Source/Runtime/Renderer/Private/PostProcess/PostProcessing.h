@@ -36,7 +36,7 @@ class FPostProcessVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

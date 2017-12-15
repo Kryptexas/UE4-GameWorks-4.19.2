@@ -311,6 +311,7 @@ void FIOSDeviceHelper::DoDeviceConnect(void* deviceHandle)
 		if (deviceId != NULL)
 		{
 			FPlatformString::CFStringToTCHAR(deviceId, idBuffer);
+			CFRelease(deviceId);
 		}
 		else
 		{
@@ -319,6 +320,7 @@ void FIOSDeviceHelper::DoDeviceConnect(void* deviceHandle)
 		if (deviceName != NULL)
 		{
 			FPlatformString::CFStringToTCHAR(deviceName, nameBuffer);
+			CFRelease(deviceName);
 		}
 		else
 		{
@@ -327,6 +329,7 @@ void FIOSDeviceHelper::DoDeviceConnect(void* deviceHandle)
 		if (productType != NULL)
 		{
 			FPlatformString::CFStringToTCHAR(productType, productBuffer);
+			CFRelease(productType);
 		}
 		else
 		{

@@ -460,9 +460,9 @@ class FCompositeLUTGenerationPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCompositeLUTGenerationPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsUICompositionRendering(Platform);
+		return SupportsUICompositionRendering(Parameters.Platform);
 	}
 
 	FCompositeLUTGenerationPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
@@ -530,9 +530,9 @@ class FCompositePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCompositePS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsUICompositionRendering(Platform);
+		return SupportsUICompositionRendering(Parameters.Platform);
 	}
 
 	FCompositePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
@@ -560,9 +560,9 @@ public:
 		SetShaderValue(RHICmdList, GetPixelShader(), OutputDevice, CVarOutputDevice->GetValueOnRenderThread());
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SCRGB_ENCODING"), EncodingType);
 	}
 

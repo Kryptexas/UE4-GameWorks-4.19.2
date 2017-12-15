@@ -69,17 +69,17 @@ class TFilterPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TFilterPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC) )
+		if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (Parameters.Platform != SP_METAL_MRT && Parameters.Platform != SP_METAL_MRT_MAC) )
 		{
 			return true;
 		}
-		else if (Platform == SP_METAL_MRT || Platform == SP_METAL_MRT_MAC)
+		else if (Parameters.Platform == SP_METAL_MRT || Parameters.Platform == SP_METAL_MRT_MAC)
 		{
 			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_IOS;
 		}
-		else if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) )
+		else if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) )
 		{
 			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 		}
@@ -89,9 +89,9 @@ public:
 		}
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), CompileTimeNumSamples);
 		OutEnvironment.SetDefine(TEXT("COMBINE_METHOD"), CombineMethodInt);
 		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), ManuallyClampUV ? 1 : 0);
@@ -227,17 +227,17 @@ public:
 	/** The number of 4D constant registers used to hold the packed 2D sample offsets. */
 	enum { NumSampleChunks = (NumSamples + 1) / 2 };
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC) )
+		if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (Parameters.Platform != SP_METAL_MRT && Parameters.Platform != SP_METAL_MRT_MAC) )
 		{
 			return true;
 		}
-		else if (Platform == SP_METAL_MRT || Platform == SP_METAL_MRT_MAC)
+		else if (Parameters.Platform == SP_METAL_MRT || Parameters.Platform == SP_METAL_MRT_MAC)
 		{
 			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_IOS;
 		}
-		else if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
+		else if (IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4))
 		{
 			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 		}
@@ -247,9 +247,9 @@ public:
 		}
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), NumSamples);
 	}
 
@@ -337,14 +337,14 @@ class TFilterCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TFilterCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}	
 	
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GFilterComputeTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GFilterComputeTileSizeY);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), CompileTimeNumSamples);

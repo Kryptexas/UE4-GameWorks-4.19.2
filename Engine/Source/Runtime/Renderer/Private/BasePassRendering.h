@@ -435,9 +435,9 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
+		return LightMapPolicyType::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -462,7 +462,7 @@ protected:
 	}
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		static const auto SupportAtmosphericFog = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAtmosphericFog"));
 		static const auto SupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
@@ -470,7 +470,7 @@ public:
 
 		const bool bProjectAllowsAtmosphericFog = !SupportAtmosphericFog || SupportAtmosphericFog->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 
-		bool bShouldCache = Super::ShouldCache(Platform, Material, VertexFactoryType);
+		bool bShouldCache = Super::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 		bShouldCache &= (bEnableAtmosphericFog && bProjectAllowsAtmosphericFog && IsTranslucentBlendMode(Material->GetBlendMode())) || !bEnableAtmosphericFog;
 
 		return bShouldCache
@@ -501,13 +501,13 @@ protected:
 		FBaseHS(Initializer)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
 		// Metal requires matching permutations, but no other platform should worry about this complication.
 		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
-			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
+			&& FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -536,11 +536,11 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,false>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -727,7 +727,7 @@ class TBasePassPixelShaderPolicyParamType : public FMeshMaterialShader, public P
 {
 public:
 
-	// static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	// static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -819,9 +819,9 @@ class TBasePassPixelShaderBaseType : public TBasePassPixelShaderPolicyParamType<
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return LightMapPolicyType::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -843,7 +843,7 @@ class TBasePassPS : public TBasePassPixelShaderBaseType<LightMapPolicyType>
 	DECLARE_SHADER_TYPE(TBasePassPS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile skylight version for lit materials, and if the project allows them.
 		static const auto SupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
@@ -861,7 +861,7 @@ public:
 			|| (bProjectSupportsStationarySkylight && (Material->GetShadingModel() != MSM_Unlit));
 		return bCacheShaders
 			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
-			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
+			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -1525,7 +1525,9 @@ void ProcessBasePassMesh(
 				&& bAllowStaticLighting
 				&& Action.UseVolumetricLightmap()
 				&& Parameters.PrimitiveSceneProxy
-				&& (Parameters.PrimitiveSceneProxy->IsMovable() || Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
+				&& (Parameters.PrimitiveSceneProxy->IsMovable() 
+					|| Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting() 
+					|| Parameters.PrimitiveSceneProxy->GetLightmapType() == ELightmapType::ForceVolumetric))
 			{
 				Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 			}

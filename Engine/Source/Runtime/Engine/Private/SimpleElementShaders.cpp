@@ -32,10 +32,10 @@ bool FSimpleElementVS::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-void FSimpleElementVS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+void FSimpleElementVS::ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 {
-	FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), (Platform != SP_METAL));
+	FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), (Parameters.Platform != SP_METAL));
 }
 
 /*------------------------------------------------------------------------------

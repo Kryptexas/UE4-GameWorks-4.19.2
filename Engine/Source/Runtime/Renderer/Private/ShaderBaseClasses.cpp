@@ -371,7 +371,8 @@ void FMaterialShader::SetParameters(
 		}
 	}
 
-	DeferredParameters.Set(RHICmdList, ShaderRHI, View, Material.GetMaterialDomain(), TextureMode);
+	// If there is no scene, then FSceneRenderTargets::CurrentShadingPath won't be set (see FSceneRenderTargets::Allocate()) and binding the scene textures will crash.
+	DeferredParameters.Set(RHICmdList, ShaderRHI, View, Material.GetMaterialDomain(), View.Family->Scene ? TextureMode : ESceneRenderTargetsMode::InvalidScene);
 
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{

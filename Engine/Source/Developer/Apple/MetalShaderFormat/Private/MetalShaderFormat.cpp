@@ -107,15 +107,14 @@ class FMetalShaderFormat : public IShaderFormat
 public:
 	enum
 	{
-		HEADER_VERSION = 48,
+		HEADER_VERSION = 50,
 	};
 	
 	struct FVersion
 	{
 		uint16 XcodeVersion;
 		uint16 HLSLCCMinor		: 8;
-		uint16 Format			: 7;
-		uint16 OfflineCompiled	: 1;
+		uint16 Format			: 8;
 	};
 	
 	virtual uint32 GetVersion(FName Format) const override final
@@ -196,13 +195,11 @@ uint32 GetMetalFormatVersion(FName Format)
 	Version.Version.XcodeVersion = AppVersion;
 	Version.Version.Format = FMetalShaderFormat::HEADER_VERSION;
 	Version.Version.HLSLCCMinor = HLSLCC_VersionMinor;
-	Version.Version.OfflineCompiled = METAL_OFFLINE_COMPILE;
 	
 	// Check that we didn't overwrite any bits
 	check(Version.Version.XcodeVersion == AppVersion);
 	check(Version.Version.Format == FMetalShaderFormat::HEADER_VERSION);
 	check(Version.Version.HLSLCCMinor == HLSLCC_VersionMinor);
-	check(Version.Version.OfflineCompiled == METAL_OFFLINE_COMPILE);
 	
 	return Version.Raw;
 }

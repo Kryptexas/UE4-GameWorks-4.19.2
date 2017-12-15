@@ -49,6 +49,8 @@ public:
 	{
 	}
 
+	virtual ~FShaderCommonCompileJob() {}
+
 	virtual FShaderCompileJob* GetSingleShaderJob() { return nullptr; }
 	virtual const FShaderCompileJob* GetSingleShaderJob() const { return nullptr; }
 	virtual FShaderPipelineCompileJob* GetShaderPipelineJob() { return nullptr; }
@@ -64,6 +66,8 @@ public:
 	FVertexFactoryType* VFType;
 	/** Shader type that this shader belongs to, must be valid */
 	FShaderType* ShaderType;
+	/** Unique permutation identifier of the global shader type. */
+	int32 PermutationId;
 	/** Input for the shader compile */
 	FShaderCompilerInput Input;
 	FShaderCompilerOutput Output;
@@ -71,10 +75,11 @@ public:
 	// List of pipelines that are sharing this job.
 	TMap<const FVertexFactoryType*, TArray<const FShaderPipelineType*>> SharingPipelines;
 
-	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType) :
+	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType, int32 InPermutationId) :
 		FShaderCommonCompileJob(InId),
 		VFType(InVFType),
-		ShaderType(InShaderType)
+		ShaderType(InShaderType),
+		PermutationId(InPermutationId)
 	{
 	}
 
@@ -120,7 +125,7 @@ public:
 	/**
 	* Enqueues compilation of a shader of this type.
 	*/
-	ENGINE_API static class FShaderCompileJob* BeginCompileShader(FGlobalShaderType* ShaderType, EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
+	ENGINE_API static class FShaderCompileJob* BeginCompileShader(FGlobalShaderType* ShaderType, int32 PermutationId, EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
 
 	/**
 	* Enqueues compilation of a shader pipeline of this type.

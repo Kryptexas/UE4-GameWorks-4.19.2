@@ -29,7 +29,7 @@ class FMaterialTexCoordScalePS : public FMeshMaterialShader, public IDebugViewMo
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return AllowDebugViewPS(DVSM_OutputMaterialTextureScales, Platform) && 
 			Material->GetFriendlyName().Contains(TEXT("FDebugViewModeMaterialProxy")) && 

@@ -54,7 +54,7 @@ public:
 	
 	virtual bool SupportsSaturateIntrinsic() const { return (Version >= 2); }
 
-    virtual bool SupportsSinCosIntrinsic() const { return (Version >= 2); }
+    virtual bool SupportsSinCosIntrinsic() const { return true; }
     
     virtual bool SupportsMatrixIntrinsics() const { return (Version < 2); }
 

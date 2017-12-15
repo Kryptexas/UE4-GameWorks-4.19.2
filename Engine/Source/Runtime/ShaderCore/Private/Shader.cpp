@@ -135,6 +135,7 @@ FShaderType::FShaderType(
 	const TCHAR* InSourceFilename,
 	const TCHAR* InFunctionName,
 	uint32 InFrequency,
+	int32 InTotalPermutationCount,
 	ConstructSerializedType InConstructSerializedRef,
 	GetStreamOutElementsType InGetStreamOutElementsRef
 	):
@@ -144,6 +145,7 @@ FShaderType::FShaderType(
 	SourceFilename(InSourceFilename),
 	FunctionName(InFunctionName),
 	Frequency(InFrequency),
+	TotalPermutationCount(InTotalPermutationCount),
 	ConstructSerializedRef(InConstructSerializedRef),
 	GetStreamOutElementsRef(InGetStreamOutElementsRef),
 	GlobalListLink(this)
@@ -308,6 +310,7 @@ FShader* FShaderType::FindShaderById(const FShaderId& Id)
 {
 	check(IsInGameThread());
 	FShader* Result = ShaderIdMap.FindRef(Id);
+	check(!Result || Result->GetId() == Id);
 	return Result;
 }
 
@@ -384,6 +387,7 @@ TMap<FShaderResourceId, FShaderResource*> FShaderResource::ShaderResourceIdMap;
 
 FShaderResource::FShaderResource()
 	: SpecificType(NULL)
+	, SpecificPermutationId(0)
 	, NumInstructions(0)
 	, NumTextureSamplers(0)
 	, NumRefs(0)
@@ -394,8 +398,9 @@ FShaderResource::FShaderResource()
 }
 
 
-FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType) 
+FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType, int32 InSpecificPermutationId) 
 	: SpecificType(InSpecificType)
+	, SpecificPermutationId(InSpecificPermutationId)
 	, NumInstructions(Output.NumInstructions)
 	, NumTextureSamplers(Output.NumTextureSamplers)
 	, NumRefs(0)
@@ -403,6 +408,8 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	, bCodeInSharedLocation(false)
 	
 {
+	check(!(SpecificPermutationId != 0 && SpecificType == nullptr));
+
 	Target = Output.Target;
 	CompressCode(Output.ShaderCode.GetReadAccess());
 
@@ -472,9 +479,15 @@ void FShaderResource::Register()
 
 void FShaderResource::Serialize(FArchive& Ar)
 {
+	check(!(SpecificPermutationId != 0 && SpecificType == nullptr));
+
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 
 	Ar << SpecificType;
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ShaderPermutationId)
+	{
+		Ar << SpecificPermutationId;
+	}
 	Ar << Target;
 
 	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ShaderResourceCodeSharing)
@@ -578,13 +591,13 @@ FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId
 }
 
 
-FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output, FShaderType* SpecificType)
+FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output, FShaderType* SpecificType, int32 SpecificPermutationId)
 {
-	const FShaderResourceId ResourceId(Output, SpecificType ? SpecificType->GetName() : NULL);
+	const FShaderResourceId ResourceId(Output.Target, Output.OutputHash, SpecificType ? SpecificType->GetName() : nullptr, SpecificPermutationId);
 	FShaderResource* Resource = FindShaderResourceById(ResourceId);
 	if (!Resource)
 	{
-		Resource = new FShaderResource(Output, SpecificType);
+		Resource = new FShaderResource(Output, SpecificType, SpecificPermutationId);
 	}
 	else
 	{
@@ -770,17 +783,14 @@ void FShaderResource::InitializeShaderRHI()
 
 FShaderResourceId FShaderResource::GetId() const
 {
-	FShaderResourceId ShaderId;
-	ShaderId.Target = Target;
-	ShaderId.OutputHash = OutputHash;
-	ShaderId.SpecificShaderTypeName = SpecificType ? SpecificType->GetName() : NULL;
-	return ShaderId;
+	return FShaderResourceId(Target, OutputHash, SpecificType ? SpecificType->GetName() : nullptr, SpecificPermutationId);
 }
 
-FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget)
+FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, int32 InPermutationId, FShaderTarget InTarget)
 	: MaterialShaderMapHash(InMaterialShaderMapHash)
 	, ShaderPipeline(InShaderPipeline)
 	, ShaderType(InShaderType)
+	, PermutationId(InPermutationId)
 	, SourceHash(InShaderType->GetSourceHash())
 	, SerializationHistory(InShaderType->GetSerializationHistory())
 	, Target(InTarget)
@@ -810,6 +820,7 @@ FSelfContainedShaderId::FSelfContainedShaderId(const FShaderId& InShaderId)
 	VFSourceHash = InShaderId.VFSourceHash;
 	VFSerializationHistory = InShaderId.VFSerializationHistory ? *InShaderId.VFSerializationHistory : FSerializationHistory();
 	ShaderTypeName = InShaderId.ShaderType->GetName();
+	PermutationId = InShaderId.PermutationId;
 	SourceHash = InShaderId.SourceHash;
 	SerializationHistory = InShaderId.SerializationHistory;
 	Target = InShaderId.Target;
@@ -834,6 +845,8 @@ bool FSelfContainedShaderId::IsValid()
 
 FArchive& operator<<(FArchive& Ar,class FSelfContainedShaderId& Ref)
 {
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	Ar << Ref.MaterialShaderMapHash 
 		<< Ref.VertexFactoryTypeName
 		<< Ref.ShaderPipelineName
@@ -843,6 +856,11 @@ FArchive& operator<<(FArchive& Ar,class FSelfContainedShaderId& Ref)
 		<< Ref.SourceHash
 		<< Ref.SerializationHistory
 		<< Ref.Target;
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ShaderPermutationId)
+	{
+		Ar << Ref.PermutationId;
+	}
 
 	return Ar;
 }
@@ -856,6 +874,7 @@ FShader::FShader() :
 	ShaderPipeline(nullptr),
 	VFType(nullptr),
 	Type(nullptr), 
+	PermutationId(0),
 	NumRefs(0),
 	SetParametersId(0),
 	Canary(ShaderMagic_Uninitialized)
@@ -874,6 +893,7 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer):
 	ShaderPipeline(Initializer.ShaderPipeline),
 	VFType(Initializer.VertexFactoryType),
 	Type(Initializer.Type),
+	PermutationId(Initializer.PermutationId),
 	Target(Initializer.Target),
 	NumRefs(0),
 	SetParametersId(0),
@@ -936,12 +956,18 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 {
 	Serialize(Ar);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	Ar << OutputHash;
 	Ar << MaterialShaderMapHash;
 	Ar << ShaderPipeline;
 	Ar << VFType;
 	Ar << VFSourceHash;
 	Ar << Type;
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ShaderPermutationId)
+	{
+		Ar << PermutationId;
+	}
 	Ar << SourceHash;
 	Ar << Target;
 
@@ -1004,10 +1030,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 		if (Ar.IsLoading())
 		{
 			// generate a resource id
-			FShaderResourceId ResourceId;
-			ResourceId.Target = Target;
-			ResourceId.OutputHash = OutputHash;
-			ResourceId.SpecificShaderTypeName = Type->LimitShaderResourceToThisType() ? Type->GetName() : NULL;
+			FShaderResourceId ResourceId(Target, OutputHash, Type->LimitShaderResourceToThisType() ? Type->GetName() : nullptr, Type->LimitShaderResourceToThisType() ? PermutationId : 0);
 
 			// use it to look up in the registered resource map
 			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
@@ -1068,6 +1091,7 @@ FShaderId FShader::GetId() const
 	ShaderId.VFSourceHash = VFSourceHash;
 	ShaderId.VFSerializationHistory = VFType ? VFType->GetSerializationHistory((EShaderFrequency)GetTarget().Frequency) : NULL;
 	ShaderId.ShaderType = Type;
+	ShaderId.PermutationId = PermutationId;
 	ShaderId.SourceHash = SourceHash;
 	ShaderId.Target = Target;
 	return ShaderId;
@@ -1906,7 +1930,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		}
 		{
 			static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-			KeyString += (CVar && CVar->GetInt() != 0 && IsPCPlatform(Platform)) ? TEXT("_MVF") : TEXT("");
+			KeyString += (CVar && CVar->GetInt() != 0 && RHIGetShaderLanguageVersion(Platform) >= 2) ? TEXT("_MVF") : TEXT("");
 		}
 		
 		uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);

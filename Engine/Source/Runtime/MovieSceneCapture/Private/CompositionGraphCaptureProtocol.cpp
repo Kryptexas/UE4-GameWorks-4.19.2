@@ -23,14 +23,17 @@ struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 		, HDRCompressionQuality(InHDRCompressionQuality)
 		, CaptureGamut(InCaptureGamut)
 		, PostProcessingMaterial(InPostProcessingMaterial)
-		, RestoreDumpHDR(0)
-		, RestoreHDRCompressionQuality(0)
-		, RestoreDumpGamut(HCGM_Rec709)
 	{
 		CVarDumpFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFrames"));
 		CVarDumpFramesAsHDR = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
 		CVarHDRCompressionQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SaveEXR.CompressionQuality"));
 		CVarDumpGamut = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.Display.ColorGamut"));
+		CVarDumpDevice = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.Display.OutputDevice"));
+
+		RestoreDumpHDR = CVarDumpFramesAsHDR->GetInt();
+		RestoreHDRCompressionQuality = CVarHDRCompressionQuality->GetInt();
+		RestoreDumpGamut = CVarDumpGamut->GetInt();
+		RestoreDumpDevice = CVarDumpDevice->GetInt();
 
 		Disable();
 	}
@@ -51,14 +54,16 @@ struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 
 		bNeedsCapture = true;
 
-		RestoreDumpHDR = CVarDumpFramesAsHDR->GetInt();
-		RestoreHDRCompressionQuality = CVarHDRCompressionQuality->GetInt();
-		RestoreDumpGamut = CVarDumpGamut->GetInt();
-
 		CVarDumpFramesAsHDR->Set(bCaptureFramesInHDR);
 		CVarHDRCompressionQuality->Set(HDRCompressionQuality);
 		CVarDumpGamut->Set(CaptureGamut);
 		CVarDumpFrames->Set(1);
+
+		if (CaptureGamut == HCGM_Linear)
+		{
+			CVarDumpGamut->Set(1);
+			CVarDumpDevice->Set(7);
+		}
 	}
 
 	void Disable(bool bFinalize = false)
@@ -73,7 +78,8 @@ struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 			}
 			CVarDumpFramesAsHDR->Set(RestoreDumpHDR);
 			CVarHDRCompressionQuality->Set(RestoreHDRCompressionQuality);
-			CVarDumpGamut->Set(RestoreDumpGamut);
+			CVarDumpGamut->Set(RestoreDumpGamut);			
+			CVarDumpDevice->Set(RestoreDumpDevice);
 			CVarDumpFrames->Set(0);
 		}
 	}
@@ -145,10 +151,12 @@ private:
 	IConsoleVariable* CVarDumpFramesAsHDR;
 	IConsoleVariable* CVarHDRCompressionQuality;
 	IConsoleVariable* CVarDumpGamut;
+	IConsoleVariable* CVarDumpDevice;
 
 	int32 RestoreDumpHDR;
 	int32 RestoreHDRCompressionQuality;
 	int32 RestoreDumpGamut;
+	int32 RestoreDumpDevice;
 };
 
 void UCompositionGraphCaptureSettings::OnReleaseConfig(FMovieSceneCaptureSettings& InSettings)

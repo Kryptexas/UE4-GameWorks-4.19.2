@@ -632,23 +632,70 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				MergeSectionInfo.Section->BaseIndex + MergeSectionInfo.Section->NumTriangles * 3, 
 				SrcLODData.MultiSizeIndexContainer.GetIndexBuffer()->Num()
 				);
-			for( int32 IndexIdx=MergeSectionInfo.Section->BaseIndex; IndexIdx < MaxIndexIdx; IndexIdx++ )
-			{
-				uint32 SrcIndex = SrcLODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(IndexIdx);
+            for (int32 IndexIdx = MergeSectionInfo.Section->BaseIndex; IndexIdx < MaxIndexIdx; IndexIdx++)
+            {
+                uint32 SrcIndex = SrcLODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(IndexIdx);
 
-				// add offset to each index to match the new entries in the merged vertex buffer
-				checkSlow(SrcIndex >= MergeSectionInfo.Section->BaseVertexIndex);
-				uint32 DstIndex = SrcIndex - MergeSectionInfo.Section->BaseVertexIndex + CurrentBaseVertexIndex;
-				checkSlow(DstIndex < (uint32)MergedVertexBuffer.Num());
+                // add offset to each index to match the new entries in the merged vertex buffer
+                checkSlow(SrcIndex >= MergeSectionInfo.Section->BaseVertexIndex);
+                uint32 DstIndex = SrcIndex - MergeSectionInfo.Section->BaseVertexIndex + CurrentBaseVertexIndex;
+                checkSlow(DstIndex < (uint32)MergedVertexBuffer.Num());
 
-				// add the new index to the merged vertex buffer
-				MergedIndexBuffer.Add(DstIndex);
-				if( MaxIndex < DstIndex )
-				{
-					MaxIndex = DstIndex;
-				}
+                // add the new index to the merged vertex buffer
+                MergedIndexBuffer.Add(DstIndex);
+                if (MaxIndex < DstIndex)
+                {
+                    MaxIndex = DstIndex;
+                }
 
-			}
+            }
+
+            {
+                if (MergeSectionInfo.Section->DuplicatedVerticesBuffer.bHasOverlappingVertices)
+                {
+                    if (Section.DuplicatedVerticesBuffer.bHasOverlappingVertices)
+                    {
+                        // Merge
+                        int32 StartIndex = Section.DuplicatedVerticesBuffer.DupVertData.Num();
+                        int32 StartVertex = Section.DuplicatedVerticesBuffer.DupVertIndexData.Num();
+                        Section.DuplicatedVerticesBuffer.DupVertData.ResizeBuffer(StartIndex + MergeSectionInfo.Section->DuplicatedVerticesBuffer.DupVertData.Num());
+                        Section.DuplicatedVerticesBuffer.DupVertIndexData.ResizeBuffer(Section.NumVertices);
+                    
+                        uint8* VertData = Section.DuplicatedVerticesBuffer.DupVertData.GetDataPointer();
+                        uint8* IndexData = Section.DuplicatedVerticesBuffer.DupVertIndexData.GetDataPointer();
+                        for (int32 i = StartIndex; i < Section.DuplicatedVerticesBuffer.DupVertData.Num(); ++i)
+                        {
+                            *((uint32*)(VertData + i * sizeof(uint32))) += CurrentBaseVertexIndex - MergeSectionInfo.Section->BaseVertexIndex;
+                        }
+                        for (uint32 i = StartVertex; i < Section.NumVertices; ++i)
+                        {
+                            ((FIndexLengthPair*)(IndexData + i * sizeof(FIndexLengthPair)))->Index += StartIndex;
+                        }
+                    }
+                    else
+                    {
+                        Section.DuplicatedVerticesBuffer.DupVertData = MergeSectionInfo.Section->DuplicatedVerticesBuffer.DupVertData;
+                        Section.DuplicatedVerticesBuffer.DupVertIndexData = MergeSectionInfo.Section->DuplicatedVerticesBuffer.DupVertIndexData;
+                        uint8* VertData = Section.DuplicatedVerticesBuffer.DupVertData.GetDataPointer();
+                        for (uint32 i = 0; i < MergeSectionInfo.Section->NumVertices; ++i)
+                        {
+                            *((uint32*)(VertData + i * sizeof(uint32))) += CurrentBaseVertexIndex - MergeSectionInfo.Section->BaseVertexIndex;
+                        }
+                    }
+                    Section.DuplicatedVerticesBuffer.bHasOverlappingVertices = true;
+                }
+                else
+                {
+                    Section.DuplicatedVerticesBuffer.DupVertData.ResizeBuffer(1);
+                    Section.DuplicatedVerticesBuffer.DupVertIndexData.ResizeBuffer(Section.NumVertices);
+
+                    uint8* VertData = Section.DuplicatedVerticesBuffer.DupVertData.GetDataPointer();
+                    uint8* IndexData = Section.DuplicatedVerticesBuffer.DupVertIndexData.GetDataPointer();
+                    
+                    FMemory::Memzero(IndexData, Section.NumVertices * sizeof(FIndexLengthPair));
+                    FMemory::Memzero(VertData, sizeof(uint32));
+                }
+            }
 		}
 	}
 

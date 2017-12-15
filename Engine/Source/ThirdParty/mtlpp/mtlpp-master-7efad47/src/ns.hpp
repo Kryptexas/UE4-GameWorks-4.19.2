@@ -7,15 +7,28 @@
 
 #pragma once
 
-#include "defines.hpp"
 
-MTLPP_CLASS(NSDictionary);
-MTLPP_CLASS(NSString);
-MTLPP_CLASS(NSURL);
-MTLPP_CLASS(NSError);
-MTLPP_CLASS(NSBundle);
-MTLPP_CLASS(NSArray);
-typedef struct __IOSurface* IOSurfaceRef;
+#include "declare.hpp"
+#include "imp_Object.hpp"
+
+MTLPP_BEGIN
+
+template<typename Interpose>
+struct IMPTable<IOSurfaceRef, Interpose>
+{
+	IMPTable()
+	{
+	}
+	
+	IMPTable(Class C)
+	{
+	}
+	
+	void RegisterInterpose(Class C) {}
+	
+	void Retain(IOSurfaceRef Surface) { CFRetain(Surface); }
+	void Release(IOSurfaceRef Surface) { CFRelease(Surface); }
+};
 
 namespace ns
 {
@@ -39,15 +52,18 @@ namespace ns
 	};
 #endif
 	
-	template<typename T>
+	template<typename T, bool bAutoReleased = false>
 	class Object
     {
     public:
 		typedef T Type;
+		typedef IMPTable<T, void> ITable;
 		
         inline const T GetPtr() const { return m_ptr; }
+		inline T* GetInnerPtr() { return &m_ptr; }
 
         inline operator bool() const { return m_ptr != nullptr; }
+		operator T() const { return m_ptr; }
 		
 		void Retain()
 		{
@@ -68,7 +84,7 @@ namespace ns
 
     protected:
         Object();
-        Object(T const handle, bool const retain = true);
+        Object(T const handle, bool const retain = true, ITable* table = nullptr);
         Object(const Object& rhs);
 #if MTLPP_CONFIG_RVALUE_REFERENCES
         Object(Object&& rhs);
@@ -83,13 +99,15 @@ namespace ns
 #if MTLPP_CONFIG_VALIDATE
         inline void Validate() const
         {
-            assert(m_ptr);
+			assert(m_ptr);
+			assert(m_table);
         }
 #else
 	#define Validate()
 #endif
 
         T m_ptr = nullptr;
+		ITable* m_table = nullptr;
 		volatile uint64_t RefCount = 0;
     };
 	
@@ -101,13 +119,15 @@ namespace ns
 		typedef typename T::Type Type;
 		
 		Ref() : Ptr(nullptr) {}
-		Ref(Type inner) : Ptr(new T(inner)) {}
-		Ref(T* Pointer) : Ptr(Pointer) {}
+		Ref(Type inner) : Ptr(new T(inner)) { Ptr->Retain(); }
+		Ref(T* Pointer) : Ptr(Pointer) { Ptr->Retain(); }
 		Ref(const Ref& rhs) : Ptr(nullptr) { operator=(rhs); }
 #if MTLPP_CONFIG_RVALUE_REFERENCES
 		Ref(Ref&& rhs) : Ptr(rhs.Ptr) { rhs.Ptr = nullptr; }
 #endif
 		virtual ~Ref() { if(Ptr) { Ptr->Release(); Ptr = nullptr; } }
+		
+		inline operator bool() const { return (Ptr != nullptr && *Ptr); }
 		
 		Ref& operator=(const Ref& rhs)
 		{
@@ -166,25 +186,25 @@ namespace ns
 
     struct Range
     {
-        inline Range(uint32_t location, uint32_t length) :
+        inline Range(NSUInteger location, NSUInteger length) :
             Location(location),
             Length(length)
         { }
 
-        uint32_t Location;
-        uint32_t Length;
+        NSUInteger Location;
+        NSUInteger Length;
     };
 
-	class ArrayBase : public Object<NSArray*>
+	class ArrayBase : public Object<NSArray<id<NSObject>>*>
     {
     public:
         ArrayBase() { }
-        ArrayBase(NSArray* const handle) : Object<NSArray*>(handle) { }
+        ArrayBase(NSArray<id<NSObject>>* const handle, bool const bRetain) : Object<NSArray<id<NSObject>>*>(handle, bRetain) { }
 
-        uint32_t GetSize() const;
+        NSUInteger GetSize() const;
 
     protected:
-        void* GetItem(uint32_t index) const;
+        void* GetItem(NSUInteger index) const;
     };
 
     template<typename T>
@@ -192,26 +212,56 @@ namespace ns
     {
     public:
         Array() { }
-        Array(NSArray* const handle) : ArrayBase(handle) { }
+		Array(NSArray<typename T::Type>* const handle, bool const bRetain = true) : ArrayBase(handle, bRetain) { }
 
-        const T operator[](uint32_t index) const
+        const T operator[](NSUInteger index) const
         {
 			typedef typename T::Type InnerType;
 			return (InnerType)GetItem(index);
         }
 
-        T operator[](uint32_t index)
+        T operator[](NSUInteger index)
         {
 			typedef typename T::Type InnerType;
 			return (InnerType)GetItem(index);
         }
+		
+		class Iterator
+		{
+		public:
+			Iterator(Array const& ptr, NSUInteger In): array(ptr), index(In) {}
+			Iterator operator++() { if (index < array.GetSize()) { ++index; } return *this; }
+			
+			bool operator!=(Iterator const& other) const { return (&array != &other.array) || (index != other.index); }
+			
+			const T operator*() const
+			{
+				if (index < array.GetSize())
+					return array[index];
+				else
+					return T();
+			}
+		private:
+			Array const& array;
+			NSUInteger index;
+		};
+		
+		Iterator begin() const
+		{
+			return Iterator(*this, 0);
+		}
+		
+		Iterator end() const
+		{
+			return Iterator(*this, GetSize());
+		}
     };
 
-    class DictionaryBase : public Object<NSDictionary*>
+    class DictionaryBase : public Object<NSDictionary<id<NSObject>, id<NSObject>>*>
     {
     public:
         DictionaryBase() { }
-        DictionaryBase(NSDictionary* const handle) : Object<NSDictionary*>(handle) { }
+        DictionaryBase(NSDictionary<id<NSObject>, id<NSObject>>* const handle) : Object<NSDictionary<id<NSObject>, id<NSObject>>*>(handle) { }
 
     protected:
 
@@ -222,7 +272,7 @@ namespace ns
     {
     public:
         Dictionary() { }
-        Dictionary(NSDictionary* const handle) : DictionaryBase(handle) { }
+        Dictionary(NSDictionary<typename KeyT::Type, typename ValueT::Type>* const handle) : DictionaryBase(handle) { }
     };
 
     class String : public Object<NSString*>
@@ -233,7 +283,7 @@ namespace ns
         String(const char* cstr);
 
         const char* GetCStr() const;
-        uint32_t    GetLength() const;
+        NSUInteger    GetLength() const;
     };
 	
 	class URL : public Object<NSURL*>
@@ -243,16 +293,30 @@ namespace ns
 		URL(NSURL* const handle) : Object<NSURL*>(handle) { }
 	};
 
-    class Error : public Object<NSError*>
+	/**
+	 * Auto-released classes are used to hold Objective-C out-results that are implicitly placed in an auto-release pool
+	 * We can't retain these objects safely unless done explicitly after the function that assigns them returns (or is called for handlers).
+	 * Thus you need to have a non-released variant of the class that takes ownership of the pointer.
+	 */
+    class AutoReleasedError : public Object<NSError*, true>
     {
+		AutoReleasedError(const AutoReleasedError& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedError(AutoReleasedError&& rhs) = delete;
+#endif
+		AutoReleasedError& operator=(const AutoReleasedError& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedError& operator=(AutoReleasedError&& rhs) = delete;
+#endif
+		
+		friend class Error;
     public:
-        Error();
-        Error(NSError* const handle) : Object<NSError*>(handle) { }
-
-		inline NSError** GetInnerPtr() { return &m_ptr; }
+        AutoReleasedError();
+        AutoReleasedError(NSError* const handle) : Object<NSError*, true>(handle) { }
+		AutoReleasedError& operator=(NSError* const handle);
 		
         String   GetDomain() const;
-        uint32_t GetCode() const;
+        NSUInteger GetCode() const;
         //@property (readonly, copy) NSDictionary *userInfo;
         String   GetLocalizedDescription() const;
         String   GetLocalizedFailureReason() const;
@@ -261,6 +325,31 @@ namespace ns
         //@property (nullable, readonly, strong) id recoveryAttempter;
         String   GetHelpAnchor() const;
     };
+	
+	class Error : public Object<NSError*>
+	{
+	public:
+		Error();
+		Error(NSError* const handle) : Object<NSError*>(handle) { }
+		Error(const AutoReleasedError& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		Error(const AutoReleasedError&& rhs);
+#endif
+		Error& operator=(const AutoReleasedError& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		Error& operator=(AutoReleasedError&& rhs);
+#endif
+		
+		String   GetDomain() const;
+		NSUInteger GetCode() const;
+		//@property (readonly, copy) NSDictionary *userInfo;
+		String   GetLocalizedDescription() const;
+		String   GetLocalizedFailureReason() const;
+		String   GetLocalizedRecoverySuggestion() const;
+		Array<String>   GetLocalizedRecoveryOptions() const;
+		//@property (nullable, readonly, strong) id recoveryAttempter;
+		String   GetHelpAnchor() const;
+	};
 	
 	class IOSurface : public Object<IOSurfaceRef>
 	{
@@ -278,3 +367,5 @@ namespace ns
 }
 
 #include "ns.inl"
+
+MTLPP_END

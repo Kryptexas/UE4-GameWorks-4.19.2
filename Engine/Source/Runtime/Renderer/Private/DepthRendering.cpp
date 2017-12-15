@@ -92,7 +92,7 @@ private:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only the local vertex factory supports the position-only stream
 		if (bUsePositionOnlyStream)
@@ -163,10 +163,10 @@ class FDepthOnlyHS : public FBaseHS
 	DECLARE_SHADER_TYPE(FDepthOnlyHS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TDepthOnlyVS<false>::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TDepthOnlyVS<false>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	FDepthOnlyHS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -184,10 +184,10 @@ class FDepthOnlyDS : public FBaseDS
 	DECLARE_SHADER_TYPE(FDepthOnlyDS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TDepthOnlyVS<false>::ShouldCache(Platform,Material,VertexFactoryType);		
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TDepthOnlyVS<false>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);		
 	}
 
 	FDepthOnlyDS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -210,7 +210,7 @@ class FDepthOnlyPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FDepthOnlyPS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return 
 			// Compile for materials that are masked.
@@ -1152,9 +1152,9 @@ class FDitheredTransitionStencilPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FDitheredTransitionStencilPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FDitheredTransitionStencilPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

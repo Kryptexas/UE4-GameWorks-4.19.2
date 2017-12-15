@@ -17,27 +17,15 @@ public class AMD_AGS : ModuleRules
 			AmdApiLibPath = AmdApiLibPath + "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(AmdApiLibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				if (Target.Platform == UnrealTargetPlatform.Win64)
-				{
-					PublicAdditionalLibraries.Add("amd_ags_x64d.lib");
-				}
-				else if (Target.Platform == UnrealTargetPlatform.Win32)
-				{
-					PublicAdditionalLibraries.Add("amd_ags_x86d.lib");
-				}
+				string LibraryName = "amd_ags_x64_" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "_MD.lib";
+				PublicAdditionalLibraries.Add(LibraryName);
 			}
-			else
+			else if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
-				if (Target.Platform == UnrealTargetPlatform.Win64)
-				{
-					PublicAdditionalLibraries.Add("amd_ags_x64.lib");
-				}
-				else if (Target.Platform == UnrealTargetPlatform.Win32)
-				{
-					PublicAdditionalLibraries.Add("amd_ags_x86.lib");
-				}
+				string LibraryName = "amd_ags_x86_" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "_MD.lib";
+				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
 	}

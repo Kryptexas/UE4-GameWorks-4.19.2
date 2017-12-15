@@ -6072,6 +6072,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("LevelSequence"),
 			TEXT("LevelStreamingVolume"),
 			TEXT("LightmassCharacterIndirectDetailVolume"),
+			TEXT("VolumetricLightmapDensityVolume"),
 			TEXT("LightmassImportanceVolume"),
 			TEXT("MassiveLODOverrideVolume"),
 			TEXT("Material"),

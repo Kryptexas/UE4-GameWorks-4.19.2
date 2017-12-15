@@ -634,7 +634,7 @@ public:
 					BeginQueryWord >>= 1;
 				}
 				OutIndex += WordIndex * 64;
-				uint64 Bit = (uint64)1 << (uint64)OutIndex;
+				uint64 Bit = (uint64)1 << (uint64)(OutIndex % 64);
 				UsedQueryBits[WordIndex] = UsedQueryBits[WordIndex] | Bit;
 				ReadResultsBits[WordIndex] &= ~Bit;
 				LastBeginIndex = OutIndex + 1;

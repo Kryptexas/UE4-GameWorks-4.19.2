@@ -271,6 +271,20 @@ void FPrecomputedVolumetricLightmap::ApplyWorldOffset(const FVector& InOffset)
 	WorldOriginOffset += InOffset;
 }
 
+FVector ComputeIndirectionCoordinate(FVector LookupPosition, const FBox& VolumeBounds, FIntVector IndirectionTextureDimensions)
+{
+	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
+	const FVector VolumeWorldToUVScale = InvVolumeSize;
+	const FVector VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
+
+	FVector IndirectionDataSourceCoordinate = (LookupPosition * VolumeWorldToUVScale + VolumeWorldToUVAdd) * FVector(IndirectionTextureDimensions);
+	IndirectionDataSourceCoordinate.X = FMath::Clamp<float>(IndirectionDataSourceCoordinate.X, 0.0f, IndirectionTextureDimensions.X - .01f);
+	IndirectionDataSourceCoordinate.Y = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Y, 0.0f, IndirectionTextureDimensions.Y - .01f);
+	IndirectionDataSourceCoordinate.Z = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Z, 0.0f, IndirectionTextureDimensions.Z - .01f);
+
+	return IndirectionDataSourceCoordinate;
+}
+
 void SampleIndirectionTexture(
 	FVector IndirectionDataSourceCoordinate,
 	FIntVector IndirectionTextureDimensions,

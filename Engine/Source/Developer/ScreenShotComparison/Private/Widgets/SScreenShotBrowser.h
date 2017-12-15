@@ -56,6 +56,8 @@ private:
 	 */
 	void RebuildTree();
 
+	bool CanAddNewReportResult(const FImageComparisonResult& Comparison);
+
 private:
 
 	// The manager containing the screen shots

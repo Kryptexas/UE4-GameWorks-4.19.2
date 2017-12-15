@@ -95,9 +95,9 @@ public:
 		TextureParameter.Bind(Initializer.ParameterMap, TEXT("TextureParameter"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if (Platform == EShaderPlatform::SP_METAL || Platform == EShaderPlatform::SP_METAL_MRT)
+		if (Parameters.Platform == EShaderPlatform::SP_METAL || Parameters.Platform == EShaderPlatform::SP_METAL_MRT)
 		{
 			return false;
 		}

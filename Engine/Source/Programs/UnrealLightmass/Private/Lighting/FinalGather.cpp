@@ -108,7 +108,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		FDebugStaticLightingVertex DebugVertex;
 		DebugVertex.VertexNormal = FVector(0, 0, 1);
 		DebugVertex.VertexPosition = LightingSample.GetPosition();
-		DebugOutput.Vertices.Add(DebugVertex);
+		MappingContext.DebugOutput->Vertices.Add(DebugVertex);
 	}
 		
 	const double EndGatherTime = FPlatformTime::Seconds();
@@ -218,7 +218,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		LightingSample.LowQualityCoefficients[CoefficientIndex][2] = CombinedLowQualitySample.SHVector.B.V[CoefficientIndex];
 	}
 
-	LightingSample.DirectionalLightShadowing = FMath::Min(UpperToggleableDirectionalLightShadowing, LowerToggleableDirectionalLightShadowing);
+	LightingSample.DirectionalLightShadowing = FMath::Max(UpperToggleableDirectionalLightShadowing, LowerToggleableDirectionalLightShadowing);
 
 	// Only using the upper hemisphere sky bent normal
 	LightingSample.SkyBentNormal = UpperHemisphereSample.SkyOcclusion;
@@ -513,7 +513,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		{
 			DebugRay.End = RayIntersection.IntersectionVertex.WorldPosition;
 		}
-		DebugOutput.PathRays.Add(DebugRay);
+		MappingContext.DebugOutput->PathRays.Add(DebugRay);
 	}
 #endif
 
@@ -1696,7 +1696,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 
 							// CachePointIncomingRadiance can be called from multiple threads
 							FScopeLock DebugOutputLock(&DebugOutputSync);
-							DebugOutput.PathRays.Add(DebugRay);
+							MappingContext.DebugOutput->PathRays.Add(DebugRay);
 						}
 	#endif
 					}

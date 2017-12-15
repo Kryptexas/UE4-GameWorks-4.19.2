@@ -20,7 +20,7 @@ class FStereoLayerVS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FStereoLayerVS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FStereoLayerVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -87,7 +87,7 @@ class FStereoLayerPS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FStereoLayerPS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FStereoLayerPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)

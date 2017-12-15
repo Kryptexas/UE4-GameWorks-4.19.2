@@ -26,7 +26,7 @@ class FPostProcessMorpheusPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessMorpheusPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
 		// but a user will not necessarily have the Morpheus files
@@ -38,9 +38,9 @@ class FPostProcessMorpheusPS : public FGlobalShader
 		return false;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NEW_MORPHEUS_DISTORTION"), TEXT("1"));
 	}
 
@@ -148,7 +148,7 @@ class FPostProcessMorpheusVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessMorpheusVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
 		// but a user will not necessarily have the Morpheus files
@@ -160,9 +160,9 @@ class FPostProcessMorpheusVS : public FGlobalShader
 		return false;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NEW_MORPHEUS_DISTORTION"), TEXT("1"));
 	}
 

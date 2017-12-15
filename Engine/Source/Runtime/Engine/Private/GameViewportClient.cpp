@@ -1595,6 +1595,8 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		}
 
 		FScreenshotRequest::Reset();
+		FScreenshotRequest::OnScreenshotRequestProcessed().ExecuteIfBound();
+
 		// Reeanble screen messages - if we are NOT capturing a movie
 		GAreScreenMessagesEnabled = GScreenMessagesRestoreState;
 	}

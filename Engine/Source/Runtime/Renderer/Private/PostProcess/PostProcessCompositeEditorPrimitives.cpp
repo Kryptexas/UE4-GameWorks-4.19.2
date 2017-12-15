@@ -40,18 +40,18 @@ class FPostProcessPopulateEditorDepthPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE( FPostProcessPopulateEditorDepthPS, Global )
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if(!IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && MSAASampleCount > 1)
+		if(!IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && MSAASampleCount > 1)
 		{
 			return false;
 		}
-		return IsPCPlatform(Platform);
+		return IsPCPlatform(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("MSAA_SAMPLE_COUNT"), MSAASampleCount);
 	}
 
@@ -135,19 +135,19 @@ class FPostProcessComposeEditorPrimitivesPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE( FPostProcessComposeEditorPrimitivesPS, Global )
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if(!IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && MSAASampleCount > 1)
+		if(!IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && MSAASampleCount > 1)
 		{
 			return false;
 		}
 
-		return IsPCPlatform(Platform);
+		return IsPCPlatform(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("MSAA_SAMPLE_COUNT"), MSAASampleCount);
 	}
 

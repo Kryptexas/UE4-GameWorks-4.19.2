@@ -570,6 +570,15 @@ const FStaticLightingMapping* FLightmassExporter::FindMappingByGuid(FGuid FindGu
 		}
 	}
 
+	for( int32 MappingIdx=0; MappingIdx < VolumeMappings.Num(); MappingIdx++ )
+	{
+		const FStaticLightingMapping* CurrentMapping = VolumeMappings[MappingIdx];
+		if (CurrentMapping->GetLightingGuid() == FindGuid)
+		{
+			return CurrentMapping;
+		}
+	}
+
 	return NULL;
 }
 
@@ -588,7 +597,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			TotalProgress = 
 				DirectionalLights.Num() + PointLights.Num() + SpotLights.Num() + SkyLights.Num() + 
 				StaticMeshes.Num() + StaticMeshLightingMeshes.Num() + StaticMeshTextureMappings.Num() + 
-				BSPSurfaceMappings.Num() + Materials.Num() + 
+				BSPSurfaceMappings.Num() + VolumeMappings.Num() + Materials.Num() + 
 				+ LandscapeLightingMeshes.Num() + LandscapeTextureMappings.Num();
 
 			CurrentProgress = 0;
@@ -613,6 +622,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 
 			Scene.NumImportanceVolumes = ImportanceVolumes.Num();
 			Scene.NumCharacterIndirectDetailVolumes = CharacterIndirectDetailVolumes.Num();
+			Scene.NumVolumetricLightmapDensityVolumes = VolumetricLightmapDensityVolumes.Num();
 			Scene.NumPortals = Portals.Num();
 			Scene.NumDirectionalLights = DirectionalLights.Num();
 			Scene.NumPointLights = PointLights.Num();
@@ -627,6 +637,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			Scene.NumFluidSurfaceTextureMappings = 0;
 			Scene.NumLandscapeTextureMappings = LandscapeTextureMappings.Num();
 			Scene.NumSpeedTreeMappings = 0;
+			Scene.NumVolumeMappings = VolumeMappings.Num();
 			Scene.NumPrecomputedVisibilityBuckets = VisibilityBucketGuids.Num();
 			Scene.NumVolumetricLightmapTasks = VolumetricLightmapTaskGuids.Num();
 			Swarm.WriteChannel( Channel, &Scene, sizeof(Scene) );
@@ -990,6 +1001,23 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 
 void FLightmassExporter::WriteVolumetricLightmapData( int32 Channel )
 {
+	for (int32 VolumeIndex = 0; VolumeIndex < VolumetricLightmapDensityVolumes.Num(); VolumeIndex++)
+	{
+		AVolumetricLightmapDensityVolume* DetailVolume = VolumetricLightmapDensityVolumes[VolumeIndex];
+
+		Lightmass::FVolumetricLightmapDensityVolumeData VolumeData;
+		VolumeData.Bounds = DetailVolume->GetComponentsBoundingBox(true);
+		VolumeData.AllowedMipLevelRange = FIntPoint(DetailVolume->AllowedMipLevelRange.Min, DetailVolume->AllowedMipLevelRange.Max);
+
+		TArray<FPlane> Planes;
+		DetailVolume->Brush->GetSurfacePlanes(DetailVolume, Planes);
+		const int32 NumPlanes = Planes.Num();
+		VolumeData.NumPlanes = NumPlanes;
+
+		Swarm.WriteChannel( Channel, &VolumeData, sizeof(VolumeData) );
+		Swarm.WriteChannel( Channel, Planes.GetData(), Planes.Num() * Planes.GetTypeSize() );
+	}
+
 	TArray<FGuid> VolumetricLightmapTaskGuidsArray;
 	VolumetricLightmapTaskGuids.GenerateKeyArray(VolumetricLightmapTaskGuidsArray);
 	Swarm.WriteChannel( Channel, VolumetricLightmapTaskGuidsArray.GetData(), VolumetricLightmapTaskGuidsArray.Num() * VolumetricLightmapTaskGuidsArray.GetTypeSize() );
@@ -1871,6 +1899,13 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 		WriteLandscapeMapping(Channel, LandscapeMapping);
 		UpdateExportProgress();
 	}
+
+	for (int32 MappingIdx = 0; MappingIdx < VolumeMappings.Num(); MappingIdx++)
+	{
+		const FStaticLightingGlobalVolumeMapping* VolumeMapping = VolumeMappings[MappingIdx];
+		WriteBaseTextureMappingData( Channel, VolumeMapping );
+		UpdateExportProgress();
+	}
 }
 
 /** Finds the GUID of the mapping that is being debugged. */
@@ -1931,19 +1966,26 @@ void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLig
 
 	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
-	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForGeometry"), OutSettings.VoxelizationCellExpansionForGeometry, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForSurfaceGeometry"), OutSettings.VoxelizationCellExpansionForSurfaceGeometry, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForVolumeGeometry"), OutSettings.VoxelizationCellExpansionForVolumeGeometry, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForLights"), OutSettings.VoxelizationCellExpansionForLights, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MinBrickError"), OutSettings.MinBrickError, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("SurfaceLightmapMinTexelsPerVoxelAxis"), OutSettings.SurfaceLightmapMinTexelsPerVoxelAxis, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.VolumetricLightmaps"), TEXT("bCullBricksBelowLandscape"), OutSettings.bCullBricksBelowLandscape, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("LightBrightnessSubdivideThreshold"), OutSettings.LightBrightnessSubdivideThreshold, GLightmassIni));
 
+	const FLightmassWorldInfoSettings& WorldInfoSettings = World->GetWorldSettings()->LightmassSettings;
+
+	float Smoothing = FMath::Clamp(WorldInfoSettings.VolumetricLightmapSphericalHarmonicSmoothing, SMALL_NUMBER, 1000.0f);
+	OutSettings.WindowingTargetLaplacian = 1.0f / Smoothing;
+
 	OutSettings.BrickSize = FMath::RoundUpToPowerOfTwo(OutSettings.BrickSize);
 	OutSettings.MaxRefinementLevels = FMath::Clamp(OutSettings.MaxRefinementLevels, 1, 6);
-	OutSettings.VoxelizationCellExpansionForGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForGeometry, 0.0f);
+	OutSettings.VoxelizationCellExpansionForSurfaceGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForSurfaceGeometry, 0.0f);
+	OutSettings.VoxelizationCellExpansionForVolumeGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForVolumeGeometry, 0.0f);
 	OutSettings.VoxelizationCellExpansionForLights = FMath::Max(OutSettings.VoxelizationCellExpansionForLights, 0.0f);
 
-	const float TargetDetailCellSize = World->GetWorldSettings()->LightmassSettings.VolumetricLightmapDetailCellSize;
+	const float TargetDetailCellSize = WorldInfoSettings.VolumetricLightmapDetailCellSize;
 
 	const FIntVector FullGridSize(
 		FMath::TruncToInt(RequiredVolumeSize.X / TargetDetailCellSize) + 1,
@@ -2144,7 +2186,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			TEXT(""), 
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
-		const TCHAR* ActiveSection = AggressivenessSectionNames[World->GetWorldSettings()->VisibilityAggressiveness];
+		const TCHAR* ActiveSection = AggressivenessSectionNames[FMath::Clamp((int32)World->GetWorldSettings()->VisibilityAggressiveness, 0, VIS_Max - 1)];
 		VERIFYLIGHTMASSINI(GConfig->GetFloat(ActiveSection, TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
 	}
 	{
@@ -2897,7 +2939,7 @@ bool FLightmassProcessor::BeginRun()
 		JobSpecification32.AddDependencies( RequiredDependencyPaths32, RequiredDependencyPaths32Count, OptionalDependencyPaths32, OptionalDependencyPaths32Count );
 		JobSpecification32.AddDescription( DescriptionKeys, DescriptionValues, ARRAY_COUNT(DescriptionKeys) );
 	}
-	if ( bUse64bitProcess )
+	else
 	{
 		JobSpecification64 = NSwarm::FJobSpecification( LightmassExecutable64, *CommandLineParameters, ( NSwarm::TJobTaskFlags )JobFlags );
 		JobSpecification64.AddDependencies( RequiredDependencyPaths64, RequiredDependencyPaths64Count, OptionalDependencyPaths64, OptionalDependencyPaths64Count );
@@ -3489,7 +3531,7 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 			TEXT("DevOptions.PrecomputedVisibility"), 
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
-		const TCHAR* ActiveSection = AggressivenessSectionNames[System.GetWorld()->GetWorldSettings()->VisibilityAggressiveness];
+		const TCHAR* ActiveSection = AggressivenessSectionNames[FMath::Clamp((int32)System.GetWorld()->GetWorldSettings()->VisibilityAggressiveness, 0, VIS_Max - 1)];
 		VERIFYLIGHTMASSINI(GConfig->GetInt(ActiveSection, TEXT("VisibilitySpreadingIterations"), VisibilitySpreadingIterations, GLightmassIni));
 		bool bCompressVisibilityData;
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bCompressVisibilityData"), bCompressVisibilityData, GLightmassIni));
@@ -3859,12 +3901,6 @@ void FLightmassProcessor::ImportStaticLightingTextureMapping( const FGuid& Mappi
 			{
 				//UE_LOG(LogLightmassSolver, Log, TEXT("Importing %32s %s"), *(TextureMapping->GetDescription()), *(TextureMapping->GetLightingGuid().ToString()));
 
-				// If we are importing the debug mapping, first read in the debug output channel
-				if (NextMappingGuid == DebugMappingGuid)
-				{
-					ImportDebugOutput();
-				}
-
 				FTextureMappingImportHelper* ImportData = new FTextureMappingImportHelper();
 				ImportData->TextureMapping = TextureMapping;
 				ImportData->MappingGuid = NextMappingGuid;
@@ -4127,8 +4163,7 @@ void FLightmassProcessor::ProcessAvailableMappings()
 	}
 }
 
-/** Fills out GDebugStaticLightingInfo with the output from Lightmass */
-void FLightmassProcessor::ImportDebugOutput()
+void FLightmassProcessor::ImportDebugOutputStruct(int32 Channel)
 {
 	static_assert(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), "Debug type sizes must match for FDebugStaticLightingRay.");
 	static_assert(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), "Debug type sizes must match for FDebugStaticLightingVertex.");
@@ -4138,11 +4173,17 @@ void FLightmassProcessor::ImportDebugOutput()
 	static_assert(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), "Debug type sizes must match for FDebugOctreeNode.");
 	static_assert(NumTexelCorners == Lightmass::NumTexelCorners, "Debug type sizes must match for NumTexelCorners.");
 
-	const FString ChannelName = Lightmass::CreateChannelName(Lightmass::DebugOutputGuid, Lightmass::LM_DEBUGOUTPUT_VERSION, Lightmass::LM_DEBUGOUTPUT_EXTENSION);
-	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DEBUGOUTPUT_CHANNEL_FLAGS );
-	if (Channel >= 0)
+	bool bDebugInfoValid = false;
+	Swarm.ReadChannel(Channel, &bDebugInfoValid, sizeof(bDebugInfoValid));
+
+	if (bDebugInfoValid)
 	{
-		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.bValid, sizeof(GDebugStaticLightingInfo.bValid));
+		if (GDebugStaticLightingInfo.bValid)
+		{
+			UE_LOG(LogLightmassSolver, Log, TEXT("Error, importing valid debug info, but GDebugStaticLightingInfo was already valid (multiple sources of debug info from Lightmass)"));
+		}
+
+		GDebugStaticLightingInfo.bValid = true;
 		ReadArray(Channel, GDebugStaticLightingInfo.PathRays);
 		ReadArray(Channel, GDebugStaticLightingInfo.ShadowRays);
 		ReadArray(Channel, GDebugStaticLightingInfo.IndirectPhotonPaths);
@@ -4160,12 +4201,6 @@ void FLightmassProcessor::ImportDebugOutput()
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.TexelCorners, sizeof(GDebugStaticLightingInfo.TexelCorners));
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.bCornerValid, sizeof(GDebugStaticLightingInfo.bCornerValid));
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.SampleRadius, sizeof(GDebugStaticLightingInfo.SampleRadius));
-
-		Swarm.CloseChannel(Channel);
-	}
-	else
-	{
-		UE_LOG(LogLightmassSolver, Log,  TEXT("Error, OpenChannel failed to open %s with error code %d"), *ChannelName, Channel );
 	}
 }
 
@@ -4417,6 +4452,8 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 	{
 		bResult = false;
 	}
+
+	ImportDebugOutputStruct(Channel);
 
 	// Update the LightingBuildInfo list
 	UObject* MappedObject = TMImport.TextureMapping->GetMappedObject();

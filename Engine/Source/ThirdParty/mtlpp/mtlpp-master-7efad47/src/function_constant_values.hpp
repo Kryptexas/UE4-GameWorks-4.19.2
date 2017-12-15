@@ -7,11 +7,12 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "ns.hpp"
 #include "argument.hpp"
 
-MTLPP_CLASS(MTLFunctionConstantValues);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -21,7 +22,7 @@ namespace mtlpp
         FunctionConstantValues();
         FunctionConstantValues(MTLFunctionConstantValues* handle) : ns::Object<MTLFunctionConstantValues*>(handle) { }
 
-        void SetConstantValue(const void* value, DataType type, uint32_t index);
+        void SetConstantValue(const void* value, DataType type, NSUInteger index);
         void SetConstantValue(const void* value, DataType type, const ns::String& name);
         void SetConstantValues(const void* value, DataType type, const ns::Range& range);
 
@@ -29,3 +30,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_12, 10_0);
 }
+
+MTLPP_END

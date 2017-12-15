@@ -70,17 +70,18 @@ bool RayHitRect( float3 R, float3 RectCenter, float3 RectX, float3 RectY, float3
 	return InExtentX && InExtentY;
 }
 
-float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, float3 LobeRoughness, float3 ToLight, float3 V, float3 N, uint2 Random )
+float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, float3 LobeRoughness, float3 ToLight, float3 V, float3 N, uint2 SVPos )
 {
 	float3 Lighting = 0;
 
 	LobeRoughness = max( 0.08, LobeRoughness );
 
 	const float SourceRadius = max( 1, LightData.SpotAnglesAndSourceRadius.z );
+	const float SourceLength = LightData.SpotAnglesAndSourceRadius.w;
 
-	const float DistanceSqr = dot( ToLight, ToLight );
-	const float3 ConeAxis = ToLight * rsqrt( DistanceSqr );
-	const float ConeCos = sqrt( 1 - Square( SourceRadius ) / DistanceSqr );
+	float DistanceSqr = dot( ToLight, ToLight );
+	float3 ConeAxis = ToLight * rsqrt( DistanceSqr );
+	float ConeCos = sqrt( 1 - Square( SourceRadius ) / DistanceSqr );
 
 	const float Area = PI * Square(SourceRadius);
 	const float SampleColor = 1.0 / Area;
@@ -89,17 +90,21 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 	const uint NumSamples[ NumSets ] =
 	{
 		0,
-		4,
-		4,
+		0,
+		32,
 	};
-
+	
+	uint2 SobolBase = SobolPixel( SVPos );
+	uint2 SobolFrame = SobolIndex( SobolBase, View.StateFrameIndexMod8, 3 );
+	
 	UNROLL
 	for( uint Set = 0; Set < NumSets; Set++ )
 	{
 		LOOP
 		for( uint i = 0; i < NumSamples[ Set ]; i++ )
 		{
-			float2 E = Hammersley( i, NumSamples[ Set ], Random );
+			float2 E = float2( SobolIndex( SobolFrame, i << 3 ) ) / 0x10000;
+			//float2 E = Hammersley( i, NumSamples[ Set ], Random );
 			//float2 E = CorrelatedMultiJitter2D( i, NumSamples[ Set ], Random.x * Random.y * (Set + 17) );
 			
 			float3 L, H;
@@ -115,6 +120,17 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 			}
 			else
 			{
+				uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.Random + i ) ).xy;
+
+				float3 L01 = LightData.LightTangent * SourceLength;
+				float3 L0 = ToLight - 0.5 * L01;
+				float3 L1 = ToLight + 0.5 * L01;
+				L = lerp( L0, L1, (float)Random.x / 0xffff );
+				
+				DistanceSqr = dot( L, L );
+				ConeAxis = L * rsqrt( DistanceSqr );
+				ConeCos = sqrt( 1 - Square( SourceRadius ) / DistanceSqr );
+
 				L = TangentToWorld( UniformSampleCone( E, ConeCos ).xyz, ConeAxis );
 				H = normalize(V + L);
 			}
@@ -147,8 +163,8 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 				}
 				float Weight = rcp( InvWeight );
 
-				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, Random ) * NoL;
-				Shading += SubsurfaceShading( GBuffer, L, V, N, 1, Random );
+				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, SVPos ) * NoL;
+				Shading += SubsurfaceShading( GBuffer, L, V, N, 1, SVPos );
 			
 				Lighting += SampleColor * Shading * Weight;
 			}
@@ -158,9 +174,10 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 	return Lighting;
 }
 
-float Softmin(float y)
+float3 New_a2( float3 a2, float Radius, float InvDistSqr, float NoV )
 {
-    return rcp(pow(1 + rcp(Pow3(y)), 1.0f / 3));
+	float SinAlphaSqr = saturate( Pow2( Radius ) * InvDistSqr );
+	return a2 + SinAlphaSqr / ( NoV * 3.6 + 0.4 );
 }
 
 // Find representative incoming light direction and energy modification
@@ -169,8 +186,8 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 	float3 LobeEnergy = 1;
 
 	LobeRoughness = max( LobeRoughness, LightData.MinRoughness );
-	float3 m = LobeRoughness * LobeRoughness;
-    float3 m2 = m * m;
+	float3 a = LobeRoughness * LobeRoughness;
+    float3 a2 = a * a;
 
 	const float SourceRadius = LightData.SpotAnglesAndSourceRadius.z;
 	const float SourceLength = LightData.SpotAnglesAndSourceRadius.w;
@@ -183,25 +200,31 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 	float3 R = reflect( -V, N );
 	
 	// Point lobe in off-specular peak direction
-	float a = Square( LobeRoughness[1] );
-	R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
+	R = lerp( N, R, (1 - a.y) * ( sqrt(1 - a.y) + a.y ) );
 	R = normalize( R );
 
 	BRANCH
 	if( LightData.SoftSourceRadius > 0 )
 	{
-		float SphereAngleSqr = saturate( Pow2( LightData.SoftSourceRadius ) * InvDistToLightSqr );
-		m2 += SphereAngleSqr / ( NoV * 3.6 + 0.4 );
-		m = sqrt(m2);
-		LobeRoughness = sqrt(m);
+		// Modify Roughness
+		a2 = New_a2( a2, LightData.SoftSourceRadius, InvDistToLightSqr, NoV );
+		LobeRoughness = sqrt( sqrt(a2) );
+	}
+
+	BRANCH
+	if( SourceRadius > 0 )
+	{
+		// Energy conservation
+		float3 Old_a2 = a2;
+		a2 = New_a2( a2, SourceRadius, InvDistToLightSqr, NoV );
+		LobeEnergy *= Old_a2 / a2;
 	}
 
 	BRANCH
 	if( SourceLength > 0 )
 	{
 		// Energy conservation
-		float LineAngleSqr = saturate( Pow2( 0.5 * SourceLength ) * InvDistToLightSqr );
-		LobeEnergy *= sqrt( m2 / ( m2 + LineAngleSqr / ( NoV * 3.6 + 0.4 ) ) );
+		LobeEnergy *= sqrt( a2 / New_a2( a2, 0.5 * SourceLength, InvDistToLightSqr, NoV ) );
 
 		// Closest point on line segment to ray
 		float3 L01 = LightData.LightTangent * SourceLength;
@@ -210,9 +233,9 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 
 #if 1
 		// Shortest distance
-		float a = Square( SourceLength );
-		float b = dot( R, L01 );
-		float t = saturate( dot( L0, b*R - L01 ) / (a - b*b) );
+		float A = Square( SourceLength );
+		float B = dot( R, L01 );
+		float t = saturate( dot( L0, B*R - L01 ) / (A - B*B) );
 #else
 		// Smallest angle
 		float A = Square( SourceLength );
@@ -229,12 +252,6 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 	BRANCH
 	if( SourceRadius > 0 )
 	{
-		// asin(x) is angle to sphere, atan(x) is angle to disk, saturate(x) is free and in the middle
-		float SphereAngleSqr = saturate( Pow2( SourceRadius ) * InvDistToLightSqr );
-
-		// Energy conservation
-		LobeEnergy *= m2 / ( m2 + SphereAngleSqr / ( NoV * 3.6 + 0.4 ) );
-		
 		// Closest point on sphere to ray
 		float3 ClosestPointOnRay = dot( ToLight, R ) * R;
 		float3 CenterToRay = ClosestPointOnRay - ToLight;
@@ -386,48 +403,49 @@ void GetLocalLightAttenuation(
 				float Length1 = LengthSqr1 * rLength1;
 
 				DistanceAttenuation = rcp( ( Length0 * Length1 + dot( ToLight0, ToLight1 ) ) * 0.5 + DistanceBiasSqr );
-				NoL = saturate( 0.5 * ( dot(N, ToLight0) * rLength0 + dot(N, ToLight1) * rLength1 ) );
+				NoL = 0.5 * ( dot(N, ToLight0) * rLength0 + dot(N, ToLight1) * rLength1 );
 			}
 			else
 			{
 				DistanceAttenuation = rcp( DistanceSqr + DistanceBiasSqr );
-				NoL = saturate( dot( N, L ) );
-
-				if( SourceRadius > 0 )
-				{
-				#if 1	//HORIZON
-					NoL = dot( N, L );
-
-					float SinAlphaSqr = saturate( Square( SourceRadius ) / DistanceSqr );
-					float SinAlpha = sqrt( SinAlphaSqr );
-
-					if( NoL < SinAlpha )
-					{
-					#if 0
-						// Accurate sphere irradiance
-						float CosBeta = NoL;
-						float SinBeta = sqrt( 1 - CosBeta * CosBeta );
-						float TanBeta = SinBeta / CosBeta;
-					
-						float x = sqrt( 1 / SinAlphaSqr - 1 );
-						float y = -x / TanBeta;
-						float z = SinBeta * sqrt(1 - y*y);
-
-						DistanceAttenuation = SinAlphaSqr * ( NoL * acos(y) - x * z ) + atan( z / x );
-						DistanceAttenuation /= PI * Square( SourceRadius );
-						NoL = 1;
-					#else
-						// Hermite spline approximation
-						// Fairly accurate with SinAlpha < 0.8
-						// y=0 and dy/dx=0 at -SinAlpha
-						// y=SinAlpha and dy/dx=1 at SinAlpha
-						NoL = max( NoL, -SinAlpha );
-						NoL = Square( SinAlpha + NoL ) / ( 4 * SinAlpha );
-					#endif
-					}
-				#endif
-				}
+				NoL = dot( N, L );
 			}
+
+			if( SourceRadius > 0 )
+			{
+#if 1	//HORIZON
+				// TODO dist from tube light
+				float SinAlphaSqr = saturate( Square( SourceRadius ) / DistanceSqr );
+				float SinAlpha = sqrt( SinAlphaSqr );
+
+				if( NoL < SinAlpha )
+				{
+#if 0
+					// Accurate sphere irradiance
+					float CosBeta = NoL;
+					float SinBeta = sqrt( 1 - CosBeta * CosBeta );
+					float TanBeta = SinBeta / CosBeta;
+
+					float x = sqrt( 1 / SinAlphaSqr - 1 );
+					float y = -x / TanBeta;
+					float z = SinBeta * sqrt(1 - y*y);
+
+					DistanceAttenuation = SinAlphaSqr * ( NoL * acos(y) - x * z ) + atan( z / x );
+					DistanceAttenuation /= PI * Square( SourceRadius );
+					NoL = 1;
+#else
+					// Hermite spline approximation
+					// Fairly accurate with SinAlpha < 0.8
+					// y=0 and dy/dx=0 at -SinAlpha
+					// y=SinAlpha and dy/dx=1 at SinAlpha
+					NoL = max( NoL, -SinAlpha );
+					NoL = Square( SinAlpha + NoL ) / ( 4 * SinAlpha );
+#endif
+				}
+#endif
+			}
+
+			NoL = saturate( NoL );
 
 			// TODO optimize
 			LightRadiusMask = Square( saturate( 1 - Square( DistanceSqr * Square(LightData.LightPositionAndInvRadius.w) ) ) );

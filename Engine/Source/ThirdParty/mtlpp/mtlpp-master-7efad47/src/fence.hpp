@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Fence.hpp"
 #include "ns.hpp"
 #include "device.hpp"
 
-MTLPP_PROTOCOL(MTLFence);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -28,3 +30,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_13, 10_0);
 }
+
+MTLPP_END

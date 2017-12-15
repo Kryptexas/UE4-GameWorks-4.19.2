@@ -98,7 +98,7 @@ public:
 			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
 		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
@@ -167,10 +167,10 @@ protected:
 
 	FVelocityHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType) &&
-				FVelocityVS::ShouldCache(Platform, Material, VertexFactoryType); // same rules as VS
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) &&
+				FVelocityVS::ShouldCompilePermutation(Platform, Material, VertexFactoryType); // same rules as VS
 	}
 };
 
@@ -194,10 +194,10 @@ protected:
 
 	FVelocityDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType) &&
-				FVelocityVS::ShouldCache(Platform, Material, VertexFactoryType); // same rules as VS
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) &&
+				FVelocityVS::ShouldCompilePermutation(Platform, Material, VertexFactoryType); // same rules as VS
 	}
 };
 
@@ -211,7 +211,7 @@ class FVelocityPS : public FMeshMaterialShader
 {
 	DECLARE_SHADER_TYPE(FVelocityPS,MeshMaterial);
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
 		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
@@ -285,8 +285,8 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		bool HasHullShader = MeshShaderIndex->HasShader(&FVelocityHS::StaticType);
-		bool HasDomainShader = MeshShaderIndex->HasShader(&FVelocityDS::StaticType);
+		bool HasHullShader = MeshShaderIndex->HasShader(&FVelocityHS::StaticType, /* PermutationId = */ 0);
+		bool HasDomainShader = MeshShaderIndex->HasShader(&FVelocityDS::StaticType, /* PermutationId = */ 0);
 
 		HullShader = HasHullShader ? MeshShaderIndex->GetShader<FVelocityHS>() : NULL;
 		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<FVelocityDS>() : NULL;
@@ -306,8 +306,8 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 	if (!VertexShader)
 	{
 		check(!PixelShader);
-		bool bHasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType);
-		bool bHasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType);
+		bool bHasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType, /* PermutationId = */ 0);
+		bool bHasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType, /* PermutationId = */ 0);
 
 		check((bHasVertexShader && bHasPixelShader) || (!bHasVertexShader && !bHasPixelShader));
 		VertexShader = bHasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : nullptr;

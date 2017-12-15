@@ -1218,6 +1218,7 @@ namespace VulkanRHI
 			bool TryAlloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
 		};
 		FFrameEntry Entries[NUM_RENDER_BUFFERS];
+		FCriticalSection CS;
 
 		friend class FVulkanCommandListContext;
 	};

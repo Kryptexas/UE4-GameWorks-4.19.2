@@ -122,6 +122,11 @@ void FStaticMeshStaticLightingTextureMapping::ExportMapping(class FLightmassExpo
 	Exporter->StaticMeshTextureMappings.AddUnique(this);
 }
 
+void FStaticLightingGlobalVolumeMapping::ExportMapping(class FLightmassExporter* Exporter)
+{
+	Exporter->VolumeMappings.AddUnique(this);
+}
+
 //
 //	Landscape
 //

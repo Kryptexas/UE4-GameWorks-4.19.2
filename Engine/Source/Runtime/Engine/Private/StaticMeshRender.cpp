@@ -1433,12 +1433,20 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	if (LODIndex < InComponent->LODData.Num())
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
-		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
-		if (MeshMapBuildData)
+
+		if (InComponent->LightmapType == ELightmapType::ForceVolumetric)
 		{
-			SetLightMap(MeshMapBuildData->LightMap);
-			SetShadowMap(MeshMapBuildData->ShadowMap);
-			IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+			SetGlobalVolumeLightmap(true);
+		}
+		else
+		{
+			const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
+			if (MeshMapBuildData)
+			{
+				SetLightMap(MeshMapBuildData->LightMap);
+				SetShadowMap(MeshMapBuildData->ShadowMap);
+				IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+			}
 		}
 		
 		PreCulledIndexBuffer = &ComponentLODInfo.PreCulledIndexBuffer;
@@ -1468,13 +1476,21 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	if (LODIndex > 0 && bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
-		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
 
-		if (MeshMapBuildData)
+		if (InComponent->LightmapType == ELightmapType::ForceVolumetric)
 		{
-			SetLightMap(MeshMapBuildData->LightMap);
-			SetShadowMap(MeshMapBuildData->ShadowMap);
-			IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+			SetGlobalVolumeLightmap(true);
+		}
+		else
+		{
+			const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
+
+			if (MeshMapBuildData)
+			{
+				SetLightMap(MeshMapBuildData->LightMap);
+				SetShadowMap(MeshMapBuildData->ShadowMap);
+				IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+			}
 		}
 	}
 

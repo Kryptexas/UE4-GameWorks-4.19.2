@@ -263,12 +263,17 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			View->HZB->GetRenderTargetItem().ShaderResourceTexture );
 
-		TRefCountPtr<IPooledRenderTarget>* PrevSceneColorRT = &GSystemTextures.BlackDummy;
+		const TRefCountPtr<IPooledRenderTarget>* PrevSceneColorRT = &GSystemTextures.BlackDummy;
 
-		if( ViewState && ViewState->TemporalAAHistory.IsValid() && !View->bCameraCut )
+		if (View->PrevViewInfo.CustomSSRInput.IsValid())
 		{
-			PrevSceneColorRT = &ViewState->TemporalAAHistory.RT[0];
-			PrevSceneColorPreExposureInvValue = 1.0f / ViewState->TemporalAAHistory.SceneColorPreExposure;
+			PrevSceneColorRT = &View->PrevViewInfo.CustomSSRInput;
+			PrevSceneColorPreExposureInvValue = 1.0f / View->PrevViewInfo.TemporalAAHistory.SceneColorPreExposure;
+		}
+		else if (View->PrevViewInfo.TemporalAAHistory.IsValid())
+		{
+			PrevSceneColorRT = &View->PrevViewInfo.TemporalAAHistory.RT[0];
+			PrevSceneColorPreExposureInvValue = 1.0f / View->PrevViewInfo.TemporalAAHistory.SceneColorPreExposure;
 		}
 
 		SetTextureParameter(
@@ -317,11 +322,11 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 		FIntPoint ViewportExtent = View->ViewRect.Size();
 		FIntPoint BufferSize = SceneContext.GetBufferSizeXY();
 
-		if (ViewState && ViewState->TemporalAAHistory.IsValid() && !View->bCameraCut)
+		if (View->PrevViewInfo.TemporalAAHistory.IsValid())
 		{
-			ViewportOffset = ViewState->TemporalAAHistory.ViewportRect.Min;
-			ViewportExtent = ViewState->TemporalAAHistory.ViewportRect.Size();
-			BufferSize = ViewState->TemporalAAHistory.RT[0]->GetDesc().Extent;
+			ViewportOffset = View->PrevViewInfo.TemporalAAHistory.ViewportRect.Min;
+			ViewportExtent = View->PrevViewInfo.TemporalAAHistory.ViewportRect.Size();
+			BufferSize = View->PrevViewInfo.TemporalAAHistory.RT[0]->GetDesc().Extent;
 		}
 		
 		FVector2D InvBufferSize(1.0f / float(BufferSize.X), 1.0f / float(BufferSize.Y));

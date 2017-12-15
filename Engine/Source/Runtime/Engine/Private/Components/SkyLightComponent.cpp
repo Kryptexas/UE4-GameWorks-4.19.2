@@ -714,6 +714,17 @@ void USkyLightComponent::SetCubemapBlend(UTextureCube* SourceCubemap, UTextureCu
 	}
 }
 
+void USkyLightComponent::SetLowerHemisphereColor(const FLinearColor& InLowerHemisphereColor)
+{
+	// Can't set on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& LowerHemisphereColor != InLowerHemisphereColor)
+	{
+		LowerHemisphereColor = InLowerHemisphereColor;
+		MarkRenderStateDirty();
+	}
+}
+
 void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 {
 	// Can't set on a static light

@@ -5,8 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "vertex_descriptor.hpp"
 #include <Metal/MTLVertexDescriptor.h>
+#include "vertex_descriptor.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -15,16 +17,16 @@ namespace mtlpp
     {
     }
 
-    uint32_t VertexBufferLayoutDescriptor::GetStride() const
+    NSUInteger VertexBufferLayoutDescriptor::GetStride() const
     {
         Validate();
-        return uint32_t([(MTLVertexBufferLayoutDescriptor*)m_ptr stride]);
+        return NSUInteger([(MTLVertexBufferLayoutDescriptor*)m_ptr stride]);
     }
 
-    uint32_t VertexBufferLayoutDescriptor::GetStepRate() const
+    NSUInteger VertexBufferLayoutDescriptor::GetStepRate() const
     {
         Validate();
-        return uint32_t([(MTLVertexBufferLayoutDescriptor*)m_ptr stepRate]);
+        return NSUInteger([(MTLVertexBufferLayoutDescriptor*)m_ptr stepRate]);
     }
 
     VertexStepFunction VertexBufferLayoutDescriptor::GetStepFunction() const
@@ -33,13 +35,13 @@ namespace mtlpp
         return VertexStepFunction([(MTLVertexBufferLayoutDescriptor*)m_ptr stepFunction]);
     }
 
-    void VertexBufferLayoutDescriptor::SetStride(uint32_t stride)
+    void VertexBufferLayoutDescriptor::SetStride(NSUInteger stride)
     {
         Validate();
         [(MTLVertexBufferLayoutDescriptor*)m_ptr setStride:stride];
     }
 
-    void VertexBufferLayoutDescriptor::SetStepRate(uint32_t stepRate)
+    void VertexBufferLayoutDescriptor::SetStepRate(NSUInteger stepRate)
     {
         Validate();
         [(MTLVertexBufferLayoutDescriptor*)m_ptr setStepRate:stepRate];
@@ -62,16 +64,16 @@ namespace mtlpp
         return VertexFormat([(MTLVertexAttributeDescriptor*)m_ptr format]);
     }
 
-    uint32_t VertexAttributeDescriptor::GetOffset() const
+    NSUInteger VertexAttributeDescriptor::GetOffset() const
     {
         Validate();
-        return uint32_t([(MTLVertexAttributeDescriptor*)m_ptr offset]);
+        return NSUInteger([(MTLVertexAttributeDescriptor*)m_ptr offset]);
     }
 
-    uint32_t VertexAttributeDescriptor::GetBufferIndex() const
+    NSUInteger VertexAttributeDescriptor::GetBufferIndex() const
     {
         Validate();
-        return uint32_t([(MTLVertexAttributeDescriptor*)m_ptr bufferIndex]);
+        return NSUInteger([(MTLVertexAttributeDescriptor*)m_ptr bufferIndex]);
     }
 
     void VertexAttributeDescriptor::SetFormat(VertexFormat format)
@@ -80,13 +82,13 @@ namespace mtlpp
         [(MTLVertexAttributeDescriptor*)m_ptr setFormat:MTLVertexFormat(format)];
     }
 
-    void VertexAttributeDescriptor::SetOffset(uint32_t offset)
+    void VertexAttributeDescriptor::SetOffset(NSUInteger offset)
     {
         Validate();
         [(MTLVertexAttributeDescriptor*)m_ptr setOffset:offset];
     }
 
-    void VertexAttributeDescriptor::SetBufferIndex(uint32_t bufferIndex)
+    void VertexAttributeDescriptor::SetBufferIndex(NSUInteger bufferIndex)
     {
         Validate();
         [(MTLVertexAttributeDescriptor*)m_ptr setBufferIndex:bufferIndex];
@@ -115,3 +117,5 @@ namespace mtlpp
         [(MTLVertexDescriptor*)m_ptr reset];
     }
 }
+
+MTLPP_END

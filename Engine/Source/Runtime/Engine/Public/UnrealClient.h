@@ -125,6 +125,8 @@ public:
 */
 #define MAX_HITPROXYSIZE 200
 
+DECLARE_DELEGATE(FOnScreenshotRequestProcessed);
+
 struct ENGINE_API FScreenshotRequest
 {
 	/**
@@ -174,7 +176,13 @@ struct ENGINE_API FScreenshotRequest
 	 */
 	static TArray<FColor>* GetHighresScreenshotMaskColorArray();
 
+	static FOnScreenshotRequestProcessed& OnScreenshotRequestProcessed()
+	{
+		return ScreenshotProcessedDelegate;
+	}
+
 private:
+	static FOnScreenshotRequestProcessed ScreenshotProcessedDelegate;
 	static bool bIsScreenshotRequested;
 	static FString NextScreenshotName;
 	static FString Filename;

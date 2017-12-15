@@ -221,7 +221,7 @@ static inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpri
 	}
 }
 
-bool FParticleSpriteVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FParticleSpriteVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return Material->IsUsedWithParticleSprites() || Material->IsSpecialEngineMaterial();
 }

@@ -5,8 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "sampler.hpp"
 #include <Metal/MTLSampler.h>
+#include "sampler.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -33,10 +35,10 @@ namespace mtlpp
         return SamplerMipFilter([(MTLSamplerDescriptor*)m_ptr mipFilter]);
     }
 
-    uint32_t SamplerDescriptor::GetMaxAnisotropy() const
+    NSUInteger SamplerDescriptor::GetMaxAnisotropy() const
     {
         Validate();
-        return uint32_t([(MTLSamplerDescriptor*)m_ptr maxAnisotropy]);
+        return NSUInteger([(MTLSamplerDescriptor*)m_ptr maxAnisotropy]);
     }
 
     SamplerAddressMode SamplerDescriptor::GetSAddressMode() const
@@ -59,12 +61,11 @@ namespace mtlpp
 
     SamplerBorderColor SamplerDescriptor::GetBorderColor() const
     {
-#if MTLPP_PLATFORM_MAC
-		if (@available(macOS 10.12, *))
-			return SamplerBorderColor([(MTLSamplerDescriptor*)m_ptr borderColor]);
-		else
-#endif
+#if MTLPP_IS_AVAILABLE_MAC(10_12)
+		return SamplerBorderColor([(MTLSamplerDescriptor*)m_ptr borderColor]);
+#else
         return SamplerBorderColor(0);
+#endif
     }
 
     bool SamplerDescriptor::IsNormalizedCoordinates() const
@@ -128,7 +129,7 @@ namespace mtlpp
         [(MTLSamplerDescriptor*)m_ptr setMipFilter:MTLSamplerMipFilter(mipFilter)];
     }
 
-    void SamplerDescriptor::SetMaxAnisotropy(uint32_t maxAnisotropy)
+    void SamplerDescriptor::SetMaxAnisotropy(NSUInteger maxAnisotropy)
     {
         Validate();
         [(MTLSamplerDescriptor*)m_ptr setMaxAnisotropy:maxAnisotropy];
@@ -154,9 +155,8 @@ namespace mtlpp
 
     void SamplerDescriptor::SetBorderColor(SamplerBorderColor borderColor)
     {
-#if MTLPP_PLATFORM_MAC
-		if (@available(macOS 10.12, *))
-			[(MTLSamplerDescriptor*)m_ptr setBorderColor:MTLSamplerBorderColor(borderColor)];
+#if MTLPP_IS_AVAILABLE_MAC(10_12)
+		[(MTLSamplerDescriptor*)m_ptr setBorderColor:MTLSamplerBorderColor(borderColor)];
 #endif
     }
 
@@ -195,13 +195,15 @@ namespace mtlpp
     ns::String SamplerState::GetLabel() const
     {
         Validate();
-        return [(id<MTLSamplerState>)m_ptr label];
+		return m_table->Label(m_ptr);
     }
 
     Device SamplerState::GetDevice() const
     {
         Validate();
-        return [(id<MTLSamplerState>)m_ptr device];
+		return m_table->Device(m_ptr);
     }
 }
+
+MTLPP_END
 

@@ -45,7 +45,7 @@ public:
 	/**
 	  * Only compile these shaders for post processing domain materials
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return ShouldCachePostProcessMaterial(MaterialTarget, Platform, Material);
 	}
@@ -106,7 +106,7 @@ public:
 	/**
 	  * Only compile these shaders for post processing domain materials
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return ShouldCachePostProcessMaterial(MaterialTarget, Platform, Material);
 	}

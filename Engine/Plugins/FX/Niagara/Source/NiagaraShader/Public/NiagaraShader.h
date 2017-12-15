@@ -112,7 +112,7 @@ public:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform, const FNiagaraScript* Script)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FNiagaraScript* Script)
 	{
 		//@todo - lit materials only 
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
@@ -141,9 +141,6 @@ public:
 		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 		CheckShaderIsValid();
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, ViewUniformBuffer);
-#if USE_GBuiltinSamplersUniformBuffer
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
-#endif
 
 		if (View.bShouldBindInstancedViewUB && View.Family->Views.Num() > 0)
 		{
@@ -156,10 +153,6 @@ public:
 		}
 	}
 	*/
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
 
 	// Bind parameters
 	void BindParams(const FShaderParameterMap &ParameterMap)

@@ -707,6 +707,11 @@ public:
 	TArray<int32> OverrideInvisibilityIds;
 };
 
+struct FVolumetricLightmapDensityVolume : public FVolumetricLightmapDensityVolumeData
+{
+	TArray<FPlane> Planes;
+};
+
 //----------------------------------------------------------------------------
 //	Scene class
 //----------------------------------------------------------------------------
@@ -722,6 +727,7 @@ public:
 	FBox ImportanceBoundingBox;
 	TArray<FBox> ImportanceVolumes;
 	TArray<FBox> CharacterIndirectDetailVolumes;
+	TArray<FVolumetricLightmapDensityVolume> VolumetricLightmapDensityVolumes;
 	TArray<FSphere> Portals;
 	TArray<FPrecomputedVisibilityVolume> PrecomputedVisibilityVolumes;
 	TArray<FPrecomputedVisibilityOverrideVolume> PrecomputedVisibilityOverrideVolumes;
@@ -739,6 +745,7 @@ public:
 	TArray<FStaticMeshStaticLightingTextureMapping>		TextureLightingMappings;
 	TArray<FFluidSurfaceStaticLightingTextureMapping>	FluidMappings;
 	TArray<FLandscapeStaticLightingTextureMapping>		LandscapeMappings;
+	TArray<FStaticLightingGlobalVolumeMapping>			VolumeMappings;
 
 	TArray<FGuid> VisibilityBucketGuids;
 	TArray<FGuid> VolumetricLightmapTaskGuids;
@@ -763,6 +770,8 @@ public:
 
 	/** Returns accumulated bounds from all the visibility volumes. */
 	FBox GetVisibilityVolumeBounds() const;
+
+	bool GetVolumetricLightmapAllowedMipRange(const FVector4& Position, FIntPoint& OutRange) const;
 
 private:
 	/** Searches through all mapping arrays for the mapping matching FindGuid. */

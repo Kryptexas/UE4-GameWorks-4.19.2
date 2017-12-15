@@ -212,9 +212,14 @@ float GetVelocityLengthPixels( float2 EncodedVelocity )
 #endif
 }
 
-float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
+#if COMPUTESHADER && !COMPILER_SUPPORTS_WAVE_VOTE
+
+groupshared uint GroupSharedFastPath;
+
+#endif
+
+float4 MainMotionBlurCommon(float2 OutputBufferUV, float2 ScreenSpacePos, float2 PixelPos)
 {
-	float4 OutColor = 0;
 	const uint StepCount = GetStepCountFromQuality() / 2;
 
 	#if !SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT
@@ -222,10 +227,11 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 	#endif
 
 #if 0
-	float2 PosMod = float2( PixelPos & 1 );
+	uint2 iPixelPos = PixelPos;
+	float2 PosMod = float2( iPixelPos & 1 );
 	float Dither = ( PosMod.x * 0.5 - 0.25 ) * ( PosMod.y * 2 - 1 );
-	float Random = RandFast( PixelPos );
-	float Random2 = RandFast( PixelPos, 5521 );
+	float Random = RandFast( iPixelPos );
+	float Random2 = RandFast( iPixelPos, 5521 );
 #else
 	float Random = InterleavedGradientNoise( PixelPos, 0 );
 	float Random2 = InterleavedGradientNoise( PixelPos, 1 );
@@ -233,8 +239,8 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 
 	float2 TileJitter = ( float2( Random, Random2 ) - 0.5 ) * 0.5;
 
-	float2 BufferUV = UV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw;
-	float2 NearestBufferSvPosition = floor(BufferUV * View.BufferSizeAndInvSize.xy) + 0.5;
+	float2 ViewBufferUV = OutputBufferUV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw;
+	float2 NearestBufferSvPosition = floor(ViewBufferUV * View.BufferSizeAndInvSize.xy) + 0.5;
 	float2 TileUV = ((NearestBufferSvPosition - View.ViewRectMin.xy) * (1.0 / 16.0) + TileJitter) * PostprocessInput3Size.zw;
 
 	// Don't need to max TileUV because tiles are top left cornered in the PostprocessInput3.
@@ -248,18 +254,8 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 	float MinVelocityLengthSqrPixels = dot( MinVelocityPixels, MinVelocityPixels );
 	float MaxVelocityLengthSqrPixels = dot( MaxVelocityPixels, MaxVelocityPixels );
 
-	// TODO expose cvars
-	bool bSkipPath = MaxVelocityLengthSqrPixels < 0.25;
-	bool bFastPath = MinVelocityLengthSqrPixels > 0.4 * MaxVelocityLengthSqrPixels;
-
-	float4 CenterColor = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0 );
-
-	BRANCH
-	if( bSkipPath )
-	{
-		SetSceneColorLayoutToFloat4(OutColor, CenterColor);
-		return OutColor;
-	}
+	// Input buffer 0 as same viewport as output buffer.
+	float4 CenterColor = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, OutputBufferUV, 0 );
 
 	float2 MinViewportUV = (float2(ViewportRect.xy) + 0.5) * PostprocessInput0Size.zw;
 	float2 MaxViewportUV = (float2(ViewportRect.zw) - 0.5) * PostprocessInput0Size.zw;
@@ -281,10 +277,39 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 
 	// converts pixel length to sample steps
 	float PixelToSampleScale = StepCount * rsqrt( dot( MaxVelocityPixels, MaxVelocityPixels ) );
+	
+	// TODO expose cvars
+	bool bSkipPath = MaxVelocityLengthSqrPixels < 0.25;
+	bool bFastPath = MinVelocityLengthSqrPixels > 0.4 * MaxVelocityLengthSqrPixels;
 
+	// Only use fast path if all threads of the compute shader would.
 	#if COMPILER_SUPPORTS_WAVE_VOTE
+	{
 		bFastPath = WaveAllTrue(bFastPath);
+	}
+	#elif COMPUTESHADER
+	{
+		GroupSharedFastPath = 0;
+		GroupMemoryBarrierWithGroupSync();
+
+		uint IgnoredOut;
+		InterlockedAdd(GroupSharedFastPath, bFastPath ? 1 : 0);
+		
+		GroupMemoryBarrierWithGroupSync();
+		bFastPath = (GroupSharedFastPath == (THREADGROUP_SIZEX * THREADGROUP_SIZEY));
+	}
 	#endif
+	
+	BRANCH
+	if( bSkipPath )
+	{
+		#if !POST_PROCESS_ALPHA
+			CenterColor.a = 0;
+		#endif
+		return CenterColor;
+	}
+
+	float4 OutColor = 0;
 
 	BRANCH
 	if( bFastPath )
@@ -298,8 +323,8 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 			float2 OffsetFraction = OffsetLength / StepCount;
 
 			float2 SampleUV[2];
-			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
-			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
+			SampleUV[0] = OutputBufferUV + OffsetFraction.x * SearchVector.xy;
+			SampleUV[1] = OutputBufferUV + OffsetFraction.y * SearchVector.zw;
 
 			#if CLAMP_UV
 				SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
@@ -316,7 +341,7 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 	}
 	else
 	{
-		float3 CenterVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, UV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw, 0 ).xyz;
+		float3 CenterVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, OutputBufferUV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw, 0 ).xyz;
 		float  CenterDepth = CenterVelocityDepth.z;
 		float  CenterVelocityLength = GetVelocityLengthPixels( CenterVelocityDepth.xy );
 		
@@ -335,8 +360,8 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 			float2 OffsetLength = (float)i + 0.5 + float2( Random - 0.5, 0.5 - Random );
 			float2 OffsetFraction = OffsetLength / StepCount;
 
-			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
-			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
+			SampleUV[0] = OutputBufferUV + OffsetFraction.x * SearchVector.xy;
+			SampleUV[1] = OutputBufferUV + OffsetFraction.y * SearchVector.zw;
 
 			#if CLAMP_UV
 				SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
@@ -384,13 +409,9 @@ void MainPS(
 	out float4 OutColor : SV_Target0
 	)
 {
-	// Screen Quad UV 0..1
-	float2 UV = UVAndScreenPos.xy;
-	// screen position in [-1, 1] screen space
-	float2 ScreenSpacePos = UVAndScreenPos.zw;
-	uint2 PixelPos = SvPosition.xy;
-
-	OutColor = MainMotionBlurCommon(UV, ScreenSpacePos, PixelPos);
+	float2 OutputBufferUV = UVAndScreenPos.xy;
+	float2 ScreenPos = UVAndScreenPos.zw;
+	OutColor = MainMotionBlurCommon(OutputBufferUV, ScreenPos, floor(SvPosition.xy));
 }
 
 #if COMPUTESHADER
@@ -401,19 +422,21 @@ RWTexture2D<float4> RWOutComputeTex;
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 {
-	float2 PxPosition = ((float2)DispatchThreadId + View.ViewRectMin.xy + 0.5f);
-	float2 UV = PxPosition.xy * MotionBlurComputeParams.zw;
-	float4 SvPosition = float4(UV*2-1,0,1);
+	uint2 iPixelPos = DispatchThreadId + ViewportRect.xy;
+	float2 PixelPos = float2(iPixelPos);
+	float2 SvPosition = PixelPos + 0.5;
 
-	if (IsComputeUVOutOfBounds(UV))
+	float2 OutputBufferUV = SvPosition.xy * MotionBlurComputeParams.zw;
+	
+	float2 ViewportUV = (DispatchThreadId + 0.5) * ViewportSize.zw;
+	float2 ScreenPos = ViewportUVToScreenPos(ViewportUV);
+
+	float4 OutColor = MainMotionBlurCommon(OutputBufferUV, ScreenPos, PixelPos);
+
+	if (all(iPixelPos < ViewportRect.zw))
 	{
-		return;
+		RWOutComputeTex[iPixelPos] = OutColor;
 	}
-
-	float4 OutColor = MainMotionBlurCommon(UV, SvPosition.xy, (uint2)PxPosition);
-
-	uint2 PixelPos = DispatchThreadId + (uint2)ViewportRect.xy;
-	RWOutComputeTex[PixelPos] = OutColor;
 }
 #endif
 

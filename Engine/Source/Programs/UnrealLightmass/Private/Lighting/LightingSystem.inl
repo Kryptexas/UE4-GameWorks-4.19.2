@@ -171,7 +171,7 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 						{
 							DebugRay.End = Intersection.IntersectionVertex.WorldPosition;
 						}
-						DebugOutput.ShadowRays.Add(DebugRay);
+						MappingContext.DebugOutput->ShadowRays.Add(DebugRay);
 					}
 #endif
 

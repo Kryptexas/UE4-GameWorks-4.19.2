@@ -114,7 +114,7 @@ class TPostProcessTonemapVS : public FGlobalShader
 	// This class is in the header so that Temporal AA can share this vertex shader.
 	DECLARE_SHADER_TYPE(TPostProcessTonemapVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -140,10 +140,8 @@ public:
 		ScreenPosToScenePixel.Bind(Initializer.ParameterMap, TEXT("ScreenPosToScenePixel"));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		
 		// Compile time template-based conditional
 		OutEnvironment.SetDefine(TEXT("EYEADAPTATION_EXPOSURE_FIX"), (uint32)bUseAutoExposure);
 	}

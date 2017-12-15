@@ -225,7 +225,7 @@ class FARKitCameraOverlayVS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FARKitCameraOverlayVS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}
@@ -265,7 +265,7 @@ class FARKitCameraOverlayPS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FARKitCameraOverlayPS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}

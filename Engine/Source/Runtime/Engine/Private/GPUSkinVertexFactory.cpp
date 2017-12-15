@@ -43,7 +43,7 @@ static FBoneMatricesUniformShaderParameters GBoneUniformStruct;
 	bPrecisePrevWorldPos, \
 	bSupportsPositionOnly, \
 	Construct##FactoryClass##ShaderParameters<bExtraBoneInfluencesT>, \
-	FactoryClass<bExtraBoneInfluencesT>::ShouldCache, \
+	FactoryClass<bExtraBoneInfluencesT>::ShouldCompilePermutation, \
 	FactoryClass<bExtraBoneInfluencesT>::ModifyCompilationEnvironment, \
 	FactoryClass<bExtraBoneInfluencesT>::SupportsTessellationShaders \
 	); \
@@ -315,7 +315,7 @@ TGPUSkinVertexFactory
 TGlobalResource<FBoneBufferPool> FGPUBaseSkinVertexFactory::BoneBufferPool;
 
 template <bool bExtraBoneInfluencesT>
-bool TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
+bool TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
 	bool bLimit2BoneInfluences = (CVarGPUSkinLimit2BoneInfluences.GetValueOnAnyThread() != 0);
 	
@@ -616,10 +616,10 @@ void FGPUSkinPassthroughVertexFactory::ModifyCompilationEnvironment( EShaderPlat
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_PASS_THROUGH"),TEXT("1"));
 }
 
-bool FGPUSkinPassthroughVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
+bool FGPUSkinPassthroughVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
 	// Passthrough is only valid on platforms with Compute Shader support AND for (skeletal meshes or default materials)
-	return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType) && (Material->IsUsedWithSkeletalMesh() || Material->IsSpecialEngineMaterial());
+	return IsGPUSkinCacheAvailable() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCompilePermutation(Platform, Material, ShaderType) && (Material->IsUsedWithSkeletalMesh() || Material->IsSpecialEngineMaterial());
 }
 
 void FGPUSkinPassthroughVertexFactory::InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer)
@@ -705,10 +705,10 @@ void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnviron
 }
 
 template <bool bExtraBoneInfluencesT>
-bool TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return (Material->IsUsedWithMorphTargets() || Material->IsSpecialEngineMaterial()) 
-		&& Super::ShouldCache(Platform, Material, ShaderType);
+		&& Super::ShouldCompilePermutation(Platform, Material, ShaderType);
 }
 
 /**
@@ -977,11 +977,11 @@ void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnv
 }
 
 template <bool bExtraBoneInfluencesT>
-bool TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM4
 		&& (Material->IsUsedWithAPEXCloth() || Material->IsSpecialEngineMaterial()) 
-		&& Super::ShouldCache(Platform, Material, ShaderType);
+		&& Super::ShouldCompilePermutation(Platform, Material, ShaderType);
 }
 
 /**

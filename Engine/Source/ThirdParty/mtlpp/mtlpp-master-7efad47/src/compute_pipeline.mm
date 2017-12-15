@@ -5,15 +5,83 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "compute_pipeline.hpp"
 #include <Metal/MTLComputePipeline.h>
+#include "compute_pipeline.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
-    ComputePipelineReflection::ComputePipelineReflection() :
-        ns::Object<MTLComputePipelineReflection*>([[MTLComputePipelineReflection alloc] init], false)
+    AutoReleasedComputePipelineReflection::AutoReleasedComputePipelineReflection() :
+        ns::Object<MTLComputePipelineReflection*, true>([[MTLComputePipelineReflection alloc] init], false)
     {
     }
+	
+	ns::Array<Argument> AutoReleasedComputePipelineReflection::GetArguments() const
+	{
+		Validate();
+		return [m_ptr arguments];
+	}
+	ComputePipelineReflection::ComputePipelineReflection() :
+	ns::Object<MTLComputePipelineReflection*>([[MTLComputePipelineReflection alloc] init], false)
+	{
+	}
+	
+	ns::Array<Argument> ComputePipelineReflection::GetArguments() const
+	{
+		Validate();
+		return [m_ptr arguments];
+	}
+	
+	ComputePipelineReflection::ComputePipelineReflection(const AutoReleasedComputePipelineReflection& rhs)
+	{
+		operator=(rhs);
+	}
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	ComputePipelineReflection::ComputePipelineReflection(const AutoReleasedComputePipelineReflection&& rhs)
+	{
+		operator=(rhs);
+	}
+#endif
+	ComputePipelineReflection& ComputePipelineReflection::operator=(const AutoReleasedComputePipelineReflection& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+		}
+		return *this;
+	}
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	ComputePipelineReflection& ComputePipelineReflection::operator=(AutoReleasedComputePipelineReflection&& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+			rhs.m_ptr = nullptr;
+			rhs.m_table = nullptr;
+		}
+		return *this;
+	}
+#endif
+	
 
     ComputePipelineDescriptor::ComputePipelineDescriptor() :
         ns::Object<MTLComputePipelineDescriptor*>([[MTLComputePipelineDescriptor alloc] init], false)
@@ -52,7 +120,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Array<PipelineBufferDescriptor>((NSArray*)[(MTLComputePipelineDescriptor*)m_ptr buffers]);
+		return ns::Array<PipelineBufferDescriptor>((NSArray<MTLPipelineBufferDescriptor*>*)[(MTLComputePipelineDescriptor*)m_ptr buffers]);
 #else
 		return ns::Array<PipelineBufferDescriptor>();
 #endif
@@ -83,50 +151,44 @@ namespace mtlpp
         [(MTLComputePipelineDescriptor*)m_ptr setStageInputDescriptor:(MTLStageInputOutputDescriptor*)stageInputDescriptor.GetPtr()];
 #endif
     }
-	
-	void ComputePipelineDescriptor::SetBuffers(ns::Array<PipelineBufferDescriptor> const& array)
-	{
-		Validate();
-#if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		ns::Array<PipelineBufferDescriptor>([(MTLComputePipelineDescriptor*)m_ptr setBuffers:(MTLPipelineBufferDescriptorArray *)array.GetPtr()]);
-#endif
-	}
 
     Device ComputePipelineState::GetDevice() const
     {
         Validate();
-        return [(id<MTLComputePipelineState>)m_ptr device];
+		return m_table->Device(m_ptr);
     }
 
-    uint32_t ComputePipelineState::GetMaxTotalThreadsPerThreadgroup() const
+    NSUInteger ComputePipelineState::GetMaxTotalThreadsPerThreadgroup() const
     {
         Validate();
-        return uint32_t([(id<MTLComputePipelineState>)m_ptr maxTotalThreadsPerThreadgroup]);
+		return m_table->maxTotalThreadsPerThreadgroup(m_ptr);
     }
 
-    uint32_t ComputePipelineState::GetThreadExecutionWidth() const
+    NSUInteger ComputePipelineState::GetThreadExecutionWidth() const
     {
         Validate();
-        return uint32_t([(id<MTLComputePipelineState>)m_ptr threadExecutionWidth]);
+		return m_table->threadExecutionWidth(m_ptr);
     }
 	
-	uint32_t ComputePipelineState::GetStaticThreadgroupMemoryLength() const
+	NSUInteger ComputePipelineState::GetStaticThreadgroupMemoryLength() const
 	{
 		Validate();
-#if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return uint32_t([(id<MTLComputePipelineState>)m_ptr staticThreadgroupMemoryLength]);
+#if MTLPP_IS_AVAILABLE(10_13, 11_0)
+		return m_table->staticThreadgroupMemoryLength(m_ptr);
 #else
 		return 0;
 #endif
 	}
 	
-	uint32_t ComputePipelineState::GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions)
+	NSUInteger ComputePipelineState::GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_IOS(11_0)
-		return uint32_t([(id<MTLComputePipelineState>)m_ptr imageblockMemoryLengthForDimensions:MTLSizeMake(imageblockDimensions.Width, imageblockDimensions.Height, imageblockDimensions.Depth)]);
+		return m_table->imageblockMemoryLengthForDimensions(m_ptr, imageblockDimensions);
 #else
 		return 0;
 #endif
 	}
 }
+
+MTLPP_END

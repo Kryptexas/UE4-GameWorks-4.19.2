@@ -211,6 +211,21 @@ enum EIndirectLightingCacheQuality
 };
 
 UENUM()
+enum class ELightmapType : uint8
+{
+	/** Use the default based on Mobility: Surface Lightmap for Static components, Volumetric Lightmap for Movable components. */
+	Default,
+	/** Force Surface Lightmap, even if the component moves, which should otherwise change the lighting.  This is only supported on components which support surface lightmaps, like static meshes. */
+	ForceSurface,
+	/** 
+	 * Force Volumetric Lightmaps, even if the component is static and could have supported surface lightmaps. 
+	 * Volumetric Lightmaps have better directionality and no Lightmap UV seams, but are much lower resolution than Surface Lightmaps and frequently have self-occlusion and leaking problems.
+	 * Note: Lightmass currently requires valid lightmap UVs and sufficient lightmap resolution to compute bounce lighting, even though the Volumetric Lightmap will be used at runtime.
+	 */
+	ForceVolumetric
+};
+
+UENUM()
 enum EOcclusionCombineMode
 {
 	/** Take the minimum occlusion value.  This is effective for avoiding over-occlusion from multiple methods, but can result in indoors looking too flat. */

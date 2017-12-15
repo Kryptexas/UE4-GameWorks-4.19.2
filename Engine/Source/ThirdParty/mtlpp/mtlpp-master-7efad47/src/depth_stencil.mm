@@ -5,8 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "depth_stencil.hpp"
 #include <Metal/MTLDepthStencil.h>
+#include "depth_stencil.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -42,13 +44,13 @@ namespace mtlpp
     uint32_t StencilDescriptor::GetReadMask() const
     {
         Validate();
-        return uint32_t([(MTLStencilDescriptor*)m_ptr readMask]);
+        return ([(MTLStencilDescriptor*)m_ptr readMask]);
     }
 
     uint32_t StencilDescriptor::GetWriteMask() const
     {
         Validate();
-        return uint32_t([(MTLStencilDescriptor*)m_ptr writeMask]);
+        return ([(MTLStencilDescriptor*)m_ptr writeMask]);
     }
 
     void StencilDescriptor::SetStencilCompareFunction(CompareFunction stencilCompareFunction)
@@ -155,12 +157,14 @@ namespace mtlpp
     ns::String DepthStencilState::GetLabel() const
     {
         Validate();
-        return [(id<MTLDepthStencilState>)m_ptr label];
+		return m_table->Label(m_ptr);
     }
 
     Device DepthStencilState::GetDevice() const
     {
         Validate();
-        return [(id<MTLDepthStencilState>)m_ptr device];
+		return m_table->Device(m_ptr);
     }
 }
+
+MTLPP_END

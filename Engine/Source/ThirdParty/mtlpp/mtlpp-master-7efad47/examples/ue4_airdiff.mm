@@ -4,22 +4,22 @@
 
 bool DumpAIR(ns::String const& sourcePath, ns::String const& tmpOutput, ns::String const& LibOutput, mtlpp::CompilerOptions const& options)
 {
-	ns::Error Error;
-	bool bOK = mtlpp::Compiler::Compile(sourcePath, tmpOutput, options, &Error);
+	ns::AutoReleasedError AutoReleasedError;
+	bool bOK = mtlpp::Compiler::Compile(sourcePath, tmpOutput, options, &AutoReleasedError);
 	
-	if (Error.GetPtr())
+	if (AutoReleasedError.GetPtr())
 	{
-		NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"Error", Error.GetDomain().GetPtr(), Error.GetCode(), Error.GetLocalizedDescription().GetPtr(), Error.GetLocalizedFailureReason().GetPtr());
+		NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"AutoReleasedError", AutoReleasedError.GetDomain().GetPtr(), AutoReleasedError.GetCode(), AutoReleasedError.GetLocalizedDescription().GetPtr(), AutoReleasedError.GetLocalizedFailureReason().GetPtr());
 	}
 	
 	if (bOK)
 	{
 		ns::Array<ns::String> Array = @[ tmpOutput.GetPtr() ];
-		bOK = mtlpp::Compiler::Link(Array, LibOutput, options, &Error);
+		bOK = mtlpp::Compiler::Link(Array, LibOutput, options, &AutoReleasedError);
 		
-		if (Error.GetPtr())
+		if (AutoReleasedError.GetPtr())
 		{
-			NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"Error", Error.GetDomain().GetPtr(), Error.GetCode(), Error.GetLocalizedDescription().GetPtr(), Error.GetLocalizedFailureReason().GetPtr());
+			NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"AutoReleasedError", AutoReleasedError.GetDomain().GetPtr(), AutoReleasedError.GetCode(), AutoReleasedError.GetLocalizedDescription().GetPtr(), AutoReleasedError.GetLocalizedFailureReason().GetPtr());
 		}
 	}
 	

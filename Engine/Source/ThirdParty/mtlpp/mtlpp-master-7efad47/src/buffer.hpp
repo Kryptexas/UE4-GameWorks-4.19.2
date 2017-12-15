@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Buffer.hpp"
 #include "pixel_format.hpp"
 #include "resource.hpp"
 
-MTLPP_PROTOCOL(MTLBuffer);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -22,14 +24,20 @@ namespace mtlpp
     {
     public:
         Buffer() { }
-        Buffer(ns::Protocol<id<MTLBuffer>>::type handle) : Resource((ns::Protocol<id<MTLResource>>::type)handle) { }
+		Buffer(ns::Protocol<id<MTLBuffer>>::type handle);
 
-        uint32_t GetLength() const;
+		inline const ns::Protocol<id<MTLBuffer>>::type GetPtr() const { return (ns::Protocol<id<MTLBuffer>>::type)m_ptr; }
+		inline ns::Protocol<id<MTLBuffer>>::type* GetInnerPtr() { return (ns::Protocol<id<MTLBuffer>>::type*)&m_ptr; }
+		operator ns::Protocol<id<MTLBuffer>>::type() const { return (ns::Protocol<id<MTLBuffer>>::type)m_ptr; }
+		
+        NSUInteger GetLength() const;
         void*    GetContents();
         void     DidModify(const ns::Range& range) MTLPP_AVAILABLE_MAC(10_11);
-        Texture  NewTexture(const TextureDescriptor& descriptor, uint32_t offset, uint32_t bytesPerRow) MTLPP_AVAILABLE(10_13, 8_0);
+        Texture  NewTexture(const TextureDescriptor& descriptor, NSUInteger offset, NSUInteger bytesPerRow) MTLPP_AVAILABLE(10_13, 8_0);
         void     AddDebugMarker(const ns::String& marker, const ns::Range& range) MTLPP_AVAILABLE(10_12, 10_0);
         void     RemoveAllDebugMarkers() MTLPP_AVAILABLE(10_12, 10_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

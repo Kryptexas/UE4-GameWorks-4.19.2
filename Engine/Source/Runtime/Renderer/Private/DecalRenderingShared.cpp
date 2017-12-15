@@ -59,7 +59,7 @@ class FDeferredDecalVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FDeferredDecalVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -105,7 +105,7 @@ public:
 	  * as 'UsedAsDeferredDecal' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsDeferredDecal();
 	}

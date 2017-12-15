@@ -5,8 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "function_constant_values.hpp"
 #include <Metal/MTLFunctionConstantValues.h>
+#include "function_constant_values.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -19,7 +21,7 @@ namespace mtlpp
     {
     }
 
-    void FunctionConstantValues::SetConstantValue(const void* value, DataType type, uint32_t index)
+    void FunctionConstantValues::SetConstantValue(const void* value, DataType type, NSUInteger index)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -51,3 +53,5 @@ namespace mtlpp
 #endif
     }
 }
+
+MTLPP_END

@@ -934,14 +934,8 @@ float SampleCachedSceneDepthTexture(in FTAAInputParameters InputParams, int2 Pix
 }
 
 
-#else // !defined(AA_PRECACHE_SCENE_DEPTH)
+#endif // define(AA_PRECACHE_SCENE_DEPTH)
 
-// Silently do no scene depth precaching.
-void PrecacheInputSceneDepthToLDS(in FTAAInputParameters InputParams)
-{ }
-
-
-#endif // !define(AA_PRECACHE_SCENE_DEPTH)
 
 //-------------------------------- Share color texture fetches.
 
@@ -1071,29 +1065,26 @@ FTAASceneColorSample SampleCachedSceneColorTexture(
 }
 
 
-#else // !defined(AA_PRECACHE_SCENE_COLOR)
-
-// Silently do no scene color precaching.
-void PrecacheInputSceneColorToLDS(in FTAAInputParameters InputParams)
-{
-
-}
-
-
-#endif // !defined(AA_PRECACHE_SCENE_COLOR)
+#endif // defined(AA_PRECACHE_SCENE_COLOR)
 
 
 void PrecacheInputSceneDepth(in FTAAInputParameters InputParams)
 {
-	PrecacheInputSceneDepthToLDS(InputParams);
-	AllMemoryBarrierWithGroupSync();
+	#if defined(AA_PRECACHE_SCENE_DEPTH)
+		PrecacheInputSceneDepthToLDS(InputParams);
+		GroupMemoryBarrierWithGroupSync();
+	#endif
 }
 
 void PrecacheInputSceneColor(in FTAAInputParameters InputParams)
 {
-	AllMemoryBarrierWithGroupSync();
-	PrecacheInputSceneColorToLDS(InputParams);
-	AllMemoryBarrierWithGroupSync();
+	#if defined(AA_PRECACHE_SCENE_DEPTH) && defined(AA_PRECACHE_SCENE_COLOR)
+		GroupMemoryBarrierWithGroupSync();
+	#endif
+	#if defined(AA_PRECACHE_SCENE_COLOR)
+		PrecacheInputSceneColorToLDS(InputParams);
+		GroupMemoryBarrierWithGroupSync();
+	#endif
 }
 
 
@@ -1615,7 +1606,7 @@ float4 TemporalAASample(uint2 GroupId, uint2 GroupThreadId, uint GroupThreadInde
 		InputParams.GroupThreadId = GroupThreadId;
 		InputParams.GroupThreadIndex = GroupThreadIndex;
 		InputParams.ViewportUV = ViewportUV;
-		InputParams.ScreenPos = 2 * float2(ViewportUV.x, 1 - ViewportUV.y) - 1;
+		InputParams.ScreenPos = ViewportUVToScreenPos(ViewportUV);
 		InputParams.NearestBufferUV = ViewportUVToBufferUV(ViewportUV);
 
 		// Handle single or multi-pass responsive AA

@@ -35,9 +35,9 @@ class FPostProcessBloomSetupVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomSetupVS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -76,14 +76,14 @@ class FPostProcessBloomSetupPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomSetupPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		//Need to hack in exposure scale for < SM5
 		OutEnvironment.SetDefine(TEXT("NO_EYEADAPTATION_EXPOSURE_FIX"), 1);
@@ -288,9 +288,9 @@ class FPostProcessBloomSetupSmallVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomSetupSmallVS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -328,14 +328,9 @@ class FPostProcessBloomSetupSmallPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomSetupSmallPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessBloomSetupSmallPS_ES2() {}
@@ -502,15 +497,10 @@ class FPostProcessBloomDownPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomDownPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessBloomDownPS_ES2() {}
 
@@ -547,9 +537,9 @@ class FPostProcessBloomDownVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomDownVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessBloomDownVS_ES2(){}
@@ -679,15 +669,10 @@ class FPostProcessBloomUpPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomUpPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessBloomUpPS_ES2() {}
 
@@ -730,9 +715,9 @@ class FPostProcessBloomUpVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomUpVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessBloomUpVS_ES2(){}
@@ -866,14 +851,14 @@ class FPostProcessSunMaskPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMaskPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_DEPTHTEXTURE"), bUseDepthTexture ? (uint32)1 : (uint32)0);
 		CA_SUPPRESS(6313);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_MSAA"), (UseFetchSunDof & 8) ? (uint32)1 : (uint32)0);
@@ -942,9 +927,9 @@ class FPostProcessSunMaskVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMaskVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunMaskVS_ES2(){}
@@ -1158,14 +1143,14 @@ class FPostProcessSunAlphaPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunAlphaPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_DOF"), UseDof ? (uint32)1 : (uint32)0);
 	}
 
@@ -1205,9 +1190,9 @@ class FPostProcessSunAlphaVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunAlphaVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunAlphaVS_ES2(){}
@@ -1358,15 +1343,10 @@ class FPostProcessSunBlurPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunBlurPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessSunBlurPS_ES2() {}
 
@@ -1402,9 +1382,9 @@ class FPostProcessSunBlurVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunBlurVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunBlurVS_ES2(){}
@@ -1537,14 +1517,14 @@ class FPostProcessSunMergePS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMergePS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		CA_SUPPRESS(6313);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_BLOOM"), (UseSunBloom & 1) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_SUN"), (UseSunBloom >> 1) ? (uint32)1 : (uint32)0);
@@ -1607,9 +1587,9 @@ class FPostProcessSunMergeVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMergeVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunMergeVS_ES2(){}
@@ -1779,15 +1759,10 @@ class FPostProcessSunMergeSmallPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMergeSmallPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessSunMergeSmallPS_ES2() {}
 
@@ -1841,9 +1816,9 @@ class FPostProcessSunMergeSmallVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMergeSmallVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunMergeSmallVS_ES2(){}
@@ -1991,9 +1966,9 @@ class FPostProcessDofDownVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofDownVS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -2032,14 +2007,14 @@ class FPostProcessDofDownPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofDownPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_SUN"), UseSun ? (uint32)1 : (uint32)0);
 	}
 
@@ -2214,9 +2189,9 @@ class FPostProcessDofNearVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofNearVS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -2255,14 +2230,14 @@ class FPostProcessDofNearPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofNearPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_SUN"), UseSun ? (uint32)1 : (uint32)0);
 	}
 
@@ -2417,15 +2392,10 @@ class FPostProcessDofBlurPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofBlurPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessDofBlurPS_ES2() {}
 
@@ -2461,9 +2431,9 @@ class FPostProcessDofBlurVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDofBlurVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessDofBlurVS_ES2(){}
@@ -2591,15 +2561,10 @@ class FPostProcessSunAvgPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunAvgPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessSunAvgPS_ES2() {}
 
@@ -2636,9 +2601,9 @@ class FPostProcessSunAvgVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunAvgVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessSunAvgVS_ES2(){}
@@ -2777,15 +2742,10 @@ class FPostProcessAaPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAaPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}	
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	}
 
 	FPostProcessAaPS_ES2() {}
 
@@ -2818,10 +2778,10 @@ public:
 			const FViewInfo& View = Context.View;
 
 			FMatrix Proj = View.ViewMatrices.ComputeProjectionNoAAMatrix();
-			FMatrix PrevProj = ViewState->PrevViewMatrices.ComputeProjectionNoAAMatrix();
+			FMatrix PrevProj = View.PrevViewInfo.ViewMatrices.ComputeProjectionNoAAMatrix();
 
-			FMatrix ViewProj = ( Context.View.ViewMatrices.GetViewMatrix() * Proj ).GetTransposed();
-			FMatrix PrevViewProj = ( ViewState->PrevViewMatrices.GetViewMatrix() * PrevProj ).GetTransposed();
+			FMatrix ViewProj = ( View.ViewMatrices.GetViewMatrix() * Proj ).GetTransposed();
+			FMatrix PrevViewProj = ( View.PrevViewInfo.ViewMatrices.GetViewMatrix() * PrevProj ).GetTransposed();
 
 			double InvViewProj[16];
 			Inverse4x4( InvViewProj, (float*)ViewProj.M );
@@ -2889,9 +2849,9 @@ class FPostProcessAaVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAaVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessAaVS_ES2(){}

@@ -293,8 +293,8 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, float3 SkyOcclusionUV
 }
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define ILCSharedSampler1 View.SharedBilinearClampSampler
-	#define ILCSharedSampler2 View.SharedBilinearClampSampler
+	#define ILCSharedSampler1 View.SharedBilinearClampedSampler
+	#define ILCSharedSampler2 View.SharedBilinearClampedSampler
 #else
 	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1
 	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2

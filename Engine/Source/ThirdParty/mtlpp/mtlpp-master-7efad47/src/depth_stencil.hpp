@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_DepthStencil.hpp"
 #include "ns.hpp"
 #include "device.hpp"
 
-MTLPP_CLASS(MTLStencilDescriptor);
-MTLPP_CLASS(MTLDepthStencilDescriptor);
-MTLPP_PROTOCOL(MTLDepthStencilState);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -96,3 +96,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

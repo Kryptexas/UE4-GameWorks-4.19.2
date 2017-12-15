@@ -306,6 +306,8 @@ VoxelDataType NearestVolumeLookup(FVector Coordinate, FIntVector DataDimensions,
 	return Data[LinearIndex];
 }
 
+extern ENGINE_API FVector ComputeIndirectionCoordinate(FVector LookupPosition, const FBox& VolumeBounds, FIntVector IndirectionTextureDimensions);
+
 extern ENGINE_API void SampleIndirectionTexture(
 	FVector IndirectionDataSourceCoordinate,
 	FIntVector IndirectionTextureDimensions,

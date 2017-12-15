@@ -1785,8 +1785,14 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		CompileErrors.Empty();
 	}
 
-	// Note: this is safe to set from the game thread because we should be between the RenderFences of an FMaterialUpdateContext
-	RenderingThreadShaderMap = GameThreadShaderMap;
+	// Enqueue the final shader map update
+	FMaterial* Material = this;
+	ENQUEUE_RENDER_COMMAND(UpdateRenderThreadShaderMap)(
+		[Material](FRHICommandListImmediate& RHICmdList)
+		{	
+			Material->RenderingThreadShaderMap = Material->GameThreadShaderMap;
+		}
+	);
 
 	return bSucceeded;
 }
@@ -1828,7 +1834,7 @@ bool FMaterial::BeginCompileShaderMap(
 		const FString MaterialShaderCode = MaterialTranslator.GetMaterialShaderCode();
 		const bool bSynchronousCompile = RequiresSynchronousCompilation() || !GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
-		MaterialEnvironment->IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/Material.ush"), StringToArray<ANSICHAR>(*MaterialShaderCode, MaterialShaderCode.Len() + 1));
+		MaterialEnvironment->IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/Material.ush"), MaterialShaderCode);
 
 		// Compile the shaders for the material.
 		NewShaderMap->Compile(this, ShaderMapId, MaterialEnvironment, NewCompilationOutput, Platform, bSynchronousCompile, bApplyCompletedShaderMapForRendering);

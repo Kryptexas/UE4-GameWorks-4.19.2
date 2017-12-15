@@ -1653,6 +1653,8 @@ namespace VulkanRHI
 
 	void FTempFrameAllocationBuffer::Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo)
 	{
+		FScopeLock ScopeLock(&CS);
+
 		if (Entries[BufferIndex].TryAlloc(InSize, InAlignment, OutInfo))
 		{
 			return;
@@ -1670,6 +1672,7 @@ namespace VulkanRHI
 
 	void FTempFrameAllocationBuffer::Reset()
 	{
+		FScopeLock ScopeLock(&CS);
 		BufferIndex = (BufferIndex + 1) % NUM_RENDER_BUFFERS;
 		Entries[BufferIndex].Reset();
 	}

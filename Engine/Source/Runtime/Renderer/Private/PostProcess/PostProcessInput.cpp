@@ -6,7 +6,7 @@
 
 #include "PostProcess/PostProcessInput.h"
 
-FRCPassPostProcessInput::FRCPassPostProcessInput(TRefCountPtr<IPooledRenderTarget>& InData)
+FRCPassPostProcessInput::FRCPassPostProcessInput(const TRefCountPtr<IPooledRenderTarget>& InData)
 	: Data(InData)
 {
 }

@@ -7,20 +7,18 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_RenderPipeline.hpp"
 #include "device.hpp"
 #include "render_command_encoder.hpp"
 #include "render_pass.hpp"
 #include "pixel_format.hpp"
 #include "argument.hpp"
+#include "pipeline.hpp"
 #include "function_constant_values.hpp"
 
-MTLPP_CLASS(MTLRenderPipelineColorAttachmentDescriptor);
-MTLPP_CLASS(MTLRenderPipelineReflection);
-MTLPP_CLASS(MTLRenderPipelineDescriptor);
-MTLPP_PROTOCOL(MTLRenderPipelineState);
-MTLPP_CLASS(MTLTileRenderPipelineColorAttachmentDescriptor);
-MTLPP_CLASS(MTLTileRenderPipelineDescriptor);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -141,17 +139,47 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class RenderPipelineReflection : public ns::Object<MTLRenderPipelineReflection*>
+    class AutoReleasedRenderPipelineReflection : public ns::Object<MTLRenderPipelineReflection*, true>
     {
+		AutoReleasedRenderPipelineReflection(const AutoReleasedRenderPipelineReflection& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedRenderPipelineReflection(AutoReleasedRenderPipelineReflection&& rhs) = delete;
+#endif
+		AutoReleasedRenderPipelineReflection& operator=(const AutoReleasedRenderPipelineReflection& rhs) = delete;
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		AutoReleasedRenderPipelineReflection& operator=(AutoReleasedRenderPipelineReflection&& rhs) = delete;
+#endif
+		
+		friend class RenderPipelineReflection;
     public:
-        RenderPipelineReflection();
-        RenderPipelineReflection(MTLRenderPipelineReflection* handle) : ns::Object<MTLRenderPipelineReflection*>(handle) { }
+        AutoReleasedRenderPipelineReflection();
+        AutoReleasedRenderPipelineReflection(MTLRenderPipelineReflection* handle) : ns::Object<MTLRenderPipelineReflection*, true>(handle) { }
 
         const ns::Array<Argument> GetVertexArguments() const;
         const ns::Array<Argument> GetFragmentArguments() const;
 		const ns::Array<Argument> GetTileArguments() const;
     }
     MTLPP_AVAILABLE(10_11, 8_0);
+	
+	class RenderPipelineReflection : public ns::Object<MTLRenderPipelineReflection*>
+	{
+	public:
+		RenderPipelineReflection();
+		RenderPipelineReflection(MTLRenderPipelineReflection* handle) : ns::Object<MTLRenderPipelineReflection*>(handle) { }
+		RenderPipelineReflection(const AutoReleasedRenderPipelineReflection& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		RenderPipelineReflection(const AutoReleasedRenderPipelineReflection&& rhs);
+#endif
+		RenderPipelineReflection& operator=(const AutoReleasedRenderPipelineReflection& rhs);
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+		RenderPipelineReflection& operator=(AutoReleasedRenderPipelineReflection&& rhs);
+#endif
+		
+		const ns::Array<Argument> GetVertexArguments() const;
+		const ns::Array<Argument> GetFragmentArguments() const;
+		const ns::Array<Argument> GetTileArguments() const;
+	}
+	MTLPP_AVAILABLE(10_11, 8_0);
 
     class RenderPipelineDescriptor : public ns::Object<MTLRenderPipelineDescriptor*>
     {
@@ -163,7 +191,7 @@ namespace mtlpp
         Function                                           GetVertexFunction() const;
         Function                                           GetFragmentFunction() const;
         VertexDescriptor                                   GetVertexDescriptor() const;
-        uint32_t                                           GetSampleCount() const;
+        NSUInteger                                           GetSampleCount() const;
         bool                                               IsAlphaToCoverageEnabled() const;
         bool                                               IsAlphaToOneEnabled() const;
         bool                                               IsRasterizationEnabled() const;
@@ -172,7 +200,7 @@ namespace mtlpp
         PixelFormat                                        GetStencilAttachmentPixelFormat() const;
         PrimitiveTopologyClass                             GetInputPrimitiveTopology() const MTLPP_AVAILABLE_MAC(10_11);
         TessellationPartitionMode                          GetTessellationPartitionMode() const MTLPP_AVAILABLE(10_12, 10_0);
-        uint32_t                                           GetMaxTessellationFactor() const MTLPP_AVAILABLE(10_12, 10_0);
+        NSUInteger                                           GetMaxTessellationFactor() const MTLPP_AVAILABLE(10_12, 10_0);
         bool                                               IsTessellationFactorScaleEnabled() const MTLPP_AVAILABLE(10_12, 10_0);
         TessellationFactorFormat                           GetTessellationFactorFormat() const MTLPP_AVAILABLE(10_12, 10_0);
         TessellationControlPointIndexType                  GetTessellationControlPointIndexType() const MTLPP_AVAILABLE(10_12, 10_0);
@@ -187,7 +215,7 @@ namespace mtlpp
         void SetVertexFunction(const Function& vertexFunction);
         void SetFragmentFunction(const Function& fragmentFunction);
         void SetVertexDescriptor(const VertexDescriptor& vertexDescriptor);
-        void SetSampleCount(uint32_t sampleCount);
+        void SetSampleCount(NSUInteger sampleCount);
         void SetAlphaToCoverageEnabled(bool alphaToCoverageEnabled);
         void SetAlphaToOneEnabled(bool alphaToOneEnabled);
         void SetRasterizationEnabled(bool rasterizationEnabled);
@@ -195,16 +223,12 @@ namespace mtlpp
         void SetStencilAttachmentPixelFormat(PixelFormat stencilAttachmentPixelFormat);
         void SetInputPrimitiveTopology(PrimitiveTopologyClass inputPrimitiveTopology) MTLPP_AVAILABLE_MAC(10_11);
         void SetTessellationPartitionMode(TessellationPartitionMode tessellationPartitionMode) MTLPP_AVAILABLE(10_12, 10_0);
-        void SetMaxTessellationFactor(uint32_t maxTessellationFactor) MTLPP_AVAILABLE(10_12, 10_0);
+        void SetMaxTessellationFactor(NSUInteger maxTessellationFactor) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationFactorScaleEnabled(bool tessellationFactorScaleEnabled) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationFactorFormat(TessellationFactorFormat tessellationFactorFormat) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationControlPointIndexType(TessellationControlPointIndexType tessellationControlPointIndexType) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationFactorStepFunction(TessellationFactorStepFunction tessellationFactorStepFunction) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationOutputWindingOrder(Winding tessellationOutputWindingOrder) MTLPP_AVAILABLE(10_12, 10_0);
-
-		
-		void SetVertexBuffers(ns::Array<PipelineBufferDescriptor> const& array) MTLPP_AVAILABLE(10_13, 11_0);
-		void SetFragmentBuffers(ns::Array<PipelineBufferDescriptor> const& array) MTLPP_AVAILABLE(10_13, 11_0);
 		
         void Reset();
     }
@@ -219,10 +243,10 @@ namespace mtlpp
         ns::String GetLabel() const;
         Device     GetDevice() const;
 		
-		uint32_t GetMaxTotalThreadsPerThreadgroup() const MTLPP_AVAILABLE_IOS(11_0);
+		NSUInteger GetMaxTotalThreadsPerThreadgroup() const MTLPP_AVAILABLE_IOS(11_0);
 		bool GetThreadgroupSizeMatchesTileSize() const MTLPP_AVAILABLE_IOS(11_0);
-		uint32_t GetImageblockSampleLength() const MTLPP_AVAILABLE_IOS(11_0);
-		uint32_t GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) const MTLPP_AVAILABLE_IOS(11_0);
+		NSUInteger GetImageblockSampleLength() const MTLPP_AVAILABLE_IOS(11_0);
+		NSUInteger GetImageblockMemoryLengthForDimensions(Size const& imageblockDimensions) const MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 	
@@ -246,7 +270,7 @@ namespace mtlpp
 		
 		ns::String                                         GetLabel() const;
 		Function                                           GetTileFunction() const;
-		uint32_t                                           GetRasterSampleCount() const;
+		NSUInteger                                           GetRasterSampleCount() const;
 		ns::Array<TileRenderPipelineColorAttachmentDescriptor> GetColorAttachments() const;
 		bool                                        GetThreadgroupSizeMatchesTileSize() const;
 		ns::Array<PipelineBufferDescriptor> GetTileBuffers() const MTLPP_AVAILABLE_IOS(11_0);
@@ -254,11 +278,12 @@ namespace mtlpp
 		
 		void SetLabel(const ns::String& label);
 		void SetTileFunction(const Function& tileFunction);
-		void SetRasterSampleCount(uint32_t sampleCount);
+		void SetRasterSampleCount(NSUInteger sampleCount);
 		void SetThreadgroupSizeMatchesTileSize(bool threadgroupSizeMatchesTileSize);
-		void SetTileBuffers(ns::Array<PipelineBufferDescriptor> const& array) MTLPP_AVAILABLE_IOS(11_0);
 		
 		void Reset();
 	}
 	MTLPP_AVAILABLE_IOS(11_0);
 }
+
+MTLPP_END

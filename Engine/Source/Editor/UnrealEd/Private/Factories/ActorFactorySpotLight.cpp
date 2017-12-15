@@ -11,16 +11,16 @@
 void UActorFactorySpotLight::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
 	// Make all spawned actors use the candela units.
-	TArray<UPointLightComponent*> PointLightComponents;
-	NewActor->GetComponents<UPointLightComponent>(PointLightComponents);
-	for (UPointLightComponent* Component : PointLightComponents)
+	TArray<USpotLightComponent*> SpotLightComponents;
+	NewActor->GetComponents<USpotLightComponent>(SpotLightComponents);
+	for (USpotLightComponent* Component : SpotLightComponents)
 	{
 		if (Component && Component->CreationMethod == EComponentCreationMethod::Native)
 		{
 			static const auto CVarDefaultSpotLightUnits = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DefaultFeature.SpotLightUnits"));
 			ELightUnits DefaultUnits = (ELightUnits)CVarDefaultSpotLightUnits->GetValueOnAnyThread();
 
-			Component->Intensity *= UPointLightComponent::GetUnitsConversionFactor(Component->IntensityUnits, DefaultUnits);
+			Component->Intensity *= UPointLightComponent::GetUnitsConversionFactor(Component->IntensityUnits, DefaultUnits, Component->GetCosHalfConeAngle());
 			Component->IntensityUnits = DefaultUnits;
 		}
 	}

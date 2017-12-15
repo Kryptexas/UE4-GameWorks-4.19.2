@@ -1,6 +1,6 @@
-#import "window.hpp"
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
+#import "window.hpp"
 
 @interface WindowViewController : NSViewController<MTKViewDelegate> {
     @public void (*m_render)(const Window&);

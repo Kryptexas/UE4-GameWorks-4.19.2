@@ -793,6 +793,56 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
 END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData)
 
+// Structure in charge of storing all information about TAA's history.
+struct FTemporalAAHistory
+{
+	// Render targets holding's pixel history.
+	//  scene color's RGBA are in RT[0].
+	TRefCountPtr<IPooledRenderTarget> RT[2];
+
+	// Reference size of RT. Might be different than RT's actual size to handle down res.
+	FIntPoint ReferenceBufferSize;
+
+	// Viewport coordinate of the history in RT according to ReferenceBufferSize.
+	FIntRect ViewportRect;
+
+	// Scene color's PreExposure.
+	float SceneColorPreExposure;
+
+
+	void SafeRelease()
+	{
+		RT[0].SafeRelease();
+		RT[1].SafeRelease();
+	}
+
+	bool IsValid() const
+	{
+		return RT[0].IsValid();
+	}
+};
+
+// Structure that hold all information related to previous frame.
+struct FPreviousViewInfo
+{
+	// View matrices.
+	FViewMatrices ViewMatrices;
+
+	// Temporal AA result of last frame
+	FTemporalAAHistory TemporalAAHistory;
+
+	// Scene color input for SSR, that can be different from TemporalAAHistory.RT[0] if there is a SSR
+	// input post process material.
+	TRefCountPtr<IPooledRenderTarget> CustomSSRInput;
+
+
+	void SafeRelease()
+	{
+		TemporalAAHistory.SafeRelease();
+		CustomSSRInput.SafeRelease();
+	}
+};
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
@@ -975,7 +1025,8 @@ public:
 	/** Bitmask of all shading models used by primitives in this view */
 	uint16 ShadingModelMaskInView;
 
-	FViewMatrices PrevViewMatrices;
+	// Previous frame view info to use for this view.
+	FPreviousViewInfo PrevViewInfo;
 
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	int32 NumVisibleStaticMeshElements;
@@ -1080,7 +1131,7 @@ public:
 	{
 		SetupUniformBufferParameters(SceneContext,
 			ViewMatrices,
-			PrevViewMatrices,
+			PrevViewInfo.ViewMatrices,
 			OutTranslucentCascadeBoundsArray,
 			NumTranslucentCascades,
 			ViewUniformShaderParameters);
@@ -1156,7 +1207,7 @@ public:
 		}
 	}
 
-	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }
+	inline FVector GetPrevViewDirection() const { return PrevViewInfo.ViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;

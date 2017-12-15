@@ -5,22 +5,22 @@
 
 bool CompileAndLink(ns::String const& sourcePath, ns::String const& tmpOutput, ns::String const& LibOutput, mtlpp::CompilerOptions const& options)
 {
-	ns::Error Error;
-	bool bOK = mtlpp::Compiler::Compile(sourcePath, tmpOutput, options, &Error);
+	ns::AutoReleasedError AutoReleasedError;
+	bool bOK = mtlpp::Compiler::Compile(sourcePath, tmpOutput, options, &AutoReleasedError);
 	
-	if (Error.GetPtr())
+	if (AutoReleasedError.GetPtr())
 	{
-		NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"Error", Error.GetDomain().GetPtr(), Error.GetCode(), Error.GetLocalizedDescription().GetPtr(), Error.GetLocalizedFailureReason().GetPtr());
+		NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"AutoReleasedError", AutoReleasedError.GetDomain().GetPtr(), AutoReleasedError.GetCode(), AutoReleasedError.GetLocalizedDescription().GetPtr(), AutoReleasedError.GetLocalizedFailureReason().GetPtr());
 	}
 	
 	if (bOK)
 	{
 		ns::Array<ns::String> Array = @[ tmpOutput.GetPtr() ];
-		bOK = mtlpp::Compiler::Link(Array, LibOutput, options, &Error);
+		bOK = mtlpp::Compiler::Link(Array, LibOutput, options, &AutoReleasedError);
 		
-		if (Error.GetPtr())
+		if (AutoReleasedError.GetPtr())
 		{
-			NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"Error", Error.GetDomain().GetPtr(), Error.GetCode(), Error.GetLocalizedDescription().GetPtr(), Error.GetLocalizedFailureReason().GetPtr());
+			NSLog(@"%@: %@ %d %@ %@", bOK ? @"Warning" : @"AutoReleasedError", AutoReleasedError.GetDomain().GetPtr(), AutoReleasedError.GetCode(), AutoReleasedError.GetLocalizedDescription().GetPtr(), AutoReleasedError.GetLocalizedFailureReason().GetPtr());
 		}
 	}
 	
@@ -1386,7 +1386,7 @@ bool ParseComputePipelineDesc(const char* descriptor_path, mtlpp::Library const&
 							uint32 IndexType = (uint32)val;
 							Values.SetConstantValue(&IndexType, mtlpp::DataType::UInt, ns::String(@"indexBufferType"));
 							
-							ns::Error error;
+							ns::AutoReleasedError error;
 							mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0], Values, &error);
 							if (error.GetPtr())
 							{
@@ -1676,7 +1676,7 @@ int main(int argc, const char * argv[])
 			bOK = CompileAndLink([NSString stringWithUTF8String:compute_path], @"/tmp/Compute.tmp", @"/tmp/Compute.metallib", Options);
 			if (bOK)
 			{
-				ns::Error error;
+				ns::AutoReleasedError error;
 				ComputeLib = device->NewLibrary(ns::String(@"/tmp/Compute.metallib"), &error);
 				if (error.GetPtr())
 				{
@@ -1695,7 +1695,7 @@ int main(int argc, const char * argv[])
 					// Compile pipeline
 					if (bOK)
 					{
-						ns::Error error;
+						ns::AutoReleasedError error;
 						mtlpp::ComputePipelineState state = device->NewComputePipelineState(descriptor, mtlpp::PipelineOption::None, nullptr, &error);
 						if (error.GetPtr())
 						{
@@ -1706,7 +1706,7 @@ int main(int argc, const char * argv[])
 				}
 				else
 				{
-					ns::Error error;
+					ns::AutoReleasedError error;
 					mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0]);
 					if (error.GetPtr())
 					{
@@ -1714,7 +1714,7 @@ int main(int argc, const char * argv[])
 					}
 					if(func)
 					{
-						ns::Error error;
+						ns::AutoReleasedError error;
 						mtlpp::ComputePipelineState state = device->NewComputePipelineState(func, &error);
 						if (error.GetPtr())
 						{
@@ -1749,7 +1749,7 @@ int main(int argc, const char * argv[])
 			bOK = CompileAndLink([NSString stringWithUTF8String:vertex_path], @"/tmp/Vertex.tmp.o", @"/tmp/Vertex.metallib", Options);
 			if (bOK)
 			{
-				ns::Error error;
+				ns::AutoReleasedError error;
 				VertexLib = device->NewLibrary(ns::String(@"/tmp/Vertex.metallib"), &error);
 				if (error.GetPtr())
 				{
@@ -1764,7 +1764,7 @@ int main(int argc, const char * argv[])
 				bOK = CompileAndLink([NSString stringWithUTF8String:fragment_path], @"/tmp/Fragment.tmp.o", @"/tmp/Fragment.metallib", Options);
 				if (bOK)
 				{
-					ns::Error error;
+					ns::AutoReleasedError error;
 					FragmentLib = device->NewLibrary(ns::String(@"/tmp/Fragment.metallib"), &error);
 					if (error.GetPtr())
 					{
@@ -1783,7 +1783,7 @@ int main(int argc, const char * argv[])
 			// Compile pipeline
 			if (bOK)
 			{
-				ns::Error error;
+				ns::AutoReleasedError error;
 				mtlpp::RenderPipelineState renderPipelineState = device->NewRenderPipelineState(descriptor, &error);
 				if (error.GetPtr())
 				{

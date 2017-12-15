@@ -95,7 +95,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	void SetSourceLength(float NewValue);
 
 	UFUNCTION(BlueprintPure, Category="Rendering|Lighting")
-	static float GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits);
+	static float GetUnitsConversionFactor(ELightUnits SrcUnits, ELightUnits TargetUnits, float CosHalfConeAngle = -1);
 
 protected:
 	//~ Begin UActorComponent Interface

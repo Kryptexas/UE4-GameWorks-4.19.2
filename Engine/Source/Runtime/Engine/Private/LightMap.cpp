@@ -220,6 +220,10 @@ FStaticLightingTextureMapping::FStaticLightingTextureMapping(FStaticLightingMesh
 	bBilinearFilter(bInBilinearFilter)
 {}
 
+FStaticLightingGlobalVolumeMapping::FStaticLightingGlobalVolumeMapping(FStaticLightingMesh* InMesh, UObject* InOwner, int32 InSizeX, int32 InSizeY, int32 InLightmapTextureCoordinateIndex) :
+	FStaticLightingTextureMapping(InMesh, InOwner, InSizeX, InSizeY, InLightmapTextureCoordinateIndex)
+{}
+
 #if WITH_EDITOR
 
 /**

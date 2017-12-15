@@ -88,14 +88,14 @@ class TDeferredLightVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDeferredLightVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return bRadialLight ? IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) : true;
+		return bRadialLight ? IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) : true;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 	}
 
 	TDeferredLightVS()	{}

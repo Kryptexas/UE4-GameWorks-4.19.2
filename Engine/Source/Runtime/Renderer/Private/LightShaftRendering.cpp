@@ -262,9 +262,9 @@ class FDownsampleLightShaftsVertexShader : public FGlobalShader
 	DECLARE_SHADER_TYPE(FDownsampleLightShaftsVertexShader,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -295,12 +295,12 @@ class TDownsampleLightShaftsPixelShader : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDownsampleLightShaftsPixelShader,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); 
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("POINT_LIGHT_SHAFTS"), (LightType == LightType_Point || LightType == LightType_Spot));
 		OutEnvironment.SetDefine(TEXT("SPOT_LIGHT_SHAFTS"), (LightType == LightType_Spot));
@@ -369,12 +369,12 @@ class FBlurLightShaftsPixelShader : public FGlobalShader
 	DECLARE_SHADER_TYPE(FBlurLightShaftsPixelShader,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); 
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), GLightShaftBlurNumSamples);
 	}
@@ -426,9 +426,9 @@ class FFinishOcclusionPixelShader : public FGlobalShader
 	DECLARE_SHADER_TYPE(FFinishOcclusionPixelShader,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	/** Default constructor. */
@@ -877,9 +877,9 @@ class FApplyLightShaftsPixelShader : public FGlobalShader
 	DECLARE_SHADER_TYPE(FApplyLightShaftsPixelShader,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	/** Default constructor. */

@@ -31,6 +31,9 @@ enum EBlendableLocation
 //	BL_AfterTranslucency,
 //	BL_AfterPostProcessAA,
 
+	/** Input0:former pass color. */
+	BL_SSRInput UMETA(DisplayName = "SSR Input"),
+
 	BL_MAX,
 };
 

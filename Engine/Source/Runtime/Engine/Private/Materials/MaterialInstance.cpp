@@ -3159,10 +3159,13 @@ bool UMaterialInstance::SetVectorParameterByIndexInternal(int32 ParameterIndex, 
 		return false;
 	}
 
-	ParameterValue->ParameterValue = Value;
-	// Update the material instance data in the rendering thread.
-	GameThread_UpdateMIParameter(this, *ParameterValue);
-	CacheMaterialInstanceUniformExpressions(this);
+	if(ParameterValue->ParameterValue != Value)
+	{
+		ParameterValue->ParameterValue = Value;
+		// Update the material instance data in the rendering thread.
+		GameThread_UpdateMIParameter(this, *ParameterValue);
+		CacheMaterialInstanceUniformExpressions(this);
+	}
 
 	return true;
 }
@@ -3198,11 +3201,14 @@ bool UMaterialInstance::SetScalarParameterByIndexInternal(int32 ParameterIndex, 
 	{
 		return false;
 	}
-
-	ParameterValue->ParameterValue = Value;
-	// Update the material instance data in the rendering thread.
-	GameThread_UpdateMIParameter(this, *ParameterValue);
-	CacheMaterialInstanceUniformExpressions(this);
+	
+	if(ParameterValue->ParameterValue != Value)
+	{
+		ParameterValue->ParameterValue = Value;
+		// Update the material instance data in the rendering thread.
+		GameThread_UpdateMIParameter(this, *ParameterValue);
+		CacheMaterialInstanceUniformExpressions(this);
+	}
 
 	return true;
 }

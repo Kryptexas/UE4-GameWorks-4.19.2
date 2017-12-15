@@ -74,7 +74,7 @@ void FSkeletalMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 	DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.HideProperty("bCastStaticShadow", UPrimitiveComponent::StaticClass());
-	DetailBuilder.HideProperty("bLightAsIfStatic", UPrimitiveComponent::StaticClass());
+	DetailBuilder.HideProperty("LightmapType", UPrimitiveComponent::StaticClass());
 	DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	PerformInitialRegistrationOfSkeletalMeshes(DetailBuilder);

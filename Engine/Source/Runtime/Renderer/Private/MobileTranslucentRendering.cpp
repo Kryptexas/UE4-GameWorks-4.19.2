@@ -36,7 +36,7 @@ class FMobileCopySceneAlphaPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FMobileCopySceneAlphaPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FMobileCopySceneAlphaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -386,7 +386,7 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsTranslucentBlendMode(Material->GetBlendMode()) && IsMobilePlatform(Platform);
 	}
@@ -428,7 +428,7 @@ class FOpacityOnlyPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FOpacityOnlyPS, MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsTranslucentBlendMode(Material->GetBlendMode()) && IsMobilePlatform(Platform);
 	}

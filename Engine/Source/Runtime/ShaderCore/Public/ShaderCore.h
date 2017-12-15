@@ -361,8 +361,10 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 {
 	// Map of the virtual file path -> content.
 	// The virtual file paths are the ones that USF files query through the #include "<The Virtual Path of the file>"
-	TMap<FString,TArray<ANSICHAR>> IncludeVirtualPathToContentsMap;
+	TMap<FString,FString> IncludeVirtualPathToContentsMap;
 	
+	TMap<FString,TSharedPtr<FString>> IncludeVirtualPathToExternalContentsMap;
+
 	TArray<uint32> CompilerFlags;
 	TMap<uint32,uint8> RenderTargetOutputFormatsMap;
 	TMap<FString,FResourceTableEntry> ResourceTableMap;
@@ -407,23 +409,29 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerEnvironment& Environment)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Environment.IncludeVirtualPathToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap << Environment.ResourceTableMap << Environment.ResourceTableLayoutHashes << Environment.RemoteServerData;
-	}
+		Ar << Environment.IncludeVirtualPathToContentsMap;
 
+		// Note: skipping Environment.IncludeVirtualPathToExternalContentsMap, which is handled by FShaderCompileUtilities::DoWriteTasks in order to maintain sharing
+
+		Ar << Environment.Definitions;
+		Ar << Environment.CompilerFlags;
+		Ar << Environment.RenderTargetOutputFormatsMap;
+		Ar << Environment.ResourceTableMap;
+		Ar << Environment.ResourceTableLayoutHashes;
+		Ar << Environment.RemoteServerData;
+		return Ar;
+	}
+	
 	void Merge(const FShaderCompilerEnvironment& Other)
 	{
 		// Merge the include maps
 		// Merge the values of any existing keys
-		for (TMap<FString,TArray<ANSICHAR>>::TConstIterator It(Other.IncludeVirtualPathToContentsMap); It; ++It )
+		for (TMap<FString,FString>::TConstIterator It(Other.IncludeVirtualPathToContentsMap); It; ++It )
 		{
-			TArray<ANSICHAR>* ExistingContents = IncludeVirtualPathToContentsMap.Find(It.Key());
+			FString* ExistingContents = IncludeVirtualPathToContentsMap.Find(It.Key());
 
 			if (ExistingContents)
 			{
-				if (ExistingContents->Num() > 0)
-				{
-					ExistingContents->RemoveAt(ExistingContents->Num() - 1);
-				}
 				ExistingContents->Append(It.Value());
 			}
 			else
@@ -431,6 +439,8 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 				IncludeVirtualPathToContentsMap.Add(It.Key(), It.Value());
 			}
 		}
+
+		check(Other.IncludeVirtualPathToExternalContentsMap.Num() == 0);
 
 		CompilerFlags.Append(Other.CompilerFlags);
 		ResourceTableMap.Append(Other.ResourceTableMap);
@@ -506,6 +516,67 @@ struct FShaderCompilerInput
 		return FPaths::GetCleanFilename(VirtualSourceFilePath);
 	}
 
+	void GatherSharedInputs(TMap<FString,FString>& ExternalIncludes, TArray<FShaderCompilerEnvironment*>& SharedEnvironments)
+	{
+		check(!SharedEnvironment || SharedEnvironment->IncludeVirtualPathToExternalContentsMap.Num() == 0);
+
+		for (TMap<FString, TSharedPtr<FString>>::TConstIterator It(Environment.IncludeVirtualPathToExternalContentsMap); It; ++It)
+		{
+			FString* FoundEntry = ExternalIncludes.Find(It.Key());
+
+			if (!FoundEntry)
+			{
+				ExternalIncludes.Add(It.Key(), *It.Value());
+			}
+		}
+
+		if (SharedEnvironment)
+		{
+			SharedEnvironments.AddUnique(SharedEnvironment.GetReference());
+		}
+	}
+
+	void SerializeSharedInputs(FArchive& Ar, const TArray<FShaderCompilerEnvironment*>& SharedEnvironments)
+	{
+		check(Ar.IsSaving());
+
+		TArray<FString> ReferencedExternalIncludes;
+		ReferencedExternalIncludes.Empty(Environment.IncludeVirtualPathToExternalContentsMap.Num());
+
+		for (TMap<FString, TSharedPtr<FString>>::TConstIterator It(Environment.IncludeVirtualPathToExternalContentsMap); It; ++It)
+		{
+			ReferencedExternalIncludes.Add(It.Key());
+		}
+
+		Ar << ReferencedExternalIncludes;
+
+		int32 SharedEnvironmentIndex = SharedEnvironments.Find(SharedEnvironment.GetReference());
+		Ar << SharedEnvironmentIndex;
+	}
+
+	void DeserializeSharedInputs(FArchive& Ar, const TMap<FString,TSharedPtr<FString>>& ExternalIncludes, const TArray<FShaderCompilerEnvironment>& SharedEnvironments)
+	{
+		check(Ar.IsLoading());
+
+		TArray<FString> ReferencedExternalIncludes;
+		Ar << ReferencedExternalIncludes;
+
+		Environment.IncludeVirtualPathToExternalContentsMap.Reserve(ReferencedExternalIncludes.Num());
+
+		for (int32 i = 0; i < ReferencedExternalIncludes.Num(); i++)
+		{
+			Environment.IncludeVirtualPathToExternalContentsMap.Add(ReferencedExternalIncludes[i], ExternalIncludes.FindChecked(ReferencedExternalIncludes[i]));
+		}
+
+		int32 SharedEnvironmentIndex = 0;
+		Ar << SharedEnvironmentIndex;
+
+		if (SharedEnvironments.IsValidIndex(SharedEnvironmentIndex))
+		{
+			Environment.Merge(SharedEnvironments[SharedEnvironmentIndex]);
+		}
+	}
+
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerInput& Input)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
@@ -528,24 +599,7 @@ struct FShaderCompilerInput
 		Ar << Input.DebugGroupName;
 		Ar << Input.Environment;
 
-		bool bHasSharedEnvironment = IsValidRef(Input.SharedEnvironment);
-		Ar << bHasSharedEnvironment;
-
-		if (bHasSharedEnvironment)
-		{
-			if (Ar.IsSaving())
-			{
-				// Inline the shared environment when saving
-				Ar << *(Input.SharedEnvironment);
-			}
-
-			if (Ar.IsLoading())
-			{
-				// Create a new environment when loading, no sharing is happening anymore
-				Input.SharedEnvironment = new FShaderCompilerEnvironment();
-				Ar << *(Input.SharedEnvironment);
-			}
-		}
+		// Note: skipping Input.SharedEnvironment, which is handled by FShaderCompileUtilities::DoWriteTasks in order to maintain sharing
 
 		return Ar;
 	}
@@ -945,7 +999,8 @@ extern SHADERCORE_API void VerifyShaderSourceFiles();
 
 struct FCachedUniformBufferDeclaration
 {
-	FString Declaration[SP_NumPlatforms];
+	// Using SharedPtr so we can hand off lifetime ownership to FShaderCompilerEnvironment::IncludeVirtualPathToExternalContentsMap when invalidating this cache
+	TSharedPtr<FString> Declaration[SP_NumPlatforms];
 };
 
 /** Parses the given source file and its includes for references of uniform buffers, which are then stored in UniformBufferEntries. */

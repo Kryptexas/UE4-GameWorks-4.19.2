@@ -5,8 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "argument.hpp"
 #include <Metal/MTLArgument.h>
+#include "argument.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -97,7 +99,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t PointerType::GetAlignment() const
+	NSUInteger PointerType::GetAlignment() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
@@ -107,7 +109,7 @@ namespace mtlpp
 #endif
 	}
 	
-	uint32_t PointerType::GetDataSize() const
+	NSUInteger PointerType::GetDataSize() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
@@ -141,7 +143,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ArrayType([(MTLTextureReferenceType*)m_ptr elementArrayType]);
+		return ArrayType([(MTLArrayType*)m_ptr elementArrayType]);
 #else
 		return ArrayType();
 #endif
@@ -158,10 +160,10 @@ namespace mtlpp
         return [(MTLStructMember*)m_ptr name];
     }
 
-    uint32_t StructMember::GetOffset() const
+    NSUInteger StructMember::GetOffset() const
     {
         Validate();
-        return uint32_t([(MTLStructMember*)m_ptr offset]);
+        return NSUInteger([(MTLStructMember*)m_ptr offset]);
     }
 
     DataType StructMember::GetDataType() const
@@ -234,10 +236,10 @@ namespace mtlpp
     {
     }
 
-    uint32_t ArrayType::GetArrayLength() const
+    NSUInteger ArrayType::GetArrayLength() const
     {
         Validate();
-        return uint32_t([(MTLArrayType*)m_ptr arrayLength]);
+        return NSUInteger([(MTLArrayType*)m_ptr arrayLength]);
     }
 
     DataType ArrayType::GetElementType() const
@@ -246,10 +248,10 @@ namespace mtlpp
         return DataType([(MTLArrayType*)m_ptr elementType]);
     }
 
-    uint32_t ArrayType::GetStride() const
+    NSUInteger ArrayType::GetStride() const
     {
         Validate();
-        return uint32_t([(MTLArrayType*)m_ptr stride]);
+        return NSUInteger([(MTLArrayType*)m_ptr stride]);
     }
 
     StructType ArrayType::GetElementStructType() const
@@ -317,10 +319,10 @@ namespace mtlpp
         return ArgumentAccess([(MTLArgument*)m_ptr access]);
     }
 
-    uint32_t Argument::GetIndex() const
+    NSUInteger Argument::GetIndex() const
     {
         Validate();
-        return uint32_t([(MTLArgument*)m_ptr index]);
+        return NSUInteger([(MTLArgument*)m_ptr index]);
     }
 
     bool Argument::IsActive() const
@@ -329,16 +331,16 @@ namespace mtlpp
         return [(MTLArgument*)m_ptr isActive];
     }
 
-    uint32_t Argument::GetBufferAlignment() const
+    NSUInteger Argument::GetBufferAlignment() const
     {
         Validate();
-        return uint32_t([(MTLArgument*)m_ptr bufferAlignment]);
+        return NSUInteger([(MTLArgument*)m_ptr bufferAlignment]);
     }
 
-    uint32_t Argument::GetBufferDataSize() const
+    NSUInteger Argument::GetBufferDataSize() const
     {
         Validate();
-        return uint32_t([(MTLArgument*)m_ptr bufferDataSize]);
+        return NSUInteger([(MTLArgument*)m_ptr bufferDataSize]);
     }
 
     DataType Argument::GetBufferDataType() const
@@ -363,16 +365,16 @@ namespace mtlpp
 #endif
 	}
 
-    uint32_t Argument::GetThreadgroupMemoryAlignment() const
+    NSUInteger Argument::GetThreadgroupMemoryAlignment() const
     {
         Validate();
-        return uint32_t([(MTLArgument*)m_ptr threadgroupMemoryAlignment]);
+        return NSUInteger([(MTLArgument*)m_ptr threadgroupMemoryAlignment]);
     }
 
-    uint32_t Argument::GetThreadgroupMemoryDataSize() const
+    NSUInteger Argument::GetThreadgroupMemoryDataSize() const
     {
         Validate();
-        return uint32_t([(MTLArgument*)m_ptr threadgroupMemoryDataSize]);
+        return NSUInteger([(MTLArgument*)m_ptr threadgroupMemoryDataSize]);
     }
 
     TextureType Argument::GetTextureType() const
@@ -397,13 +399,15 @@ namespace mtlpp
 #endif
     }
 	
-	uint32_t       Argument::GetArrayLength() const
+	NSUInteger       Argument::GetArrayLength() const
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return uint32_t([(MTLArgument*)m_ptr arrayLength]);
+		return NSUInteger([(MTLArgument*)m_ptr arrayLength]);
 #else
 		return 0;
 #endif
 	}
 }
+
+MTLPP_END

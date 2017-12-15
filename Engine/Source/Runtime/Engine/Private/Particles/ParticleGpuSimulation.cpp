@@ -706,7 +706,7 @@ public:
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Material->IsUsedWithParticleSprites() || Material->IsSpecialEngineMaterial()) && SupportsGPUParticles(Platform);
 	}
@@ -932,19 +932,19 @@ class FParticleTileVS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.SetDefine(TEXT("TILES_PER_INSTANCE"), TILES_PER_INSTANCE);
 		OutEnvironment.SetDefine(TEXT("TILE_SIZE_X"), (float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeX);
 		OutEnvironment.SetDefine(TEXT("TILE_SIZE_Y"), (float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeY);
 
-		if (Platform == SP_OPENGL_ES2_ANDROID)
+		if (Parameters.Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
@@ -996,21 +996,21 @@ class TParticleSimulationPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform) && IsParticleCollisionModeSupported(Platform, CollisionMode, true);
+		return SupportsGPUParticles(Parameters.Platform) && IsParticleCollisionModeSupported(Parameters.Platform, CollisionMode, true);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("PARTICLE_SIMULATION_PIXELSHADER"), 1);
 		OutEnvironment.SetDefine(TEXT("MAX_VECTOR_FIELDS"), MAX_VECTOR_FIELDS);
 		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), CollisionMode == PCM_DepthBuffer);
 		OutEnvironment.SetDefine(TEXT("DISTANCE_FIELD_COLLISION"), CollisionMode == PCM_DistanceField);
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 
-		if (Platform == SP_OPENGL_ES2_ANDROID)
+		if (Parameters.Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
@@ -1231,18 +1231,18 @@ class FParticleSimulationClearPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("PARTICLE_CLEAR_PIXELSHADER"), 1 );
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 
-		if (Platform == SP_OPENGL_ES2_ANDROID)
+		if (Parameters.Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
@@ -1603,16 +1603,16 @@ class FParticleInjectionVS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 
-		if (Platform == SP_OPENGL_ES2_ANDROID)
+		if (Parameters.Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
@@ -1653,21 +1653,21 @@ class TParticleInjectionPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		OutEnvironment.SetDefine(TEXT("STATIC_PROPERTIES_ONLY"), StaticPropertiesOnly);
 
 		
 		OutEnvironment.SetRenderTargetOutputFormat(0, StaticPropertiesOnly ? PF_A8R8G8B8 : PF_A32B32G32R32F);
 
-		if (Platform == SP_OPENGL_ES2_ANDROID)
+		if (Parameters.Platform == SP_OPENGL_ES2_ANDROID)
 		{
 			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
 		}
@@ -1849,9 +1849,9 @@ class FParticleSimVisualizeVS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -1884,9 +1884,9 @@ class FParticleSimVisualizePS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -2113,14 +2113,14 @@ class FParticleBoundsCS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("THREAD_COUNT"), PARTICLE_BOUNDS_THREADS );
 		OutEnvironment.SetDefine( TEXT("TEXTURE_SIZE_X"), GParticleSimulationTextureSizeX );
 		OutEnvironment.SetDefine( TEXT("TEXTURE_SIZE_Y"), GParticleSimulationTextureSizeY );

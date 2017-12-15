@@ -41,7 +41,7 @@ class FMobileSceneCaptureCopyPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FMobileSceneCaptureCopyPS, Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsMobilePlatform(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return IsMobilePlatform(Parameters.Platform); }
 
 	FMobileSceneCaptureCopyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)
@@ -52,7 +52,7 @@ public:
 	}
 	FMobileSceneCaptureCopyPS() {}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("MOBILE_FORCE_DEPTH_TEXTURE_READS"), 1u);
 		OutEnvironment.SetDefine(TEXT("DECODING_MOSAIC"), bDemosaic ? 1u : 0u);
@@ -95,7 +95,7 @@ class FMobileSceneCaptureCopyVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FMobileSceneCaptureCopyVS, Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsMobilePlatform(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return IsMobilePlatform(Parameters.Platform); }
 
 	FMobileSceneCaptureCopyVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)
@@ -104,7 +104,7 @@ public:
 	}
 	FMobileSceneCaptureCopyVS() {}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DECODING_MOSAIC"), bDemosaic ? 1u : 0u);
 	}

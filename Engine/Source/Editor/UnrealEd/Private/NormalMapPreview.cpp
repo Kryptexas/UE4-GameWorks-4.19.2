@@ -24,9 +24,9 @@ class FSimpleElementNormalMapPS : public FGlobalShader
 public:
 
 	/** Should the shader be cached? Always. */
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	/** Default constructor. */

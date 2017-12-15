@@ -795,8 +795,12 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGIN
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, PerlinNoise3DTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoise3DTextureSampler)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D<uint>, SobolSamplingTexture)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedBilinearWrapSampler)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedBilinearClampSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedPointWrappedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedPointClampedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedBilinearWrappedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedBilinearClampedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedTrilinearWrappedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, SharedTrilinearClampedSampler)
 
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
@@ -809,27 +813,6 @@ END_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters)
 #undef VIEW_UNIFORM_BUFFER_MEMBER
 #undef VIEW_UNIFORM_BUFFER_MEMBER_EX
 #undef VIEW_UNIFORM_BUFFER_MEMBER_ARRAY
-
-BEGIN_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Bilinear)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, BilinearClamped)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Point)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PointClamped)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Trilinear)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, TrilinearClamped)
-END_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters)
-
-class ENGINE_API FBuiltinSamplersUniformBuffer : public TUniformBuffer<FBuiltinSamplersParameters>
-{
-public:
-	FBuiltinSamplersUniformBuffer();
-
-	virtual void InitDynamicRHI() override;
-	virtual void ReleaseDynamicRHI() override;
-};
-
-#define USE_GBuiltinSamplersUniformBuffer (0)
-extern ENGINE_API TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;	
 
 namespace EDrawDynamicFlags
 {

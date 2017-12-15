@@ -465,10 +465,10 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 							{
 								// Draw 4 lines between the primitive corners for debugging
 								// Currently hijacking ShadowRays
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), true, false));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), true, true));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), true, false));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), true, true));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), true, false));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), true, true));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), true, false));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), true, true));
 							}
 						}
 					}

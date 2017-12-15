@@ -38,9 +38,10 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 			SecondsRemaining -= Response.ElapsedTime();
 			if ( SecondsRemaining <= 0.0f )
 			{
+				UObject* Caller = CallbackTarget.IsValid() ? CallbackTarget.Get() : nullptr;
 				FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTakenAndCompared);
 
-				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(nullptr, ScreenshotName, Options) )
+				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(Caller, ScreenshotName, Options) )
 				{
 					IssuedScreenshotCapture = true;
 				}

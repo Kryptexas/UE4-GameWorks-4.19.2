@@ -25,14 +25,14 @@ class FMissingShaderPS : public FGlobalShader, public IDebugViewModePSInterface
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return AllowDebugViewVSDSHS(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return AllowDebugViewVSDSHS(Parameters.Platform); }
 
 	FMissingShaderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):	FGlobalShader(Initializer) {}
 	FMissingShaderPS() {}
 
 	virtual bool Serialize(FArchive& Ar) override { return FGlobalShader::Serialize(Ar); }
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("UNDEFINED_VALUE"), UndefinedStreamingAccuracyIntensity);
 	}

@@ -60,7 +60,7 @@ class FPostProcessHMDVS : public FGlobalShader
 	FShaderParameter EyeRotationStart;
 	FShaderParameter EyeRotationEnd;
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -108,7 +108,7 @@ class FPostProcessHMDPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessHMDPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

@@ -537,8 +537,8 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 			{
 				Result.AddZeroed(kIOEthernetAddressSize);
 				CFDataGetBytes((CFDataRef)MACAddressAsCFData, CFRangeMake(0, kIOEthernetAddressSize), Result.GetData());
-				break;
 				CFRelease(MACAddressAsCFData);
+				break;
 			}
 			IOObjectRelease(ControllerService);
 		}
@@ -1138,6 +1138,7 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 								}
 							}
 						}
+						[URL release];
 					}
 				}
 				

@@ -172,6 +172,9 @@ struct FD3D12UpdateTexture3DData
 	bool bComputeShaderCopy;
 };
 
+/** Forward declare the context for the AMD AGS utility library. */
+struct AGSContext;
+
 /** The interface which is implemented by the dynamically bound RHI. */
 class FD3D12DynamicRHI : public FDynamicRHI
 {
@@ -820,12 +823,21 @@ public:
 	FD3D12Adapter& GetAdapter(uint32_t Index = 0) { return *ChosenAdapters[Index]; }
 	int32 GetNumAdapters() const { return ChosenAdapters.Num(); }
 
+	AGSContext* GetAmdAgsContext() { return AmdAgsContext; }
+
 protected:
 
 	TArray<FD3D12Adapter*> ChosenAdapters;
 
 	/** The feature level of the device. */
 	D3D_FEATURE_LEVEL FeatureLevel;
+
+	/**
+	 * The context for the AMD AGS utility library.
+	 * AGSContext does not implement AddRef/Release.
+	 * Just use a bare pointer.
+	 */
+	AGSContext* AmdAgsContext;
 
 	/** A buffer in system memory containing all zeroes of the specified size. */
 	void* ZeroBuffer;

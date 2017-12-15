@@ -105,10 +105,13 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 
 FMetalViewport::~FMetalViewport()
 {
-	if (GMetalSeparatePresentThread && Block)
+	if (Block)
 	{
 		FScopeLock BlockLock(&Mutex);
-		FPlatformRHIFramePacer::RemoveHandler(Block);
+		if (GMetalSeparatePresentThread)
+		{
+			FPlatformRHIFramePacer::RemoveHandler(Block);
+		}
 		Block_release(Block);
 		Block = nil;
 	}

@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "ns.hpp"
 #include "device.hpp"
 
-MTLPP_CLASS(NSTask);
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -43,11 +44,13 @@ namespace mtlpp
 	class Compiler
 	{
 	public:
-		static bool Compile(const char* source, ns::String const& output, const CompilerOptions& options, ns::Error* error);
+		static bool Compile(const char* source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error);
 		
-		static bool Compile(ns::String const& source, ns::String const& output, const CompilerOptions& options, ns::Error* error);
+		static bool Compile(ns::String const& source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error);
 		
-		static bool Link(ns::Array<ns::String> const& source, ns::String const& output, const CompilerOptions& options, ns::Error* error);
+		static bool Link(ns::Array<ns::String> const& source, ns::String const& output, const CompilerOptions& options, ns::AutoReleasedError* error);
 	}
 	MTLPP_AVAILABLE_MAC(10_11);
 }
+
+MTLPP_END

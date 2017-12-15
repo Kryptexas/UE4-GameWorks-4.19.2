@@ -167,7 +167,7 @@ Texture3D IntegratedLightScattering;
 SamplerState IntegratedLightScatteringSampler;
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define SharedIntegratedLightScatteringSampler View.SharedBilinearClampSampler
+	#define SharedIntegratedLightScatteringSampler View.SharedBilinearClampedSampler
 #else
 	#define SharedIntegratedLightScatteringSampler IntegratedLightScatteringSampler
 #endif

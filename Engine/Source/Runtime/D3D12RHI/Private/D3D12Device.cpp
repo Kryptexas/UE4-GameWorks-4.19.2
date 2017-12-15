@@ -131,6 +131,11 @@ void FD3D12Device::SetupAfterDeviceCreation()
 			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
 		}
 	}
+	if (GEmitRgpFrameMarkers && GetOwningRHI()->GetAmdAgsContext())
+	{
+		// Running on AMD with RGP profiling enabled, so enable capturing mode
+		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+	}
 #endif
 
 	// Init offline descriptor allocators

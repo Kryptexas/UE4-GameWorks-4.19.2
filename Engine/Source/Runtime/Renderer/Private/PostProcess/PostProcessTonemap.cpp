@@ -57,7 +57,8 @@ static TAutoConsoleVariable<int32> CVarDisplayOutputDevice(
 	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) (HDR)\n")
 	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) (HDR)\n")
 	TEXT("5: ACES 1000 nit ScRGB (HDR)\n")
-	TEXT("6: ACES 2000 nit ScRGB (HDR)\n"),
+	TEXT("6: ACES 2000 nit ScRGB (HDR)\n")
+	TEXT("7: Linear EXR (HDR)\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 	
 static TAutoConsoleVariable<int32> CVarHDROutputEnabled(
@@ -1207,14 +1208,14 @@ class FPostProcessTonemapPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTonemapPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::ES2);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		uint32 ConfigBitmask = TonemapperConfBitmaskPC[ConfigIndex];
 
@@ -1229,7 +1230,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 UseVolumeTextureLUT(Platform));
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 UseVolumeTextureLUT(Parameters.Platform));
 	}
 
 	/** Default constructor. */
@@ -1309,15 +1310,15 @@ class FPostProcessTonemapCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTonemapCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}	
 	
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// CS params
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GTonemapComputeTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GTonemapComputeTileSizeY);
 
@@ -1337,7 +1338,7 @@ class FPostProcessTonemapCS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 UseVolumeTextureLUT(Platform));
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 UseVolumeTextureLUT(Parameters.Platform));
 	}
 
 	/** Default constructor. */
@@ -1764,6 +1765,12 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 	Ret.Flags |= GFastVRamConfig.Tonemap;
 
+	if (CVarDisplayOutputDevice.GetValueOnRenderThread() == 7)
+	{
+		Ret.Format = PF_A32B32G32R32F;
+	}
+
+
 	// Mobile needs to override the extent
 	if (bDoScreenPercentageInTonemapper && View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
 	{
@@ -1786,18 +1793,18 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTonemapPS_ES2, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
 		// Only cache for ES2/3.1 shader platforms, and only compile 32bpp shaders for Android or PC emulation
-		return IsMobilePlatform(Platform) && 
-			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Platform == SP_OPENGL_ES2_ANDROID || (IsMobilePlatform(Platform) && IsPCPlatform(Platform)));
+		return IsMobilePlatform(Parameters.Platform) && 
+			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Parameters.Platform == SP_OPENGL_ES2_ANDROID || (IsMobilePlatform(Parameters.Platform) && IsPCPlatform(Parameters.Platform)));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
@@ -2001,9 +2008,9 @@ class FPostProcessTonemapVS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTonemapVS_ES2,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !IsConsolePlatform(Platform);
+		return !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FPostProcessTonemapVS_ES2() { }

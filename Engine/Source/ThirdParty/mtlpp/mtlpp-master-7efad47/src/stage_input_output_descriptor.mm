@@ -5,10 +5,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLStageInputOutputDescriptor.h>
 #include "stage_input_output_descriptor.hpp"
-#if MTLPP_IS_AVAILABLE(10_12, 10_0)
-#   include <Metal/MTLStageInputOutputDescriptor.h>
-#endif
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -21,11 +21,11 @@ namespace mtlpp
     {
     }
 
-    uint32_t BufferLayoutDescriptor::GetStride() const
+    NSUInteger BufferLayoutDescriptor::GetStride() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLBufferLayoutDescriptor*)m_ptr stride]);
+        return NSUInteger([(MTLBufferLayoutDescriptor*)m_ptr stride]);
 #else
         return 0;
 #endif
@@ -41,17 +41,17 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t BufferLayoutDescriptor::GetStepRate() const
+    NSUInteger BufferLayoutDescriptor::GetStepRate() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLBufferLayoutDescriptor*)m_ptr stepRate]);
+        return NSUInteger([(MTLBufferLayoutDescriptor*)m_ptr stepRate]);
 #else
         return 0;
 #endif
     }
 
-    void BufferLayoutDescriptor::SetStride(uint32_t stride)
+    void BufferLayoutDescriptor::SetStride(NSUInteger stride)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -67,7 +67,7 @@ namespace mtlpp
 #endif
     }
 
-    void BufferLayoutDescriptor::SetStepRate(uint32_t stepRate)
+    void BufferLayoutDescriptor::SetStepRate(NSUInteger stepRate)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -94,21 +94,21 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t AttributeDescriptor::GetOffset() const
+    NSUInteger AttributeDescriptor::GetOffset() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLAttributeDescriptor*)m_ptr offset]);
+        return NSUInteger([(MTLAttributeDescriptor*)m_ptr offset]);
 #else
         return 0;
 #endif
     }
 
-    uint32_t AttributeDescriptor::GetBufferIndex() const
+    NSUInteger AttributeDescriptor::GetBufferIndex() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLAttributeDescriptor*)m_ptr bufferIndex]);
+        return NSUInteger([(MTLAttributeDescriptor*)m_ptr bufferIndex]);
 #else
         return 0;
 #endif
@@ -122,7 +122,7 @@ namespace mtlpp
 #endif
     }
 
-    void AttributeDescriptor::SetOffset(uint32_t offset)
+    void AttributeDescriptor::SetOffset(NSUInteger offset)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -130,7 +130,7 @@ namespace mtlpp
 #endif
     }
 
-    void AttributeDescriptor::SetBufferIndex(uint32_t bufferIndex)
+    void AttributeDescriptor::SetBufferIndex(NSUInteger bufferIndex)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -151,7 +151,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return (NSArray*)[(MTLStageInputOutputDescriptor*)m_ptr layouts];
+        return (NSArray<MTLBufferLayoutDescriptor*>*)[(MTLStageInputOutputDescriptor*)m_ptr layouts];
 #else
         return nullptr;
 #endif
@@ -161,7 +161,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return (NSArray*)[(MTLStageInputOutputDescriptor*)m_ptr attributes];
+        return (NSArray<MTLAttributeDescriptor*>*)[(MTLStageInputOutputDescriptor*)m_ptr attributes];
 #else
         return nullptr;
 #endif
@@ -177,11 +177,11 @@ namespace mtlpp
 #endif
     }
 
-    uint32_t StageInputOutputDescriptor::GetIndexBufferIndex() const
+    NSUInteger StageInputOutputDescriptor::GetIndexBufferIndex() const
    {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(MTLStageInputOutputDescriptor*)m_ptr indexBufferIndex]);
+        return NSUInteger([(MTLStageInputOutputDescriptor*)m_ptr indexBufferIndex]);
 #else
         return 0;
 #endif
@@ -195,7 +195,7 @@ namespace mtlpp
 #endif
     }
 
-    void StageInputOutputDescriptor::SetIndexBufferIndex(uint32_t indexBufferIndex)
+    void StageInputOutputDescriptor::SetIndexBufferIndex(NSUInteger indexBufferIndex)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
@@ -212,3 +212,5 @@ namespace mtlpp
     }
 }
 
+
+MTLPP_END

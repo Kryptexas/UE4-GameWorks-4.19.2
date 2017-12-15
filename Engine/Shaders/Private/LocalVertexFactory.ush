@@ -405,10 +405,13 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	Result.PreSkinnedNormal = TangentToLocal[2]; //Input.TangentZ.xyz * 2.f - 1.f;
 
 #if MANUAL_VERTEX_FETCH && NUM_MATERIAL_TEXCOORDS_VERTEX
+		const uint NumFetchTexCoords = VertexFetch_Parameters[VF_NumTexcoords_Index];
 		UNROLL
 		for (uint CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
 		{
-			Result.TexCoords[CoordinateIndex] = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId) + CoordinateIndex];
+			// Clamp coordinates to mesh's maximum as materials can request more than are available
+			uint ClampedCoordinateIndex = min(CoordinateIndex, NumFetchTexCoords-1);
+			Result.TexCoords[CoordinateIndex] = VertexFetch_TexCoordBuffer[NumFetchTexCoords * (VertexOffset + Input.VertexId) + ClampedCoordinateIndex];
 		}
 #elif NUM_MATERIAL_TEXCOORDS_VERTEX
 		#if GPUSKIN_PASS_THROUGH

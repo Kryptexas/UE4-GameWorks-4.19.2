@@ -99,7 +99,7 @@ public:
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 
 	/**
@@ -116,7 +116,7 @@ public:
 
 		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
 		static const auto MetalCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-		if (!ContainsManualVertexFetch && !IsES2Platform(Platform) && (!IsMetalPlatform(Platform) || (MetalCVar && MetalCVar->GetInt() != 0 && IsPCPlatform(Platform))))
+		if (!ContainsManualVertexFetch && !IsES2Platform(Platform) && (!IsMetalPlatform(Platform) || (MetalCVar && MetalCVar->GetInt() != 0 && RHIGetShaderLanguageVersion(Platform) >= 2)))
 		{
 			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
 		}
@@ -215,10 +215,10 @@ public:
 		: FMeshParticleVertexFactory(InFeatureLevel)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Platform == SP_OPENGL_ES2_ANDROID) // Android platforms that might not support hardware instancing
-			&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
+			&& FMeshParticleVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)

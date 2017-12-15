@@ -129,7 +129,7 @@ class FVoxelizeVolumeVS : public FMeshMaterialShader
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) 
 			&& DoesPlatformSupportVolumetricFogVoxelization(Platform)
@@ -255,7 +255,7 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) 
 			&& RHISupportsGeometryShaders(Platform)
@@ -364,7 +364,7 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) 
 			&& DoesPlatformSupportVolumetricFogVoxelization(Platform)
@@ -700,7 +700,7 @@ void FDeferredShadingSceneRenderer::VoxelizeFogVolumePrimitives(
 			FIntPoint(VolumetricFogGridSize.X, VolumetricFogGridSize.Y),
 			FIntRect(0, 0, VolumetricFogGridSize.X, VolumetricFogGridSize.Y),
 			View.ViewMatrices,
-			View.PrevViewMatrices
+			View.PrevViewInfo.ViewMatrices
 		);
 
 		TUniformBufferRef<FViewUniformShaderParameters> VoxelizeViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(VoxelizeParameters, UniformBuffer_SingleFrame);
