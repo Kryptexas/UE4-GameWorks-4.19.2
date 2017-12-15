@@ -7,23 +7,7 @@ Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
 Version: 4.9
 SkillLevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](projectbrowser_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/Projects/Browser:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Basics/Projects/Browser:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/Projects/Browser]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:projectbrowser_topic.png
 
 [toc (start:2 end:2)]
 

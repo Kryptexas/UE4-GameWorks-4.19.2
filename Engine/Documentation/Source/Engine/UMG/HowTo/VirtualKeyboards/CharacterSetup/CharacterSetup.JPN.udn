@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -22,7 +22,7 @@ Order:1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、プロジェクトの準備をして、**Widget Interaction** コンポーネントをプレイヤー キャラクターに追加して、3D ウィジェットとインタラクションできるようにします。 
 
@@ -60,6 +60,6 @@ Order:1
 
 プロジェクトの用意ができて、キャラクターがワールドのウィジェットとインタラクションすることができます。次に、インタラクティブなウィジェットをセットアップします。 
 
-%Steps%
+
 
 

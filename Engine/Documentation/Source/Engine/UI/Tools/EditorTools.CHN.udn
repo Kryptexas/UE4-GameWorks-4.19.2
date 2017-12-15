@@ -78,32 +78,20 @@ Version: 4.9
 [/EXCERPT:Tools]
 
 (#LevelEditing)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	场景关卡编辑工具
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 场景关卡编辑工具
+
+[REGION:buttonlist]
+
 	* [](Engine/UI/LevelEditor/Layers "%Engine/UI/LevelEditor/Layers:Description%")
 	* [](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor "%Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor:Description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 (#ContentCreation)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	内容制作工具
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 内容制作工具
+
+[REGION:buttonlist]
+
 	* [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
 	[PUBLISH:Licensee]
 	* [](Engine/UI/Tools/Simplygon "%Engine/UI/Tools/Simplygon:Description%")
@@ -112,26 +100,20 @@ Version: 4.9
 	* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:Description%")
 	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
 	* [](Engine/Rendering/ParticleSystems/Cascade "%Engine/Rendering/ParticleSystems/Cascade:Description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 (#ToolProgramming)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		工具制作
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 工具制作
+
+[REGION:buttonlist]
+
 	* [](Programming/Slate "%Programming/Slate:Description%")
 	[PUBLISH:Licensee]
 	* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
 	[/PUBLISH:Licensee]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

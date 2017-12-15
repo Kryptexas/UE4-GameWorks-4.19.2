@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:ParticleSystem 클래스
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -42,8 +42,11 @@ ParticleSystem 클래스에는 다음과 같은 공용 변수가 포함됩니다
 | **Custom Occlusion Bounds** | 커스텀 오클루전 경계 - _Occlusion Bounds Method_ 중 _EPSOBM_CustomBounds_ 를 사용할 때 오클루전 계산용으로 사용할 바운드입니다. |
 
 
-<!-- Begin ParticleSystem Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleSystem Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LOD 거리 인덱스 | 값 | 범위 | 선택되는 LOD 레벨 |
@@ -80,6 +83,9 @@ ParticleSystem 클래스에는 다음과 같은 공용 변수가 포함됩니다
 [/REGION]
 `EPSUM_FixedTime` 는 현재 프레임율과는 무관하게 시스템을 지정된 양만큼 진행시킵니다. 이 모드는 이미터를 애니메이션에 묶는다든지 할 때 처럼 이펙트 타이밍이 다른 시스템에 중요하지 않을 때만 사용해야 합니다.
 [/EXCERPT:SystemUpdate]
--->
-<!-- End ParticleSystem Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleSystem Includes 
+[/COMMENT]
 

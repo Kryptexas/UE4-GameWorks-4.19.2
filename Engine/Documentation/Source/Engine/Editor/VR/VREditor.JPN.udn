@@ -93,7 +93,8 @@ VR モードでアンリアル エディタを使用するためには、以下�
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VRHardware]
 [REGION:plainlist]
 * Oculus Rift と Oculus Touch コントローラ
@@ -110,4 +111,5 @@ VR モードでアンリアル エディタを使用するためには、以下�
 * **HTC Vive:** SteamVR
 [/REGION]
 [/EXCERPT:VRSoftware]
--->
+
+[/COMMENT]

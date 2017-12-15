@@ -3,24 +3,12 @@ Title: 5. Character Blueprint
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: Setup the AI's Character Blueprint.
 version: 4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/4 "%Engine/AI/EnvironmentQuerySystem/QuickStart/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/6 "%Engine/AI/EnvironmentQuerySystem/QuickStart/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 As we have created a project with a Character already in it, we have access to a humanoid Skeletal Mesh and its Animation Blueprint. We will use these in the tutorial, but feel free to use your own if you have them available.
 
@@ -71,4 +59,4 @@ This Character will become our new AI Character. The reason we use a Character, 
 1. **Compile** ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) and **Save**. ![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png)
 
 
-%Steps%
+[NAV]

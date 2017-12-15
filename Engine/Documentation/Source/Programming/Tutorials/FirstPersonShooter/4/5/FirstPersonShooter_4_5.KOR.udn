@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.5 - 애니메이션 & 캐릭터 블루프린트 연결
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 튜토리얼 최종 섹션에서는, 방금 만든 애니메이션 블루프린트를 캐릭터 블루프린트와 연결해 주도록 하겠습니다.
 
@@ -58,4 +58,3 @@ Version: 4.15
 
 이로써 C++ 일인칭 슈팅 튜토리얼을 마치셨습니다!
 
-%Steps%

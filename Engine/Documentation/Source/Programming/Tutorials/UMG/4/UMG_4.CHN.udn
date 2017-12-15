@@ -19,7 +19,7 @@ Description:设置游戏模式以使用主菜单控件。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 在 **Content Browser（内容浏览器）** 中，我们会基于项目的 **Game Mode（游戏模式）** 来添加一个 **Blueprint Class（蓝图类）** 。 这样我们就可以对这两个类的变量设置任意值了。 我们可以这样操作：
@@ -175,4 +175,4 @@ Description:设置游戏模式以使用主菜单控件。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

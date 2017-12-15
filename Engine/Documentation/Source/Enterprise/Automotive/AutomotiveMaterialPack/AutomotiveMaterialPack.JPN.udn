@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3112291
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Automotive Material Pack
 Description:Automotive Material パックに含まれるアセットの内容と使用方法を説明します。
@@ -86,7 +86,6 @@ Automotive Material Pack には、以下のマテリアルが入っています�
 		![Scale Aware Tiling](AP_02_SMP_01_Scale-Aware.png)
 		[/PARAM]
 	[/OBJECT]
-
 	* **World Aligned:** は、不正確な UV や不適切にセットアップされた UV が、適用されたマテリアルを正確に表示するようにします。
 
 	[OBJECT:ComparisonSlider]
@@ -217,7 +216,7 @@ UE4 で頂点ペイントする方法がよくわからない場合は、[Mesh P
 	[/PARAM]
 [/OBJECT]
 
-### ゴム / タイヤ 
+### Rubber / Tire 
 
 Automotive Material Pack に同梱されるゴムのマテリアルは車内の一般的なゴムのサーフェスに使用することができます。例えば、以下のサーフェスはゴムのマテリアルの使用に適しています。
 
@@ -305,6 +304,7 @@ Automotive Material Pack に同梱されるガラスのマテリアルには、�
 	![](AP_12_Glass_07_Ex.png)
 
 以下は、内部の反射を有効にした場合、有効にしなかった場合にガラスのマテリアルがどのように見えるかを示しています。 
+
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Without Inner Reflection](AP_12_Glass_04_WithoutInnerReflec.png)
@@ -339,7 +339,8 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 
 ![](AP_08_Reflector_01.png)
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:RM]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -363,9 +364,11 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RM]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:CP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -398,9 +401,11 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:CP]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:RF]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -413,7 +418,7 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 	RF
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**スライダーをドラッグして、Hexagon、 Honeycomb、および Triangle のリフレクタ パターンを見ましょう。**
+	**スライダをドラッグして、Hexagon、 Honeycomb、および Triangle のリフレクタ パターンを見ましょう。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](RF_1.png)
@@ -422,9 +427,11 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RF]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:OP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -448,4 +455,5 @@ UE4 でキューブマップをキャプチャし、使用する方法に慣れ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:OP]
--->
+
+[/COMMENT]

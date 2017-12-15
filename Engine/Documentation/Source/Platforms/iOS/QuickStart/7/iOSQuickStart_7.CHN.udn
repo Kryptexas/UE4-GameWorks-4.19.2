@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -71,7 +71,8 @@ Availability:Public
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [VAR:windows]
 5\. 当游戏被成功安装到您的设备上时，会出现一条信息。
 
@@ -86,6 +87,7 @@ Availability:Public
 [VAR:macos]
 
 [/VAR]
--->
 
-%Steps%
+[/COMMENT]
+
+

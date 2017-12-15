@@ -28,7 +28,8 @@ Each element in the array can execute one of several options exposed by pressing
 | **Delete** | Removes the current element. [INCLUDE:#ArrayDelete] |
 | **Duplicate** | Inserts a copy of the current element into the array after the current element. [INCLUDE:#ArrayDuplicate] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ArrayInsert]
 [REGION:imagetable]
 | ![](array.png) | ![Array with inserted element](array_insert.png) |
@@ -52,4 +53,5 @@ Each element in the array can execute one of several options exposed by pressing
 | Before | After |
 [/REGION]
 [/EXCERPT:ArrayDuplicate]
--->
+
+[/COMMENT]

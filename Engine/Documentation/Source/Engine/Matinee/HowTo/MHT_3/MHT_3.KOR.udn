@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:다중 카메라 사용하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -6,20 +6,13 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 Version: 4.9
 SkillLevel: Intermediate
 
-
----
 여기서는 다중 카메라 앵글을 사용하는 짧은 시퀀스를 만들어 보겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네, 카메라, 소품 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네 액터**, **카메라** 와 샷의 주인공이 될 소품을 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네, 카메라, 소품 추가하기
+
+여기서는 **마티네 액터**, **카메라** 와 샷의 주인공이 될 소품을 추가하겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 이후 **마티네 추가** 버튼을 누릅니다.
 
@@ -57,15 +50,9 @@ SkillLevel: Intermediate
 
 	![](MHT3_ChairRotated.png)
 		
+## 마티네에서 카메라 시퀀스 만들기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네에서 카메라 시퀀스 만들기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 각 **카메라** 에 이동을 지정한 다음 **마티네** 에 연결해 주겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 각 **카메라** 에 이동을 지정한 다음 **마티네** 에 연결해 주겠습니다.
 
 1. **마티네** 창을 엽니다 (이미 닫았다면 **마티네** 를 선택한 다음, **디테일** 패널에서 **마티네 열기** 를 선택하여 다시 열 수 있습니다). 
 
@@ -173,15 +160,9 @@ SkillLevel: Intermediate
 
 	![](MHT3_CamerasDone.png)
 
+## Director 트랙으로 카메라 컷 만들기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Director 트랙으로 카메라 컷 만들기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 모든 카메라 컷을 처리하는 **Director Track** 을 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 모든 카메라 컷을 처리하는 **Director Track** 을 추가하겠습니다.
 
 1. **마티네** 창을 엽니다 (**마티네** 가 닫혔다면 **디테일** 패널에서 **마티네 열기** 를 선택하여 다시 열 수 있습니다).
 
@@ -228,5 +209,3 @@ SkillLevel: Intermediate
 	k3r1aNcbO8Y
 	[/PARAMLITERAL]
 	[/OBJECT]
-
-

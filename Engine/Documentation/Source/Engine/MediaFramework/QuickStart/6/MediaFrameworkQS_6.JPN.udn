@@ -1,0 +1,43 @@
+﻿INTSoruceChangelist:3692813
+Availability:Public
+Title:6 応用編
+Crumbs:%ROOT%
+Description:サンプルや詳細情報へのリンクを利用して、少し腕試しをしてみましょう。 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:6
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+メディア フレーム ワーク ツールを使って自分のプロジェクトに少し応用してみましょう。 
+
+* プレイヤーがテレビの [再生の調節](Engine/MediaFramework/HowTo/ControllingPlayback) ができるようにする。
+* [メディア プレイリスト](Engine\MediaFramework\HowTo\MediaPlaylists\) をメディア ソースとして使って、プレイヤーがテレビの "チャンネルを変更" できるようにする。
+* Media Player、Media Sound、Media Source アセットを使って 3 つ目の TV ブループリントをレベルに追加する 
+
+このサンプルでは、TV ブループリントを拡張し、プレイヤーがチャンネルの変更、早送り、巻き戻し、そしてテレビを切った後の再生開始を可能にしました。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KebXFsnLPsE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[NAV]

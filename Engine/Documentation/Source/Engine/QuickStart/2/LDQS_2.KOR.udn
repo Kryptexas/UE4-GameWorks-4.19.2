@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3206215
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2 - 뷰포트 조작
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -26,7 +26,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 프로젝트가 열리고 시작할 준비가 되었으면, 먼저 언리얼 에디터 중앙에 [뷰포트](Engine/UI/LevelEditor/Viewports) 가 보일 것입니다.
 
@@ -61,4 +61,4 @@ checkpoint: editorqs
 
 다음 단계에서는 샘플 영역을 만들어 애셋으로 채우기 시작해 보도록 하겠습니다.
 
-%Steps%
+

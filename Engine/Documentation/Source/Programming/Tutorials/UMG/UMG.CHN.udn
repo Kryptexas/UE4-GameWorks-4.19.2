@@ -51,24 +51,18 @@ Description:创建使用UMG的简单菜单系统。
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\UMG\1 "%Programming\Tutorials\UMG\1:description%")
 	* [](Programming\Tutorials\UMG\2 "%Programming\Tutorials\UMG\2:description%")
 	* [](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:description%")
 	* [](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:description%")
 	* [](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:description%")
 	* [](Programming\Tutorials\UMG\6 "%Programming\Tutorials\UMG\6:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

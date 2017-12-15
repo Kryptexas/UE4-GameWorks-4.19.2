@@ -9,43 +9,12 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
 Version: 4.9
+topic-image:Reflections_Compact.png
 
 
 [REGION:banner]
 ![](Reflections_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections:title%](Reflections_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Reflections]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections:title%](Reflections_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Reflections]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 The **Reflections** Content Example map provides examples on how to adjust the way reflections appear within your levels by using a **Reflection Capture** Actor (which projects a reflection within the Actor's effect volume or radius). 
 Examples are also shown on how the Roughness, Metallic, and Specular properties of a Material can be used to produce different reflection results. 

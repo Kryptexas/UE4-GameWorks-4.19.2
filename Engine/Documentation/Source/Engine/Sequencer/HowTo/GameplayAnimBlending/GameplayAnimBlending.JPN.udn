@@ -1,0 +1,77 @@
+﻿INTSourceChangelist:3717104
+Availability:Public
+Title:ゲームプレイとシーケンサーのアニメーションをブレンドする
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:ゲームプレイからレベル シーケンス ベースのアニメーションに滑らかにブレンドする方法を説明します。 
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+シネマティック シーケンスを作成する場合、既存のゲームプレイ アニメーションをレベル シーケンス内にあるアニメーションとブレンドさせることができます。 
+例えば、ゲームプレイ中にプレイ可能なキャラクターがドアまで歩き、シーケンサーがキャラクターをアニメートして、ドアを開けます。 
+あるいは、三人称視点のシューティングゲームでプレイヤーがキャラクターを制御し、死角に来たらシネマティック デス シーケンスにブレンドさせることもできます。 
+シーケンサー、ブループリント、および Animation ブループリントを組み合わせて使用することで、シーケンサーによって定義される **Slot** アニメーションでキャラクターのどのようなゲームプレイ ポーズでもブレンドすることができます。 
+
+この例では、キャラクターがトリガー ボリュームに入る時のゲームプレイ ポーズがどのようなものであってもシーケンサー内のデス アニメーションとブレンドさせることができます。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"/Engine/Sequencer/HowTo/GameplayAnimBlending" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[クリックして開始](Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup "%Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

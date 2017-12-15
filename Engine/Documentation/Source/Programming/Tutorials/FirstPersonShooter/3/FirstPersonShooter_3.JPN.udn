@@ -25,20 +25,14 @@ _このセクションの最後まで終了すると、上の画面のように�
 * 発射物がワールドと相互作用するようにする
 * ビューポートにクロスヘア (照準) を追加
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Programming/Tutorials/FirstPersonShooter/3/1 "%Programming/Tutorials/FirstPersonShooter/3/1:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/3/2 "%Programming/Tutorials/FirstPersonShooter/3/2:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/3/3 "%Programming/Tutorials/FirstPersonShooter/3/3:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/3/4 "%Programming/Tutorials/FirstPersonShooter/3/4:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/3/5 "%Programming/Tutorials/FirstPersonShooter/3/5:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

@@ -34,7 +34,7 @@ The following .INI settings were taken from the UE4 powered, VR demo, Showdown.
 These . INIsettings, if used, should be added to your project's **Config\DefaultEngine.INI** file, under **SystemSettings**. 
 
 	[SystemSettings]
-	r.screenpercentage=130
+	vr.PixelDensity=1
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
 	r.MotionBlurQuality=0
@@ -209,7 +209,8 @@ This helped give the illusion that a character was casting shadows when they cam
 	[region:caption]
 	Click for full image.
 	[/region]
-<!--
+[COMMENT:none]
+
 ## VR Blueprint Functions
  
  Throughout the Blueprint editor, you will find a number of different Blueprint nodes that can be used to interact with VR headsets and motion controllers. 
@@ -243,7 +244,8 @@ Set World to Meters Scale| Sets the World to Meters scale, which changes the sca
 |Get Tracking Space| Gets the tracking space (for example, sitting or standing), which determines the location of the origin.|
 |Get Valid Tracked Device Ids| Returns an array of the currently tracked device IDs.|
 |Set Tracking Space| Sets the tracking space (for example, sitting or standing), changing which space (tracked) positions are returned to.|
--->
+
+[/COMMENT]
 ## Known VR Issues
 
 Due to the manner in which HMD's work, some art techniques that are staples of Video Game development, no longer have the impact that they once did. 

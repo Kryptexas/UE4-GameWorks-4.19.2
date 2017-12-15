@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:임의 생성 폴리지
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -66,7 +66,8 @@ Version: 4.9
 
 
 
-<!-----------------------------------
+[COMMENT:none]
+---------------------------------
 
 [EXCERPT:FoliageCS]
 _컨스트럭션 스크립트_ 가 하는 일은 다음과 같습니다:
@@ -78,4 +79,5 @@ _컨스트럭션 스크립트_ 가 하는 일은 다음과 같습니다:
 
 
 
------------------------------------->
+----------------------------------
+[/COMMENT]

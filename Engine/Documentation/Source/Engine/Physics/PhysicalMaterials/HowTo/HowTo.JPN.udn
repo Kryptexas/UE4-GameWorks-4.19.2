@@ -47,14 +47,10 @@ SkillLevel:Intermediate
 
 **Physical Materials** を中心に様々な操作方法を簡単にまとめました。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		操作ガイド
-	[/PARAM]
-	[PARAM:links]
+## 操作ガイド
+
+[REGION:buttonlist]
+
 		* [](Engine/Physics/PhysicalMaterials/HowTo/Creation)
 		* [](Engine/Physics/PhysicalMaterials/HowTo/Editing)
 		* [](Engine/Physics/PhysicalMaterials/HowTo/AddSurfaceType)
@@ -62,5 +58,5 @@ SkillLevel:Intermediate
 		* [](Engine/Physics/PhysicalMaterials/HowTo/UsageMaterialInstance)
 		* [](Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset)
 		* [](Engine/Physics/PhysicalMaterials/HowTo/UsageStaticMesh)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

@@ -1,0 +1,305 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Mesh Distance Fields
+Description: An overview of Mesh Destance Fields and its available features that you can use when developing your games.
+Type: Overview
+Type:landing
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:
+Tags:Lighting
+Tags:Distance Fields
+
+
+[REGION:banner]
+![](DistanceFieldsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+
+Unreal Engine 4 (UE4) leverages the power of **Distance Fields** to have dynamic ambient occlusion and shadowing for Static Mesh Actors in your games. In addition to that, the Mesh Distance Field 
+representation of an Actor can be used for other features like GPU particle collision or even with the Material Editor to create dynamic flow maps and much more. 
+
+Continue reading below to learn how Mesh Distance Fields work in UE4 and some of the ways you can use it in your games. 
+
+## How does it work?
+
+A Signed Distance Field (SDF) is created for each Static Mesh that represents its mesh surfaces. It stores the distance to the nearest surface at every point and the points
+inside the mesh store a negative distance.
+
+![](DistanceField.jpg)(w:400)
+
+The first property of SDF that make them useful is that when tracing a ray, you can safely skip through empty space as the distance to the nearest surface is already 
+known (this is sometimes called Sphere Tracing). This allows the intersections to be determined with a small number steps. By ray tracing a distance field, a visibility result is produced, 
+meaning that if the ray intersects the mesh, the light will then be shadowed.
+
+![](RayTrace.jpg)(w:400)
+
+The second property that makes SDF useful is that when you trace a ray, by tracking the closest distance a ray passed by an occluder, an approximate cone intersection can 
+be computed with no extra cost. This approximation makes it possible to do very soft area shadows and sky occlusion using distance fields. This property is key to features like 
+[Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) as a small number of cones can compute a soft visibility for the entire hemisphere of a 
+receiver point. 
+
+![](ConeTrace.jpg)(w:400)
+
+[COMMENT:none]
+--
+
+The entirety of a level is represented by instanced Distance Fields that are stored in volume textures. The landscape has a separate representation through [heightfields](LINK to DFAO page)
+that is used specifically for Distance Field Ambient Occlusion, however, it does not affect Ray Traced Distance Field Soft Shadows.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene View](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Mesh Distance Fields View](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+-
+[/COMMENT]
+
+
+[REGION:note]
+You can read further about [using Distance Fields for Lighting](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm) here.
+[/REGION]
+
+### Scene Representation
+
+Each level that is created is made up of all these Mesh Distance Fields for your placed Actors. When these Mesh Distance Fields are generated, they are done so offline using brute force
+triangle raytracing that stores the results in a volume texture. This method computes the Signed Distance Field by tracing rays in all directions to find the nearest surface and store that
+information. 
+
+You can visualize the Mesh Distance Fields that represent your scene by using the viewport and selecting **Show** > **Visualize** > **Mesh Distance Fields**.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](EnableMDFViewMode.png)(w:400 h:450)](EnableMDFViewMode.png) [/REGION] | [REGION:lightbox] [![](VisualizeMeshDistanceFields.jpg)(w:750 h:450)](VisualizeMeshDistanceFields.jpg) [/REGION] |
+| --- | --- |
+| Click image for full size. | Click image for full size. |
+[/REGION]
+
+When you see areas that are more white than gray, it means that many steps were needed to find the intersection of the mesh surface. Rays at grazing angles to surfaces took many more steps to intersect than would have 
+for a simpler mesh. 
+
+
+#### Quality
+
+The quality of a Mesh Distance Field representation is controlled by its volume texture resolution. This can be modified using **Distance Field Resolution Scale** in the [Build Settings](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#buildsettings)
+of the Static Mesh Editor. Quality will be best for levels that are built out of meshes with similar size, as large meshes tend to create a lot of errors. For example, meshes in Fortnite either conform to a grid or are
+props placed around, which gives the best results with few errors. Landscapes are handled separately by [heightfields](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion#landscapes) and are not affected by Distance Field resolution.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](Mesh.jpg)(w:375)](Mesh.jpg) [/REGION] | [REGION:lightbox] [![](LowResDistanceField.jpg)(w:375)](LowResDistanceField.jpg) [/REGION] | [REGION:lightbox] [![](HighResDistanceField.jpg)(w:375)](HighResDistanceField.jpg) [/REGION] |
+| --- | --- | --- |
+| Original Mesh | Resolution is too low, important features are lost. | Resolution has been increased, important features represented |
+| Click image for full size. | Click image for full size. | Click image for full size. |
+[/REGION]
+
+The resolution of your Mesh Distance Field should be adjusted enough to capture the important features. As you increase the resolution of the mesh, the memory footprint of the Mesh Distance Field will 
+increase as well. In the Static Mesh Editor, you can see the Mesh Distance Field size listed on the top left of the viewport.
+
+[REGION:lightbox]
+[![](SMEditorDFSize.png)(w:500)](SMEditorDFSize.png)
+[/REGION]
+[REGION:caption] Click image for full size. [/REGION]
+
+When the Mesh Distance Field is generated, corners are rounded off based on resolution. This can be offset by increasing its resolution, but in most cases, should not be an issue depending on the complexity of the mesh. The 
+maximum size volume texture any single mesh can have is 8 megabytes with a resolution of 128^3.
+
+[REGION:imagetable]
+| ![](QualityCorners1.png)(h:250) | ![](QualityCorners2.png)(h:250) | ![](QualityCorners4.png)(h:250) |
+| --- | --- | --- |
+|  |  |  |
+[/REGION]
+
+For thin surfaces, they can only be represented with a negative texel inside, which is necessary for finding the root. Increasing the resolution can capture the larger detail more accurately here, but in 
+cases where you're only using [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) and the surfaces aren't represented properly. Occlusion further from the 
+surface will be accurate, so it's often not noticeable with sky occlusion. 
+
+![](QualityCorners3.png)(w:400)
+
+
+#### Global Distance Field
+
+The Global Distance Field is a low-resolution Distance Field that uses Signed Distance Fields occlusion in your levels while following the camera. It creates a cache of the per-object Mesh Distance Fields
+and composites them into a few volume textures centered around the camera, called clipmaps. Only newly visible areas or those affected by the scene modification need to be updated, so composition 
+doesn't cost much.  
+
+The lower resolution of the object Distance Field means that it can be used for everything, but when computing cone traces for sky occlusion, they are sampled near the point of being shaded while
+the Global Distance Field is sampled further away. 
+
+You can visualize the Global Distance Field in the viewport by clicking **Show** > **Visualize** > **Global Distance Field**.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Mesh Distance Fields Visualization](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/ODFVisualization.png)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Global Distance Fields Visualization](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/GDFVisualization.png)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+For more information, visit the [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) page.
+[/REGION]
+
+#### Foliage
+
+Foliage assets can also leverage the Distance Fields making it possible to have dynamic occlusion or even have distance shadowing beyond what Cascaded Shadow Maps can shadow. 
+
+Below are some options you should consider when using any foliage assets in your games to get the most out of performance and quality. 
+
+#### Two-Sided Distance Field
+
+For high-density meshes, like trees, that can have many small holes masked out along a single plane can't be represented as a solid surface. For this reason, you can enable the 
+[Build Setting](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#BuildSettings) for **Two-Sided Distance Field Generation** in the Static Mesh Editor. This option will work 
+well for foliage by does come at a higher ray marching cost.
+
+[REGION:imagetable]
+| ![](BuildSettings_TwoSided.png) | | | | [INCLUDE:#twosided] |
+| ---- | ---- | ---- | --- | --- |
+|  |  |  |  |  |
+[/REGION]
+
+In this example, the tree on the left is using a default Mesh Distance Field representation and the one on the right two-sided enabled. You'll notice that the tree is white more it is gray and surfaces 
+are now translucent, meaning that many more steps were needed to find the intersection of the mesh than in the default one.
+
+
+[COMMENT:none]
+-
+[EXCERPT:twosided]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Opaque Mesh Distance Field](DFTwoSided1.png)(h:404)
+	[/PARAM]
+	[PARAM:after]
+	![Two-Sided Mesh Distance Field](DFTwoSided2.png)(h:404)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:twosided]
+-
+[/COMMENT]
+
+##### Folaige Tool Settings
+
+In the [Foliage Tool](Engine/Foliage), you must enable each asset type you want to be able to affect Distance Fields lighting features for ambient occlusion and shadowing. By default, this setting is 
+disabled since some foliage, like grass, where you would have thousands or tens of thousands of instances that would overflow the tile culling buffer. When this happens, you can get unsightly artifacts.  
+
+![](FoliageToolSettings.png)
+
+[COMMENT:none]
+-
+#### Landscapes
+
+Landscapes use a heightfield for their representation instead of a Mesh Distance Field. An approximate cone intersection is computed against this heightfield which enables pixels without a Distance Field
+representation to now receive occlusion, however, there is no self-shadowing or Distance Field shadowing either. Instead, Landscapes should use **Far Shadows** to for their shadowing at very far distances.
+
+![](Landscape.png)(w:700)
+[REGION:caption] Landscape heightfield representation in the Distance Field Ambient Occlusion view mode. [/REGION]
+
+-
+[/COMMENT]
+
+[COMMENT:none]
+-
+### Culling
+
+The objects that make up the scene are managed entirely on the GPU, which makes culling of these objects to view 100 times faster than when being run on the CPU. 
+
+
+* Scene objects managed entirely on the GPU
+	- CPU sends update deltas
+	- Moving an object just requires updating a matrix
+* Culling of objects to view 100x faster than CPU
+	- 2 million tree instances in Kite Demo >50k on screen @ .1ms on PS4
+	- Possible because all operations on objects down the pipeline are on the GPU
+	- No graphics API calls are used on objects, because no triangles are involved when ray marching the SDF. This allows the object management and culling to be done on the GPU (along with the
+	rest of the technique).
+-
+[/COMMENT]
+
+
+### Enabling Distance Fields 
+
+To enable Mesh Distance Fields for your project, use the file menu to open the Project Settings window by going to **Edit** > **Project Settings**, then select the **Rendering** section. 
+
+[REGION:lightbox]
+[![](ProjectSettingsWindow.png)(w:450)](ProjectSettingsWindow.png)
+[/REGION]
+[REGION:caption] Click image for full size. [/REGION]
+
+Under the **Lighting** category, toggle the checkbox next to **Generate Mesh Distance Fields**. 
+
+![](GeneratedMeshDF.png)(w:450)
+
+When you enable this, you will be prompted to restart your project. 
+
+![](RestartEditorButton.png)(w:450)
+
+The next time you load the project, you will see the following pop-up in the lower corner indicating that Mesh Distance Fields are being generated. 
+
+![](BuildingMeshDFs.png)(w:450)
+
+Once completed, you can visualize the Mesh Distance Fields in the viewport by clicking **Show** > **Visualize** > **Mesh DistanceFields**. You should see a similar view to this.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene View](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Mesh Distance Fields Visualization](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:caption] The entirety of this level is represented by instanced Distance Fields that are stored in volume textures. [/REGION]
+
+
+### Memory Usage and Optimizations
+
+* **r.AOListMeshDistanceFields** which dumps out the Mesh Distance Fields sorted by memory size to the Output Log. This can be useful for optimizing content.
+* Project Settings: 
+	* **Compress Mesh Distance Fields** can be used to reduce memory until it's needed by the GPU but will cause hitches when streaming in levels. 
+	* **Eight Bit Mesh Distance Fields** can be used to store the mesh in an 8-bit fixed point format instead of 16-bit floating point. Eight bit will use half the 
+	memory but introduces artifacts for large or thin meshes. 
+* Global Distance Field caches mostly static primitives with their mobility set to Static or Stationary. The full Global Distance Field inherits from mostly static cache, so when a Movable primitive is modified
+only other Movable primitives in the vicinity need to be recomposited into the Global Distance Field. 
+
+
+### Limitations
+
+**Limitations of the Distance Fields technique:**
+* Support for feature level 5 platforms only (DX-11 and above)
+* Only casts shadows from rigid meshes. For Skeletal Meshes, you can use [Capsule Shadows](Engine/Rendering/LightingAndShadows/CapsuleShadows) for indirectly lit areas with DFAO and soft direct shadowing. 
+* Materials that deform the mesh through World Position Offset or displacement may cause self-shadowing artifacts, as the Distance Field representation is generated offline and does not know about these deformations. 
+
+**Limitations of the current implementation but can be improved in the future:**
+* Non-uniform scaling cannot be handled correctly (although, mirroring is ok). Scaling the mesh by two times or less is not generally noticeable. 
+* Only supports Static Mesh, Instances Static Mesh, Foliage, and Landscape (Heightfield). Foliage must be enabled with **Affect Distance Field Lighting** from the Foliage Tool settings. 
+
+**Hardware Limitations:**
+* All Mesh Distance Field features have been disabled on Intel cards because the HD 4000 hangs in the RHICreateTexture3D call to allocate the large atlas.
+
+
+### References
+
+* [Quilez,Inigo. "Raymarching Distance Fields." N.p, 2008](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+
+
+
+## Essentials
+
+[DIR(output:"topiccompact" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields" org:"hierarchy" tags:"Distance Fields" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields" org:"hierarchy" tags:"Lighting" tags:"!Distance Fields" end:"1")]
+
+
+

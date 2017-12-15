@@ -3,46 +3,7 @@ Title:Atomospheric Fog に関するユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:大気の表現媒体を使って大気、空気密度、光の散乱などをリアルに表現します。
 version:4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:atmofog_topic.png
 
 [REGION:banner]
 ![Atmospheric Fog](atmofog_banner.png)
@@ -104,7 +65,8 @@ Atmospheric Fog アクタには以下のプロパティがあります。
 | Density Height が 1.0 (64 km) で Max Scattering が 4 | Density Height が 1.0 (64 km) で Max Scattering が 1 |
 [/REGION]
 [/EXCERPT:examples]
-<!---Includes
+[COMMENT:none]
+-Includes
 [EXCERPT:PrecomputeParams]
 [REGION:simpletable]
 	|**プロパティ** | **説明** |
@@ -114,4 +76,5 @@ Atmospheric Fog アクタには以下のプロパティがあります。
 	| **Inscatter Altitude Sample** | インスキャッタリング カラーをサンプリングするための様々な高度です (3D テクスチャ ディメンションのサイズ、1-32)。 |
 [/REGION]
 [/EXCERPT:PrecomputeParams]
-End Includes----->
+End Includes---
+[/COMMENT]

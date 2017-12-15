@@ -1,0 +1,76 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Crumbs: %ROOT%
+Title:2 - 미디어 텍스처 및 머티리얼 구성
+Description:비디오 재생에 사용할 미디어 텍스처와 머티리얼을 구성해 봅니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:2
+tags:Media Framework
+tags:Materials
+ 
+[NAV]
+
+예전 단계에서 앞으로 사용할 콘텐츠를 임포트하고 몇 가지 애셋을 만들었습니다. 다음에는 비디오 재생에 사용할 머티리얼을 만들겠습니다. 그러기 위해 [머티리얼](Engine/Rendering/Materials) 내 미디어 텍스처 활용은 물론, 콘텐츠가 TV 화면에 잘 맞도록 하기 위한 작업도 약간 같이 해 주겠습니다.
+
+## 단계
+
+1.	**TV** 폴더에서 **M_TV_Inst** 머티리얼을 열고 **M_TV_Inst** 노드의 **베이스 컬러** 핀에 붙은 **Vector Parameter** 노드를 삭제합니다.
+
+1.	그래프에 우클릭하고 **Texture Sample** 노드를 추가합니다. 그리고 **디테일** 패널에서 **Sampler Type** (샘플러 유형)을 **External** (외부)로 변경합니다.
+
+	![](TVMaterial_01.png)
+
+	지금은 **Texture** (텍스처) 칸을 빈 채로 놔둬도 되는데, 나중에 **Texture Object Parameter** (텍스처 오브젝트 파라미터)로 채울 것이기 때문입니다. 그러면 **Media Texture** (미디어 텍스처)가 블루프린트를 통해 샘플링하는 것을 대체할 수 있습니다. 
+	**Sampler Type** (샘플러 유형) 칸은 미디어 텍스처에 대해 **External** (외부)로 설정해야 하는데, 이 최적화로 인해 보다 효율적인 비디오 재생 및 디코딩이 제공되고, 새로운 외부 텍스처 API 를 사용할 수 있기 때문입니다.
+
+1.	그래프에 우클릭하고 **Param Tex Object** 노드를 추가한 뒤, **Texture Sample** 노드의 **Tex** 핀에 연결합니다.
+
+1.	**Param Tex Object** 노드에서 **TV_Texture** 를 **Parameter Name** 으로 사용하고 **Texture** 칸을 **MediaPlayer_01_Video** 로 설정합니다..
+
+	![](TVMaterial_02.png)
+
+	Texture 칸에 우리 미디어 텍스처를 사용하도록 설정하면, **Sampler Type** 칸도 자동으로 **External** 로 바뀝니다.
+
+1.	그래프에 우클릭하고 **TexCoord** 노드를 추가한 뒤 **Texture Sample** 의 **UVs** 에 연결합니다. **VTiling** 프로퍼티를 **2.0** 으로 설정합니다.
+
+	![](TVMaterial_03.png)
+
+	[TexCoord](Engine/Rendering/Materials/ExpressionReference/Coordinates/#texturecoordinate) 에 사용된 값은 이 머티리얼을 적용하려는 메시에 따라 달라집니다. 약간의 실험을 통해 알아낸 이 예제에 적합한 값은 다음과 같습니다:
+
+1.	우클릭하고 **Texture Sample** 노드를 하나 더 추가한 뒤 **Texture** 프로퍼티를 **T_TV_M2** 텍스처로 설정합니다.
+
+	![](TVMaterial_04.png)
+
+1.	새 **Texture Sample** 노드의 **Green** 채널을 끌어놓고 **LinearInterpolate** 노드를 사용하여 **Alpha** 채널에 연결합니다.
+
+	![](TVMaterial_05.png)
+
+	비디오를 화면에만 적용할 수 있도록 이 텍스처를 사용하여 TV 화면과 메시 나머지를 분리하겠습니다.
+
+1.	**1** 키를 누르고 좌클릭하여 Constant 노드를 추가한 뒤 **Lerp** 노드의 **B** 핀에 연결하고, 나머지 노드는 다음과 같이 연결합니다.
+
+	![](TVMaterial_06.png)
+
+	
+## 최종 결과
+
+TV 머티리얼 구성이 완료되어 비디오를 재생할 준비가 되었습니다. **SM_TV** 스태틱 메시를 열어보면, 화면이 하얗게 보일 것입니다.
+
+![](TVMaterial_07.png)(w:740)
+
+걱정하지 마세요, **미디어 플레이어** 애셋을 열고 비디오를 재생한 뒤 **SM_TV** 스태틱 메시를 열어보면, TV 에 비디오가 재생되고 있을 것입니다.
+
+![](TVMaterial_08.png)(w:740)
+
+TV 가 에디터 안에서 콘텐츠를 재생하는 반면, 레벨에 이 스태틱 메시를 배치하고 게임을 플레이해 보면, 실행시간에 TV 가 콘텐츠를 재생하지는 않을 것입니다. 
+실행시간에 콘텐츠 재생을 시작하라 해줄 방법이 필요한데, 그 방법은 곧 알아보도록 하겠습니다. 
+그에 앞서, 플레이어가 버튼을 누르면 TV 를 켜고 끄는 블루프린트 구성과 아울러, 
+레벨 디자이너가 에디터 안에서 TV 에 틀고자 하는 콘텐츠를 지정할 수 있는 방법도 마련해 줘야 할 것입니다.
+
+[NAV]
+

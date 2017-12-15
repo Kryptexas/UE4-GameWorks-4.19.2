@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.2 - 軸マッピングを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 一般的に軸マッピングでは、キーボード、マウス、およびコントローラーの入力を「フレンドリーネーム」にマッピングします。この「フレンドリーネーム」は後でゲーム ビヘイビア (移動など) にバインドすることができます。 
 軸マッピングは継続的にポーリングされ、移動のシームレスな遷移と滑らかなゲーム ビヘイビアを実現します。ハードウェア軸 (コントローラー ジョイスティックなど) は、個別の入力 ( 1 (ボタンを押した状態) または 0 (ボタンを押していない状態) ) ではなく、入力の度合いを感知します。 
@@ -83,4 +83,3 @@ Version:4.15
 
 1.	これで MoveLeft と MoveRight の軸マッピングを設定したので、**[Project Settings (プロジェクト設定)]** メニューを閉じます。
 
-%Steps%

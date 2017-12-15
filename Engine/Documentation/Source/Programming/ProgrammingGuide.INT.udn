@@ -2,7 +2,7 @@ Availability:Public
 Title:Programming Guide
 Crumbs: %ROOT%
 Description:Information for programmers developing with Unreal Engine.
-version: 4.9
+version: 4.18
 parent:%ROOT%
 order:4
 type:landing
@@ -22,7 +22,7 @@ C++ classes can be used as a base for Blueprint classes, and in this way program
 
 ## Development Setup
 
-[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"!BuildGraph")]
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy")]
 
 ## Unreal Engine Architecture
 	
@@ -42,10 +42,20 @@ Whether you are programming with C++, Blueprints, or a combination of the two, t
 
 ## Unreal Engine API Reference
 
-%API:role%
-%API/Runtime/Core:role%
-%API/Runtime/CoreUObject:role%
-%API/Runtime/Engine:role%
+[OBJECT:Role]
+	[PARAM:icon]
+	![](%ROOT%/ue4_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Unreal Engine C++ API Reference
+	[/PARAM]
+	[PARAM:description]
+	API programming reference for Unreal Engine C++ source code
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://api.unrealengine.com/cpp
+	[/PARAMLITERAL]
+[/OBJECT]
 
 ## System Guides
 
@@ -58,20 +68,10 @@ Whether you are programming with C++, Blueprints, or a combination of the two, t
 %Programming/Slate:role%
 %Programming/UnrealBuildSystem:role%
 
-## Automated Builds
-
-[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"BuildGraph")]
 
 ## Asset Handling Reference Guides
 
 [REGION:buttonlist]
 %Programming/Assets/AsyncLoading:role%
-[PUBLISH:Docs]
-%Programming/Assets/CustomImporters:role%
-%Programming/Assets/CustomExporters:role%
-[/PUBLISH:Docs]
 %Programming/Assets/Registry:role%
-[PUBLISH:Docs]
-%Programming/Assets/ThumbnailRendering:role%
-[/PUBLISH:Docs]
 [/REGION]

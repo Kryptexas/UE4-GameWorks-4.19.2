@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3452142
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ドラッグ＆ドロップの UI を作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -42,23 +42,15 @@ UMG を使って、**DragAndDropOperation** ノードを使ってこうしたタ
 
 _このガイドの最後まで進むと、ビューポート内でドラッグして、新しい場所にドロップできる UI ウィジェットを作成することができます。_
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\DragAndDrop\ProjectSetup)
-	* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
-	* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
-	* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
-	* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\DragAndDrop\ProjectSetup)
+* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
+* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
+* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
+* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
+[/REGION]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")

@@ -2,6 +2,8 @@ Availability:Docs
 Title: Documentation Process & Guidelines
 Crumbs:
 Description:Style and syntax guidelines for writing documentation.
+parent:%ROOT%
+order:500
 
 For Unreal Engine 4 (UE4) documentation, custom extended markdown syntax is used and the files are stored in P4 with the engine. Hopefully, this means it will be easier to jump in and add/update documentation.
 

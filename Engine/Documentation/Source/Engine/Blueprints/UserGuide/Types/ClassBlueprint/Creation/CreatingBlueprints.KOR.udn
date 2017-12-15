@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 클래스 만들기
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
@@ -92,7 +92,8 @@ _블루프린트_ 는 패키지에 저장되며, 다른 애셋과 마찬가지�
 
 [/EXCERPT:CreateBP3]
 
-<!--
+[COMMENT:none]
+
 1.	콘텐츠 브라우저에 우클릭한 후 만들고자 하는 _블루프린트_ 유형 옵션을 선택합니다.
 예제에서는 **New Blueprint** (새 블루프린트)를 선택하여 보통 _블루프린트_ 를 생성합니다:
 
@@ -183,5 +184,11 @@ _블루프린트_ 생성 과정은 클래스 오른편의 ![Down Arrow Icon](but
 
 	![](rename_blueprint.png)
 
--->
+
+[/COMMENT]
+
+
+
+
+
 

@@ -82,7 +82,8 @@ checkpoint:HFP
 
 完成必备的资源设置后，下一部分我们将学习创建蓝图，将所有资源链接起来，用以创建高度图绘制器。
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HFP]
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -237,9 +238,11 @@ checkpoint:HFP
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:HFP]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ForceSplat]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -521,7 +524,8 @@ checkpoint:HFP
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ForceSplat]
--->
+
+[/COMMENT]
 
 
 

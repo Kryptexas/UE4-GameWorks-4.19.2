@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Play In Editor の設定
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
@@ -61,7 +61,8 @@ Version:4.9
 | Show Mouse Control Label |%doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
 | Mouse Control Label Position |%doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GameGetsMouseControl]
 %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% 
 [/EXCERPT]
@@ -74,7 +75,8 @@ Version:4.9
 %doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ##新規ウィンドウでプレイ
 
@@ -86,7 +88,8 @@ Version:4.9
 | New Window Position (in pixels) | [INCLUDE:#NewWindowPosition] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NewWindowSize]
 浮動の Play in Editor ウィンドウの幅と高さを設定します (ピクセル単位):
 * %doxygen:ULevelEditorPlaySettings::NewWindowWidth% 
@@ -100,7 +103,8 @@ Version:4.9
 * %doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 ## スタンドアローン ゲームでプレイ
@@ -113,7 +117,8 @@ Version:4.9
 | Standalone Window Size (in pixels) | [INCLUDE:#StandaloneWindowSize] |
 | Client Command Line Options | [INCLUDE:#ClientCommandLineOptions]| 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:StandaloneWindowSize]
 スタンドアローン ゲーム ウィンドウの幅と高さを設定します (ピクセル単位)。
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
@@ -126,7 +131,8 @@ Version:4.9
 * %doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## マルチプレイヤー オプション
 
@@ -142,7 +148,8 @@ Version:4.9
 | Route 1st Gamepad to 2nd Client | [INCLUDE:#RouteGamepadToSecondWindow]|
 | Use Single Process |[INCLUDE:#RunUnderOneProcess] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PlayNumberOfClients]
 %doxygen:ULevelEditorPlaySettings::PlayNumberOfClients% 
 [/EXCERPT:PlayNumberOfClients]
@@ -166,6 +173,7 @@ Version:4.9
 %doxygen:ULevelEditorPlaySettings::RunUnderOneProcess% 
 [/EXCERPT:RunUnderOneProcess]
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:NetworkPIESettings]

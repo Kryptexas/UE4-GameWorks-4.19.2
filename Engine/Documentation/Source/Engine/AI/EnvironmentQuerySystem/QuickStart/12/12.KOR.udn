@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 12. FindHidingSpot EQS 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 훨씬 더 복잡한 인바이언먼트 쿼리를 만들겠습니다. 내비메시에 투영된 그리드 지점을 만든 다음, 어느 지점이 숨기에 가장 좋은지 알아내는 일련의 테스트를 수행합니다. 일부 테스트는 플레이어의 캐릭터(트레이스)에 보이는 등 만족하지 않는 위치는 완전히 제거하고서, 내비메시에서 (길찾기로) 도달 가능한 경우 또는 플레이어의 캐릭터 앞에 지점이 몇 개나 되는지 (Dot Product 를 통해 계산한) 결과에 따라 숨을 수 있는 지점에 가중치를 부여합니다.
 
@@ -103,11 +103,12 @@ version: 4.9
 
 	![](final.png)
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:eqsqs125]
 * **Line A - Rotation** = PlayerContext
 * **Line B - Line From** = PlayerContext
@@ -134,4 +135,5 @@ version: 4.9
 * **Scoring Equation** = Inverse Linear
 * **Scoring Factor** = 2.0
 [/EXCERPT]
--->
+
+[/COMMENT]

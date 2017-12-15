@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3531998
+﻿INTSourceChangelist:3718578
 Availability:Public
 Title:프로젝트 패키징
 Crumbs:
@@ -70,15 +70,95 @@ mac
 
 타겟 디렉토리를 확인하고 나면 선택된 플랫폼용으로 프로젝트를 패키징하는 실제 프로세스가 시작됩니다. 패키징은 시간이 매우 오래 걸리는 작업이기 때문에, 이 프로세스는 백그라운드로 진행되며, 에디터 사용을 계속할 수 있습니다. 에디터 우하단의 상태 표시를 통해 진행상황을 알 수 있습니다:
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](progress.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](progress_MAC.png)
+[/PARAM]
+[/OBJECT]
 
 상태 표시의 '취소' 버튼을 누르면 활성 패키징 프로세스를 취소시킬 수 있습니다. '로그 표시' 링크를 클릭하면 자세한 출력 로그 정보를 확인할 수도 있습니다. 출력 로그는 패키징 프로세스가 성공적으로 끝나지 않은 경우 무엇이 잘못되었는지 알아낼 때 좋습니다.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](log.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](log_MAC.png)
+[/PARAM]
+[/OBJECT]
 
 익숙하지 않은 분들의 경우, 오류나 경고같은 중요 로그 메시지들은 일반 메시지 로그 창에 로그로 기록됩니다:
 
 ![](message_log.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](message_log.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](message_log_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 [REGION:note]
 이 창이 보이지 않으면, **창 > 개발자 툴 > 출력 로그 / 메시지 로그** 옵션으로 열 수 있습니다.
@@ -88,11 +168,36 @@ mac
 
 패키징을 하면, 패키징 프로세스 결과물을 출력할 디렉토리를 선택하는 창이 뜹니다. 패키징된 게임은 플랫폼에 맞는 서브디렉토리에 들어갑니다. 예를 들어 `C:/PackagedOutput/` 이라는 디렉토리를 선택한 경우, 윈도우 빌드는 `C:/PackagedOutput/WindowsNoEditor/` 에 들어갑니다. 그 서브디렉토리에서, 플랫폼에 맞는 포맷의 패키징된 게임을 찾을 수 있습니다. 예를 들어 윈도우 게임은 `.exe` 파일, 안드로이드 게임은 `.apk` 와 `.obb` 파일에 `.bat` 인스톨러 포함, iOS 게임은 `.ipa` 파일이 있습니다. 생성되는 파일 수와 유형은 타겟 플랫폼에 따라 다릅니다. 다음 이미지는 `WindowsNoEditor` 서브디렉토리의 윈도우 프로젝트 출력 예제를 보여줍니다:
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](results.png)
+[/PARAM]
+[/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](results_MAC.png)
+[/PARAM]
+[/OBJECT]
 ## 배포
 
-App Store 나 Google Play Store 에 iOS 또는 안드로이드 게임을 제출하려면, Distribution (배포) 모드로 게임 패키지를 만들어 줘야 합니다. 그 방법은 **패키징** 메뉴의 **패키징 세팅** 옵션에서 Distribution (배포) 체크박스를 체크합니다. 그러면 최종 패키지 사이닝이 올바르게 됩니다.
+App Store 나 Google Play Store 에 iOS 또는 안드로이드 게임을 제출하려면, Distribution (배포) 모드로 게임 패키지를 만들어 줘야 합니다. 그 방법은 **패키징** 메뉴의 **패키징 세팅** 옵션에서 Distribution (배포) 체크박스를 체크합니다.
 
 iOS 에서는 애플의 개발자 웹사이트에서 배포 Certificate 와 MobileProvision 을 만들어 줘야 합니다. Development Certificate 와 같은 방식으로 Distribution Certificate 를 설치한 다음, 배포 Provision 이름에 "Distro_" 접두사를 붙여줍니다 (즉 Distro_MyProject.mobileprovision 과 MyProject.mobileprovision 이 됩니다).
 
@@ -112,7 +217,7 @@ iOS 에서는 애플의 개발자 웹사이트에서 배포 Certificate 와 Mobi
 | Build Configuration | 빌드 환경설정 - 코드 기반 프로젝트를 컴파일할 빌드 환경설정입니다. 코드 프로젝트 디버깅의 경우 DebugGame 을 선택합니다. 참고로 블루프린트 전용 프로젝트는 이 옵션이 없습니다. 그 외 디버깅은 최소한으로 지원하지만 퍼포먼스가 좋은 개발용으로는 대부분 Development 를 선택합니다. 최종 출하 빌드의 경우, 디버깅 정보와 (화면상에 디버그 메시지를 출력하거나 디버그 셰이프를 그리는 등의) 디버깅 특화 기능이 제거된 Shipping 을 선택합니다. |
 | Staging Directory | 스테이징 디렉토리 - 패키징된 빌드가 들어가게 될 디렉토리입니다. 타겟 디렉토리 선택 창에서 다른 디렉토리를 선택하면 자동으로 업데이트됩니다. |
 | Full Rebuild | 풀 빌드 - 코드를 전부 컴파일할지 입니다. 끄면 수정된 코드만 컴파일합니다. 패키징 프로세스 속도가 빨라질 수 있습니다. Shipping 빌드의 경우 누락되거나 오래된 것이 없는지 확실히 하기 위해 항상 풀 리빌드를 해야 합니다. 이 옵션은 기본으로 켜져 있습니다. |
-| Use Pak File | Pak 파일 사용 - 프로젝트의 애셋들을 개별 파일로 놔둘지 하나의 패키지로 만들지 입니다. 켜면 모든 애셋은 하나의 .pak 파일에 들어가며, 끄면 모든 파일을 일일이 복사합니다. 프로젝트에 애셋 파일이 많은 경우, Pak 를 사용하면 그리 많은 파일을 다 전송할 필요가 없어 배포가 쉬워질 수 있습니다. 이 옵션은 기본으로 꺼져 있습니다. |
+| Use Pak File | Pak 파일 사용 - 프로젝트의 애셋들을 개별 파일로 놔둘지 하나의 패키지로 만들지 입니다. 켜면 모든 애셋은 하나의 .pak 파일에 들어가며, 끄면 모든 파일을 일일이 복사합니다. 프로젝트에 애셋 파일이 많은 경우, Pak 를 사용하면 전송해야 하는 파일 양이 줄어들어 배포가 쉬워질 수 있습니다. 이 옵션은 기본으로 꺼져 있습니다. |
 | Generate Chunks | 청크 생성 - 스트리밍 인스톨에 사용할 수 있는 .pak 파일 청크를 생성할지 입니다. |
 | Build Http Chunk Install Data | HTTP 청크 설치 데이터 빌드 - HTTP 청크 인스톨러용 데이터를 생성할지 입니다. 이를 통해 데이터를 웹서버에 호스팅하여 실행시간에 설치되도록 하는 것이 가능합니다. |
 | Http Chunk Install Data Directory | HTTP 청크 설치 데이터 디렉토리 - 빌드가 완료되면 데이터가 설치되는 디렉토리입니다. |
@@ -146,12 +251,12 @@ iOS 에서는 애플의 개발자 웹사이트에서 배포 Certificate 와 Mobi
 
 * 프로젝트에 .pak 파일 압축을 사용하려면, 프로젝트 세팅 - Packing (패키징) 섹션을 찾습니다. 거기서 Packaging (패키징) 제목줄의 고급 옵션 부분을 열면 나타나는 Create compressed cooked packages (압축 쿠킹 패키지 생성) 옵션을 체크합니다.
 
-* 대부분의 플랫폼에서는 자동 압축을 제공하지 않기에, .pak 파일을 압축하면 일반적으로 로드 시간이 단축되지만, 고려해야 할 상황이 몇 가지 있습니다:
+* 대부분의 플랫폼에서는 자동 압축을 제공하지 않기에, .pak 파일을 압축하면 로드 시간이 단축되지만, 고려해야 할 상황이 몇 가지 있습니다:
 
 | 플랫폼 | 추천 |
 | -- | -- |
-| Sony PlayStation 4 | 모든 PlayStation4 타이틀에 자동 적용되는 압축과 .pak 파일 압축은 중복되어 사실상 파일 크기가 줄어드는 혜택 없이 압축 작업만 중복하게 됩니다. 그러므로 PlayStation 4 릴리즈의 경우 .pak 파일 압축은 하지 않는 것이 좋습니다. |
-| Nintendo Switch | 압축된 파일 로드가 더 빠를 수도 있지만, 데이터 압축을 푸는 데 걸리는 시간이 더 오래 걸릴 수도 있습니다. Switch 타이틀의 경우 타이틀 별로 직접 테스트해 보고 결정하는 것이 좋습니다. |
+| Sony PlayStation 4 | 모든 PlayStation4 타이틀에 자동 적용되는 압축과 .pak 파일 압축은 중복되어 파일 크기가 줄어드는 혜택 없이 압축 작업만 중복하게 됩니다. 그러므로 PlayStation 4 릴리즈의 경우 .pak 파일 압축은 하지 않는 것이 좋습니다. |
+| Nintendo Switch | 압축된 파일 로드가 더 빠를 수도 있지만, 데이터 압축을 푸는 데 걸리는 시간이 더 오래 걸릴 수도 있습니다. Switch 타이틀의 경우 타이틀마다 직접 테스트해 보고 결정하는 것이 좋습니다. |
 | Microsoft XBoxOne | XBoxOne 플랫폼에서 가장 빠른 로드 시간을 내기 위해서는 압축이 매우 중요합니다. |
 | Steam | 사용자가 다운로드하는 도중 파일을 압축하므로, 다운로드 시간은 압축중인 게임의 .pak 파일에 영향받지 않습니다. 하지만 미압축 파일의 경우 Steam 의 차등 패치 시스템이 나을 것입니다. 압축된 .pak 파일은 소비자 시스템의 디스크 공간을 절약해 주지만, 패치할 때 다운로드 시간은 길어집니다. |
 
@@ -160,11 +265,39 @@ iOS 에서는 애플의 개발자 웹사이트에서 배포 Certificate 와 Mobi
 
 ### .pak 파일 순서
 
-* 로드 시간 단축을 위해서는 .pak 파일 순서를 잘 지정하는 것이 중요합니다. .pak 파일 최적의 순서를 지정하는 데 도움을 드리기 위해, 언리얼 엔진에서는 데이터 애셋의 필요 순서를 알아내어 더욱 빠른 로딩 패키지를 제작하기 위한 툴 세트가 제공됩니다. 개념적으로, 이 프로세스는 프로파일 주도형 최적화와 비슷합니다. .pak 파일 순서 지정 방법은 다음과 같습니다:
+* 로드 시간 단축을 위해서는 .pak 파일 순서를 잘 지정하는 것이 중요합니다. .pak 파일 최적의 순서를 지정하는 데 도움을 드리기 위해, UE4 에서는 데이터 애셋의 필요 순서를 알아내어 더욱 빠른 로딩 패키지를 제작하기 위한 툴 세트가 제공됩니다. 개념적으로, 이 프로세스는 프로파일 주도형 최적화와 비슷합니다. .pak 파일 순서 지정 방법은 다음과 같습니다:
 
 1. -fileopenlog 명령줄 옵션으로 패키지 게임을 빌드하고 실행시켜, 엔진이 파일을 여는 순서를 기록하도록 하는 것입니다.
 1. 게임 주요 영역을 전부 확인하세요. 모든 레벨, 모든 플레이가능 캐릭터, 모든 무기, 모든 비히클 등을 로드하세요. 모든 것이 로드했으면, 게임을 종료합니다.
-1. 디플로이된 게임에 보면 .pak 파일 순서 최적화에 필요한 정보가 들어있는 `GameOpenOrder.log` 라는 파일이 있습니다. 예를 들어 윈도우 빌드의 경우, 이 파일은 `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` 에 있습니다. 이 파일을 `/Build/WindowsNoEditor/FileOpenOrder/` 아래 개발 디렉토리에 복사하세요.
+
+1. [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    디플로이된 게임에 보면 .pak 파일 순서 최적화에 필요한 정보가 들어있는 `GameOpenOrder.log` 라는 파일이 있습니다. 예를 들어 윈도우 빌드의 경우, 이 파일은 `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` 에 있습니다. 이 파일을 `/Build/WindowsNoEditor/FileOpenOrder/` 아래 개발 디렉토리에 복사하세요.
+    [/PARAM]
+    [/OBJECT]
+
+    [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    디플로이된 게임에 보면 .pak 파일 순서 최적화에 필요한 정보가 들어있는 `GameOpenOrder.log` 라는 파일이 있습니다. 예를 들어 맥 빌드의 경우, 이 파일은 `MacNoEditor/(YourGame)/Build/MacNoEditor/FileOpenOrder/` 에 있습니다. 이 파일을 `/Build/MacNoEditor/FileOpenOrder/` 아래 개발 디렉토리에 복사하세요.
+    [/PARAM]
+    [/OBJECT]
+
 1. 로그 파일을 배치하고, .pak 파일을 리빌드합니다. 그러면 이번 것과 앞으로 생성되는 모든 .pak 파일은 로그 파일에 나타난 파일 순서를 사용할 것입니다.
 
-* 프로덕션 환경에서는, 이 로그 파일을 소스 콘트롤에 체크 인 하고, 주기적으로 -fileopenlog 를 붙여 실행한 뒤 주기적으로 업데이트해 주는 것은 물론, 게임 발매 준비가 되면 마지막으로 한 번 더 실행시킨 뒤 포함시켜 줘야 할 것입니다.
+프로덕션 환경에서는, 이 로그 파일을 소스 콘트롤에 체크 인 하고, 주기적으로 -fileopenlog 를 붙여 실행한 뒤 주기적으로 업데이트해 주는 것은 물론, 게임 발매 준비가 되면 마지막으로 한 번 더 실행시킨 뒤 포함시켜 줘야 할 것입니다.

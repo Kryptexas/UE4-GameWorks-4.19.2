@@ -1,282 +1,309 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3590614
+Availability:Docs
 Crumbs: %ROOT%
-Title: Overview Shader In Plugins
-Description: Going over creating shaders in Plugins.
-Type: Overview
-SkillLevel: Advanced
-Version: 4.17
-Parent: Programming/Rendering/ShaderInPlugIn
-Order: 1
+Title:利用插件写 Shader 总览
+Description:讲解用插件写 Shader。
+Type:Overview
+SkillLevel:Advanced
+Version:4.17
+Parent:Programming/Rendering/ShaderInPlugIn
+Order:1
 tags:Rendering
 
 [TOC(start:1 end:3)]
 
+[region:warning]
+敬请注意，此文档 **并非** 编写 HLSL 代码或 GPU 低开销着色器的指南，仅仅是为用户展示如何通过插件（Plugin）系统创建新着色器。
+[/region]
 
-Adding new shaders for use in Unreal Engine 4 (UE4) can now be achieved via the Plugin system. Creating a shader via the Plugin system allows you to quickly and easily share what you have created with the one you want. In the following document, we will take a high level look at what needs to done to create shaders in Plugins in UE4.
+在现版本中，用户可通过插件系统添加新着色器在虚幻引擎 4（UE4）中使用。通过插件系统创建着色器后，可简单快捷地与其他用户共享创建的内容。以下文档将讲述如何在 UE4 中使用插件系统创建着色器。
 
 [region:note]
-For additional help, you can directly look at **//Engine/Plugins/Compositing/LensDistortion's** plugin.
+如需更多帮助，可直接查看 **//Engine/Plugins/Compositing/LensDistortion's** 下的插件。
 [/region]
 
-[region:warning]
-Please note that this document **is not** a guide on how to write HLSL code or GPU efficient shaders but merely to show you how to create a new shader using the Plugin system.
-[/region]
+## 插件创建要点
+
+创建新插件时，您需要注意以下事项：
+
+* 使用插件精灵迅速创建插件所需的全部文件和文件夹。
+
+* 此时已无法通过插件系统对材质编辑器进行较大的修改（如添加新的着色器模型）。
+
+* 在要求的路径中添加所有文件和文件夹，然后生成 Visual Studio 解决方案文件。
+
+* 在 ProjectName.uplugin 中，以下例为参考将模块的 LoadingPhase 设为 PostConfigInit（只针对将拥有着色器实现的模块）： 
+
+        {
+            "FileVersion" :3,
+            "Version" :1,
+            "VersionName" :"1.0",
+            "FriendlyName" :"Foo",
+            "Description" :"Plugin to play around with shaders.",
+            "Category" :"Sandbox",
+            "CreatedBy" :"Epic Games, Inc.",
+            "CreatedByURL" :"http://epicgames.com",
+            "DocsURL" :"",
+            "MarketplaceURL" :"",
+            "SupportURL" :"",
+            "EnabledByDefault" : false,
+            "CanContainContent" : true,
+            "IsBetaVersion" : false,
+            "Installed" : false,
+            "Modules" :
+            [
+                {
+                    "Name" :"Foo",
+                    "Type" :"Developer",
+                    "LoadingPhase" :"PostConfigInit"
+                }
+            ]
+        }
+
+[COMMENT:none]
+
+在以下部分中，我们将了解如何新建拥有着色器支持的新插件。 
+
+1. 首先生成一个 **//Engine/Plugins/Developer/BlankPlugin** 的副本，将其重命名为 **FooPlugin**。
+
+1. 在 FooPlugin 文件夹中创建一个名为 **Shaders** 的文件夹，并在其中再新建一个名为 **Private** 的文件夹。
+
+    [region:note]
+    注意：**"/Plugin/Foo/…”** 将映射插件 **Foo Shaders/** 目录，而非 Engine/Shaders 目录。
+    [/region]
+
+1. 在新建的 Private 文件夹中新建一个名为 **MyShader.usf** 的文件。
+
+1. 完成后，再次运行 **GenerateProjectFiles.bat** 文件重新生成项目文件，将新着色器文件包含在内。
+
+1. 在 **.../BlankPlugin/BlankPlugin.uplugin** 中，以下例为参考将模块的 LoadingPhase 改为 PostConfigInit（只针对将拥有着色器实现的模块）。
+
+        {
+            "FileVersion" :3,
+            "Version" :1,
+            "VersionName" :"1.0",
+            "FriendlyName" :"Foo",
+            "Description" :"Plugin to play around with shaders.",
+            "Category" :"Sandbox",
+            "CreatedBy" :"Epic Games, Inc.",
+            "CreatedByURL" :"http://epicgames.com",
+            "DocsURL" :"",
+            "MarketplaceURL" :"",
+            "SupportURL" :"",
+            "EnabledByDefault" : false,
+            "CanContainContent" : true,
+            "IsBetaVersion" : false,
+            "Installed" : false,
+            "Modules" :
+            [
+                {
+                    “Name" :"Foo",
+                    "Type" :"Developer",
+                    "LoadingPhase" :"PostConfigInit"
+                }
+            ]
+        }
+
+[/COMMENT]
+## 渲染线程
+
+与游戏侧的 API 不同，RHI 渲染命令由专属线程进行排列：渲染线程。渲染线程从属于游戏线程，因为之后排列的 FIFO（首进首出）命令是通过 ENQUEUE_RENDER_COMMAND 命令执行之前的命令。渲染线程可在游戏线程的 0 帧或 1 帧之后。出于 CPU 性能的考虑，生产运行时必须全力避免这两者之间的同步。为确保插件的 C++ 函数由正确的线程所调用，用户可添加多个断言改善线程的稳健性，如 check (IsInGameThread()); 或 check (IsInRenderingThread());。
+
+## 虚幻着色器文件
+
+开发 UE4 中使用的新着色器时，需要注意两个不同的着色器文件类型。如下所示，每个文件的用途均不相同：
+
+* **虚幻着色器标头（.USH）**
+    * 只由其他 USH 或 USF 文件所包含
+
+* **虚幻着色器格式（.USF）**
+    * 只应为私有数据
+        * 在私有目录中不保证反向兼容性
+    * 应包含着色器进入点
 
 
-## Plugin Creation Tips
+## 着色器文件预处理和虚拟文件路径
 
-When creating a new Plugin you should be aware of the follwoing things.
+基于 HLSL 语言的 USF 着色器文件是包含多平台着色器代码的虚幻引擎着色器文件格式。为实现多平台支持，引擎的着色器编译器已在平台特有的着色器编译器（如进行 GLSL 交叉编译的 FXC、HLSLCC 等）之前额外添加了一个平台独立的源文件预处理通道。因此，在最初的预处理之前所有的 #define 和 #if 将被解析。每个平台也内置有 #define 文件，以了解目标平台的着色器预处理，例如 VULKAN_PROFILE。
 
-* Use the Plugin Wizzard to quickly create all of the needed files and folders for your plugin.
+与 C/C++ 文件相同，可通过 #include "HelloWorld.usf,” 将 usf 文件包含，这会将命名为 HelloWorld.usf 的文件保存在写入了 #include 的 USF 文件所在的相同目录中。为避免多次包含相同文件，可在预处理指令位于文件顶部时添加 #pragma。例如：
 
-* Right now it is not possible to make drastic changes, like adding a new shader model, to the Materail Editor via Plugins.
-
-* Make sure you add all of your files and folder in the required location and then re-generate your Visual Studio solution files.
-
-* In your ProjectName.uplugin, make sure that  the module's LoadingPhase to PostConfigInit (only for the modules that will have shader implementations) like in the following example. 
-
-		{
-			"FileVersion" : 3,
-			"Version" : 1,
-			"VersionName" : "1.0",
-			"FriendlyName" : "Foo",
-			"Description" : "Plugin to play around with shaders.",
-			"Category" : "Sandbox",
-			"CreatedBy" : "Epic Games, Inc.",
-			"CreatedByURL" : "http://epicgames.com",
-			"DocsURL" : "",
-			"MarketplaceURL" : "",
-			"SupportURL" : "",
-			"EnabledByDefault" : false,
-			"CanContainContent" : true,
-			"IsBetaVersion" : false,
-			"Installed" : false,
-			"Modules" :
-			[
-				{
-					"Name" : "Foo",
-					"Type" : "Developer",
-					"LoadingPhase" : "PostConfigInit"
-				}
-			]
-		}
-
-<!--
-In the following section, we will take a look at how you create a new Plugin that has shader support in it. 
-
-1. First, make a copy of the **//Engine/Plugins/Developer/BlankPlugin** and rename it to **FooPlugin**.
-
-1. Inside the FooPlugin folder, create a new folder called **Shaders** and inside that folder create a new folder called **Private**.
-
-	[region:note]
-	Note that the  **"/Plugin/Foo/�"** is going to map to your plugins **Foo Shaders/** directory and not the Engine/Shaders directory.
-	[/region]
-
-1. Inside of the newly created Private folder, create a new file called **MyShader.usf**.
-
-1. Once that is completed, re-run the **GenerateProjectFiles.bat** file to re-generate the projects files to include our new shader file.
-
-1. In **.../BlankPlugin/BlankPlugin.uplugin**, change the module's LoadingPhase to PostConfigInit (only for the modules that will have shader implementations) like in the following example.
-
-		{
-			"FileVersion" : 3,
-			"Version" : 1,
-			"VersionName" : "1.0",
-			"FriendlyName" : "Foo",
-			"Description" : "Plugin to play around with shaders.",
-			"Category" : "Sandbox",
-			"CreatedBy" : "Epic Games, Inc.",
-			"CreatedByURL" : "http://epicgames.com",
-			"DocsURL" : "",
-			"MarketplaceURL" : "",
-			"SupportURL" : "",
-			"EnabledByDefault" : false,
-			"CanContainContent" : true,
-			"IsBetaVersion" : false,
-			"Installed" : false,
-			"Modules" :
-			[
-				{
-					"Name" : "Foo",
-					"Type" : "Developer",
-					"LoadingPhase" : "PostConfigInit"
-				}
-			]
-		}
--->
-## Render Thread
-
-As opposed to game side API, the RHI render commands are (and should be) enqueued by a dedicated thread: the rendering thread. The rendering thread is a slave thread of the game thread because the latter enqueue FIFO commands through the ENQUEUE_RENDER_COMMAND to the former. The rendering thread can be 0 or one frame behind the game thread. As a matter of CPU performance, the synchronization between them must be avoided at all cost in production runtime. To make sure your plugin's C++ function are called by the right thread, you can add asserts such as check (IsInGameThread()); or check (IsInRenderingThread()); for improved threading robustness.
-
-## Unreal Shader Files
-
-There are two different shader file types that you need to be aware of when developing new shaders for use in UE4. Each file has a different purpose which you will find listed below:
-
-* **Unreal Shader Headers (.USH)**
-	* Only included by other USH or USF files
-
-* **Unreal Shader Format (.USF)**
-	* Should be private data only
-		* No backward compatibility is guaranteed in Private directories
-	* Should contain shader entry points
-
-
-## Shader File Preprocessing and Virtual File Path
-
-USF shader files, based on HLSL language, is unreal engine shader file format that contains the multiplatform shader code. To achieve this multiplatform support, the engine's shader compiler has added an extra platform-independent source file preprocessing pass before the platform-specific shader compiler (FXC, HLSLCC for GLSL cross compilation, etc.). As a result, all #define and #if are resolved at this very first preprocessing. Of course, each platform has built-in #define to know at shader preprocessing the targeted platform, such as VULKAN_PROFILE.
-
-As same as C/C++ files, you can include usf files with #include "HelloWorld.usf," that would include the file named HelloWorld.usf stored in the same directory as the USF file you have the #include written in. To avoid multiple includes of the same file, you can add the #pragma once preprocessing directive at the top of your file. For instance:
-
-* FooCommon.usf > FooCommon.ush
-        // File shared across all plugin's shaders
+* FooCommon.usf 
+        // 在所有插件的着色器之间共享的文件
         #pragma once
+
+        #include "/Engine/Public/Platform.ush"
 
         // ...
 
-* FooBar.usf > FooBar.ush
-        // File containing all foobar-related functions and structures.
+* FooBar.usf 
+        // 包含与 foobar 相关全部函数和结构体的文件
         #pragma once
 
         #include "FooCommon.usf"
 
         // ...
 
-* FooBarComputeShader.usf > Platform.ush
-        // Compute shader that does foobar on the GPU
+* FooBarComputeShader.usf 
+        // 在 GPU 上执行 foobar 的计算着色器
 
         #include "FooCommon.usf"
         #include "FooBar.usf"
 
         // ...
+用于也可从插件或项目模块的着色器执行此操作来包含 USF 文件，操作方法如下：
 
-You can also from a plugin or project module's shader include a USF file by doing either of the following:
+* 在引擎中加入 #include `/Engine/<FilePath>`，其中 `<FilePath>` 是相对于 `//Engine/Shaders/` 目录的文件路径；
 
-* Of the engine with #include "/Engine/<FilePath>", with <FilePath> a file path relative to //Engine/Shaders/ directory;
-
-* Or another plugin with #include "/Plugin/<PluginName>/<PluginFilePath>", with PluginName the name of an **activated** plugin, and <PluginFilePath> a file path relative to the plugin's Shaders/ directory. Responsibility to add a dependency of correct plugin dependency in the .uplugin is left to the developer.
+* 或在另一个插件中加入 #include `/Plugin/<PluginName>/<PluginFilePath>`，`<PluginName>` 是 **已激活** 插件的命名，`<PluginFilePath>` 是相对于插件 `Shaders/` 目录的文件路径。开发者需要在 .uplugin 文件中为正确的插件添加依赖性。
 
 
-## First Global Shader
+## 首个全局着色器
 
-Global shaders inherit from the FGlobalShader in the following manner:
+全局着色器以以下方式继承自 FGlobalShader：
 
-     class FLensDistortionUVGenerationCS : public FGlobalShader
-    {
-        // Some internal stuff required if this class is a completed shader class.
-        // If this class would be meant to be subclass for shader permutation for instance,
-        // Then this line would no longer be required.
-        DECLARE_SHADER_TYPE(FLensDistortionUVGenerationVS, Global);
 
-    public:
-        static bool ShouldCache(EShaderPlatform Platform)
-        {
-            // This is to control whether the shader should be compiled for a given
-            // platform. Here for instance, compute shader can only be compiled with
-            // shader model 5 capable platform.
-            return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
-        }
+	class FLensDistortionUVGenerationShader : public FGlobalShader
+	{
+	public:
+		// 此函数决定着色器是否应该针对给定平台进行编译。
+		// 因此，着色器在缺少 SM4 支持的情况下无法使用。
+		static bool ShouldCache(EShaderPlatform Platform)
+		{
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		}
 
-        static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-        {
-            // This is to customize the compilation environment of the shader, to add
-            // #define for instance.
-            FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-            OutEnvironment.SetDefine(TEXT("GRID_SUBDIVISION_X"), kGridSubdivisionX);
-            OutEnvironment.SetDefine(TEXT("GRID_SUBDIVISION_Y"), kGridSubdivisionY);
-        }
+		// 着色器的编译时常量可在此函数中进行定义：
+		static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+		{
+			FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+			OutEnvironment.SetDefine(TEXT("GRID_SUBDIVISION_X"), kGridSubdivisionX);
+			OutEnvironment.SetDefine(TEXT("GRID_SUBDIVISION_Y"), kGridSubdivisionY);
+		}
 
-        FLensDistortionUVGenerationCS() {}
+		// 默认构造函数。
+		FLensDistortionUVGenerationShader() {}
 
-        FLensDistortionUVGenerationCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-            : FGlobalShader(Initializer)
-        {
-            // Once the shader has been successfully compiled, this is where we need to
-            // bind the shader parameters: the communication between C++ and USF files.
-            PixelUVSize.Bind(Initializer.ParameterMap, TEXT("PixelUVSize"));
-            RadialDistortionCoefs.Bind(
-                Initializer.ParameterMap, TEXT("RadialDistortionCoefs"));
-        }
+		// 使用初始化对象的构造函数我们将在此处绑定参数，使 C++ 代码
+		// 能与 USF 进行交互，使用户能从代码设置着色器参数。
+		FLensDistortionUVGenerationShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+			:FGlobalShader(Initializer)
+		{
+			PixelUVSize.Bind(Initializer.ParameterMap, TEXT("PixelUVSize"));
+			RadialDistortionCoefs.Bind(Initializer.ParameterMap, TEXT("RadialDistortionCoefs"));
+			TangentialDistortionCoefs.Bind(Initializer.ParameterMap, TEXT("TangentialDistortionCoefs"));
+			DistortedCameraMatrix.Bind(Initializer.ParameterMap, TEXT("DistortedCameraMatrix"));
+			UndistortedCameraMatrix.Bind(Initializer.ParameterMap, TEXT("UndistortedCameraMatrix"));
+			OutputMultiplyAndAdd.Bind(Initializer.ParameterMap, TEXT("OutputMultiplyAndAdd"));
+		}
 
-        template<typename TShaderRHIParamRef>
-        void SetParameters(
-            FRHICommandListImmediate& RHICmdList,
-            const TShaderRHIParamRef ShaderRHI,
-            const FCompiledCameraModel& CompiledCameraModel,
-            const FIntPoint& DisplacementMapResolution)
-        {
-            // This is to set shader parameters before to be summoned. You are free to do
-            // whatever you want.
-            FVector2D PixelUVSizeValue(
-                1.f / float(DisplacementMapResolution.X), 1.f / float(DisplacementMapResolution.Y));
+		// 必须在此处对全部成员进行序列化。此函数在加载和保存时运行，并用于
+		// 将着色器放入 DDC 和 pak 文件。
+		virtual bool Serialize(FArchive& Ar) override
+		{
+			bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+			Ar << PixelUVSize << RadialDistortionCoefs << TangentialDistortionCoefs << DistortedCameraMatrix << UndistortedCameraMatrix << OutputMultiplyAndAdd;
+			return bShaderHasOutdatedParameters;
+		}
 
-            SetShaderValue(RHICmdList, ShaderRHI, PixelUVSize, PixelUVSizeValue);
-            SetShaderValue(RHICmdList, ShaderRHI, DistortedCameraMatrix, CompiledCameraModel.DistortedCameraMatrix);
-        }
+		// 此函数是一个范例，说明如何基于
+		// 特定于着色器的数据预计算着色器参数。因此，着色器需要数个可从几个参数进行计算的
+		// 矩阵，而这在着色器自身中进行计算则效率不高。注意
+		// 此函数并非为覆盖，它针对该类而定制，并在
+		// 此功能的特定实现需要时进行调用。
+		template<typename TShaderRHIParamRef>
+		void SetParameters(
+			FRHICommandListImmediate& RHICmdList,
+			const TShaderRHIParamRef ShaderRHI,
+			const FCompiledCameraModel& CompiledCameraModel,
+			const FIntPoint& DisplacementMapResolution)
+		{
+			FVector2D PixelUVSizeValue(
+				1.f / float(DisplacementMapResolution.X), 1.f / float(DisplacementMapResolution.Y));
+			FVector RadialDistortionCoefsValue(
+				CompiledCameraModel.OriginalCameraModel.K1,
+				CompiledCameraModel.OriginalCameraModel.K2,
+				CompiledCameraModel.OriginalCameraModel.K3);
+			FVector2D TangentialDistortionCoefsValue(
+				CompiledCameraModel.OriginalCameraModel.P1,
+				CompiledCameraModel.OriginalCameraModel.P2);
 
-        virtual bool Serialize(FArchive& Ar) override
-        {
-            // This is to serialise at load and save time the shader into the DDC and pak
-            // files. It must serialise all its members.
-            bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-            Ar << PixelUVSize << RadialDistortionCoefs;
-            return bShaderHasOutdatedParameters;
-        }
+			SetShaderValue(RHICmdList, ShaderRHI, PixelUVSize, PixelUVSizeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, DistortedCameraMatrix, CompiledCameraModel.DistortedCameraMatrix);
+			SetShaderValue(RHICmdList, ShaderRHI, UndistortedCameraMatrix, CompiledCameraModel.UndistortedCameraMatrix);
+			SetShaderValue(RHICmdList, ShaderRHI, RadialDistortionCoefs, RadialDistortionCoefsValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TangentialDistortionCoefs, TangentialDistortionCoefsValue);
+			SetShaderValue(RHICmdList, ShaderRHI, OutputMultiplyAndAdd, CompiledCameraModel.OutputMultiplyAndAdd);
+		}
 
-    private:
-        FShaderParameter PixelUVSize;
-        FShaderParameter RadialDistortionCoefs;
+	private:
+		// 着色器参数。
+		FShaderParameter PixelUVSize;
+		FShaderParameter RadialDistortionCoefs;
+		FShaderParameter TangentialDistortionCoefs;
+		FShaderParameter DistortedCameraMatrix;
+		FShaderParameter UndistortedCameraMatrix;
+		FShaderParameter OutputMultiplyAndAdd;
+	};
 
-    };
-
-    // Some internal stuff required for complete shader class. Note the absolute virtual
-    // source file path. Don't forget the DECLARE_SHADER_TYPE in your subclass!
-    IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationCS, TEXT("/Plugin/LensDistortion/Private/UVGeneration.usf"), TEXT("MainCS"), SF_Compute)
+	// 此宏将把着色器公开到引擎。注意绝对的虚拟源文件路径。
+	IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationVS, TEXT("/Plugin/LensDistortion/Private/UVGeneration.usf"), TEXT("MainVS"), SF_Vertex)
 
 
 ### Engine/Public/Platform.usf
 
-To have your shader compiling on all UE4 platforms, you are required to include /Engine/Public/Platform.usf in all your shader files (directly or indirectly).
+要在所有 UE4 平台上完成着色器编译，需要将 /Engine/Public/Platform.usf（直接或间接）纳入到所有的着色器文件中。
 
-## Shader Development Tips
+## 着色器开发要点
 
-You can customize locally ConsoleVariables.ini to change some settings in the renderer to accelerate iteration process when writing shaders. For example, the following ConsoleVariables will help you get detailed debug information about what your shader is doing:
+可使用 ConsoleVariables.ini 进行本地自定义，修改渲染器中的部分设置，以加速编写着色器时的迭代进程。例如以下控制台变量将帮助您获得着色器所执行操作的详细调试信息：
 
-* **r.ShaderDevelopmentMode = 1** To get detailed logs on shader compiles and the opportunity to retry on errors.
+* **r.ShaderDevelopmentMode = 1** 获取着色器编译的详细目录，以及出现错误时重试的机会。
 
-* **r.DumpShaderDebugInfo = 1** To dump preprocessed shaders in the Saved folder. 
+* **r.DumpShaderDebugInfo = 1** 将预处理着色器转存到 Saved 文件夹中。 
 
     [region:warning]
-    Warning: leaving this on for a while will fill your hard drive with many small files and folders so make sure to disable it when you are done.
+    警告：将此开启一段时间后硬盘上将出现很多小文件和文件夹，因此完成后必须将其禁用。
     [/region]
     
 
 
-## Troubleshooting 
+## 故障排除 
 
-If you are having issues getting your shader to compile or show up in the UE4 editor, try the following:
+如着色器无法编译或在 UE4 编辑器中显示，请尝试以下操作：
 
-* If you get the error **Can't compile:** `/Plugin/<MyPluginName>/<MyFile>` **not found.** Make sure to check your plugin's module's LoadingPhase is set to PostConfigInit, and that ther are no typo's in the plugin's Shaders/ directory name.
+* 如出现错误 **Can't compile:**`/Plugin/<MyPluginName>/<MyFile>` **not found.**确保插件模块的 LoadingPhase 设为 PostConfigInit，且插件的着色器目录名中没有输入错误。
 
-* If you get the error **Can't #include** `�/Plugin/<ParentPluginName>/<MyFile>�:` Make sure to check that the parent plugin is activated and also check your plugin dependency as this error means you are missing a plugin dependency in your .uplugin or .uproject.
+* 如出现错误 **Can't #include** `"/Plugin/<ParentPluginName>/<MyFile>":`，需要检查父插件是否已启动，还需要检查插件依赖性，因为此错误代表 .uplugin 或 .uproject 文件中缺少插件依赖性。
 
 
-## Existing Renderer Convention
+## 现有渲染器规则
 
-In the renderer, we tend to have a convention on naming shader classes and shader entry point, especially with a shader domain suffix as shown in the following table:
+渲染器中通常有着色器类和着色器进入点的命名规则，尤其是下表中显示的着色器域后缀。
 
-|Shader Domain  | Suffix |
+|着色器域  | 后缀 |
 |-------------- |--------|
-|Vertex Shader  |VS|
-|Hull Shader    |HS|
-|Domain Shader  |DS|
-|Geometry Shader|GS|
-|Pixel Shader   |PS|
-|Compute Shader |CS|
+|**顶点着色器**  |VS|
+|**凸包着色器 **   |HS|
+|**域着色器**  |DS|
+|**几何体着色器**|GS|
+|**像素着色器  ** |PS|
+|**计算着色器 **|CS|
 
-For example, in a C++ file, the call to **FLensDistortionUVGenerationVS** has VS at the end signaling that it is a Vertex Shader. Inside of a USF file the **void MainVS(...)** ends with a VS signaling that it is going to use the Vertex Shader. When dealing with Struct's in HLSL, the struct name should start with **F** like FBasePassInterpolators for example.
+举例而言，在 C++ 文件中对 **FLensDistortionUVGenerationVS** 的调用中以 VS 结尾，则说明这是一个顶点着色器。在 USF 文件中 **void MainVS(...)** 以 VS 结尾，说明其将使用顶点着色器。在 HLSL 中处理结构体时，结构体命名应以 **F** 开头，如 FBasePassInterpolators。
 
 [region:note]
-To read more about coding standards in UE4 check out the [UE4 Coding Standards document](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/) for more information. 
+如需了解 UE4 中更多关于代码标准的内容，请查阅 [UE4 代码标准文档](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/)。 
 [/region]
+
+## 附加链接
+
+以下链接包含在 UE4 中进行全局着色器开发的更多内容。
+
+* [FGlobalShader 基类](https://docs.unrealengine.com/latest/INT/API/Runtime/ShaderCore/FGlobalShader/index.html)
+* [调试着色器编译进程](https://www.unrealengine.com/en-US/blog/debugging-the-shader-compiling-process)
+* [为 UE4 添加全局着色器](https://rcaloca.blogspot.com/2017/05/adding-global-shaders-to-ue4.html)
+
+
+
 

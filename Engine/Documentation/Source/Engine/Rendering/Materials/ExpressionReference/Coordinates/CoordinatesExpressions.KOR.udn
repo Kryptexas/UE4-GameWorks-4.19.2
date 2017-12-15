@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Coordinates 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -92,10 +92,12 @@ SceneColor 나 SceneDepth 표현식을 사용할 때와 마찬가지로 텍셀 �
 
 ScreenPosition 은 현재 렌더링되고 있는 픽셀의 화면 공간 위치를 출력하는 표현식입니다.
 
-| 항목 | 설명 |
-| ---- | ---- |
-| [REGION:tablesection]프로퍼티[/REGION] ||
-| **Screen Align** | _True_ 면 ScreenPosition 은 위치를 동질성 좌표로 나누어 그 위치를 화면 정렬용 [0,0] - [1,1] 범위로 매핑시킵니다. |
+[COMMENT:none]
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Screen Align** | If true, ScreenPosition divides the position by the homogeneous coordinate and maps the position to [0,0] - [1,1] for screen alignment. |
+[/COMMENT]
 
 [REGION:fullwidth]
 ![ScreenPositionExample.png](ScreenPositionExample.png)

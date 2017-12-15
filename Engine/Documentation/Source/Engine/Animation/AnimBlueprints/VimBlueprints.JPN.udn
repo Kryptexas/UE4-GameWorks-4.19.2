@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Animation ブループリントは、複雑なアニメーション ビヘイビアを作成し、制御できるようにするビジュアル スクリプトです。
+Description:Animation ブループリントは、複雑なアニメーション ビヘイビアを作成し、制御するビジュアル スクリプトです。
 Related:Engine/Blueprints/Overview
 Related:Engine/Content/FBX/Animations
 Related:Engine/Content/Types/SkeletalMeshes
@@ -10,8 +10,8 @@ Related:Engine/Animation/PhysicallyDrivenAnimation
 Related:Engine/Animation/StateMachines
 Related:Gameplay/AI
 Related:Engine/Content/Tools/MayaRiggingTool
-version:4.14
-type:landing
+version:4.18
+type:Overview
 tags:Animation
 tags:Animation Blueprint
 tags:Blueprints
@@ -19,10 +19,15 @@ tags:State Machine
 tags:Assets
 topic-image:Engine/Animation/Overview/AnimationBlueprintTopic.png
 
+[COMMENT:none]
+
 [REGION:banner]
 ![](AnimationBlueprint.png)
 [/REGION]
 
+[/COMMENT]
+
+[TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
 **Animation ブループリント** は、特殊な [ブループリント](Engine/Blueprints) であり、そのグラフでは、 [スケルタルメッシュ](Engine/Content/Types/SkeletalMeshes) のアニメーションを制御します。 
@@ -33,9 +38,9 @@ topic-image:Engine/Animation/Overview/AnimationBlueprintTopic.png
 **Animation ブループリント** のサンプルのデモが、セクション 1.2 の [アニメーションのコンテンツ サンプル](Resources\ContentExamples\Animation) ページにあります。
 [/REGION]
 
-## Animation ブループリントを作成し、ナビゲートする
+## Animation ブループリントを作成、ナビゲートする
 
-Animation ブループリントがどのように機能するかに進む前に、その作成方法を理解するとよいでしょう。さらに、Animation ブループリントのインターフェースに慣れるとよいでしょう。 
+Animation ブループリントがどのように機能するかに進む前に、その作成方法とインターフェースを理解するとよいでしょう。 
 
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\Creation:TopicCompact%
@@ -44,13 +49,9 @@ Animation ブループリントがどのように機能するかに進む前に�
 
 ## Animation ブループリントで作業する
 
-Animation ブループリントを作成し、そのインターフェースについても学んだら、まず何の作業をするかを考えます。
-
 [EXCERPT:Graphs]
 Animation ブループリントには、2 つの主要コンポーネントがあります。 
-この 2 つが連動して、各フレームの最終アニメーションを作成します。特に **EventGraph** は、後で **AnimGraph** で使用可能な値を更新します。 
-この値を使用して、ステートマシン、ブレンドスペース、その他のノードを操作し、複数のアニメーション シーケンスやポーズ間のブレンディングを可能にし、動的なアニメーション駆動のエフェクトを起こす通知を 
-別のシステムへ送信します。
+この 2 つが連動して、各フレームの最終アニメーションを作成します。具体的に **EventGraph** は、後で **AnimGraph** で使用可能な値を更新します。この値を使用して、ステートマシン、ブレンドスペース、その他のノードを操作し、複数のアニメーション シーケンスやポーズ間のブレンディングを可能にし、それにより他のシステムに通知を発行し、動的なアニメーション駆動のエフェクトを起こさせることができます。
 [/EXCERPT:Graphs]
 
 [REGION:topics half]
@@ -76,14 +77,14 @@ Sub Anim Instance で作業する場合、外部の Animation ブループリン
 [/REGION]
 
 [REGION:note]
-Sub Animation Blueprint Instance をセットアップしてキャラクターの動きに影響を与えるには、 [SubAnim インスタンスを使用する](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimHowTo/SubAnimInstance/index.html) をご覧ください。 
+Sub Animation Blueprint インスタンスをセットアップしてキャラクターの動きに影響を与えるには、 [SubAnim インスタンスを使用する](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimHowTo/SubAnimInstance/index.html) をご覧ください。 
 [/REGION]
 
 
 ## 子 Animation ブループリントで作業する
 
 キャラクターと Animation ブループリントを作成し、設定する場合、類似キャラクターが複数存在するが、異なるステートで全く違うアニメーションを持つことがあるかもしれません。 
-こうしたキャラクターそれぞれに Animation ブループリントを作成するのではなく、既存の Animation ブループリントの **子 Animation ブループリント** を使用して、置換したいアニメーション アセットをオーバーライドすることができます。 
+こうしたキャラクターそれぞれに Animation ブループリントを作成するのではなく、既存の Animation ブループリントの **子 Animation ブループリント** を使用して、置換したい Animation アセットをオーバーライドすることができます。 
 子 Animation ブループリントはその親から何もかもを継承しますが、**Asset Override Editor (アセット オーバーライド エディタ)** を使用してどのアニメーションをオーバーライドするかを指定することもできます。 
 
 例えば、ひとつは人間でもうひとつはオオカミ人間という 2 種類の人間の形をしたキャラクターがあるとします。両方とも歩く、走る、ジャンプ、這うことができます。 
@@ -105,6 +106,48 @@ Post Process Anim ブループリントをスケルタルメッシュに割り�
 [REGION:note]
 詳細は、Skeletal Mesh アセットの詳細 の [Post Process Animation ブループリント](https://docs.unrealengine.com/latest/INT/Engine/Animation/Persona/MeshDetails/index.html#スケルタルメッシュ) セクションをご覧ください。
 [/REGION]
+
+## Animation ブループリントのライブ編集
+
+[REGION:warning]
+現在この機能は実験的なものであり、期待どおりに機能しない場合があります。 
+[/REGION]
+
+エディタで再生中に、Animation ブループリントをリアルタイムに編集して再コンパイルすることができます。一度停止してから変更を適用する必要がなくなるため、イタレーションにかかる時間を短縮します。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Ec_MIz_mcuM
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+上の動画では、エディタでプレイ (PIE) セッション中にキャラクターのステートマシンに変更を加えています。 
+[/REGION]
+
+ライブ編集を有効にするには、**[General] の [Experimental]** セクションの **[Tools]** で **[Enable Live Recompilation Of Animation Blueprints] ** オプションを有効にします。 
+
+![](LiveEditing.png)
+
+Animation ブループリント内の [Debug Filter](Engine/Blueprints/Editor/UIComponents/Toolbar) を使ってデバッグする Animation ブループリントのインスタンスを定義する必要があります。 
+
+![](DebugOption.png)
+
+デバッグする Animation ブループリントのインスタンスを選択したら、キャラクターのアニメーション ステートが何であれレベルから Animation ブループリント エディタに反映されます。 
+
+
 
 
 

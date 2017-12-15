@@ -8,7 +8,7 @@ order:1
 Version:4.13
 skilllevel:Intermediate
 related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
-topic-image::Engine/Physics/physics_topic.png
+topic-image:Engine/Physics/physics_topic.png
 
 此指南将说明创建 **约束配置文件** 和添加 **物理约束** 的基本要点。
 

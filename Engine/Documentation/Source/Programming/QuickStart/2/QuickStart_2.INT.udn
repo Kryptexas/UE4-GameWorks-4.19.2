@@ -4,24 +4,12 @@ Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a C++ class
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:2
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Programming\QuickStart\1 "%Programming\QuickStart\1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Programming Quick Start Home](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Programming\QuickStart\3 "%Programming\QuickStart\3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
  1. In the **Unreal Editor**, we can create a new C++ class with the **New C++ Class...** command, located in the **File** drop-down menu.
  
@@ -35,6 +23,32 @@ Version: 4.9
  
 	[![](NameActorClass.png)](NameActorClass.png)
 
-Now that we have created a C++ class, we can switch to **Visual Studio** to program it. FloatingActor.cpp will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	Now that we have created a C++ class, we can switch to **Visual Studio** to program it. FloatingActor.cpp will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	Now that we have created a C++ class, we can switch to **Xcode** to program it. FloatingActor.cpp will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
+	[/PARAM]
+[/OBJECT]
 
-%Steps%
+[NAV]

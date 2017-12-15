@@ -102,7 +102,8 @@ SkillLevel:Intermediate
 
 UE4 がサブサーフェス プロファイル シェーディング モデルでフル解像度のスキンシェーディングをサポートするようになりました。毛穴やしわなどのサーフェスの詳細に対して忠実度の高いライティングを実現します。
 
-<!--[OBJECT:ComparisonSlider]
+[COMMENT:none]
+[OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard.png)
     [/PARAM]
@@ -110,7 +111,8 @@ UE4 がサブサーフェス プロファイル シェーディング モデル�
     ![Full Resolution Skin](FRSH_FullResolution.png)
     [/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 [OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard_Zoom.png)
@@ -240,7 +242,8 @@ _このシステムはますます進歩していくため、このリストは�
 ヘッドモデルの提供とご支援いただいた Lee Perry-Smith 氏と Perry-Smith 氏の [Infinite Realities] (http://ir-ltd.net ) に深く感謝いたします。 
 また、この機能のもとになった実装をリリースいただいた [Jorge Jimenez 氏](http://www.iryoku.com/) にも深く感謝いたします。
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SSRScale]
 [OBJECT:SliderSequence]
     [PARAMLITERAL:max]
@@ -270,6 +273,7 @@ _このシステムはますます進歩していくため、このリストは�
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SSRScale]
--->
+
+[/COMMENT]
 
 

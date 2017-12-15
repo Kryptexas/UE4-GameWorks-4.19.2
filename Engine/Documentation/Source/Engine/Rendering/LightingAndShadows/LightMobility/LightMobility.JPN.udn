@@ -70,7 +70,8 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:topics third]
 %Engine/Rendering/LightingAndShadows/LightMobility\StaticLights:topiccompact%
@@ -119,7 +120,8 @@ Stationary light (固定ライト) は Mobile (可動) および Static (静的)
 	[/PARAM]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

@@ -1,131 +1,157 @@
 Availability:Public
-Title: Playing Videos in a Level
+Title: Play a Video File
 Crumbs:%ROOT%, Engine
-Description:Describes how to use the File Media asset to play videos inside a level. 
-parent:Engine/MediaFramework/HowTo
-order:3
-checkpoint: editorqs
-Version: 4.15
+Description:Illustrates how you can play a video file inside a level on a Static Mesh with the File Media Source asset. 
+Type: how-to
 SkillLevel: Beginner
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
 Related: Engine\MediaFramework
 
-If you are looking to have video playing inside your level on an object whether its a TV or a monitor or some other object, you can do so using the **Media Framework** assets. 
-In this how-to we place a video file inside the **Content** folder of our project, then use the **Media Player** and related assets (with a little **Blueprint Visual Script**) to play the video during gameplay as shown below. 
+If you are looking for a way to play a video inside your level, whether it is playing on a TV inside the level, playing in the background as part of your UI or even playing fullscreen you will need to use the **Media Framework** tools and Media Source asset. 
+While there are different Media Source asset types, the **File Media Source** asset is used when you have a video file stored on a device (for example on your computer, phone or console) that you want to play inside Unreal Engine 4 (UE4). 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-zxyY2s6ZfrU
-[/PARAMLITERAL]
-[/OBJECT]
+In this how-to, we use the File Media Source asset to play a video on a Static Mesh inside our level. 
+
+![](MediaHero.png)
 
 ## Steps
 
 [REGION:note]
 For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
-You will also need a [Supported Video File](Engine\MediaFramework\TechReference) saved on our computer that you want to play. You can use your own or **Right-click** and download this [Sample Video](SampleVideo.mp4). 
+You will also need a [Supported Video File](Engine\MediaFramework\TechReference) saved on our computer that you want to play. You can use your own or if you do not have a video, you can right-click and download this [Sample Video](SampleVideo.mp4) for this tutorial. 
 [/REGION]
 
 1.	In the **Content Browser** expand the **Sources Panel**, then under **Content** create a folder called **Movies**. 
 
 	![](FileMedia_01.png)
 
-1.	**Right-click** on the **Movies** folder and select **Show in Explorer**. 
+	[REGION:tip]
+	Placing your media files inside the **Content/Movies** folder of your project will ensure that your media is packaged with your project correctly.
+	[/REGION]
 
-	![](FileMedia_01b.png)
-
-1.	Drag your video file into the **Content/Movies** folder of your project. 
+1.	Right-click on the **Movies** folder and select **Show in Explorer**. 
 
 	![](FileMedia_02.png)
 
-	Placing your video files inside the **Content/Movies** folder of your project will ensure the videos are properly packaged. 
-
-1.	Inside Unreal Engine and your project, **Right-click** in the **Movies** folder and under **Media** select **File Media Source**. 
+1.	Drag your desired video file into the **Content/Movies** folder of your project. 
 
 	![](FileMedia_03.png)
 
-1.	Call the asset **SampleVideo**, then open it and point the **File Path** to the location of your video file in the **Content/Movies** folder. 
+	[REGION:warning]
+	In order to package and deploy your content with your project, your media must reside in the **Content/Movies** folder of your project. 
+	[/REGION]
+
+1.	Inside your project, right-click in the **Movies** folder and under **Media** select **File Media Source** and call the asset **SampleVideo**. 
 
 	![](FileMedia_04.png)
 
-1.	**Right-click** in the **Content Browser** then under **Media** select the **Media Player** asset. 
+1.	Inside the File Media Source asset, under **File Path** click the **...** button and point to your sample video on your computer. 
 
 	![](FileMedia_05.png)
 
-1.	In the **Create Media Player** window, check **Audio output SoundWave asset** and **Video output Media Texture asset**. 
+1.	Right-click inside the **Movies** folder again and under **Media** select **Media Player**. 
 
 	![](FileMedia_06.png)
 
-	This will automatically create a Sound Wave and Media Texture asset linked to this Media Player asset which is needed for playback. 
-
-1.  Name the new Media Player asset. We have called our Media Player asset **SampleMedia** which is also applied to the Sound Wave and Media Texture. 
+1.	In the **Create Media Player** window, enable the **Video out Media Texture asset** option then click **OK**. 
 
 	![](FileMedia_07.png)
 
-1.  Open the Media Player asset and **Double-click** on your Media Source asset and it will playback. 
+	This will create a **Media Texture** asset and automatically assign it to the Media Player we are creating. The Media Texture is responsible for playing back the media content and we can use this to create a **Material** that will be applied to a Static Mesh in our level a little later in this guide. 
+
+1.	Name the Media Player and Media Texture asset, **MyPlayer** and **MyPlayer_Video** then open the **MyPlayer** Media Player asset. 
 
 	![](FileMedia_08.png)
 
-	In the lower-right in the **Details** panel, **Play on Open** is checked by default, which will indicate that the asset will automatically start playing the content when the source is opened. 
-	Since we created a Media Texture and Sound Wave asset when we imported our source, they will automatically be assigned in the **Output** section. 
-
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level. We will use this Static Mesh to playback our video on. 
+1.	Double-click on the **SampleVideo** in the **Media Library** section. 
 
 	![](FileMedia_09.png)
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the mesh similar to below. 
+	When double-clicking on the File Media Source asset inside the Media Library section, the video will start playing back. This is because the **Play on Open** option is enabled in the **Playback** section of the **Details** panel. 
+	When this option is checked, whenever a Media Source asset is opened, it will automatically start playing back and does not need to explicitly be told to start playing. 
+
+	While our video plays back inside the Media Editor, a little later in this guide we will need to tell our Media Player through [Blueprint Visual Scripting](Engine/Blueprints) to open our File Media Source asset during gameplay so that the file will start playing while we are playing our game. 
+
+1.	From the **Modes** panel under **Basic**, drag a **Plane** into the level and use the **Transform** tools to move/scale the mesh as desired.
 
 	![](FileMedia_10.png)
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+	With the Plane selected in the level, use the [Transform tools](GettingStarted/HowTo/ManipulatingActors) and **Translate (W)**, **Rotate (E)** and **Scale (R)** the mesh to your desired appearance. 
+
+1.	Drag the **MyPlayer_Video** Media Texture asset onto the **Plane** inside the level to auto create and assign a new **Material**. 
 
 	![](FileMedia_11.png)
 
-	This will automatically create a **Material** and apply it to the Static Mesh. 
+	When dragging the Media Texture onto the Static Mesh in the level, it will automatically create a new Material in the **Content Browser** and apply it to the mesh in the level. 
 
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	With the **Plane** selected in the level, in the **Details** panel click the **Add Component** button and search for and add a **Media Sound**. 
 
 	![](FileMedia_12.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **Media Player** and set it to your **SampleMedia** Media Player asset. 
+	The **Media Sound** component is used to define the audio that will playback alongside the video. 
+
+1.	In the **Details** panel, select the new **Media Sound** component then under the **Media** section, set the **Media Player** to use **MyPlayer**. 
 
 	![](FileMedia_13.png)
 
-	[REGION:note]
-	You may need to **Compile** before you can assign the **Default Value**. 
-	[/REGION]
+	Here we are associating the Media Sound component with our Media Player asset so it knows where to draw audio from. 
 
-1.	Hold **Ctrl** and drag in the **MediaPlayer** variable and also **Right-click** and add an **Event Begin Play** node. 
+1.	From the main toolbar, click the **Blueprints** button and select **Open Level Blueprint**. 
 
 	![](FileMedia_14.png)
 
-1.	Drag off the **MediaPlayer** variable and use the **Open Source** node set to your **SampleVideo** Media Source then connect as shown. 
+	We will use the **Level Blueprint** and tell our Media Player to open our File Media Source asset at the start of gameplay so it will start playing in the level. 
+
+1.	Add a **Variable** of the **Media Player Reference** type called **MediaPlayer** and set the **Default Value** to **MyPlayer**. 
 
 	![](FileMedia_15.png)
 
-1.	Close the Level Blueprint, then **Play** in the editor. 
+	[REGION:note]
+	You may need to create the variable, then click the **Compile** button in order to define a **Default Value**. 
+	[/REGION]
+
+1.	 Hold the **Ctrl** key and drag the **MediaPlayer** into the graph, then right-click in the graph and search for and add an **Event Begin Play** node. 
+
+	![](FileMedia_16.png)
+
+	We now have a node to signify the start of gameplay and a reference to our Media Player asset. The last thing we need to do is tell our player to open a Media Source. 
+
+1.	Left-click and drag off the **Media Player** node and use the **Open Source** function with **Media Source** set to **SampleVideo** and connect to the **Event Begin Play**. 
+
+	![](FileMedia_17.png)
+
+1.	Close the **Level Blueprint**, then click the **Play in Editor** button. 
 
 	
 ## End Result
 
-When you play in the editor, the video will start playing on the Static Mesh. 
+When you play in the Editor, the video will start playing on the Static Mesh. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-zxyY2s6ZfrU
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	dcqiXWfkMHI
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 **Media Player** assets by default are set to **Play on Open** which is why the video automatically starts playing when calling the **Open Source** function.
 There are additional commands you can issue to the Media Player asset such as pausing, rewinding or stopping the video once it has begun playing which can be found under the **Media Player** section when dragging off the Media Player Reference.
+
+In this example we elected to put our media content inside our project's **Content/Movies** folder. While this is not a requirement it is recommended in the event that you want to package your project, as this is the only folder that will automatically include the content as part of the packaging/deployment process. 
+You could point your File Media Source asset to folders outside of this location and the media will play, however if you were to deploy this to a mobile device for example, the content would not be included as part of deployment.  
+

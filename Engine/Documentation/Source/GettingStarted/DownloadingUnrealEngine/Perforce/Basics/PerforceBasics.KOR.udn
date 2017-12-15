@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:3351642
+﻿INTSourceChangelist:3782314
 Availability:Licensee
 Title:퍼포스로 언리얼 엔진 내려받기
 Crumbs:
 Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안내서입니다.
 Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
-<!--
+[COMMENT:none]
+
 ## 에픽의 VPN 접속
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
--->
+
+[/COMMENT]
 
 [EXCERPT:main]
 에픽의 퍼포스 서버는 이제 SSL 암호화를 통해 접속되며, 퍼포스 클라이언트 (P4V, p4, 또는 API) 2012.1 버전 이상이 필요합니다. 대기시간 기반 라우팅을 활용하여 글로벌 DNS 이름을 사용하는 경우 가장 가까운 퍼포스 지역 서버에 자동 접속되도록 할 수가 있으며, 각 지역의 프록시 서버에 직접 연결하여 항상 가장 가까운 곳에 접속되도록 할 수도 있습니다.

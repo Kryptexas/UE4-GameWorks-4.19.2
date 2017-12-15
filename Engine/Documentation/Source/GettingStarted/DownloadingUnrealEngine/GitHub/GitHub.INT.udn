@@ -111,7 +111,8 @@ Forking and cloning our source code from GitHub is a great way to get started wi
 
 Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
 
-<!--
+[COMMENT:none]
+
 
 There are two ways to get the source code for Unreal Engine from GitHub:
 
@@ -193,8 +194,10 @@ Unpack the downloaded archive to a location of your choosing on your computer.
 ## Next Steps
 
 Now, you're ready to [build the engine](Programming/Development/BuildingUnrealEngine).
--->
-<!-- This section is deprecated per UE 4.8
+
+[/COMMENT]
+[COMMENT:none]
+ This section is deprecated per UE 4.8
 ## Installing Dependencies
 
 In addition to the source code, there are dependencies that need to be installed in order to compile and run the 
@@ -209,4 +212,5 @@ In version 4.5.1 and prior, the `Setup.bat` does not exist and the depencies mus
 ## Next Steps
 
 After installing the dependencies, you're ready to [build the engine](Programming/Development/BuildingUnrealEngine).
--->
+
+[/COMMENT]

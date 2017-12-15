@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:커스텀 번 인 적용
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 시네마틱을 렌더링 출력할 때, 시간, 샷, 프레임 정보가 표시되는 [기본 번 인](Engine\Sequencer\HowTo\BurnIns) 세팅 이상의 정보를 제공하고 싶을 수가 있습니다.
 [](Engine/UMG) 와 [](Engine/Blueprints) 를 조금 활용하면 별도의 번 인과 오버레이 함수성을 만들 수 있습니다.

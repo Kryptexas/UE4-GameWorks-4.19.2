@@ -1,138 +1,173 @@
 Availability:Public
-Title: Working with Media Playlists
+Title: Using Media Playlists
 Crumbs:%ROOT%, Engine
-Description:Example of how you can use a Media Playlist to playback multiple Media Source assets. 
-Version: 4.15
+Description:Shows how to create and work with Media Playlists using the Media Framework tools. 
+Type: how-to
 SkillLevel: Intermediate
-parent:Engine/MediaFramework/HowTo
-order:3
-checkpoint: editorqs
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
 Related: Engine\MediaFramework
 
-When working with media assets in Unreal Engine 4, there may be times where you have a series of videos that you want to playback in a specific order or you want to allow players to access videos within a specific series of videos. 
-This can be accomplished by using a **Media Playlist** asset which points to **Media Source** assets assigned in a predefined order. 
+When working with media assets in Unreal Engine 4 (UE4), there may be times where you have a series of videos that you want to play in a specific order or you want to allow players to access videos within a specific series of videos. 
+This can be accomplished by using a **Media Playlist** asset which points to **Media Source** assets assigned in a predefined order.
 
-In this how-to we create a Media Playlist and allow the player to playback each asset or access a specific asset inside the playlist through a key press similar to the video below.
+In this how-to, we create a Media Playlist and allow the player to play each asset sequentially or access a specific video inside the playlist through a key press. 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kjbgHVnQxBI
-[/PARAMLITERAL]
-[/OBJECT]
-
+![](PlaylistHero.png)
 
 ## Steps
 
 [REGION:note]
 For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
-You will also need a few [Supported Video Files](Engine\MediaFramework\TechReference) saved on our computer that you want to add to the playlist for playback. 
-You can use your own or **Right-click** and download these two sample videos: [Video Example 1](Infiltrator Demo.mp4) and [Video Example 2](SampleVideo.mp4)
+We are also using three sample videos in our playlist which you can download by right-clicking this [Sample Videos](Videos.rar) link and extracting the contents on your computer. 
 [/REGION]
 
-1.	In the **Content Browser** expand the **Sources Panel**, then in the **Content** create a new folder called **Movies**. 
-
-	![](Playlist_00.png)
-
-1.	**Right-click** on the **Movies** folder and choose **Show in Explorer** then place your video files in the folder. 
+1.	In the **Content Browser** expand the **Sources Panel**, and create a folder called **Movies** then right-click on it and **Show in Explorer**. 
 
 	![](Playlist_01.png)
 
-	[REGION:note]
-	Placing your video files inside the **Content/Movies** folder of your project will ensure the videos are properly packaged. 
+	[REGION:warning]
+	In order to successfully package and deploy your video files along with your project, your videos must be placed inside the **Content/Movies** folder of your project. 
 	[/REGION]
 
-1.	Create two **File Media Source** assets (called **Video_01** and **Video_02**) and point the **File Path** to each respective video. 
+1.	Drag the Sample Video files provided into the **Content/Movies** folder of your project. 
 
 	![](Playlist_02.png)
 
-1.	Create a **Media Playlist** asset inside the content browser called **MyPlaylist**. 
+1.	In your project, right-click in the **Content/Movies** folder then under **Media** select **File Media Source**. 
 
 	![](Playlist_03.png)
 
-1.	Inside **MyPlaylist**, **Double-click** on each **File Media Source** to add it to the playlist. 
+1.	Create three **File Media Source** assets called **Video_01**, **Video_02** and **Video_03** respectively. 
 
 	![](Playlist_04.png)
 
-	You can also use the **+** button to add an empty element which you can then assign your source media. In this example we are using **File Media Source** assets, however you can also include **Stream Media Source** assets in a Playlist. 
-
-1.	Create a **Media Player** asset called **VideoPlayer**. 
+1.	Inside **Video_01**, point the **File Path** to the **Gideon_720x480** file (or your desired video file) then click the **Open** button.
 
 	![](Playlist_05.png)
 
-1.	In the **Create Media Player** window, check **Audio output SoundWave asset** and **Video output Media Texture asset**. 
+1.	Repeat the previous step and assign videos for the **Video_02** and **Video_03** assets. 
 
-	![](Playlist_06.png)
+1.	Create a **MediaPlayer** asset called **MediaPlayer** with an associated **Media Texture**, then open the **MediaPlayer** asset. 
 
-	This will automatically create a Sound Wave and Media Texture asset linked to this Media Player asset which is needed for playback. 
+	![](Playlist_08.png)
 
-	![](Playlist_07.png)
-
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level.  
-
+	Double-clicking on a video inside the **Media Library** window will play the selected file. 
+	
 	![](Playlist_09.png)
+	
+	You can also set the player to **Shuffle** the playback order of videos in a playlist by enabling the option in the **Details** panel. 
+	The **Loop** option will loop the playback of entire playlist (or a single source if there is only one source in the Media Playlist). 
+	Our Media Player is also set to **Play on Open** which means, when we open this Media Source associated with this Media Player, it will automatically start playing. 
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the size and location of the Static Mesh as desired. 
+	[REGION:note]
+	In the **Playlist** window, you can save out new playlist assets, however, as of 4.18, there is no way currently to add items to a playlist inside the Media Editor. 
+	[/REGION]
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+1.	Inside the **Content/Movies** folder of the **Content Browser**, right-click and under **Media** select **Media Playlist** and call it **MyPlaylist**. 
 
 	![](Playlist_10.png)
 
-	This will automatically create a **Material** and apply it to the Static Mesh. 
-
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	Open the **MyPlaylist** asset, then in the **Media Library** window, double-click on a video and add each to the playlist.
 
 	![](Playlist_11.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **Media Player** and set it to your **VideoPlayer** Media Player asset.
+	You can also use the **+** button to add new items to the playlist and the drop-down menu to select the type of Media Source to add. 
+	Inside the **Playlist** window you can insert, duplicate or delete items from the playlist or left-click and drag rows to reorder the playback order by clicking the tab along the left side of each row. 
+	At the top of the Media Playlist window, the **Loop** option is available if you want to loop the entire playlist. 
+
+1.	From the **Modes** panel of the Main Editor window under **Basic**, drag a **Plane** into the Level and use the **Transform Tools** to resize it. 
 
 	![](Playlist_12.png)
 
-	[REGION:note]
-	You may need to **Compile** before you can assign the **Default Value**. 
-	[/REGION]
+	Using the [Transform Tools](GettingStarted/HowTo/ManipulatingActors/) you can move (**W key**), rotate (**E key**), or scale (**R key**) the plane as desired as we will play our videos on this Static Mesh. 
 
-1.	**Right-click** in the **Event Graph** and add a **1 Keyboard Event**, **2 Keyboard Event** and **3 Keyboard Event**.  
+1.	From the **Content Browser**, drag the **MediaPlayer_Video** Media Texture asset onto the plane in the Level to create and apply a new Material. 
 
 	![](Playlist_13.png)
 
-1.	**Ctrl** drag in the **Media Player** variable, then drag off it and use **Open Playlist Index** and set the **InPlaylist** to **MyPlaylist**. 
+	When dragging the **Media Texture** onto the Static Mesh in the Level, a **Material** will automatically be created and applied to the mesh, enabling us to play our videos.  
+
+1.	With the **Plane** selected in the Level, in the **Details** panel click the **Add Component** button and add a **Media Sound** component. 
 
 	![](Playlist_14.png)
 
-1.	Use **Open Playlist** for the **2 Keyboard Event** with **Index** set to **1** and use **Open Playlist** for the **3 Keyboard Event**. 
+	The **Media Sound** component enables us to associate audio with a Media Player and provides a way for the audio to be played along with our video. 
+
+1.	Select the **Media Sound** component, then under the **Media** section assign your **MediaPlayer** asset. 
 
 	![](Playlist_15.png)
 
-1.	Close the **Level Blueprint**, then click the **Play** button to play in the level. 
+1.	From the Main Toolbar, click the **Blueprints** button and select **Open Level Blueprint**. 
+
+	![](Playlist_16.png)
+
+	While our video plays inside the Media Editor, in order to play during gameplay we will need to open our playlist so it can start playing. 
+
+1.	In the **MyBlueprint** window, create a variable called **MediaPlayer** of the **Media Player Object Reference** type and set the **Default Value** to your **Media Player** asset.  
+
+	![](Playlist_17.png)
+
+	[REGION:note]
+	You may need to **Compile** your Blueprint in order to set the **Default Value**. 
+	[/REGION]
+
+1.	In the graph, right-click and add a **1** Keyboard Event, then hold **Ctrl** and drag the **MediaPlayer** variable into the graph. 
+
+	![](Playlist_18.png)
+
+1.	Drag off the **MediaPlayer** variable and use **Open Playlist Index** (with **In Playlist** set to **MyPlaylist**) and connect to the **Pressed** of the **1** keyboard event.
+
+	![](Playlist_19.png)
+
+	Here, when the Player presses the **1** key on the keyboard, the playlist will open (and start playing) with the first video in the list. 
+	The index refers to the playlist index order specified inside your Media Playlist asset (pictured below) and is zero-based with zero being the first video in your playlist. 
+	With the **Open Playlist Index** node, you can specify which file you want to open within a playlist by entering its index value. 
+
+	![](Playlist_19b.png)
+
+1.	Right-click and add **2** and **3** keyboard events to **Open Playlist Index** for **Index 1** and **Index 2** respectively. 
+
+	![](Playlist_20.png)
+
+	With this setup, when you press 1 you will open the first file in the playlist, 2 the second and 3 the third. 
+
+1.	Right-click and add a **Left** and **Right** keyboard event to call **Previous** and **Next** nodes and **0** to **Open Playlist**. 
+
+	![](Playlist_21.png)
+
+	The **Previous** and **Next** nodes will jump to the previous video and next video in a playlist respectively while the **Open Playlist** node executes the same functionality as opening a playlist at index 0 (or the start of the playlist). 
+	With these nodes, we will be able to cycle through our playlist by using the **Left** and **Right** arrow keyboard keys and pressing the **0** key will open the playlist at the start of our playlist. 
+
+1.	Close the **Level Blueprint** then click the **Play** button to play in the Editor. 	
 
 	
 ## End Result
 
+When you play in the Editor pressing the **1**, **2**, **3** or **0** keys will start playback at the specified index (if applicable). 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kjbgHVnQxBI
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	3Y3fuqXPfpU
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
+When a video ends, it will automatically jump to the next video in the playlist. If you enabled **Loop**, once the final video in the playlist plays, it will jump back to the start of the playlist. 
+While the video is playing, you can press the **Left** or **Right** arrow keys to jump to the previous or next video in the playlist or the **1**, **2**, or **3** keys to jump directly to a video in the playlist. 
 
-When playing in the editor, the video playback will not initially start when the level is loaded. When the player presses the **1** key, the playlist will start playing from the first video in the playlist. 
-When pressing the **2** key, the video playback will jump to the second video in the playlist. When pressing **3**, we are opening and playing the video from the start of the playlist which is the same as opening the playlist at index 0. 
-
-Our **Media Player** asset is set to **Play on Open** which is why each video is played when we call the open playlist function. 
-If you want to open a Media Source but not start playback immediately, you can uncheck the Play on Open option inside the Media Player asset then use the **Play** function to play an open Media Source asset. 
-
-You can also navigate an opend playlist with the **Next** function (to pick the next item in the playlist) and **Previous** (to pick the previous item in the playlist). 
-The Media Player also has a property called **Shuffle** that when enabled will pick a random item from the playlist when the next source is to be opened (also affects Previous and Next). 
 

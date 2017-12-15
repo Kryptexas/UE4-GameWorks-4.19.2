@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:アニメーション リターゲット
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -94,7 +94,9 @@ topic-image:AnimationgRetargeting_topic.png
 
 ## リターゲットの設定
 
-<!---Establishing animation retargeting on your --->
+[COMMENT:none]
+-アニメーションのリターゲット関係を確立します。
+[/COMMENT]
 
 上記のリターゲットの仕組みで説明したように、最初に行うのはスケルトン内のボーンに対して **[Bone Translation Retargeting (ボーン移動のリターゲット)]** モードを設定することです。
 
@@ -135,12 +137,14 @@ topic-image:AnimationgRetargeting_topic.png
 [/REGION]
 
 
-<!----
+[COMMENT:none]
+--
 
 単一のスケルタルメッシュに対して全てのアニメーションを作成していて、それらを別のバリエーションにリターゲットする場合、それまで提供された情報でリターゲットは成功します。成功の理由は、元となる 1 つのスケルタルメッシュをベースとして使用するということは、元となるひとつのものから、全ての変更版に向かう一方向の接続だからです。では、変更版だけに特別なアニメーションが必要な場合はどうなるでしょうか？
 
 背の高いアニメーションに対して異なるアイドル アニメーションなど、特別なアニメーションがいくつか必要な場合を考えてみましょう。アニメーターはそのスケルタルメッシュを受け取り、必要なアニメーションを作成し、以前と同じ Skeleton アセットを使ってそれをインポートしますが、問題が生じます。Skeleton アセットの元となる比率はベースとなるキャラクターの比率に基いているので、アニメーションは歪みます。
 
---->
+-
+[/COMMENT]
 
 

@@ -137,7 +137,8 @@ The information displayed is split up into 5 sections, each of which can be togg
 | **Notifies** | Display any notify states that are currently in effect. |
 | **Graph** | Displays the active pose graph. The display starts with the last node (the root node) which represents the final pose and goes on to list all the nodes that go into making that final pose. Nodes are represented in such a way as to keep their hierarchy, allowing the user to see which nodes are connected to what without having to refer to the original Blueprint asset. Active nodes are colored green and (if they have been toggled to display using `ShowDebugToggleSubCategory FullGraph`) inactive nodes are colored gray. |
 
-<!-- Pulled from the intro section (overkill for overview page).
+[COMMENT:none]
+ Pulled from the intro section (overkill for overview page).
 		
 		**Additive Animation**
 		
@@ -181,4 +182,5 @@ The information displayed is split up into 5 sections, each of which can be togg
 		**Morph Targets**
 
 		[INCLUDE:Engine/Content\FBX\MorphTargets#Intro]
--->
+
+[/COMMENT]

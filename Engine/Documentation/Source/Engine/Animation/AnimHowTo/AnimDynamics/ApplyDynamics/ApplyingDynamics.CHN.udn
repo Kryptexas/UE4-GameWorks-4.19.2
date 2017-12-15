@@ -21,7 +21,7 @@ skilllevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 现在我们的角色已经设置了 **动画蓝图** 并有了我们希望动态地产生动画的骨骼，而要产生动态动画，我们可以在 **动画蓝图** 的 **动画图** 中使用 **AnimDynamics** 节点来实现。 
 
@@ -117,7 +117,7 @@ w7c3i2vpcUc
 您可以自由地试验 **设置（Setup）**部分中的 **框范围（Box Extent）**和 **局部关节偏移（Local Joint Offset）**值，以及 **约束（Constraints）**部分中的 **线性（Linear）**和 **角度限制（Angular Limits）**值，看看这会如何改变受 AnimDynamics 影响的骨骼的运动。
 
 
-%Steps%
+
 
 
 

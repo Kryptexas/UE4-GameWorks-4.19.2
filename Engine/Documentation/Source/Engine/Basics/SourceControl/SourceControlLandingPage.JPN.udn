@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:アンリアル エンジン 4 におけるコラボレーション
 Crumbs: %ROOT%, Engine
@@ -13,21 +13,7 @@ order:29
 こうすることで、ファイルに何か問題が生じた場合に前のバージョンに戻ることができます。
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ソースコントロール ソフトウェア
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Basics\SourceControl\InEditor "%Engine\Basics\SourceControl\InEditor:description%")
-	* [](Engine\Basics\SourceControl\Perforce "%Engine\Basics\SourceControl\Perforce:description%")
-	* [](Engine\Basics\SourceControl\SVN "%Engine\Basics\SourceControl\SVN:description%")
+## ソースコントロールのソフトウェア
 
-	[/PARAM]
-[/OBJECT]
-
+[DIR(output:"topic" parent:"Engine/Basics/SourceControl")]
 

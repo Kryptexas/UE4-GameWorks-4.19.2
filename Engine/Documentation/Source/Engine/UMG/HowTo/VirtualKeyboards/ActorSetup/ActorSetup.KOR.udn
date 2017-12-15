@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3. 액터 구성 및 테스트
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -25,7 +25,7 @@ Order: 3
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 최종회에서는 위젯 블루프린트를 액터에 **Widget** 컴포넌트로 추가하고 플레이어가 **Enter** 버튼에 클릭하면 어떤 일이 벌어지는지를 정의합니다. 입력한 텍스트가 **GoalText** 와 같은지 비교하는 것입니다.
 모든 준비가 다 되었다면, 최종 결과 확인을 하는 테스트를 통해 코드가 맞으면 화면에 **Success**, 틀리면 **Wrong Code** 라 출력합니다.

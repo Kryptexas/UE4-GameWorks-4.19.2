@@ -102,7 +102,7 @@ You can use branches in your depot to make the integration and merging process e
 * **//depot/Devel** - Your development tree
 
 
-![Perforce_33.jpg](Perforce_33.jpg)(w:640 h:443)
+![Perforce_33.jpg](Perforce_33.jpg)(w:640)
 
 A simple overview of the process of upgrading your engine version to a new QA build might be:
 
@@ -116,7 +116,7 @@ A simple overview of the process of upgrading your engine version to a new QA bu
 
 You can see an example of this workflow here:
 
-![Perforce_34.jpg](Perforce_34.jpg)(w:665 h:443)
+![Perforce_34.jpg](Perforce_34.jpg)(w:665)
 
 The more frequently you update, the less likely you are to run into serious conflicts when merging. It can be extremely useful to use merge programs such as Araxis to help resolve conflicts when they do arise.
 

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3477876
-Availability:Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%
 Title:スケルタル制御
 Description:ターゲット スケルトンのボーンを直接操作し、ソルバを適用できるアニメーション ノードについて説明します。
@@ -55,33 +55,11 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 
 以下は、AnimGraph 内の各 Skeletal Control ノードについての情報を示したページへのリンクです。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	スケルタル制御
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation "%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController "%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\SplineIK "%Engine\Animation\NodeReference\SkeletalControls\SplineIK:description%")	
-		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ModifyCurve "%Engine\Animation\NodeReference\SkeletalControls\ModifyCurve:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")	
-		* [](Engine\Animation\NodeReference\SkeletalControls\RigidBody "%Engine\Animation\NodeReference\SkeletalControls\RigidBody:description%")			
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Engine/Animation/NodeReference/SkeletalControls" org:"hierarchy" end:"1")]
 
-<!--
+
+[COMMENT:none]
+
 [REGION:topics third]
 %Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:TopicCompact%
@@ -96,4 +74,5 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 %Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ObserveBone:TopicCompact%
 [/REGION]
--->
+
+[/COMMENT]

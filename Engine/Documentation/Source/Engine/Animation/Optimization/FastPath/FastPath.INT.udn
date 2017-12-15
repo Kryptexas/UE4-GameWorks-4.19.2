@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Optimizations that can be applied to the structure of animation graphs to gain performance
 version: 4.11
 topic-image:AnimationFastPathOptimization_topic.png
+parent:Engine/Animation/Optimization
 
 [EXCERPT:Intro]
 Animation Blueprints are very flexible ways of building animation systems. However the performance overheads 

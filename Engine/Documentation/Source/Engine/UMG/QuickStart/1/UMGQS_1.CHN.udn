@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 在此教程中，我们使用的是启用了 **新手内容** 的 **第一人称蓝图** 模板。如您不清楚如何创建新项目和使用模板，请参阅 [](Engine/Basics/Projects/Browser) 页面了解详细信息。 
@@ -135,6 +135,6 @@ version:4.9
 
 在下一步，我们将设置 Health、Energy 和 Ammo 变量在 HUD 上的显示，让它们在游戏中正常工作。 
 
-%Steps%
+
 
 

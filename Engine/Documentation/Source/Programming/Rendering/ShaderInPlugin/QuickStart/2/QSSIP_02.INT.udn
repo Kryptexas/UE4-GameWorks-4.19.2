@@ -1,4 +1,4 @@
-Availability: Docs 
+Availability:Public 
 Crumbs: %ROOT%
 Title: Creating a New Global Shader in a Plugin - Blueprint Setup
 Description: Setting up a Blueprint to test the Shader in Plugin code.
@@ -110,7 +110,8 @@ At this point you can now distort the content inside a render target from Bluepr
 
 [NAV]
 
-	<!--
+	[COMMENT:none]
+
 [EXCERPT:DrawDIS]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -330,4 +331,5 @@ At this point you can now distort the content inside a render target from Bluepr
 [/OBJECT]
 [/EXCERPT:DrawDIS]
 
--->
+
+[/COMMENT]

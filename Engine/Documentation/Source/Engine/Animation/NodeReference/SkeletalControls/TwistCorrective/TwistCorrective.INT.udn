@@ -3,40 +3,7 @@ Title:Twist Corrective
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Describes how the Twist Corrective control can be used to drive curve values based on the twist of one bone relative to another. 
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:title%](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective\TwistCorrective.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TwistCorrective]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:title%](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective\TwistCorrective.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TwistCorrective]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:TwistCorrective.png
 
 
 The **Twist Corrective** node is a node that can drive curve values, such as **Morph Targets**, based on the twist of one bone relative to another. As an example, when the neck is twisted too far to the right or left you can apply a Morph Target to the neck in order to create a more natural look. 

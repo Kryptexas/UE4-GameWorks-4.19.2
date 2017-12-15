@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ルート モーション
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -184,7 +184,8 @@ YuD29-Xr7Oc
 ルートモーション中にキャラクターの物理ステートが考慮されています。例えばキャラクターの物理ステートが Walking または Falling の場合、ルートモーションの Z 軸は無視されて、重力が適用されます。キャラクターは落下するか、坂を下るか、もしくは階段を上ります。キャラクターの物理ステートが Flying の場合、ルートモーションが完全に適用されて、重力は無視されます。
 
 
-<!-- This should be a HowTo.It's actually a checkbox now instead of using AnimMontages
+[COMMENT]
+ This should be a HowTo.It's actually a checkbox now instead of using AnimMontages
 ## ルートモーションの設定
 
 UE4 のルートモーションの設定はとても簡単です。しかし、どのバージョンの UE4 を使用しているかに応じて手順は若干異なります。大まかに説明すると、pre-4.6 のプロセスは以下を含みます。
@@ -288,7 +289,8 @@ PWB_mqjz3iA
 [/PARAMLITERAL]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

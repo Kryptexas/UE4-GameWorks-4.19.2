@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:3697586
+Availability: Public
+Crumbs:  %ROOT%, Platforms
+Title: 기어 VR APK 크기 줄이기
+Description: 기어 VR 프로젝트 크기를 줄이기 위한 여러가지 방법입니다.
+Type: how-to
+SkillLevel: Advanced
+Version: 4.17
+Parent: Platforms/GearVR
+Order: 3
+Tags:GearVR
+prereq:Platforms/Android/ReducingAPKSize
+
+
+기어 VR 프로젝트의 APK 크기를 최소한 작게 만들기 위해서는 약간의 계획과 함께 어떤 UE4 피처를 사용할지 말지 아는 것이 필요합니다. 여기서는 기어 VR 프로젝트 최종 크기를 줄이기 위해 할 수 있는 여러가지 방법을 살펴보겠습니다.
+
+
+## ASTC 텍스처 포맷
+
+기어 VR 과 호환되는 텍스처 포맷은 여러가지 있지만, **ASTC** 포맷을 사용하는 것이 프로젝트를 패키징했을 때 파일 크기가 더 작은 경향이 있습니다.
+
+![](Android_ASTC_Texture_Format.png)
+
+
+
+
+## 플랫폼 무관 기법
+
+위에 나열된 기어 VR 전용 메소드에 추가로, (타겟 플랫폼에 관계 없이) 패키지 게임 크기를 줄이는 방법이 여럿 있습니다.
+
+[INCLUDE:Engine/Performance/ReducingPackageSize#main(offset:1)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:씬 속도 조정
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **Play Rate Track** (재생 속도 트랙)으로 레벨 시퀀스의 섹션 속도를 올리고 낮출 수 있습니다.
 씬에서 재생 속도를 변환시키려는 아무 지점에나 (, 보통 시간을 늦춰 중요한 순간을 강조하거나, 특정 씬 고조를 위해 재생 속도를 높이거나 하기 위해) 키프레임을 추가할 수 있습니다.

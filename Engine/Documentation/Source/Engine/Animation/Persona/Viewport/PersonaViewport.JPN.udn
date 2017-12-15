@@ -13,9 +13,11 @@ topic-image:viewportsmall.png
 tags:animation
 
 
-<!--
+[COMMENT:none]
+
 [TOC (start:2 end:3)]
--->
+
+[/COMMENT]
 [EXCERPT:Overview]
 各アニメーション ツールには、Animation アセットの再生をプレビューできる **[ビューポート]** ウィンドウがあります。 
 [/EXCERPT:Overview]
@@ -159,7 +161,8 @@ tags:animation
 
 ![Viewport Panel](ViewportPanel_Viewport.png)
 
-<!-- No longer contained in the viewport, leaving for now if it is included on another page. 
+[COMMENT:none]
+ No longer contained in the viewport, leaving for now if it is included on another page. 
 ## タイムライン / コントロールバー
 
 [EXCERPT:PreviewControls]
@@ -182,7 +185,8 @@ tags:animation
 
 [/EXCERPT:PreviewControls]
 
--->
+
+[/COMMENT]
 
 
 

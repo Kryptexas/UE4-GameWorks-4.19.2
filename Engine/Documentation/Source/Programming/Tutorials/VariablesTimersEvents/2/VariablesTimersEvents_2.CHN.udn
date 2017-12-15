@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 我们的倒计时定时器当前被硬编码为 3 秒。在编辑器中将倒计时设为任意数值十分实用，也很容易实现。在 **Visual Studio** 中，我们打开 Countdown.h 可以找到拥有以下代码的行：
 
@@ -199,4 +199,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

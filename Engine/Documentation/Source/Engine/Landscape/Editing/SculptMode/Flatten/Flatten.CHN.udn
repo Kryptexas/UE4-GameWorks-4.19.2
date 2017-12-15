@@ -73,7 +73,8 @@ Topic-image:Flatten_topic.png
 | [REGION:tablesection] 高级 [/REGION] ||
 | **Show Preview Grid** | 启用扁平目标后，可启用此项显示扁平目标高度的预览网格。|
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:flattenmode]
 |选项 | 描述 |
@@ -83,6 +84,7 @@ Topic-image:Flatten_topic.png
 | **Lower** | 点击鼠标时只降低高于当前选择高度的数值。不会对低于此点击点的数值进行修改。|
 [/EXCERPT:flattenmode]
 
---->
+-
+[/COMMENT]
 
 

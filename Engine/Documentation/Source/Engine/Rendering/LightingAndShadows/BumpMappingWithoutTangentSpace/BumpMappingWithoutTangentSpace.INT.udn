@@ -3,26 +3,7 @@ Title:Bump Mapping w/o Tangent Space
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:How to achieve bump mapping from 3D procedural shaders where classic tangent space does not work.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:title%](%ROOT%/Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace/bump_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:bump_topic.png
 
 **Bump mapping** is an old trick of graphics programmers (1978 James Blinn) that creates the illusion of bump 
 surfaces through an adjusted shading computation without adding more geometry. Instead of using the surface 

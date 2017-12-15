@@ -5,45 +5,7 @@ Description:Containers that can be used to group related nodes and provide descr
 version: 4.9
 Parent:Engine/Blueprints/Workflow
 tags:Blueprints
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Comments:title%](Engine\Blueprints\UserGuide\Comments.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Comments:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Comments:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Comments]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Comments:title%](Engine\Blueprints\UserGuide\Comments.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Comments:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Comments:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Comments]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Comments.png
 
 
 [EXCERPT:Intro]

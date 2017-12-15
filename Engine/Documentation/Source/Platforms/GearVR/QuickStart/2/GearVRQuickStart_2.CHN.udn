@@ -23,7 +23,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 项目创建和编译完成后，Visual Studio 2013 （如已安装）将随编辑器自动打开。
@@ -105,7 +105,8 @@ Version:4.9
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	<!-- This was step six, removed based on Josh Adams advice.
+	[COMMENT:none]
+ This was step six, removed based on Josh Adams advice.
 	1.接下来在 **Android Package Name** 部分为项目命名。此例使用 **com.Company.GearVR_QS** 命名。 
 
 	![](GVR_Android_Game_Name.png)
@@ -113,6 +114,7 @@ Version:4.9
 	[REGION:note]
 	如使用的是 UE 4.7.0 或更旧版本，此处使用的命名必须与项目命名匹配，否则应用程序在智能手机上运行时将存在问题。
 	[/region]
-	-->
+	
+[/COMMENT]
 
-%Steps%
+

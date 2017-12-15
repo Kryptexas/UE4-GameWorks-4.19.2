@@ -101,7 +101,8 @@ When an Animation Sequence asset is opened in the **Animation Editor**, there ar
 
 ![](AnimAssetDetails.png)
 
-<!-- This was moved with the 4.14 Animation Edtior Revamp
+[COMMENT]
+ This was moved with the 4.14 Animation Edtior Revamp
 ### Linear Key Removal
 
 |---|---|
@@ -114,7 +115,8 @@ When an Animation Sequence asset is opened in the **Animation Editor**, there ar
 |**Parent Key Scale**| A scale value which increases the likelihood that a bone will retain a key if its parent also had a key at the same time position. Higher values can remove shaking artifacts from the animation at the cost of compression. |
 |**Retarget**| If true, as the animation is compressed, adjust animated nodes to compensate for compression error. If false, do not adjust animated nodes. |
 |**Actually Filter Linear Keys**| Controls whether the final filtering step will occur, or only the retargeting after bitwise compression. If both this and **Retarget** are false, then the linear compressor will do no better than the underlying bitwise compressor, extremely slowly.|
--->
+
+[/COMMENT]
 
 ### Animation
 

@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:익스포넨셜 하이트 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
-Description:Exponential Height Fog Actor, 익스포넨셜 하이트 포그 액터를 사용하여 레벨의 고도에 따라 농도가 급변하는 안개를 만드는 법입니다.
+Description:Guide to creating height-based, distance fog in levels.
+topic-image:heightfog_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/HeightFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/HeightFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/HeightFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/HeightFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 [REGION:banner]

@@ -23,7 +23,7 @@ SkillLevel: Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在本节中，我们将通过执行基于玩家输入控制人物的脚本来完成人物设置。 
 
@@ -115,4 +115,4 @@ SkillLevel: Advanced
 	
 	然后，我们通过将**JumpZVelocity**设置为**365**（为移动人物）或在静止时设为**340**，以基于人物是否在移动来设置人物可以跳跃多高。在这两种情况下，我们将**Jump Pressed**设置为_True_，并在放开跳跃时将**Jump Pressed**设置为_False_。 
 
-%Steps%
+

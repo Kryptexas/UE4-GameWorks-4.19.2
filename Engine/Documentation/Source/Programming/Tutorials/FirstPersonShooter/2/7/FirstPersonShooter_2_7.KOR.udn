@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.7 - 카메라 뷰 변경
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 예전 단계 끝에서 기본 카메라 위치를 메시의 목 안쪽에 위치시켰었습니다. 이번 단계에서는 카메라 (위치나 시야같은) 프로퍼티 조정에 사용할 수 있는 적합한 FPS 카메라를 구성해 보도록 하겠습니다.
 
@@ -208,4 +208,3 @@ Version: 4.15
 
 1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 **클릭** 하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-%Steps%

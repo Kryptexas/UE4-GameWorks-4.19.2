@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:シーンの速度を調整する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,9 +11,10 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **Play Rate Track (再生レートトラック)** では、レベル シーケンスのセクションを速くしたり、遅くしたりすることができます。 
-Play Rate (再生レート) を変化させたい場所でシーン内の任意のポイントにキーフレームを追加することができます (重要な瞬間を目立たせるために遅くしたり、一部のシーンを強めるために速くするなど)。 
+Play Rate (再生レート) を変化させたい場所でシーン内の任意のポイントにキーフレームを追加することができます (重要な瞬間を目立たせるために遅くしたり、一部のシーンを強調するために速くするなど)。 
 
 この操作ガイドでは、再生レートを調整してシーン中の時の流れを遅くします。 
 
@@ -72,11 +73,11 @@ Play Rate (再生レート) を変化させたい場所でシーン内の任意�
 	![](PlayRate9.png)
 
 1.	レベル ビューポートで **[Preview Play]** ボタンをクリックし、シーケンスをプレビューします。 
-	## 最終結果
 
 
 
 
+## 最終結果
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

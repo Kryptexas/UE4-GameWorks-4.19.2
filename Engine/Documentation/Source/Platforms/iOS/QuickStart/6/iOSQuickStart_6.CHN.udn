@@ -21,7 +21,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -55,7 +55,8 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 [REGION:note]
 如果您之前在Mac上开发过iOS应用程序，但想要在一台Windows PC上使用虚幻引擎来开发iOS游戏，您可以跳过此步骤，然后从苹果iOS开发者网站下载已存的信息提供概述文件，从而与虚幻引擎iOS配置向导共同使用。
@@ -66,7 +67,8 @@ Availability:Public
 如果您在之前开发过iOS应用程序，您可以跳过这个步骤并从苹果的iOS开发者网站中下载已存的信息提供概述文件，从而与虚幻引擎共同使用。
 [/REGION]
 [/EXCERPT:macos]
--->
+
+[/COMMENT]
 
 **如需创建移动平台的信息提供概述文件：**
 
@@ -129,7 +131,8 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowsimport]
 1. 浏览到`Engine\Binaries\DotNET\IOS\`目录，并运行`iPhonePackager.exe`。
 
@@ -155,6 +158,7 @@ Availability:Public
 [EXCERPT:macosimport]
 1. 复制您下载的信息提供概述文件(`.mobileprovision` 文件) 到`[ProjectDirectory]/Build/iOS` 目录中。
 [/EXCERPT:macosimport]
--->
 
-%Steps%
+[/COMMENT]
+
+

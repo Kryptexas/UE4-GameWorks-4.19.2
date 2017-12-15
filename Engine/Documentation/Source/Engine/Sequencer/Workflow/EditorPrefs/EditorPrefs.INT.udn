@@ -33,7 +33,8 @@ The section below defines how the auto-keyframing feature is used within Sequenc
 For more information on Key Interploation, see [**Interpolation Modes**](Engine/UI/CurveEditor).
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AutoKeyMode]
 [REGION:simpletable]
 | Value | Effect |
@@ -43,9 +44,11 @@ For more information on Key Interploation, see [**Interpolation Modes**](Engine/
 | **Key None** | Do not auto-key any properties. |
 [/REGION] 
 [/EXCERPT:AutoKeyMode]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:KeyInterp]
 [REGION:simpletable]
 | Value | Effect |
@@ -57,7 +60,8 @@ For more information on Key Interploation, see [**Interpolation Modes**](Engine/
 | **Constant** | Sets key interpolation to Constant. |
 [/REGION] 
 [/EXCERPT:KeyInterp]
--->
+
+[/COMMENT]
 
 
 ## General
@@ -70,7 +74,8 @@ The following settings can be used to determine how newly added Level Sequences 
 | **Create Spawnable Cameras** | Determines whether or not cameras added from the Sequencer Toolbar are created as [**Spawnables**](Engine/Sequencer/HowTo/Spawnables).   |
 | **Label Browser Visible** | Displays or hides the **Label Browser** window. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Spawn]
 [REGION:simpletable]
 | Value | Effect |
@@ -79,7 +84,8 @@ The following settings can be used to determine how newly added Level Sequences 
 | **Place in Front of Camera** | Spawns in front of the camera in a Persepctive viewport. |
 [/REGION] 
 [/EXCERPT:Spawn]
--->
+
+[/COMMENT]
 
 
 ## Timeline
@@ -98,7 +104,8 @@ This section defines how the Timeline within Sequencer is displayed or functions
 | **Show Combined Keyframes** | When enabled, denotes properties that have more then one key assigned for a frame. |
 | **Show Channel Colors** | This toggles the display of colored lines for the XYZ for Location, Rotation and Scale.  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Zoom]
 [REGION:simpletable]
 | Value | Effect |
@@ -107,7 +114,8 @@ This section defines how the Timeline within Sequencer is displayed or functions
 | **Mouse Position** | Zoom in/out will occur at the position of the mouse in the timeline. |
 [/REGION] 
 [/EXCERPT:Zoom]
--->
+
+[/COMMENT]
 
 ## Snapping
 

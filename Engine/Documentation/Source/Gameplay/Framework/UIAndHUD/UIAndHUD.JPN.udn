@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:UI と HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -9,25 +9,17 @@ parent:Gameplay/Framework
 order:6
 type:overview
 
-<!--
+[COMMENT:none]
+
 [REGION:header_img]
 ![hud.jpg](hud.jpg)
 [/REGION]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		UI & HUD
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Slate) - %Programming/Slate:Description%
-	[/PARAM]
-[/OBJECT]
--->
+## UI & HUD
+
+* [](Programming/Slate) - %Programming/Slate:Description%
+
+[/COMMENT]
 
 ゲームがプレイヤーとどのようにコミュニケーションし、相互作用するかという問題は極めて重要です。**ユーザー インターフェース** (UI) と **ヘッドアップ ディスプレイ** (HUD) は、ゲームについての情報をプレイヤーに与えたり、場合によってはプレイヤーがゲームと相互に作用できるようにします。
 

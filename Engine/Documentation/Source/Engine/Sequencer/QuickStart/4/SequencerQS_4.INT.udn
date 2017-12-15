@@ -1,11 +1,9 @@
 Availability:Public
 Title:4 - Your Second Shot
 Crumbs:%ROOT%
-Description:In this step we create a second shot for our example cinematic. 
+Description:In this step, we create a second shot for our example cinematic. 
 SkillLevel:Beginner
-Version:4.12
-Related:Engine\Sequencer
-Related:Engine\Sequencer\Overview
+Version:4.18
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
@@ -16,33 +14,35 @@ tags:Sequencer
 
 Now that you have completed your first shot, let's take what we have learned and create another!
 
-This time we will push the camera in from the front of our character in on their face. 
+This time we will push the camera in from the front of our Character in on their face. 
 
 ## Steps
 
-1.	In the **Content Browser**, select the **Shot01** Level Sequence and press **Shift+W** to duplicate it. 
+1.	In the **Content Browser**, select the **Shot01** Level Sequence and press **Ctrl+W** to duplicate it. 
 
 	![](SequencerQS_4_1.png)
 
-	Shot01 already has most of the existing content we want to use in the second shot. 
+	This will automatically take all the content from **Shot01** and add it to **Shot02** and name it for us. 
 
-1.	Inside **Shot02**, delete the existing **CineCameraActor** and click the **Add Camera** button to automatically assign it on the Camera Cuts track and enter the camera in Pilot Mode. 
+1.	Inside **Shot02**, delete the existing **CineCameraActor** and click the **Add Camera** button. 
 
 	![](SequencerQS_4_2.png)
 
-1.	Move the camera around to the front of the Skeletal Mesh Actor in the level. 
+	Here we are replacing the first camera with a new camera that we will cut to from our **Master** track a little later in this guide. 
+
+1.	Move the camera around in the **Cinematic Viewport** to the front of the **Skeletal Mesh** Actor in the Level. 
 
 	![](SequencerQS_4_3.png)
 
 	[REGION:note]
-	The name of your CineCameraActor may differ from above which is perfectly fine. 
+	The name of your **Cine Camera Actor** may differ from above which is perfectly fine. 
 	[/REGION]
 
-1.	Select the **CineCameraActor** track in Sequencer and press **S** to add a keyframe the Camera's Transform.
+1.	Select the **CineCameraActor** track in Sequencer and press the **S** key to add a keyframe for the Camera's Transform.
 
 	![](SequencerQS_4_3b.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character. Add a keyframe. 
+1.	In the **Details** panel for the Camera, use the **Eye Dropper** on the Character in the Level then add a keyframe for the new value. 
 
 	![](SequencerQS_4_4.png)
 
@@ -52,23 +52,47 @@ This time we will push the camera in from the front of our character in on their
 
 1.	Click the **To End** button in the Cinematic Preview to jump to the end of the Sequence. 
 
-1.	Move the camera in on the character then add a keyframe (**S**) for the position. 
+1.	Move the camera in on the Character then add a keyframe (**S** key) for the position. 
 
 	![](SequencerQS_4_5.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character. Add a keyframe. You should have keyframes at the start for the initial position and focus value as well as at the end.
+1.	In the **Details** panel for the camera, use the **Eye Dropper** on the Character in the Level then add a keyframe for the new value. 
 
 	![](SequencerQS_4_6.png) 
+
+	You should have keyframes at the start for the initial position and focus value as well as at the end.
 
 1.	Click the **Camera Lock** toggle button on the **Camera Cuts** track to enable the Cinematic Preview. 
 
 	![](SequencerQS_4_7.png)
 
+1.	Move to the start of the Sequence, then click the **Preview Play** button in the **Cinematic Viewport**. 
+
 
 ## End Result
 
-We have set up our second shot of our sequence where the camera starts from far away and pushes in on the character. 
+We have set up our second shot of our sequence where the camera starts from far away and pushes in on the Character. 
 
-In our next step, we tie our shots together using the **Shot Track** in our Master Level Sequence. We also create a **Take** (or variation) of one of our shots that we can quickly swap in or out. You will see how we can arrange the order of shots in our scene as we get a little bit closer to finishing our sample scene. 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	RaarmLV5wwU
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+In our next step, we tie our shots together using the **Shot Track** in our Master Level Sequence. We also create a **Take** (or variation) of one of our shots that we can quickly swap in or out. 
+You will also see how we can arrange or re-arrange the order of shots in our scene as we get a little bit closer to finishing our sample scene. 
 
 [NAV]

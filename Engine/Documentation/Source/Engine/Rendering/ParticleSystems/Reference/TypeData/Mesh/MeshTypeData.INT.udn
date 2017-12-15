@@ -1,9 +1,12 @@
 Availability: Public
 Title:Mesh Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:The Mesh Type Data module allows users to create effects where polygon meshes are used in place of sprite particles.
+Description:The Mesh type data module indicates that the emitter should use StaticMesh instances rather than sprite particles. This is great for effects such as shrapnel or debris.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:3
+topic-image:LootBucket.png
 
 [TOC(start:2 end:3)]
 
@@ -34,7 +37,8 @@ The **Mesh** type data module has the following properties:
 |**Face Camera Direction Rather Than Position**| If _true_, all camera facing options will point the mesh against the camera's view direction rather than pointing at the camera's location.|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AxisLockOption]
 [REGION:simpletable]
 |**Option**|**Description**|
@@ -89,5 +93,6 @@ The **Mesh** type data module has the following properties:
 |_PSMA_MeshFaceCameraWithLockedAxis_|Face the camera while maintaining the up vector as the locked direction.|
 [/REGION]
 [/EXCERPT:MeshAlignmentOption]
--->
+
+[/COMMENT]
 

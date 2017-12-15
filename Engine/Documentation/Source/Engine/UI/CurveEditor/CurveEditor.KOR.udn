@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:커브 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Distribution 프로퍼티 값을 구동하기 위해 커브를 대화식으로 구성하고 변경하는 툴입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/CurveEditor:title%](Engine/UI/curveEditor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/CurveEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/CurveEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/CurveEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/CurveEditor:title%](Engine/UI/curveEditor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/CurveEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/CurveEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/CurveEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/UI/curveEditor_topic.png
 
 [TOC(start:2)]
 

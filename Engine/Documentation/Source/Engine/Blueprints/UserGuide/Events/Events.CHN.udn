@@ -65,7 +65,8 @@ tags:Execution Flow
 在 [](Engine/Matinee\UserGuide\BlueprintComponents) 中可查阅使用 Matinee 创建事件的内容，可在过场序列播放中的特定时间触发这些事件。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:LevelBPOnly]
 [REGION:note]
@@ -79,7 +80,8 @@ tags:Execution Flow
 [/REGION]
 [/EXCERPT:ServerOnly]
 
--->
+
+[/COMMENT]
 
 ## Event Level Reset
 

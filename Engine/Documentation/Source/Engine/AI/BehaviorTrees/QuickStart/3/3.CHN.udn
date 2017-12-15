@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 开始前，需要在 **内容浏览器** 中创建 4 个资源：一个 AI 控制器蓝图、一个角色蓝图、一个行为树资源，以及一个黑板资源。
@@ -63,7 +63,7 @@ version:4.9
 	将 **黑板** 命名为 “FollowerBlackboard”。
 
 
-%Steps%
+
 
 
 

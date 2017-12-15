@@ -94,7 +94,9 @@ version:4.9
 
 ## 设置重定位
 
-<!---Establishing animation retargeting on your --->
+[COMMENT:none]
+-Establishing animation retargeting on your -
+[/COMMENT]
 
 
 
@@ -140,7 +142,8 @@ version:4.9
 1. 在动画资产 **细节（Details）**面板中找到 **动画（Animation）**类别，并找到 **重定位源（Retarget Source）**属性。在下拉菜单中，您现在应该可以看到添加到 **重定位源管理器** 的骨骼网格。通过选择此网格，您就指定了要使用该网格的比例驱动此动画。
 
 
-<!----
+[COMMENT:none]
+--
 
 If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result.The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations.But what happens if you need special animations just for the variants?
 
@@ -148,4 +151,5 @@ Consider if we needed a special set of animations for our tall character, such a
 j
 
 
---->
+-
+[/COMMENT]

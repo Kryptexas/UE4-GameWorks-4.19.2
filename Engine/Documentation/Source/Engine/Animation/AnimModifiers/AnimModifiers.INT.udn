@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%
 Title: Animation Modifiers
 Description:Animation Modifiers enable users to define a sequence of actions for a given animation sequence or skeleton.
@@ -10,16 +10,38 @@ Order: 1
 Tags: Animation Notifies
 Tags: Skeleton
 Tags: Animation Asset Editor
-topic-image:Engine/Physics/physics_topic.png
+
+[TOC (start:2 end:2)]
 
 [REGION:warning]
 This feature is currently experimental and is in development, therefore some features may not work as expected. 
 [/REGION]
 
-[TOC (start:2 end:2)]
-
 **Animation Modifiers (Anim Modifier)** are a type of native or [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) that enable users to apply a sequence of actions to an [Animation Sequence](Engine/Animation/Sequences) or [Skeleton](Engine/Animation/Skeleton) asset.
-This includes but is not limited to things like creating automatic foot sync markers by pin-pointing on which frames(s) the right or left foot is placed on the ground and adding **Animation Sync Markers** to frames where a foot bone is at its lowest point (touching the floor). 
+An example of this includes (but is not limited to) creating automatic foot sync markers by pin-pointing on which frames the right or left foot is place on the ground. Using this information, **Animation Sync Markers** can be added to frames where a foot bone is at its lowest point (or touching the floor). 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	YC_UJuO9AI8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+Above an Anim Modifier is used to generate auto foot sync markers. 
+[/REGION]
+
 
 Accessing and applying Anim Modifiers is performed in either the **Animation Editor** or **Skeleton Editor** under the **Animation Data** tab. 
 When applying an Anim Modifier to a Skeleton, the modifier is applied to all Animation Sequences that are based on the Skeleton. 
@@ -37,11 +59,11 @@ To get started, you will need to create an Anim Modifier Blueprint class:
 
 	![](Create_02.png)
 
-1. Double-click and open the new Animation Modifier Blueprint to open in the Blueprint Editor. 
+1. Double-click the new Animation Modifier Blueprint to open it up in the Blueprint Editor. 
 
 	![](Create_03.png)
 
-You can now use Blueprint Script and functions contained with the **Animation Blueprint Library** to access and manipulate animation data. 
+With your Anim Modifier created, you can now use Blueprint Script and functions contained with the **Animation Blueprint Library** to access and manipulate animation data. 
 
 ### Animation Blueprint Library
 
@@ -63,24 +85,6 @@ Each event returns the Animation Sequence in which to feed the Animation Bluepri
 In the image above, when the Anim Modifier is applied, a new Notify track is created with the defined name while reverting the Anim Modifier, the track is removed. 
 [/REGION]
 
-### Exposing Properties
-
-Inside your Anim Modifier Blueprint, you will want to expose parameters using **Instance Editable** that you can manipulate within the **Animation Tab** in the Animation Tools
-
-![](InstanceEditable.png)
-
-[REGION:caption]
-In the image above, we use a structure variable containing information that we can set for the name of a bone as well as provide an offset. 
-[/REGION]
-
-Inside our Animation Sequence when we implement our Anim Modifier and apply it, we can see our exposed parameters. 
-
-![](AnimDataVariables.png)
-
-[REGION:caption]
-In the image above, we enter the names of the bones that we want to include in our Anim Modifier in which to gather animation data (such as Bone Transform) from. 
-[/REGION]
-
 
 ## Implementing an Anim Modifier
 
@@ -100,12 +104,34 @@ Implementing an Anim Modifier can be done inside a **Skeleton** asset (to add to
 
 	Your Anim Modifier will be listed as **Out of Date** until you apply it. 
 
+	Below is an example of an Anim Modifier that has been applied to a Skeleton asset, indicated by the Skeleton icon. 
+
+	![](SkeletonModifier.png)
+
 Any properties that you have set as **Instance Editable** will be available to edit in the **Animation Data Modifiers** tab. 
 
 ![](Implement_04.png)
 
 [REGION:caption]
 In the image above, we define properties that can be used to drive automatic foot syncing. 
+[/REGION]
+
+### Exposing Properties
+
+Inside your Anim Modifier Blueprint, you will want to expose parameters using **Instance Editable** that you can manipulate within the **Animation Tab** in the Animation Tools
+
+![](InstanceEditable.png)
+
+[REGION:caption]
+In the image above, we use a structure variable containing information that we can set for the name of a bone as well as provide an offset. 
+[/REGION]
+
+Inside our Animation Sequence when we implement our Anim Modifier and apply it, we can see our exposed parameters. 
+
+![](AnimDataVariables.png)
+
+[REGION:caption]
+In the image above, we enter the names of the bones that we want to include in our Anim Modifier in which to gather animation data (such as Bone Transform) from. 
 [/REGION]
 
 

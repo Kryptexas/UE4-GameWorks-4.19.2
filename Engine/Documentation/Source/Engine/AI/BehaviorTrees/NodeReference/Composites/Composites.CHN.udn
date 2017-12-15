@@ -39,11 +39,13 @@ Simple Parallel 节点可使单个主任务节点在整颗行为树旁执行。�
 | **Finish Mode** | [INCLUDE:#subprop1] |
 | **Node Name** | 行为树图表中显示的节点名称。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop1]
 | --- | --- |
 | **Immediate** | 主任务完成后，背景树的执行将中止。|
 | **Delayed** | 主任务完成后，背景树的执行可持续至完成。|
 [/EXCERPT:subprop1]
--->
+
+[/COMMENT]
 

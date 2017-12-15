@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 사운드큐 참고서
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -110,14 +110,16 @@ order:6
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:ParamMode]
 파람 모드 - 파라미터가 적용되는 모드입니다:
 * **MPM_Normal** 보통 - 입력값을 (MinInput, MaxInput) 범위로 제한시킨 다음 (MinOutput, MaxOutput) 범위로 매핑시킵니다. 
 * **MPM_Abs** 절대 - 입력값을 절대값으로 취급한다는 점만 제외하고는 **MPM_Normal** 과 같습니다.
 * **MPM_Direct** 직접 - 최소/최대 입력/출력값으로의 제한이나 매핑 없이 입력값을 직접 사용합니다.
 [/EXCERPT:ParamMode]
---->
+-
+[/COMMENT]
 
 
 
@@ -248,7 +250,9 @@ order:6
 | [REGION:tablesection]사운드 노드 그룹 콘트롤[/REGION] ||
 | **Group Sizes** | 그룹 크기 - 그룹 내 사운드 웨이브 노드의 번호로, 0 부터 시작합니다 (첫 번째 사운드 웨이브 노드는 "0" 입니다). |
 
-<!-- get more info here -->
+[COMMENT:none]
+ get more info here 
+[/COMMENT]
 
 
 ## 루핑 노드
@@ -333,7 +337,9 @@ order:6
 | **Preselect at Level Load** | 레벨 로드시 미리선택 - 레벨 로드시 선택되어 해당 플레이 세션 도중 항상 사용되는 랜덤 사운드 웨이브 노드입니다. 참고로 이 세팅은 에디터에서 플레이/시뮬레이트 에서는 적용되지 않으며, 언리얼 에디터 외부의 게임 빌드에서만 적용됩니다. |
 | **Randomize Without Replacement** | 중복 없는 랜덤 - True 면 모든 입력 사운드 웨이브 노드가 한 번씩 재생되기 전까지는 중복 선택되지 않도록 하여, 모든 사운드가 한 번씩 재생된 이후 반복되도록 할 수 있습니다. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 ## 사운드 클래스 노드
 
@@ -347,7 +353,9 @@ order:6
 | **Sound Class Override** | 사운드 클래스 덮어쓰기 - 사운드 웨이브 입력 노드에 대해 현재 사운드 클래스를 덮어쓸 사운드 클래스 애셋입니다. |
 
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 ## 스위치 노드
@@ -361,7 +369,9 @@ order:6
 | [REGION:tablesection]사운드 노드 스위치[/REGION] ||
 | **Int Parameter Name** | 정수 파라미터 이름 - 사용할 입력을 결정하는 데 사용할 정수 파라미터 이름입니다. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 
@@ -382,7 +392,9 @@ order:6
 | [REGION:tablesection]사운드 노드 웨이브 파람[/REGION] ||
 | **Wave Parameter Name** | 웨이브 파라미터 이름 - 재생할 사운드 웨이브 결정에 사용할 파라미터입니다. 파라미터가 존재하지 않거나 유효하지 않은 사운드 웨이브를 가리키는 경우, 입력 노드에 연결된 트리로 지정된 사운드 웨이브를 확인해서 대신 재생할 사운드 웨이브를 결정합니다. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 

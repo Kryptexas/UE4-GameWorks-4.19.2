@@ -5,7 +5,9 @@ Description:How Unreal Engine 4 Behavior Trees Differ From Traditional Behavior 
 
 [TOC(start:2 end:3)]
 
-This section is for people who are familiar with **Behavior Trees** generally and would like to dive into the Unreal Engine 4 implementation as quickly as possible.  For those who have not used behavior trees before, you may find some of the explanation here confusing. <!-- You may want to check out the user guide first. You can return to this section if you're interested in what we've done differently than others. -->
+This section is for people who are familiar with **Behavior Trees** generally and would like to dive into the Unreal Engine 4 implementation as quickly as possible.  For those who have not used behavior trees before, you may find some of the explanation here confusing. [COMMENT:none]
+ You may want to check out the user guide first. You can return to this section if you're interested in what we've done differently than others. 
+[/COMMENT]
 
 There are three critical ways in which the UE4 implementation of Behavior Trees differs from "standard" behavior trees:
 
@@ -17,7 +19,9 @@ Having an event-driven architecture grants improvements to both performance and 
 
 Since the code does not have to iterate through the entire tree every tick, performance is much better!  Conceptually, instead of constantly asking "Are we there yet?", we can just rest until we are prodded and told "We are there!"
 
-When stepping forward and backward through the behavior tree's execution history to visually debug the behavior, it is ideal to make the history show relevant changes and not show irrelevant ones.  In the event-driven implementation, it is not necessary to filter out irrelevant steps that iterated over the tree and chose the same behavior as before, because that additional iteration never had to happen in the first place!  Instead, only changes to the location of execution in the tree or to blackboard values matter, and it is easy to just show those differences.  <!-- (See the debugging section for more information on how to step through the execution history and other debugging tricks.) -->
+When stepping forward and backward through the behavior tree's execution history to visually debug the behavior, it is ideal to make the history show relevant changes and not show irrelevant ones.  In the event-driven implementation, it is not necessary to filter out irrelevant steps that iterated over the tree and chose the same behavior as before, because that additional iteration never had to happen in the first place!  Instead, only changes to the location of execution in the tree or to blackboard values matter, and it is easy to just show those differences.  [COMMENT:none]
+ (See the debugging section for more information on how to step through the execution history and other debugging tricks.) 
+[/COMMENT]
 
 ## Conditionals Are Not Leaf Nodes
 
@@ -31,7 +35,9 @@ First, conditional decorators make the behavior tree UI more intuitive and easie
 
 In this section of a Behavior Tree, the Decorators **Close Enough** and **Blackboard** can prevent the execution of the Sequence node's children.
 
-Another advantage of conditional decorators is that it is easy to make those decorators act as observers (waiting for events) at critical nodes in the tree.  This feature is critical to gaining full advantage from the event-driven nature of the trees.  <!-- Read more about how to use Conditional Decorators and their special properties here. -->
+Another advantage of conditional decorators is that it is easy to make those decorators act as observers (waiting for events) at critical nodes in the tree.  This feature is critical to gaining full advantage from the event-driven nature of the trees.  [COMMENT:none]
+ Read more about how to use Conditional Decorators and their special properties here. 
+[/COMMENT]
 
 ## Special Handling for Concurrent Behaviors
 
@@ -75,13 +81,17 @@ For example, a service can be used to determine which enemy is the best choice f
 
 Services are active only as long as execution remains in the subtree rooted at the composite node with which the service is associated.
 
-<!-- Add screenshot showing what Services look like. -->
+[COMMENT:none]
+ Add screenshot showing what Services look like. 
+[/COMMENT]
 
 #### Decorator "Observer Aborts" Property
 
 One common usage case for standard Parallel nodes is to constantly check conditions so that a task can abort if the conditions it requires becomes false.  For example, if you have a cat that performs a sequence, such as "Shake Rear End" and "Pounce", you may want to give up immediately if the mouse escapes into its mouse hole.  With Parallel nodes, you would have a child that checks if the mouse can be pounced on, and then another child that's the sequence to perform.  Since our Behavior Trees are event-driven, we instead handle this by having our conditional decorators observe their values and abort when necessary.  (In this example, you would just have the "Mouse Can Be Pounced On?" decorator on the sequence itself, with "Observer Aborts" set to "Self". )
 
-<!-- For more information, see the <LINK>"Observer Aborts" explanation page. -->
+[COMMENT:none]
+ For more information, see the <LINK>"Observer Aborts" explanation page. 
+[/COMMENT]
 
 
 

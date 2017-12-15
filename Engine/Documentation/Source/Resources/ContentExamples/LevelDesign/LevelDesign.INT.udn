@@ -7,42 +7,12 @@ Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
 Version: 4.9
+topic-image:LD_Topic.png
 
 
 [REGION:banner]
 ![](leveldesign_header.png)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelDesign:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelDesign:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/LevelDesign]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelDesign:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/LevelDesign]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -69,10 +39,10 @@ Each section below provides more information on what is included in each phase o
 
 | Example | What is Demonstrated |
 | ------- | ------------ |
-| **[1.1 Prototype Pass](Resources\ContentExamples\LevelDesign\1)** | Quick block out of a playable level using basic Static Mesh Actors or Geometry Primitives with rudamentry lighting. |
-| **[1.2 Meshing Pass](Resources\ContentExamples\LevelDesign\2)** | Replacing the basic meshes or primitives from the prototype phase with near final asset and applying basic materials.  |
-| **[1.3 Lighting Pass](Resources\ContentExamples\LevelDesign\3)** | Emphasis is placed on improving lighting, adding PostProcess effects and updating materials. |
-| **[1.4 Polish Pass](Resources\ContentExamples\LevelDesign\4)** | Additional effects, audio and volumes are added, and final assets and details are tweaked. |
+| **[1.1 Prototype Pass](Resources/ContentExamples/LevelDesign/1)** | Quick block out of a playable level using basic Static Mesh Actors or Geometry Primitives with rudamentry lighting. |
+| **[1.2 Meshing Pass](Resources/ContentExamples/LevelDesign/2)** | Replacing the basic meshes or primitives from the prototype phase with near final asset and applying basic materials.  |
+| **[1.3 Lighting Pass](Resources/ContentExamples/LevelDesign/3)** | Emphasis is placed on improving lighting, adding PostProcess effects and updating materials. |
+| **[1.4 Polish Pass](Resources/ContentExamples/LevelDesign/4)** | Additional effects, audio and volumes are added, and final assets and details are tweaked. |
 
 
 

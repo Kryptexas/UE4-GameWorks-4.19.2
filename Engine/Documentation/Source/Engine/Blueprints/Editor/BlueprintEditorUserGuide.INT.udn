@@ -5,46 +5,7 @@ Description:The Blueprint Editor Reference page outlines the Blueprint Editor's 
 version: 4.9
 parent:Engine/Blueprints
 tags:Blueprints
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/macro_blueprint.png
 
 [REGION:fullwidth]
 ![](blueprint_editor_example.png)

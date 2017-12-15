@@ -134,11 +134,13 @@ order:3
 |---|---|---|
 |[INCLUDE:#SourceControlButtons] | **源码控制状态** | 这指示出您是否连接到了源码控制上。您可以鼠标悬停到该按钮上方来获得连接详情，并且点击它来设置连接。Perforce和Subversion都支持。请参照[源码控制文档](Engine/UI/SourceControl)获得详情。
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SourceControlButtons]
 ![](button_SourceControl_On.png) = On ![](button_SourceControl_Off.png) = Off
 [/EXCERPT:SourceControlButtons]
--->
+
+[/COMMENT]
 
 ### 工具栏
 

@@ -64,7 +64,8 @@ type:landing
 
 [DIR(end:"1" output:"topic" org:"hierarchy" parent:"Engine/Editor")]
 
-<!--
+[COMMENT:none]
+
 [REGION:topics third]
 %Engine/UI:topic%
 %GettingStarted/HowTo:topic%
@@ -75,4 +76,5 @@ type:landing
 %Engine/Content:topic%
 %Engine/Basics/Projects:topic%
 [/REGION]
--->
+
+[/COMMENT]

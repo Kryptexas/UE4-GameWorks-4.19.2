@@ -56,22 +56,26 @@ The build configuration can be set in the Visual Studio toolbar.
 ### Project - Configuration Menu
 
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-<!--
+[COMMENT:none]
+
 ### Solution - Configuration Menu
 
 ![UE4 Solution - Configuration Menu](configuration_menu.png)
--->
+
+[/COMMENT]
 ### Setting the Solution Platform
 
 The solution platform can be set in the Visual Studio toolbar.
-<!--
+[COMMENT:none]
+
 UE4 currently supports the following platforms:
 
 * **Windows 64-bit**
 
 ![Project - Platform Menu](rocket_platform_menu.png)
 ![UE4 Solution - Platform Menu](platform_menu.png)
--->
+
+[/COMMENT]
 UE4 currently supports the following platforms:
 
 * **Windows 32-bit**
@@ -86,7 +90,8 @@ has instructions for generating project files for additional platforms.
 Please make sure you are running Visual Studio 2015 or higher for Windows Desktop installed before proceeding.  If you are using Mac, make sure to have Xcode 8 or higher installed.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:tip]
 When building in Visual Studio, you are only compiling the game project, not the Unreal Editor.  
@@ -104,7 +109,8 @@ When building in Visual Studio, you are compiling the engine in addition to the 
 1. **Right-click** your game project and choose **Rebuild** to recompile.
 
 	![](rebuild_project_rocket.png)
--->
+
+[/COMMENT]
 1.	Set the **Solution Configuration** to the configuration you want to build. In this example, it is set to **Development Editor**. Refer to the [Build Configuration](#BuildConfiguration) section for descriptions of each available configuration.
 
 	![](rocket_config_development_menu.png)
@@ -161,15 +167,19 @@ When running the binary Editor, it is important to add the `-game` flag if you r
 | ----- | -------- |
 | Xcode does not stop at breakpoints | [INCLUDE:#XcodeDebug] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:XcodeDebug]
 Xcode's LLDB debugger needs to be configured to correctly handle breakpoints in Unreal Engine projects. You need to create (or edit, if you already have it) a .lldbinit file in your home folder and add the following line to it:
 
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Xcode]
 
-<!-- The following was deprecated per LaurenR 29.7.15
-| **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | -->
+[COMMENT:none]
+ The following was deprecated per LaurenR 29.7.15
+| **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | 
+[/COMMENT]

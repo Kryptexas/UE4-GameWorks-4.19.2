@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:이벤트 그래프
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,45 +7,7 @@ version: 4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Graphs
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine\Blueprints\UserGuide\EventGraph\eventgraph_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/EventGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/EventGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine\Blueprints\UserGuide\EventGraph\eventgraph_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/EventGraph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/EventGraph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/EventGraph/eventgraph_topic.png
 
 
 ![Graph Panel](Engine/Blueprints/Editor/Modes/GraphPanel/k2_graphview.png)
@@ -70,5 +32,5 @@ _변수_ 를 연결하여 원하는 동작을 하도록 하는 데 사용됩니�
 **이벤트 그래프** 및 블루프린트 관련 기타 **그래프** 작업에 대한 상세 정보는 [](Engine/Blueprints/Editor/UIComponents/GraphEditor) 문서를 참고하세요.
 
 [REGION:note]
-마티네를 사용해서 특정 유형 블루프린트 컴포넌트와 프로퍼티를 제어하고, 이벤트를 생성하는 방법에 대한 정보는, [](Engine/Matinee\UserGuide\BlueprintComponents) 문서를 참고하세요.
+마티네를 사용해서 특정 유형 블루프린트 컴포넌트와 프로퍼티를 제어하고, 이벤트를 생성하는 방법에 대한 정보는, [](Engine/Matinee/UserGuide/BlueprintComponents) 문서를 참고하세요.
 [/REGION]

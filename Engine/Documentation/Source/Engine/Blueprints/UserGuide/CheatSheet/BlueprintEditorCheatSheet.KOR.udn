@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 에디터 단축키 일람
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,39 +6,8 @@ Description:블루프린트의 단축키와 유용한 팁에 대한 참고서입
 version: 4.9
 order:1
 tags:Blueprints
+topic-image:Engine/Blueprints/blueprintcheatsheet.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CheatSheet:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CheatSheet:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CheatSheet:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CheatSheet:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

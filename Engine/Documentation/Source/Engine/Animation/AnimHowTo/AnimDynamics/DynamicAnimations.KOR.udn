@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:다이내믹 애니메이션 제작
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -12,15 +12,15 @@ skilllevel: Advanced
 이번 비법에서는 캐릭터에 애님 다이내믹스를 적용시켜 아래와 같은 효과를 내 보도록 하겠습니다: 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-w7c3i2vpcUc
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	w7c3i2vpcUc
+	[/PARAMLITERAL]
 [/OBJECT]
 
 위에서, 캐릭터의 목에 걸어 들고 다니는 장비와 풀무에 애님 다이내믹스가 적용되어 있습니다. 캐릭터가 움직임에 따라, 장비가 약간씩 움직이며, 풀무는 약간 더 앞뒤로 움직입니다.
@@ -30,45 +30,10 @@ w7c3i2vpcUc
 애님 블루프린트가 있는 캐릭터와 애님 다이내믹스로 구동시킬 준비가 된 본이 있으면, 2 단계로 진행하세요.
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:description%")
-	* [](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:description%")
-	[/PARAM]
-[/OBJECT]
+## 단계
 
+[DIR(output:"checkpoint" parent:"Engine\Animation\AnimHowTo\AnimDynamics")]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[REGION:call_to_action]
+[클릭하면 시작합니다.](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:description%")
+[/REGION]

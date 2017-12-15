@@ -69,7 +69,8 @@ Description: 关于角色动画编辑器中的工具条的用户指南。
 | **Keybindings（按键绑定）** | 打开按键绑定编辑窗口。|
 | **Preferences（偏好设置）** | 打开偏好设置窗口。|
 
-<!----
+[COMMENT:none]
+--
 #### 调试
 
 | 命令 | 描述 |
@@ -80,7 +81,8 @@ Description: 关于角色动画编辑器中的工具条的用户指南。
 | **Delete all Breakpoints（删除所有断点）** | 删除蓝图中的所有[断点](Engine/Blueprints\Editor\Debugging#断点)。|
 || [REGION:tablesection]**变量值查看器**[/REGION] ||
 | **Delete all Watches（删除所有查看值）** | 删除蓝图中的所有[查看值](Engine/Blueprints\Editor\Debugging#查看值) 。|
----->
+--
+[/COMMENT]
 
 #### 资源
 
@@ -89,7 +91,8 @@ Description: 关于角色动画编辑器中的工具条的用户指南。
 | [REGION:tablesection]**资源**[/REGION] ||
 | **Find in Content Browser（在内容浏览器中查找）** | 在内容浏览器中选中当前粒子系统。|
 
-<!----
+[COMMENT:none]
+--
 #### 窗口
 
 | 命令 | 描述 |
@@ -123,7 +126,8 @@ Description: 关于角色动画编辑器中的工具条的用户指南。
 | [REGION:tablesection]**布局**[/REGION] ||
 | **Save Layout(保存布局)** | 保存当前用户界面布局。|
 | **Enable Fullscreen（启用全屏）** | 在全屏和普通模式间切换编辑器。|
----->
+--
+[/COMMENT]
 
 #### 帮助
 
@@ -198,9 +202,11 @@ Description: 关于角色动画编辑器中的工具条的用户指南。
 | ![](Persona_Toolbar_PreviewViewport.png) |显示了视口中当前预览的动画资源。|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OnlyInVim]
 该按钮仅当角色编辑器设置为编辑动画蓝图时可用。
 [/EXCERPT:OnlyInVim]
 
--->
+
+[/COMMENT]

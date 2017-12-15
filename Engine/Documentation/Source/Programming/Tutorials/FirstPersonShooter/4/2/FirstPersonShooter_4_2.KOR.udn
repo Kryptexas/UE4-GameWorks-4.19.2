@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.2 - 이벤트 그래프 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 애니메이션의 이벤트 그래프를 편집하여 게임 실행 도중 애니메이션 트랜지션 변수가 제대로 발동되도록 하겠습니다.
 
@@ -112,4 +112,3 @@ Version: 4.15
 	[/REGION]
 	_이미지를 클릭하면 확대됩니다._
 
-%Steps%

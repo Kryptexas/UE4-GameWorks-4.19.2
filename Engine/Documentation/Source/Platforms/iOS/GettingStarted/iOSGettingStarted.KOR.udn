@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 고급 iOS PC/Mac 작업방식
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -59,7 +59,8 @@ UE4 는 아이폰4/아이패드2 이상, iOS 6.0 이상에서 작동합니다.
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsConfig]
 
 윈도우 시스템 사양 관련 상세 정보는 [](GettingStarted/RecommendedSpecifications) 문서를 참고하세요.
@@ -73,7 +74,8 @@ UE4 는 아이폰4/아이패드2 이상, iOS 6.0 이상에서 작동합니다.
 XCode 는 App Store 에서 [무료로 다운로드 가능](https://itunes.apple.com/us/app/xcode/id497799835?mt=12) 합니다.
 
 [/EXCERPT:MacOSConfig]
--->
+
+[/COMMENT]
 
 
 
@@ -126,7 +128,8 @@ XCode 는 App Store 에서 [무료로 다운로드 가능](https://itunes.apple.
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 윈도우에서 Certificate 를 구하기 위해선, `Engine\Binaries\DotNET\IOS` 에 위치한 iPhone Packager 를 사용해야 합니다.
@@ -185,7 +188,8 @@ Certificate 설치시, 마법사의 기본 옵션으로 대부분의 경우 통�
 
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 마지막으로 중요한 점, 모두가 같은 "iPhone Developer:" Certificate 를 자신의 키체인에 갖고 있어야 합니다.
 

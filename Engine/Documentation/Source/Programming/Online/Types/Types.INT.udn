@@ -57,15 +57,19 @@ This document serves to define the different data structures that are used throu
 
 **FUniqueNetId** contains a profile service online ID and can represent anything from an individual player, friend or a session.
 
-<!--See: [](Programming/Online/Interfaces/Profile)-->
+[COMMENT:none]
+See: [](Programming/Online/Interfaces/Profile)
+[/COMMENT]
 
 
 ### FSharedContentHandle
 
 **FSharedContentHandle** contains a profile service shared file handle.  This handle can be passed around and used to access shared content from anywhere, given proper permissions.
 
-<!--See:
- * [](Programming/Online/Interfaces/SharedCloud)-->
+[COMMENT:none]
+See:
+ * [](Programming/Online/Interfaces/SharedCloud)
+[/COMMENT]
 
 
  
@@ -87,9 +91,11 @@ Contains the following elements:
  * File size - size of the file.  
 
 
-<!--See:
+[COMMENT:none]
+See:
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud)-->
+ * [](Programming/Online/Interfaces/UserCloud)
+[/COMMENT]
 
 
 ### FTitleFile
@@ -102,9 +108,11 @@ Contains the following elements:
  * Data - a buffer containing the file contents.
 
 
-<!--See: 
+[COMMENT:none]
+See: 
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud)-->
+ * [](Programming/Online/Interfaces/UserCloud)
+[/COMMENT]
 
 
 ### EOnlineAsyncTaskState

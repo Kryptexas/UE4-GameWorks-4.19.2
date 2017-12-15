@@ -3,45 +3,7 @@ Title:SciFi Bunk: Material Instancing
 Description: This document covers how the SciFi Bunk project uses Master Materials and Material Instancing in the building of its environments.
 Version: 4.9
 SkillLevel: Intermediate
-
-[VAR:Params]
-[PARAM:image]
-	![%Resources/Community/SciFiBunk_MaterialInstancing:title%](scifi_bunk_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Community/SciFiBunk_MaterialInstancing:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Community/SciFiBunk_MaterialInstancing:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Community/SciFiBunk_MaterialInstancing]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:scifi_bunk_topic.png
 
 [TOC]
 

@@ -1,0 +1,442 @@
+﻿INTSourceChangelist:3716175
+Availability:Public
+Crumbs: %ROOT%
+Title:メッシュ ディスタンス フィールド設定のリファレンス
+Description:[Project Settings]、[Light Components]、[Static Mesh Editor]、個々のアクタに存在するすべてのメッシュ ディスタンス フィールド設定のリファレンス ページです。
+Type:Reference
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Order:3
+Tags:Lighting
+Tags:Distance Fields
+Tags:Getting Started
+Topic-image:DFRef_Topic.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:30 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+アンリアル エンジン 4 (UE4) の [メッシュ ディスタンス フィールド](Engine/Rendering/LightingAndShadows/MeshDistanceFields) システムは、他の様々なシステムを有効 / 無効にして使うことができます。設定とプロパティを指定して、 
+プロジェクトに合わせたり、最適化を行うことができます。 
+
+以下は、使用可能なメッシュ ディスタンス フィールドに固有のメニュー システムとオプションの詳細です。
+
+## プロジェクト設定
+
+**[Project Settings]** で、一緒に使うことで効率が上げることもできる最適化オプションをはじめ、 
+プロジェクトのアセットへのメッシュ ディスタンス フィールド生成を有効にすることができます。 
+
+設定値は **[Edit]** ドロップダウン メニューの **[Project Settings]** にあります。
+
+[REGION:lightbox]
+[![](ProjectSettings.png)(w:500)](ProjectSettings.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Generate Mesh Distance Fields** || ディスタンス フィールド シャドウとディスタンス フィールド アンビエント オクルージョンと一緒に使用できるスタティックメッシュのディスタンス フィールドをビルトするかどうかを設定します。有効にするとメッシュ ビルド回数およびメモリ使用が増加します。また実行するにはエディタを再起動する必要があります。 |
+| **Eight Bit Mesh Distance Fields** || メッシュ ディスタンス フィールドを 16-bit 浮動小数点ではなく 8-bit 固定小数点形式で保存するかどうかを設定します。8-bit の場合、メモリ使用量は半分になりますが、大きいメッシュまたは薄いメッシュに対してアーティファクトが発生します。この設定を変更した後は、エディタを再起動する必要があります。 |
+| **Generate Landscape Real-time GI Data** || グローバル イルミネーションをリアルタイムでレンダリングするランドスケープ用の低解像度基本色テクスチャを生成するかどうか設定します。有効にするとメッシュのビルド回数およびメモリ使用が増加します。この設定を変更した後は、エディタを再起動する必要があります。 |
+| **Compress Mesh Distance Fields** || メッシュ ディスタンス フィールドを圧縮してメモリに保存するかどうかを設定します。メモリ使用は少なくなりますが、新規レベルを表示すると重大なヒッチを引き起こします。プロジェクトがインゲームでレベルをストリーミングしない場合のみ有効にすべきです。この設定を変更した後は、エディタを再起動する必要があります。 |
+[/REGION]
+
+## Light コンポーネント
+
+以下は [メッシュ フィールド ディスタンス](Engine/Rendering/LightingAndShadows/MeshDistanceFields) の設定とプロパティです。これらは [ライトタイプ](Engine/Rendering/LightingAndShadows/LightTypes) ごとに設定することができます。 
+
+### 指向性ライト
+
+以下は [Ray Traced Distance Field Shadowing](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing) を調整する **[Directional Light]** の設定です。 
+
+![Distance Field Shadow Settings](DirectionalLight.png)
+
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+|----------|----------|-------------|
+| [REGION:tablesection]ライト[/REGION] |||
+| Light Source Angle || 光源の角度です。Distance Fields あるいは Capsule Shadows を使った動的シャドウイング メソッドでソフトエリア シャドウをサポートするために使用します。 | 
+| [REGION:tablesection]ディスタンス フィールド シャドウ[/REGION] |||
+| DistanceField Shadow Distance || Distance Field Shadowing の適用可能な最長距離です。Distance Field Shadows は、この値と CMS シャドウ用 **Dynamic Shadow Distance Movable Light** の間の距離もカバーします。 | 
+| RayTraced DistanceField Shadows || 光源の Distance Field Shadows をオンにします。 | 
+| [REGION:tablesection] 詳細プロパティ [/REGION] || |
+| Distance Field Trace Distance  || シャドウがシャドウ キャスターからキャスト可能な距離をワールド単位で設定します。値が大きいほどシーンに対するシャドウ負荷が高くなります。 |
+| Ray Start Offset Depth Scale || カメラが遠ざかるにつれて受影面からオフセットするレイトレース シャドウの大きさを調節します。非常に大きなスタティック メッシュ上で低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すのに便利です。 | 
+[/REGION]
+
+
+#### Cascaded Shadow Maps とRay Traced Distance Field Shadows の違い
+
+Cascaded Shadow Maps は高品質である代わりに広大なビュー ディスタンスには使用することができません。
+一方 Ray Traced Distance Field Shadows は、さらに遠くまで効率良くシャドウをかけることができますが、品質に関しては Mesh Distance Field 用に生成されたボリューム テクスチャの解像度に大きく依存します。[Mesh Distance Field の品質](Engine/Rendering/LightingAndShadows/MeshDistanceFields#品質) は、
+通常シャドウ マッピングで表示される重要な詳細をキャプチャするためには高解像度が必要な場合があります。このため、カメラに近い領域ではCascaded Shadow Maps、
+そしてカメラから遠い領域には Distance Field Shadowing の組み合わせで使用することをお勧めします。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cascaded Shadow Maps](CascadedShadowMaps.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Ray Traced Distance Field Shadows](DistanceFieldShadow.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+Cascaded Shadow Mapping を使うと、リフトのすべてのポイントが地上からの離れていても、シャドウは鮮明で詳細のままです。* Ray Traced Distance Field Shadows は、
+ **Light Source Radius** に合わせてシャドウをソフトにし、キャストされているシャドウ距離が自然に見えるように調整します。
+
+#### Light Source Angle
+
+**Light Source Angle** は、ライトの回転角と入力値に基づいてシャドウをシャープあるいはソフトにします。そのため、受影面から離れているメッシュのポイントに 
+ソフトなシャドウを作成することができます。シャドウは、メッシュと受影面に近くなるほどシャープになります。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Light Source Angle: | 1 (Default)](LightSourceAngle_1.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Light Source Angle: | 2 ](LightSourceAngle_2.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+メッシュからシャドウが長く伸びるほど、またはメッシュが受影面から遠くなるほど、シャドウはソフトになります。
+
+#### Distance Field Trace Distance
+
+**Distance Field Trace Distance** は、シャドウ キャスティング メッシュに対してシャドウイングのレイキャスト距離が伸ばせる距離を調整します。シャドウは、受影面に沿ってかなり長く伸ばすことができるので、 
+高密度なエントリのあるシーンの場合、シャドウを付けると高負荷になります。トレース ディスタンスを縮めると、短い **Distance Field Shadow Distance** を使わずに、
+ディスタンス フィールド シャドウの 1 ポイントを特定のメッシュからキャストできる距離が制限されます。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Distance Field Trace Distance: | 10000 (Default) ](DistanceTrace_10k.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Trace Distance: | 5000](DistanceTrace_1k.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+これはとても高い木に、浅い角度の指向性ライトを照らした例です (日の出や夕日のように)。トレース ディスタンスを短くすると、木の頂点からの無限のキャストが制限されます。
+
+### ポイント / スポットライト
+ 
+以下は [Ray Traced Distance Field Shadowing](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing) を調整する **ポイントライト** および **スポットライト** です。 
+
+![](PointSpotLight.png)(w:450)
+ 
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+|----------|----------|-------------|
+| [REGION:tablesection]ライト[/REGION] |||
+| Source Radius || 光源の球体のサイズとして使います。値が大きくなると、半暗部が大きくなりますが、パフォーマンスの負荷も高くなります。 |
+| [REGION:tablesection]ディスタンス フィールド シャドウ[/REGION] |||
+| RayTraced DistanceField Shadows || レイ トレース ディスタンス フィールド エリア シャドウを使用するかどうか設定します。 | 
+| **Ray Start Offset Depth Scale** || カメラが遠ざかるにつれて受影面からオフセットするレイトレース シャドウの大きさを調節します。非常に大きなスタティック メッシュ上で低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すのに便利です。 | 
+[/REGION]
+
+#### 従来の シャドウ マップと Ray Traced Distance Field Shadows の違い
+
+ポイントライトとスポットライトのシャドウマップは、指向性ライトの Cascaded Shadow Maps のシャドウマップと同様で、非常に細かくシャープです。Ray Traced Distance Field Shadows は、 
+品質に関してはメッシュ ディスタンス フィールド用に生成されたボリューム テクスチャの解像度に大きく依存します。[Mesh Distance Field の品質](Engine/Rendering/LightingAndShadows/MeshDistanceFields#品質) は、 
+通常シャドウ マッピングで表示される重要な詳細をキャプチャするために高解像度が必要な場合があります。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Traditional Shadow Map](ShadowMap_SpotLight.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Shadow](DistanceFieldShadow_SpotLight.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+シャドウマップを使うと、リフトのすべてのポイントが地上からの離れていても、シャドウは鮮明で詳細のままです。ディスタンス フィールド シャドウを使うと、**Source Radius** に合わせてシャドウをソフトにすることが可能になります。
+**Light Source Radius** に合わせてシャドウをソフトにし、キャスト シャドウ距離が自然に見えるように調整します。
+
+#### Source Radius
+
+**Source Radius** は指向性ライトの Light Source Angle と同じく、光源そのものの大きさを調節してエリア シャドウをソフトにします。指向性ライトの [Light Source Angle](#lightsourceangle) のように、 
+受影面からシャドウ ポイントが遠くなるほど、シャドウはソフトになります。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Source Radius: | 0 (Default) ](SourceRadius_0.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Source Radius: | 50 ](SourceRadius_50.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+このデモでは、もっとソフトなシャドウをもつ大きなライトソース 50 と対比して、デフォルト値 0 にハードコー化したソース半径 20 を使用して、自動的にソフトエリア シャドウイングを提供します。
+
+[REGION:note]
+ソース半径のデフォルト値 0 にはハードコードした値 20 を設定します。0 より大きく 20 未満の値を使用すると、エリア シャドウはそれに応じてシャープになります。
+[/REGION] 
+
+#### Ray Start Offset Depth Scale
+
+そこで、**Ray Start Offset Depth Scale** を代わりに使用すると、カメラが遠ざかる時に受影面のレイ トレーシング シャドウのための光線の開始位置を調節することができます。こうすることで、低解像度のメッシュ ディスタンス フィールドや
+ボリューム テクスチャでうまくキャプチャできない複雑なジオメトリをもつメッシから発生するセルフ シャドウイング アーティファクトを防ぎます。
+
+ケースによっては、[メッシュ ディスタンス フィールドの品質](Engine/Rendering/LightingAndShadows/MeshDistanceFields#quality) を調整すると、 
+光線の開始位置を調整することなく、これらのアーティファクトの削減または削除も可能です。必要となる生成されたボリューム テクスチャの負荷は高くしない方が良いこと、
+そして **Ray Start Offset Depth Scale** はこのライトに対してこれを削る場合に役立つことを覚えておいてください。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Ray Start Offset Depth Scale: | 0.003 (Default) ](RayStartOffset003.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Ray Start Offset Depth Scale: | 0.007 ](RayStartOffset007.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+セルフ シャドウイング アーティファクトの中には隙間のある岩の表面に存在し、ディスタンス フィールドの解像度は詳細をキャプチャしないものがあります。**Ray Start Offset Depth Scale** を最低値にすると
+シャドウ トレースが開始位置を変更します。 
+
+[REGION:note]
+この設定は最小値の場合のみ調整可能で、この設定を変更したライトソースからシャドウをキャストしているすべてのメッシュに対してシャドウイングを変更しますこの設定を調整するときには注意してください。 
+そして、特に、ビジュアル品質に大きな影響を与える指向性ライトと遠くのオブジェクトに使用する場合は、レベルで違うエリアを確認してください。
+[/REGION]
+
+
+### スカイライト
+
+以下は [ディスタンス フィールド アンビエント オクルージョン](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) を調整する **スカイライト** の設定です。これらの設定を使って、 
+レベルの DFAO を最も芸術的に調整することができます。
+
+![](SkyLight.png)(w:450)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Occlusion Max Distance** || オクルージョンを計算するための、オクルーダからの最長距離です。この値を上げるとディスタンス フィールド AO の負荷が増えますが、遠くまでオクルージョンが可能になります。 |
+| **Occlusion Max Contrast** || 計算されたオクルージョンのコントラストを高くするために使います。 |
+| **Occlusion Exponent** || AO に適用する指数です。値が 1 未満の場合、コンタクト シャドウがついたままオクルージョンを明るくします。  |
+| **Min Occlusion** || オクルージョンの黒潰れを防ぐので便利です。ライトを複数回バウンスさせるシミュレーションの際に、実際の状況での黒潰れを防ぐので便利です。 |
+| **Occlusion Tint** || オクルージョンに色を付けるための定数カラーです。物理的に正しくするには黒にします。その他の値だと、芸術的な様式が提供されます。 |
+| **Occlusion Combine Mode** || ディスタンス フィールド アンビエント オクルージョンからのオクルージョンをどのようにスクリーン スペース アンビエント オクルージョンと組みあわせるかを調節します。 [INCLUDE:#combinemode] |
+[/REGION]
+
+[COMMENT:none]
+-
+[EXCERPT:combinemode]
+| 選択 | %spacer2% | 説明 |
+| --- | --- | --- |
+| **OCM Minimum** || 最小オクルージョン値です。複数のメソッドによるオーバー オクルージョンの回避に効果的ですが、室内が平坦に見えすぎてしまいます。 |
+| **OCM Multiply** ||ディスタンス フィールド オクルージョンとスクリーン スペース アンビエント オクルージョンのオクルージョン値を掛け合わせます。深度をきちんと判断できますが、オーバー オクルージョンが発生します。Minimum よりも弱くなるようにスクリーン スペース アンビエント オクルージョンを調整しなければなりません。 |
+[/EXCERPT:combinemode]
+-
+[/COMMENT]
+
+
+
+
+#### Occlusion Max Distance
+
+**Occlusion Max Distance** は、オクルージョンの 1 つのポイントがもう 1 つのポイントに影響を与えることができる最大距離を調節します。最大距離を調整すると、 
+DFAO がシーンの他のオブジェクトでのもつ制度
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Distance: | 1000 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Distance: | 500 ](MaxDist_500.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+これらのポイント間の距離は他方を影響させないので、最大値を下げればシャドウイングの詳細は遮蔽されたキャプチャできなくなります。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Distance: | 1000 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Distance: | 1500 ](MaxDist_1500.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+最大値を上げるとオクルージョンの精度も増加します。シャドウイングにさらに多くのポイントを考慮できますが、負荷も高くなります。
+
+
+
+
+
+
+
+
+
+
+
+#### Occlusion Max Contrast
+
+**Occlusion Max Contrast** は DFAO で影響を受けるオブジェクト間の差を調節します。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Contrast: | 0 (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Contrast: | 0.65](Contrast_065.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+コントラストの値を上げると、このシーンにある数々の隙間およびオクルードが強いエリアが暗くなります。
+
+
+#### Occlusion Exponent
+
+**Occlusion Exponent** はアンビエント オクルージョンに適用している値の累乗を調整します。低めの値は、サーフェス近くのコンタクト シャドウ位イングのディテールを失うことなく
+オクルージョン シャドウを明るくします。
+
+Occlusion Exponent は、ほとんどのシーンによく合うデフォルトの中間の値を使用します。以下は、低めと高めの値を使用した場合の比較です。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Exponent: | 1 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Exponent: | 0.6](Exponent_06.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+シーンのオクルージョンは DFAO を使ってシャドウイングした場所より明るくなります。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Exponent: | 1 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Exponent: | 1.6](Exponent_16.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+シーンのオクルージョンは DFAO を使ってシャドウイングした場所より暗くなります。 
+
+#### Min Occlusion
+
+**Min Occlusion** は、レベル内で完全にオクルードされた領域の暗さ加減を調節します。この設定を使うと、アーティストはさらに、オクルードされた領域の DFAO を明るくすることができます。**Occlusion Max Contrast** でオクルードされた領域が暗くなりすぎてしまった後に、
+**Min Occlusion** でシャドウイングを少し明るくする場合にとても便利です。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Occlusion: | 0 (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Min Occlusion: | 1](MinOcclusion__05.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+ここでは、Min Occlusion がシーンで DFAO オクルードされた領域を明るくします。
+
+
+#### Occlusion Tint
+
+**Occlusion Tint** は、オクルードされた領域のティントカラーを有効にすることで、アーティストが DFAO の外見を最大限に調整できるようにします。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Tint Color: | Black (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Tint Color: | Purple](Tint_Purple.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+DFAO でシャドーをかけたオクルード領域のみ、使用するカラー値に基づいてティントされます。 
+
+#### Occlusion Combine Mode
+
+**Occlusion Combine Mode** を使って、Screen Space Ambient Occlusion と Distance Field Ambient Occlusion をシーンで組み合わせるように選択できるようになります。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Combine Mode: | OCM Minimum](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Combine Mode: | OCM Multiply](CombineMode_Multiply.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+## スタティックメッシュ エディタ
+
+**スタティックメッシュ エディタ** には、レベル内に置かれた特定のアクタのインスタンスを変更するためのアクタ専用の設定があります。この設定は [Build Settings] と [General Settings] の中に含まれており、
+
+スタティックメッシュ エディタの **[Details]** パネルからアクセスできます。
+
+[REGION:lightbox]
+[![](StaticMeshEditor.png)(w:450)](StaticMeshEditor.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+### ビルド設定
+
+**[Build Settings]** を使ってメッシュ ディスタンス フィールドの品質調節ができます。フォリッジなどのオブジェクトを両面で生成したり、 
+別のメッシュのディスタンス フィールドを現在のものとして割り当てることができます。 
+
+![](BuildSettings.png)(w:400)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Distance Field Resolution Scale** || 特定のアクタに生成したメッシュ ディスタンス フィールドの品質を調節することができます。生成されたボリューム テクスチャのサイズを変更することができます。 |
+| **Two-Sided Distance Field Generation** || 生成されたメッシュ ディスタンス ディスタンス フィールドを両面にすることができます。複数の平面がオーバーラップしてパフォーマンス負荷が高いインスタンスのソフトシャドウを可能にします。 |
+| **Distance Field Replacement Mesh** || 現在のアクタ独自のメッシュ ディスタンス フィールドの代わりに別のスタティックメッシュのディスタンス フィールドを選択して使用することができます。 |
+[/REGION]
+
+
+### 一般設定
+
+**[General Settings]** では品質関連以外のオプションを有効にすることができます。プロジェクト全体で有効にする必要がない特定のメッシュに 
+メッシュ ディスタンス フィールドを生成するオプション機能もあります。アニメートされているスタティックメッシュに発生する、またはディスタンスフィールドの内部の頂点を移動するセルフ シャドウイングの調節も可能です。 
+
+![](GeneralSettings.png)(w:400)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Generate Mesh Distance Field** || そのメッシュに対して、[Distance Field Indirect Shasows](Engine/Rendering/LightingAndShadows/MeshDistanceFields) と一緒に使用することができるディスタンス フィールドを生成するかどうかを設定します。**[Generate Mesh Distance Fields]** の [Project Seting] が有効の場合は無視されます。  | [COMMENT:none]
+TODO FINISH THE LINK 
+[/COMMENT]
+| **Distance Field Self Shadow Bias** || World Position Offset を使ってメッシュ頂点をアニメートする場合に、ディスタンス フィールド メソッドからのセルフ シャドウイングを減らすために使用します。 |
+[/REGION]
+
+## Actor コンポーネント
+
+レベル内に配置された個々のアクタに対して切り替え、またはオーバーライドが可能なディスタンス フィールド設定は以下の通りです。 
+
+![](Actors.png)(w:450)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Distance Field Indirect Shadow** || Movable コンポーネント上に間接ライティングを (ライトマップまたはスカイライトから) シャドウイングするためにメッシュ ディスタンス フィールド表現を使用するかどうかを設定します。これは、メッシュ ディスタンス フィールドを使用する点以外は、スケルタルメッシュの [Capsule Shadows](Engine/Rendering/LightingAndShadows/CapsuleShadows) と同じように機能します。従って、物理アセットは必要ありません。この機能を使うには、スタティックメッシュの [Build Settins] で **[Generate Mesh Distance Field]** を有効する、あるいはプロジェクトの **[Generate Mesh Distance Fields]** を有効にする必要があります。 |
+| **Distance Field Indirect Shadow Min Visibility** || Distance Field Indirect Shadow の影の濃さを調節します。 |
+| **Override Distance Field Self Shadow Bias** || スタティックメッシュ アセットの Distance Field Self Shadow Bias 設定をこのコンポーネントの Distance Field Shadow Bias でオーバーライドするかどうかを設定します。 |
+| **Distance Field Self Shadow Bias** || World Position Offset を使ってメッシュ頂点をアニメートする場合に、ディスタンス フィールド メソッドからのセルフ シャドウイングを減らすために使用します。 |
+| **Affect Distance Field Lighting** || プリミティブが動的ディスタンス フィールド ライティング メソッドに影響を与えるかどうかを制御します。このフラグは Cast Shadow も有効にする必要があります。 |
+[/REGION]
+
+#### Distance Field Indirect Shadow Min Visibility
+
+[Distance Field Indirect Shadows](Engine\Rendering\LightingAndShadows\MeshDistanceFields\HowTo\DFHT_4) を使うと、**[Distance Field Indirect Shadow Min Visibility]** 設定を使ってシャドウのトーンが調整可能になります。
+これにより、アーティストはシャドウの暗さを調整し、周囲の静的なシャドウイングとブレンドすることが可能になります。 
+
+![](DFISMinVisibilitySetting.png)(w:450)
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Visibility: 0.1 ](DFISMinVisibility_1.png)(w:710)
+	[/PARAM]
+	[PARAM:after]
+	![Min Visibility: 0.6 ](DFISMinVisibility_2.png)(w:710)
+	[/PARAM]
+[/OBJECT]
+
+

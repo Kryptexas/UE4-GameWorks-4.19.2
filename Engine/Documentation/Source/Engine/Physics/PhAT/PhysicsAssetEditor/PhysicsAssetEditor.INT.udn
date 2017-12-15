@@ -1,0 +1,63 @@
+Availability: Public
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title:Physics Asset Editor Interface
+Description:Highlights the core features of the Physic Asset Editor in Unreal Engine 4. 
+Type: landing
+version: 4.18
+Parent:Engine/Physics/PhAT
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Animation/Persona/Modes
+Order: 1
+tags:Physics
+topic-image:PhysicsEditor_Topic.png
+Social-image:PhysicsAssetEditor.png
+
+
+The **Physics Asset Editor** is a tool used for working [Physics Assets](Engine/Physics/Phat) inside of Unreal Engine 4. This editor allows for the visualization and control over the body and 
+constraint hierarchy associated with a Skeletal Mesh. In this editor, you can create [Bodies](Engine/Physics/PhysicsBodies) and [Constraints](Engine/Physics/Constraints/ConstraintsReference) that are 
+used for collision and simulation of your Skeletal Mesh ragdoll.
+
+![](PhysicsAssetEditor.png)
+
+Please refer to each section below for a breakdown of the Physics Asset Editor user interface:
+
+## 1. Toolbar
+
+The [Toolbar](Engine/Animation/Persona/Toolbar) inside the Physics Asset Editor provides you with options for saving any changes made to your Physics Asset or locating it in the Content Browser. 
+You can set a **Preview Mesh** for this particular Physics Asset, **Enable / Disable Collision** for selected bodies, and **Simulation** settings for testing the Physics Assets ragdoll. On the 
+far right of the Toolbar is the **Editor Toolbar** which enables you to switch between the different [Animation Tools](Engine/Animation/Persona/Modes) in Unreal Engine 4.
+
+## 2. Skeleton Tree
+
+The [Skeleton Tree](Engine\Physics\PhAT\SkeletonTree) shows the skeletal hierarchy of the current Skeleton asset and is where you create bodies and constraints.
+
+## 3. Constraints Graph
+
+The [Constraints Graph](Engine\Physics\PhAT\Graph) enables you to have a visual representation of the skeletal hierarchy bodies that are constrained to another body. From this graph, you can create 
+your own constraints by pulling off the main body node (left) and selecting a new body to constrain to or even navigate the skeleton tree by double-clicking the end body to jump down the tree
+to the next set of bodies and constraints. You can also see which [Physical Animation and Constraints Profiles](Engine/Physics/PhAT/ToolsAndProfiles) are assigned based on the currently selected 
+one in the Profiles panel.
+
+## 4. Viewport
+
+The [Viewport](Engine/Animation/Persona/Viewport) window enables you to preview the changes that you make and bodies positioning or preview simulation of the physics ragdoll. From the Viewport, you can
+change lighting modes, show or hide the bones, bodies, and constraints of your skeleton, and even set your Skeletal Mesh to automatically rotate around on a turntable allowing you to view it from all angles.
+
+## 5. Asset Details / Preview Scene Settings
+
+The [Details](Engine/UI/LevelEditor/Details) panel, which is similar to the Main Editor, is primarily used for modifying the properties of added elements like bodies or constraints. For example, 
+when add a body or constraint to the Skeleton, clicking on it in the Skeleton Tree or Viewport will populate the Details panel with options related to how the body or constraint functions.
+
+The [Preview Scene Settings](Engine/Animation/Persona/PreviewSettings) panel enables you to quickly assess what your assets will look like in multiple environments and light scenarios without having
+to set up these scenes within your level. Several different settings can be defined and applied from Skeletal Meshes and specified animations to play along with lighting and 
+[Post Process effects](Engine/Rendering/PostProcessEffects) all within each of the [Animation Tools](Engine/Animation/Persona/Modes) inside of the Editor.
+
+## 6. Tools and Profiles
+
+The [Tools](Engine/Physics/PhAT/ToolsAndProfiles#Toolstab) panel displays the options available for when generating or regenerating new or selected bodies. These are the same options available when creating a 
+Physics Asset from the Content Browser, otherwise these are the default settings that will be used when a Skeletal Mesh is imported and **Create Physics Asset** is enabled.
+
+The [Profiles](Engine/Physics/PhAT/ToolsAndProfiles#profilestab) panel enables you to create profiles that can be reused for **Physical Animations** and **Constraints**. These profiles enable you to set 
+default settings that can be quickly assigned to other bodies or constraints.
+

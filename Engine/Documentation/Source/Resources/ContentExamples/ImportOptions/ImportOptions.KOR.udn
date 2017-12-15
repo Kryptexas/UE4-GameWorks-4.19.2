@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:임포트 옵션 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -13,45 +13,12 @@ Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
 Version: 4.9
-
-
+topic-image:FBXImport_Compact.png
 
 [REGION:banner]
 ![](FBXImport_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/ImportOptions:title%](FBXImport_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/ImportOptionstitle%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/ImportOptions:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/ImportOptions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/ImportOptions:title%](FBXImport_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/ImportOptions:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/ImportOptions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---[TOC(start:2 end:2)]--->
 
 
 **FBX_Import_Options** 맵은 FBX 애셋을 언리얼 엔진 4 에 임포트할 때 설정할 수 있는 몇 가지 옵션을 보여줍니다.

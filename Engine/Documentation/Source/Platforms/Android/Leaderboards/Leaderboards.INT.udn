@@ -7,40 +7,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Android/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Android/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 ![](Platforms\Mobile\Leaderboards\androidLeaderboard.png)(w:320 convert:false)
 

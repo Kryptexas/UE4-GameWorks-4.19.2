@@ -12,21 +12,7 @@ Version control allows users on your team to share assets and code with one anot
 be rolled back to an earlier version if something went wrong with the file.
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Source Control Software
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Basics\SourceControl\InEditor "%Engine\Basics\SourceControl\InEditor:description%")
-	* [](Engine\Basics\SourceControl\Perforce "%Engine\Basics\SourceControl\Perforce:description%")
-	* [](Engine\Basics\SourceControl\SVN "%Engine\Basics\SourceControl\SVN:description%")
-
-	[/PARAM]
-[/OBJECT]
-
+## Source Control Software
+	
+[DIR(output:"topic" parent:"Engine/Basics/SourceControl")]
 

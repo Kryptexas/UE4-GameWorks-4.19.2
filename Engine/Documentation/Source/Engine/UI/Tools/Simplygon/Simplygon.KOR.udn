@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Licensee
 Title:Simplygon
 Crumbs:%ROOT%, Engine
@@ -9,21 +9,14 @@ Version: 4.9
 ![](SimplygonLogo.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		요점
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")
-	[/PARAM]
-[/OBJECT]
+## 필독서
 
-<!--
+[REGION:buttonlist]
+* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")	
+[/REGION]
+
+[COMMENT:none]
+
 [EXCERPT:License]
 [REGION:warning]
 Simplygon (심플리곤)은 언리얼 엔진과 함께 배포되기는 하지만, 라이선시께서 이 기능을 사용하기 위해서는 Donya Labs ([](http://simplygon.com/)) 와 라이선스 계약을 맺으셔야 합니다. 
@@ -32,4 +25,5 @@ Simplygon (심플리곤)은 언리얼 엔진과 함께 배포되기는 하지만
 [/PUBLISH:Licensee]
 [/REGION]
 [/EXCERPT:License]
--->
+
+[/COMMENT]

@@ -3,47 +3,10 @@ Title:In-Editor Testing (Play & Simulate)
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: Guide to testing levels and gameplay directly in the editor.
 Version: 4.9
+topic-image:InEditorTesting_Topic.png
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](InEditorTesting_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		In-Editor Testing
-	[/PARAM]
-	[PARAM:description]
-		Documentation over in-editor testing and how to play and simulate the game directly within the viewport.
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/InEditorTesting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](InEditorTesting_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		In-Editor Testing
-	[/PARAM]
-	[PARAM:description]
-		Documentation over in-editor testing and how to play and simulate the game directly within the viewport.
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/InEditorTesting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:overview]
 Unreal Editor allows you to spawn a player anywhere and instantly preview your game from within the editor without waiting for files to save. There are two preview types available: **Play In Editor** (PIE) which is directly accessed via the **Play** button located on the Main Toolbar

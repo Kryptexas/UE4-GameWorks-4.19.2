@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3717037
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation
-Title: Pose Blender
-Description:Describes how to play back a Pose Asset with the Pose Blender node. 
+Title: 포즈 블렌더
+Description:Pose Blender 노드로 포즈 애셋을 재생하는 방법입니다.
 Type: Reference
 Version: 4.16
 Parent: Engine/Animation/AnimPose
@@ -18,16 +18,16 @@ Tags:Animation Blueprint
 Tags:Animation Blending
 Tags:Pose Assets
 
-After creating [](Engine/Animation/AnimPose), one way of driving and playing back a **Pose Asset** at runtime is through the **Pose by Name** and **Pose Blender** nodes: 
+[](Engine/Animation/AnimPose) 를 생성한 이후, 실행시간에 **Pose Asset** (포즈 애셋)을 구동시켜 재생하는 한 가지 방법은 **Pose by Name** 과 **Pose Blender** 노드를 사용하는 것입니다:
 
-* **Pose by Name** - where you can get the transform of a pose by its name. 
-* **Pose Blender** - which outputs the correct pose driven by curves from a Source Pose. 
+* **Pose by Name** - 포즈의 트랜스폼을 이름으로 구할 수 있습니다.
+* **Pose Blender** - 소스 포즈에서의 커브로 구동된 올바른 포즈를 출력합니다.
 
 [REGION:note]
-See [](Engine/Animation/AnimHowTo/CreatePoseAsset) for a step-by-step guide of creating a Pose Asset. 
+포즈 애셋 생성법 단계별 안내는 [](Engine/Animation/AnimHowTo/CreatePoseAsset) 문서를 참고하세요.
 [/REGION]
 
-In the example below, we have a face that uses a Pose Asset to smile when the player is close and frown when they move away.
+아래 예제는, 포즈 애셋을 사용하여 플레이어가 가까이 오면 미소짓고 멀리 가면 찡그리도록 만든 얼굴입니다.
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -47,48 +47,47 @@ In the example below, we have a face that uses a Pose Asset to smile when the pl
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Our State Machine inside our Animation Blueprint is set up with three states: 
+애니메이션 블루프린트 내 스테이트 머신은 세 가지 스테이트로 구성되어 있습니다:
 
 ![](StateMachine.png)
 
-Our default **State** which is our neutral expression, our **Smile** state which is entered when the player enters a trigger volume and our **Frown** state when the player leaves the trigger volume. 
-In this example, we only move between smiling and frowning states after triggering the first smile. Inside each state, we use the **Pose Blender** and our animation sequence to apply the curve driven animation. 
+기본 **스테이트** 는 중립 표정, **Smile** (스마일)은 플레이어가 트리거 볼륨에 들어설 때의 스테이트, **Frown** (프라운)은 플레이어가 트리거 볼륨을 나갈 때의 스테이트입니다.
+이 예제에서는 스마일을 처음 발동한 이후엔 스마일과 프라운 스테이트만 오가도록 하고 있습니다. 각 스테이트 안에서 **Pose Blender** (포즈 블렌더)와 애니메이션 시퀀스를 사용하여 커브 구동 애니메이션을 적용하고 있습니다.
 
 ![](PoseBlender.png)
 
-Pose Blender nodes are created automatically when dragging a Pose Asset into the graph. 
+포즈 블렌더 노드는 포즈 애셋을 그래프에 끌어 놓으면 자동 생성됩니다.
 
 ![](DragInPoseAsset.png)
 
-### Additional Information
+### 부가 정보
 
-Plugging an Animation Sequence directly into the Final Animation Pose without using a Pose Blender will not automatically apply the curve driven animation. 
+포즈 블렌더를 사용하지 않고 애니메이션 시퀀스를 최종 애니메이션 포즈에 바로 꽂으면, 커브 구동 애니메이션이 자동 적용되지 않습니다.
 
 ![](NoPoseBlender.png)
 
-Additionally, using only a Pose Blender node without supplying any incoming curve data to drive those poses will not output your desired pose. 
+추가로, 포즈를 구동시키리 입력 커브 데이터를 주지 않고 포즈 블렌더 노드만 사용하면 원하는 포즈가 나오지 않습니다.
 
 ![](NoCurveData.png)
 
-You will need to use a method to drive the curve data along with the Pose Driver node to effectively manipulate the final pose. 
+최종 포즈를 효율적으로 조작하기 위해서는 포즈 드라이버 도드와 함께 커브 데이터를 구동시킬 메소드를 사용할 필요가 있습니다.
 
 ![](PoseBlender.png)
 
-You can also convert a Pose Blender to a Pose by Name (or a Pose by Name to a Pose Blender) node through the right-click context menu. 
+우클릭 맥락 메뉴를 통해 Pose Blender 를 Pose by Name (또는 Pose by Name 을 Pose Blender) 노드로 변환시킬 수 있습니다.
 
 ![](PoseByName.png)
 
-The Pose by Name will enable you to manually specify which pose to use inside the **Details** panel that is used inside the **Pose Asset**. 
+Pose by Name 은 **포즈 애셋** 안에서 사용할 포즈를 **디테일** 패널에서 수동 지정할 수 있도록 해줍니다.
 
 ![](AdditivePoseByName.png)
 
-For our example, we are controlling two aspects of our character's face, the right side of a smile and the left side of a smile, therefore, a Pose Blender make more sense to use.
-If we wanted to control only one pose within our Pose Asset, the Pose by Name provides the ability to control a single pose by its name (which is usually good for full body context). 
+우리 예제에서는, 캐릭터 얼굴 중 스마일 오른편과 왼편, 두 부분을 제어하고 있으므로, 포즈 블렌더를 사용하는 편이 이치에 맞습니다.
+포즈 애셋 내 하나의 포즈만 제어하고자 하는 경우, Pose by Name 으로 이름을 지정하면 하나만 제어할 수 있습니다 (보통 전신같은 상황에 좋습니다).
 
 [REGION:note]
-If you are using a Pose Asset with **Additive** enabled, you will also need to use the **Apply Additive** node to correctly display your desired pose. 
-For Pose Assets that are not Additive, you can directly link a Pose by Name node to the Final Animation Pose output. 
+**Additive** 활성화된 포즈 애셋을 사용중인 경우, **Apply Additive** 노드도 같이 사용해 줘야 원하는 포즈가 제대로 나올 것입니다.
+Additive 가 아닌 포즈 애셋의 경우, Pose by Name 노드를 최종 애니메이션 포즈 출력에 직접 연결해도 됩니다.
 [/REGION]
-
 
 

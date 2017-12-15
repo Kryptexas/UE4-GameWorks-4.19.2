@@ -5,20 +5,13 @@ Description:Light Color, Brightness and other Light Settings are adjusted in thi
 Version: 4.9
 SkillLevel: Intermediate
 
-
----
 In the following steps, we will create a light that moves, changes colors and brightness using **Matinee**. 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add the Matinee Actor, Hallway and Light
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, create a small hallway and add a light. 
-	[/PARAM]
-[/OBJECT]
+## Add the Matinee Actor, Hallway and Light
+
+In this step, we will add our **Matinee Actor**, create a small hallway and add a light. 
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -68,14 +61,9 @@ In the following steps, we will create a light that moves, changes colors and br
 
 	![](MHT5_AddPointLight.png)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add the Light to Matinee and Setup Tracks
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add the light to **Matinee** and set up our tracks with keyframes. 
-	[/PARAM]
-[/OBJECT]
+## Add the Light to Matinee and Setup Tracks
+
+In this step, we will add the light to **Matinee** and set up our tracks with keyframes. 
 
 1. Open Matinee by clicking on the Matinee Actor in the **World Outliner** and choosing **Open Matinee** from the Details panel. 
 
@@ -111,15 +99,9 @@ In the following steps, we will create a light that moves, changes colors and br
 
 	![](MHT5_AllKeysAdded.png)(w:720)
 
+## Adjust Movement and Intensity
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adjust Movement and Intensity
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will set up movement for the light and adjust its intensity. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will set up movement for the light and adjust its intensity. 
 
 1. In Matinee on the Movement track, click on the second keyframe (at **2.00**) then minimize Matinee and move the light to the center of the hallway. 
 
@@ -143,15 +125,9 @@ In the following steps, we will create a light that moves, changes colors and br
 
 	_This will increase the intensity of the light, making it brighter, as it moves to the center of the hallway._
 
+## Adjust Light Color and Attenuation Radius
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adjust Light Color and Attenuation Radius
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will adjust the color of the light as it moves through the hallway as well as its size (or **Attenuation Radius**). 
-	[/PARAM]
-[/OBJECT]
+In this step, we will adjust the color of the light as it moves through the hallway as well as its size (or **Attenuation Radius**). 
 
 1. In Matinee on the **Light Color** track, **click** on the first keyframe (at **0.00**) and select **Set Color**; in the **Color Picker** window select any color. 
 
@@ -165,17 +141,9 @@ In the following steps, we will create a light that moves, changes colors and br
 
 	![](MHT5_AttenuationKey4.png)(w:720)
 
+## Finishing Up - Building and Playing
 
-
-
-[OBJECT:TopicList]
-	[PARAM:title]
-		Finishing Up - Building and Playing
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will finish the **Matinee**, **Build** the geometry and lighting, then **Play** in the editor to see the finished result. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will finish the **Matinee**, **Build** the geometry and lighting, then **Play** in the editor to see the finished result. 
 
 1. In the World Outliner, select the **Matinee Actor** and under the Play section, **enable** Play on Level Load and Looping. 
 

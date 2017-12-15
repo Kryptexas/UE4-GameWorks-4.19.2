@@ -27,7 +27,8 @@ consistent color is preserved across multiple formats and displays, and also as 
 	![High Dynamic Range (HDR) ](HDR.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-[REGION:caption] <!--- Spacer --->
+[REGION:caption]
+
 [/REGION]
 [REGION:caption]
 This example is simulated and purely for demonstration purposes only. It is impossible to convey HDR differences on an LDR screen. 
@@ -71,7 +72,8 @@ and change the available options for the HDR device and color gamut output neede
 | **r.HDR.Display.ColorGamut** | This is the color gamut of the output display. [INCLUDE:#colorGamut] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
@@ -93,7 +95,8 @@ and change the available options for the HDR device and color gamut output neede
 | **3** | ACES, D60 |
 | **4** | ACEScg, D60 |
 [/EXCERPT:colorGamut]
---->
+-
+[/COMMENT]
 
 Once you've setup the Blueprint or C++ call for GameUserSettings, you can run any cooked project, use the command line argument `-game mode`, use Standalone game mode, or Play-in-Editor (PIE) in a new window using 
 exclusive fullscreen (press **Alt** + **Enter** or use the command `fullscreen` from the console window). 

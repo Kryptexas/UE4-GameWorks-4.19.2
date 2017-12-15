@@ -1,25 +1,14 @@
-﻿INTSourceChangelist:3309202
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:Top Down Template を使用して新規プロジェクトを作成します。
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/2 "%Engine/AI/EnvironmentQuerySystem/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このクイックスタートでは、プロジェクト内で利用できるものを前提にしています。そのため、代替を作成したり、ただちに問題解決がやりづらい場合は、プロジェクトを以下のように設定します。
 
@@ -31,4 +20,4 @@ Description:Top Down Template を使用して新規プロジェクトを作成�
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/1#aiprojectstart]
 
-%Steps%
+[NAV]

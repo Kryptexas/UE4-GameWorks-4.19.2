@@ -47,7 +47,7 @@ UE4 のモバイル プラットフォームでライトを使う場合、UE4 �
 
 	![](PP_Settings.png)
 
-* 反射用のライティングをキャプチャする場所に [**SphereReflectionCaptures**](Engine/Rendering/LightingAndShadows/ReflectionEnvironment/#球体の形状) アクタを置きます。 
+* 反射用のライティングをキャプチャする場所に [**SphereReflectionCaptures**](Engine/Rendering/LightingAndShadows/ReflectionEnvironment/#球体形状) アクタを置きます。 
 
 	[OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -180,7 +180,8 @@ Stationary Directional Light (固定の指向性ライト) は、シーンの動
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SQ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -205,9 +206,11 @@ Stationary Directional Light (固定の指向性ライト) は、シーンの動
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SQ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SD]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -232,7 +235,8 @@ Stationary Directional Light (固定の指向性ライト) は、シーンの動
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SD]
--->
+
+[/COMMENT]
 
 
 

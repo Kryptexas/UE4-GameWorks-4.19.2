@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:블루프린트에서 액터 검색
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
@@ -13,9 +13,11 @@ type:how-to
  
 
 ## 클래스의 모든 액터 구하기
-<!---
+[COMMENT:none]
+-
 **Get All Actors of Class** 노드를 사용하여 씬에 있는 특정 클래스의 모든 액터를 찾는 법은 다음과 같습니다.
---->
+-
+[/COMMENT]
 
  _이 예제에서는 **시작용 콘텐츠 포함 블루프린트 삼인칭 템플릿** 을 사용했습니다._
 

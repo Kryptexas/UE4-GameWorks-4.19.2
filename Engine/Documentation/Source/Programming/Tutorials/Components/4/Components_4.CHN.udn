@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 如需使用自定义 **Pawn 移动组件**，首先需要为 **Pawn** 类添加一个变量，保持对其的追踪。在 CollidingPawn.h 中类定义的底层，添加“OurParticleSystem”变量之处的旁边，我们需要添加：
 
@@ -330,4 +330,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

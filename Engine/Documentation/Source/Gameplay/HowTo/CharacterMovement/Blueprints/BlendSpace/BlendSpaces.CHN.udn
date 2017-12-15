@@ -22,7 +22,7 @@ SkillLevel: Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 为了给人物创建动作，接下来要为每个动作状态（行走、慢跑和蹲走）创建**Blend Spaces**。混合空间是特殊的资源，它能使动画的混合基于两个输入的值。在我们的例子中，我们将基于人物的动作速度和方向混合向前/向后和左/右运动。 
 
@@ -121,5 +121,5 @@ SkillLevel: Advanced
 1.	**Save**然后关闭**Crouch_BS**混合空间窗口。 
 
 
-%Steps%
+
 

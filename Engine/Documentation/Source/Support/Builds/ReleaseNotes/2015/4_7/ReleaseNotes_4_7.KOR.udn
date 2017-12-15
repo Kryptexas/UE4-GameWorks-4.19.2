@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title: 언리얼 엔진 4.7 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -31,7 +31,8 @@ order:7
 | **Xbox One** | November 2014 QFE1 XDK |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 [REGION:plainlist]
 * QA_APPROVED_UE4_BUILD_4.7.0_Release
@@ -39,7 +40,8 @@ order:7
 * QA_APPROVED_UE4_BUILD_MINIMUM
 [/REGION]
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 

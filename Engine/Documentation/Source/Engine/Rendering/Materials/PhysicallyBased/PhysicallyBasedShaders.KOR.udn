@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:물리 기반 머티리얼
 Crumbs: %ROOT%, Engine
@@ -215,7 +215,8 @@ Physically based, 물리 기반 셰이딩이란, 빛의 작용이 이래야 할 
 
 
 
-<!-------------
+[COMMENT:none]
+-----------
 
 * **Base Color** - The color of your object. Similar to Diffuse in other Material systems, including UE3.
 * **Metallic** - Literally, this controls how metal-like your surface will be. For pure surfaces, such as pure metal, pure stone, pure plastic, etc. this will be 0 _or_ 1, not anything in between. When creating surfaces like corroded or rusty metals, you may find that you need some value _between_ 0 and 1.
@@ -390,4 +391,5 @@ Physically based, 물리 기반 셰이딩이란, 빛의 작용이 이래야 할 
 [/OBJECT]
 [/EXCERPT:SpecularSlider]
 
--->
+
+[/COMMENT]

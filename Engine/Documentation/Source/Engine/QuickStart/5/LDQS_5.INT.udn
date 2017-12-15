@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 With several different **Actors** placed inside our level, the next step involves [Editing Actor Properites](GettingStarted/HowTo/DetailsPanel) which can change the look or the way the Actor functions in the level, giving us a more customized looking level. 
 We will start with editing the properties of our **Directional Light Actor** then shift our focus to applying [Materials](Engine/Rendering/Materials) to some of the [Static Mesh Actors](Engine/Actors/StaticMeshActor) that you have placed in your level. 
@@ -69,5 +69,5 @@ Feel free to continue changing the various properties of each Actor in your leve
 
 When you are ready, proceed to the next step where we will run through the **Build** process which will update the settings in our level. 
 
-%Steps%
+
 

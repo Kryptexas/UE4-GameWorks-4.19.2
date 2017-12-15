@@ -1,0 +1,720 @@
+﻿INTSourceChangelist:3782314
+Availability:Docs
+Crumbs: %ROOT%
+Title:画面比率:動的解像度とテンポラル アンチエイリアシング アップ サンプリング
+Description: 
+Type:Overview
+SkillLevel:Intermediate
+Version:4.19
+Parent:Engine/Rendering/Postprocessing
+Order:
+Tags:
+
+[TOC(start:2 end:3)]
+
+
+[INTRODUCTION]
+
+
+[REGION:note]
+アンリアル エンジン 4.19 のリリースにより、Screen Percentage 機能が大幅に変更されます。この変更の大分部が直接関係するのは、後方互換性を破る場合のある仮想現実 (VR) 向けプロジェクト開発の関係者です。 
+[/REGION]
+
+
+
+**Screen Percentage** は、実際の出力よりも解像度を高くしたり低くしてレンダリングすることができる [ポストプロセス](Engine/Rendering/PostProcessEffects) 技法です。画面比率の調整が可能になると、ゲームでのパフォーマンスと画像解像度の品質のバランスを取ることができます。 
+
+これまでのアンリアル エンジン 4 (UE4) では、画面比率の変更だけが必要でした。バージョン 4.19 からは、レンダリング パイプラインの中でスケーリングが Primary Spatial Upscaling と Secondary Spatial Upscaling の 2 種類に分かれました。
+
+* **Primary Spatial Upscaling** は、これまで使用してきた画面比率と同じです。フレームを低解像度でレンダリングし、UI へのレンダリング前にアップスケールするという考え方です。
+* **Secondary Spatial Upscaling** は、アップスケール パスとは別に 2 回目と最後のアップスケール パスを行います。このパスは DPI (ドット / インチ) の高いモニタに GPU が対応できず、動的解像度の変更が可能な場合に使用できます。 
+
+
+
+
+
+
+
+
+
+## Primary Spatial Upscale
+
+**Primary Spatial Upscale** (または primary screen percentage) は、画面のサイズで画面解像度をレンダリングしてから、現在の画面解像度に合うようにスケーリングします。低めの画面比率 (または低めの解像度) を使ってからアップスケールすることを **アップサンプリング** といいます。また、高めの画面比率 (高めのレンダリング解像度) を使ってから現在の画面解像度に下げることを **スーパーサンプリング** と言います。上記の変換はユーザー インターフェース (UI) のレンダリング前に行われるため、パフォーマンスに影響を及ぼすことがあります。
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+
+![](SpatialUpscalingPipelineComparison.png)(w:900)
+
+では、単一の GPU フレームをレンダリングした画像で構成されているバッファ レンダリング ターゲットに対して画面比率がどのように機能するのか、その概念を説明します。
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+![](NoUpscalingPipeline.png)(w:900)
+
+各 GPU フレームに対してすべてレンダー ターゲットはパイプラインではフル解像度を使用します。
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+![](SpatialUpscalingPipeline.png)(w:900)
+
+Spatial Upscaling を使うと、UI の前に描画されたものはすべて、使用する画面サイズに応じて解像度が高く / 低く変換されます。画面サイズを下げると、レンダー ターゲットの画像解像度が下がります (UI の前はレンダリング ターゲット幅が細くなっています)。Spatial Scaling は、出力先の画面の解像度に応じて UI が画像をスケーリングする前に行われます。たとえば現在の設定が「解像度 1920x1080、画像比率 83%」 の場合、レンダリング ターゲットの解像度を 1600x900 に近似してから、再び 1920x1080 にアップスケールします。 
+
+
+
+
+
+
+
+### レンダリング ターゲットのアップスケール品質
+
+レンダリング ターゲットをアップスケールする場合、次のコンソール変数を使ってアップスケールの品質を定義することができます。 
+
+	r.Upscale.Quality
+
+画面比率および Windowed FullScreen モードが 3D レンダリングをスケーリングする品質を調節します。
+
+| アップサンプル品質を示す値 | アップサンプルの結果 |
+| --- | --- |
+| **0** | ニアレスト フィルタリング |
+| **1** | シンプルなバイリニア法|
+| **2** | アンシャープ マスク アップサンプルによる移動ぼかし |
+| **3** | Lanczos 2 (デフォルト) の近似を行う、タップ数 5 の Catmull-Rom バイキュービック法 |
+| **4** | タップ数 13 の Lanczos 3 |
+| **5** | タップ数 36 のガウスぼかしによるアンシャープ マスク処理 (非常に負荷が高いが極端なアップサンプリングに適する) |
+
+または、トーンマッパ パスの処理方法を変更することができます。画面比率のアップスケールは、トーンマッパ パスに統合され、別々にデフォルトで実行されます。同じパスで一緒に実行することも可能です。処理速度はあがりますがポストプロセスに影響を与えます。以下のコマンドで有効にすることができます。 
+
+	r.Tonemapper.MergeWithUpscale.Mode
+
+
+[COMMENT:none]
+- TODO IMAGE - Possible with an image demonstration? -
+[/COMMENT]	
+
+
+
+
+
+
+
+
+
+### テンポラル アンチエイリアシングのアップサンプル
+
+Primary Spatial Upscale 以外にも primary screen percentage に対応した Temporal Upsample というアップスケール技法があります。primary spatial upscale を行う代わりに、テンポラル アンチエイリアシング (TAA) と一時的に統合して Temporal Anti-Aliasing Upsample (TAAU) シェーダーで同時に処理します。Spatial Upscale に比べて画像はよりシャープになりますが、ポストプロセス高解像度で大量に処理するため負荷は高くなります。
+
+![](TAAUPipeline.png)(w:900)
+
+[REGION:caption]
+TAAU はパイプラインの前半の処理なので、後に続くレンダー ターゲットは高解像度でレンダリングされ、結果として負荷は高いですがシャープな画像になります。 
+[/REGION]
+
+Temporal upsample では、TAAU を追加しても他のポストプロセスの順序は変わりません。単に TAA が置き換えられただけです。違いは、Temporal upsample の後に実行されるものはすべて準備されて、アップサンプルの前の解像度との違いを認識するようになった点です。4.19 より前のバージョンでは、解像度はポストプロセスはすべて同じになる前提でした。
+
+パイプラインで temporal upscale を使うメリットは、最終出力でユーザーが認識できる鮮明さのレベルの変化を最小にしつつ、任意の primary screen percentage を TAAU と一緒に使うことができる点です。これまでは、出力するディスプレイに応じて「特別な意味を持つ数字」を使わなければならないことがありました。このことは、最高の出来栄えのためにそれぞれ独自の画面比率を使用する仮想現実 (VR) 用ヘッドマウント ディスプレイ (HMD) では大きく影響しました。テンポラル アップスケーリングを使うと、これらの値をトラックまたは記憶しなくても同様の結果を得ることができます。
+
+[REGION:note]
+最終出力における鮮明さの変更には特別な数字は使用してないため、primary screen percentage を下げるときれいなフル解像度の出力への収束が変化します。従って、既存の TAA アーティファクトがさらに目立つようになります。たとえば、エイリアシングは primary screen percentage が下がると、ジオメトリの詳細が表示されない危険性が高くなり、非常に薄いジオメトリでは問題となる可能性があります。
+[/REGION]
+
+#### テンポラル アップサンプルを有効にする
+
+Temporal Anti-Aliasing Upsample を使用するには、以下のコンソール変数を使用します。 
+
+	r.TemporalAA.Upsampling 1
+
+Primary screen percentage が低いと、低い解像度を使用した際にかなりの詳細部分が失われる可能性があります。たとえば、チェーン リンク フェンスや車のフロント グリルなど、Temporal Anti-Aliasing を使用すると詳細は遠方で見えずらくなります。TAAU を有効にすると、画面比率が低くてもこれを抑えることができます。
+
+[REGION:imagetable]
+| ![](FenceAsset.png)(w:560) | [INCLUDE:#taau] |
+| --- | --- |
+|||
+[/REGION]
+
+Primary screen percentage を **50** に設定して、高周波成分のジオメトリとマテリアルに対する TAA の影響が効率的に確認できる距離までカメラを移動させて比較します。Temporal upsample は、できるだけこの詳細を維持するために低い解像度を使用した場合でも、この詳細を表示することができます。
+
+この比較では Primary Screen Percentage は **50** に設定し、カメラをエフェクトを見るのに十分離れた位置に移動しました。 
+
+[COMMENT:none]
+-
+[INCLUDE:#taau]
+[EXCERPT:tAAU]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![TemporalAA Upsample | Disabled](TemporalUpsampleDisabled.png)(w:560)
+	[/PARAM]
+	[PARAM:after]
+	![TemporalAA Upsample | Enabled](TemporalUpsampleEnabled.png)(w:560)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:tAAU]
+
+-
+[/COMMENT]
+
+
+#### 追加サンプル
+
+
+最初の画像は、画面比率のみを下げたデフォルト シーンと、画面比率は同じのまま temporal upsample を有効にしたシーンの比較です。スクリーンショットでは差は微々たるものですが、大画面では家の上にあるフェイスや、木の上部の葉状体など (近くと遠くのものそれぞれ)、密度の高いジオメトリや高周波のテクスチャのあるエリアで失われた詳細が復活しています。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 70 | Temporal AA Upsample: Disabled](Shot3c.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled](Shot2c.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+こちらは、temporal upsample なしの 100% のデフォルト画面と、Screen percentage を低めにして temporal upsample を使用した画像の比較です。スペキュラの強調表示とマテリアルの詳細が少しばかり失われていますが、temporal upsample は screen percentage を下げてもジオメトリの詳細の維持に非常に優れています。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100 | Temporal AA Upsample: Disabled ](Shot1c.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled ](Shot2c.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 70 | Temporal AA Upsample: Disabled](Shot3a.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled](Shot2a.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100 | Temporal AA Upsample: Disabled ](Shot1a.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled ](Shot2a.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+-
+[/COMMENT]
+
+[COMMENT:none]
+---  EXAMPLES OF TAAU UPSCALES
+
+Take examples from Guillaume's pre-doc for comparison shots and add some context
+
+Shot 1 - Primary Screen Percentage = 100% with no extra frills, no TAAU upscaling.
+Shot 2 - Primary Screen Percentage = 70%  with TAA Upsampling enables (uses temporal and spatial upsampling)
+Shot 3 - Primary Screen Percentage = 70%  with TAA Upsampling disabled (default, so no temporal and spatial upsampling) but does use r.Upscale Quality 3 (default value)
+
+--
+[/COMMENT]
+
+
+
+
+
+### Automatic View Texture Mip Bias
+
+screen percentage が原因でジオメトリが低めのピクセル密度でレンダリングすることになると、temporal upsample は同じ出力でのシャープさを保つために **Surface** と **Deferred Decal** を使ってさらにテクスチャ情報が必要になります。このために、Texture Sample expression は **Automatic View Mip Bias** を使用することができます。 
+
+Texture Sample expression は **Automatic View Mip Bias** を使って、テクスチャがTemporal Anti-Aliasing を使ったシャープな出力のために vew mip bias ごとにサンプルすべきかどうかの切り替えができます。
+
+![](AutomaticViewMipBias.png)
+
+(下の例のような) 高周波成分のテクスチャに Automatic View Mip Bias を使う場合、画像比率が低いと問題が発生します。
+
+![](HFtexture.png)(w:512)
+
+[COMMENT:none]
+-TODO IMAGE - GRILL OR HIGH FREQUENCY TEXTURE FROM DISTANCE> SET THE IMAGE UP AND ZOOM INTO PART OF THE IMAGE TO SHOW THE GRILL LARGER FOR EASE OF VIEWING. 
+[/COMMENT]
+
+ただし、ミップマップ レベルに正確にアクセスする必要がある場合、Automatic View Mip Bias のチェックを外してください。 
+
+![](AutomaticViewMipBiasUnchecked.png)
+
+[REGION:note]
+Automatic View Mip Bias は TAAU を有効にしている場合のみ使用できます。通常のアンチエイリアシング メソッド (TAA、MSAA、FXAA) はこのオプションを使用することはできません。 
+[/REGION]
+
+
+
+
+
+
+
+
+#### Performance Permutations  (TODO BASED ON NOTES FROM GUILLAUME)
+
+TODO REWRITE
+
+Temporal upsample を使うと、コンソールで 60Hz で出荷するための品質と引き換えに、シェーダー の並び替えが速くなります。TAA で現在得られる結果です。
+
+
+
+
+
+
+
+Temporal Upsample comes with a faster shader permutation (traded against some quality) minded titles to ship at 60Hz on consoles, like we currently do with TAA (r.postprocessingQuality=3 or r.PostProcessAAQuality=4).
+
+More over, both quality also have their own shader permutations for primary screen percentage ranges: 
+
+
+
+| r.PostProcessAAQuality 3 | r.PostProcessAAQuality 4 | Notes | 
+| --- | --- | --- |
+| 50% | 71% | メモリでより小さい LDS タイルを使用するのでさらに速くなります。temporal upsampling をデスクトップとコンソールのユースケースで 4K を目標にして |
+| 71% | 100% | デスクトップと基本コンソールでの "通常の" DPI レンダリングに便利です。  |
+| 100% | 200% | For giving dynamic resolution the theoretic possibility to go over 100%, if not limited by the GPU memory for render targets.  |
+
+
+
+### マテリアルの改善
+
+
+シーンのサンプリングを行うためのマテリアルの Scene Texture の使い方が改善されました。表示サイズが使用されるレンダー ターゲットに常に等しくなるように簡素化されました。Screen Position 表現式での新たな出力がビューサイズの正確なピクセル位置となり、TAAU の後にポストプロセス マテリアルを使用する際に何かしら考慮するようになりました。
+
+
+#### ビューサイズがレンダー ターゲット サイズと等しくなりました
+
+ビューサイズは常にマテリアルのレンダー ターゲット サイズと等しくなりました。UE4 4.19 より前のバージョンでは、シーン テクスチャのサンプリング時にマテリアルが複雑な Scene Texture UV と機能しなければならない点が Viewport UV との違いでした。たとえば、Screen Position 表現式はこれらの両方の値を出力し、さらにビューサイズと必ずしも同等である必要はないレンダー ターゲット サイズを公開します。この原因は、かなり大きなレンダー ターゲットでビューポートを実際にレンダリングしている可能性のあるレンダラです。 
+
+![](ViewSizeInRT.png)
+[COMMENT:none]
+-TODO IMAGE - Viewport of the view that is captured vs the actual render target size. -
+[/COMMENT]
+
+複雑さを取り除くと、マテリアルは常にレンダー ターゲット サイズがビューサイズと同等であるかのように機能します。Screen Position 表現式は必ずしも Viewport UV を返さず、Scene Texture 表現式は Viewport UV を入力として受け取ります。 
+
+![](ScreenPosViewportUVMat.png)
+[REGION:caption]
+Screen Position が Scene Texture 表現式に対して ViewportUV サイズを返す方法の設定例
+[/REGION]
+
+
+
+#### Screen Position の高精度の Pixel Position Output
+
+Screen Position 表現式に Pixel Position 用に 2 つ目の入力ができました。パスのサイズを乗算処理した Viewport UV です。TAAU 後に実行されたポストプロセス マテリアル(#postprocessmaterialsaftertaau) からではない限り、View Property を使って取得したパスのサイズは常に View Size と等しくなります。
+
+Pixel Position はマテリアルに View Size 内の最も正確なピクセル位置を与えるために使用されます。TAA と同期するカスタム ピクセル ディザリングなどのエフェクトにはとても重要です。以下は Viewport UV の計算方法の例です。 
+
+![](ScreenPosPixelPosOutput.png)
+
+
+#### Post Process Materials After TAAU
+
+ポストプロセス マテリアルを作成すると、使用する [Blendable Location] を選択することができます。**[After Tonemapping]** と **[Replacing the Tonemapper]** の位置はパイプラインの TAAU の後です。つまり、これらは実際フル解像度で実行していて、[View Size] とは異なります。 
+
+![](BlendableLocation.png)
+
+View Property 表現式の View Size と Render Target Size は TAAU の後ですが、TAAU の前にビューの解像度を返します。TAAU 後の view size と texel UV size を知るために、PostProcessInput0 を使った Scene Texture 表現は **Size** と **InvSize** 用の出力を使用します。
+
+![](ViewProperty.png)
+
+ピクセルの位置情報から Viewport UV の再計算はこのようにします。
+
+![](ViewportUVFromPixelPos.png)
+
+Scene Texture 表現式は Viewport UV のみを受け取るようになり、任意のシーン テクスチャにおいて UV ビューポート変換中にエラーが起きる危険性なくサンプリングすることが可能です。
+
+
+
+
+## Secondary Spatial Upscale
+
+[Primary Spatial Upscale](#primaryspatialupscale) の他に、[TAAU](#テンポラルアンチエイリアシングのアップサンプル) パスの後 **Secondary Spatial Upscale** が起こります。DPI が高いモニターの場合、シーンの複雑度によっては GPU はついていけない場合があります。そのため、レンダラは secondary screen percentage を使ってサポートします。primary screen percentage とは別の 2 つ目と最後のアップスケール パスを操作するthat drives the second and final upscale pass that is independent of the primary screen percentage. 
+
+![](SecondarySpatialUpscale.png)(w:900)
+
+
+
+
+
+
+
+
+
+
+### DPI Editor Viewport Scaling
+
+エディタでは、すべてのビューポートは OS DPI スケール設定によって分割された secondary screen percentage でレンダリングされます。とても大きいレンダー ターゲットに対して一定のパフォーマンスを保つために、高 DPI モニタに対してシーンのスケーリング (または品質) を調整します。有効にすると、secondary screen percentage はビューポートのフル解像度でレンダリングします。 
+
+![](DPIEditorViewportScaling.png)
+
+以下のコマンドはプラットフォーム非依存ですが、これらのプロジェクトを 4k 解像度サポートしてコンソール上で出荷する場合にメリットがあります。以下のコンソール変数を使うと、static secondary upscale を使用することができます。 
+
+	r.SecondaryScreenPercentage.GameViewport
+
+有効にすると、secondary screen percentage が動的でないようにオーバーライドされ、TAAU の解像度を originally に変更します。解像度が変わると、数フレーム後に再度一点に集まる前にシーンがますますぼやけます。 
+
+
+
+
+
+
+
+
+
+
+## VR Pixel Density
+
+TODO WRITE LATER
+
+
+(Link to whatever page SamD writes.This section will be very high-level and should probably just contain some snippets from his blog post here: https://docs.google.com/a/epicgames.com/document/d/12cpUby8Fgxuzet92emCtWVyKrXYvScRipDFDRJm1zFw/edit?usp=sharing)
+
+
+
+
+
+
+
+
+## Render Thread Dynamic Resolution
+
+動的な解像度は、前のフレームの GPU 負荷に合わせて発見的問題解決を有効にします。ゲームの解像度を適宜調整することが可能になります。画面上にたくさんオブジェクトがある場合、または負荷の高いエフェクトがフレームに入ってきた場合。Dyanmic Resolution 機能はゲーム ビルドに対応していますが、Playing-in-Editor (PIE) であり、ビューポートでの編集中はサポートしません。動的な解像度は PIE で使用されます。エディタ UI の追加の負荷を忘れずに、GPU の作業量を考慮して処理をしてください。ゲーム ビルドは期待以上に正確な結果を出します。
+
+[REGION:note]
+**Stat Raw** コマンドはゲームで動的解像度の結果を表示する際に有用です。詳細は、本ページの [統計情報の使用方法](#統計情報の使用方法) をご覧ください。 
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+### Dynamic Resolution を有効にする
+
+Dynamic Resolution は、**Game User Settings** に追加したブーリアン型を使って有効にすることができます。ブループリントまたは C++ を使って設定します。
+
+**ブループリント** では、**Game User Settings** ノードを使ってその機能を選択するようにして動的な解像度を有効にします。
+
+![](DynResBP.png)
+
+**C++** では、boolean の値を `UGameUserSettings` に設定します。
+
+	GEngine->GetDynamicResolutionState()->SetEnabled(true);
+
+無効にするには `SetEnabled` に対して **false** を使います。
+
+[REGION:note]
+ゲーム スレッド ロジックには実際にいつ動的な解像度を有効 / 無効にするか、最終的なプログラムの制御があります。従って、ブループリントを使ってランタイム時に有効にするなら、コードでそれを設定するよりも先行します？
+[/REGION]	
+
+ゲーム ユーザー設定を元のステートにリストアは、以下の方法で行います。
+
+	GEngine->GameUserSettings->ApplyNonResolutionSettings();
+
+#### 動的な解像度の調節方法
+
+動的な解像度を有効にすると、以下のコンソール変数を使って、使用する最大 / 最小画面サイズおよび解像度を下げる前に任意のフレームの最大負荷を設定することができます。
+
+* **r.DynamicRes.MinScreenPercentage** は最小の primary screen percentage を設定します。 
+* **r.DynamicRes.MaxScreenPercentage** はレンダー ターゲットを割り当てるために使用する最大 primary screen percentage を設定します。
+* **r.DynamicRes.FrameTimeBudget** フレームの負荷を設定します (ミリ秒)。
+
+[REGION:note]
+シーンをデバッグする場合、コンソール変数 **r.Test.DynamicRes.EnableOverride** を使ってシーンに対して Dynamic Resolution を有効 / 無効にすることができます。これは出荷用ビルド以外のものしか使用できません。
+[/REGION]
+
+
+
+### 統計情報の使用方法 
+
+動的な解像度でデバッグ パフォーマンスを有効にすることができる統計情報画面がいくつかあります。
+
+* **Stat Unit** は、ゲーム スレッド、レンダリング スレッド、GPU 時間の全体のフレーム時間を見るために使用します。
+* **Stat UnitGraph** は、Stat Unit データでグラフを見るために使用します。
+* **Stat Raw** は、Stat UnitGraph を使ってフィルタリングされていないデータを出力します。
+
+#### Stat Unit
+
+**Stat Unit** を呼び出すと、**DynRes:** 行を参照することで、動的な解像度がシーンに対して有効にされたかどうかをすぐに確認できます。
+
+![](DynResOFF.png)
+
+ビューポートの動的な解像度は、以下のコマンドを使ってテスティングとデバッグ用に有効にすることができます。 
+
+	r.Test.DynamicRes.EnableOverride 2
+
+有効にすると、**DynRes:** ラベルに [Primary Screen Percentage](#primaryspatialupscale) と [Secondary Screen Percentage](#secondaryspatialupscale) が表示されます。	
+
+![](DynResON.png)
+
+X 軸と Y 軸の両方のため、2 種類の画面サイズが使用されています。GPU で描画されたピクセル数は以下によって実際に表されます。
+
+	Screen Percentage x Screen Percentage
+
+たとえば、1920x1080 や 1280x720 です。
+
+
+
+
+
+
+#### Stat UnitGraph / Stat Raw
+
+**Stat UnitGraph** を呼び出すと、動的な解像度で選択された [Primary Screen Percentage](#primaryspatialupscale) を表示するためにグラフが描画されます。
+
+![](StatUnitGraph.png)
+
+1. タイミング (フィルタ処理 / そのまま) - 
+1. ターゲット フレーム時間閾値 - 
+1. Dynamic Resolution Maximum Screen Percentage - 
+1. Dynamic Primary Screen Percentage Curve - 
+
+UnitGraph は Dynamic Resolution で選択した primary screen percentage を表示することができます。ただしカーブは、Screen Percentage x Screen Percentage を使用して GPU で描画したピクセルに比例します。
+
+さらに、**Stat Raw** を使って UnitGraph でフィルタリング処理されていない (そのままの) タイミングを取得することができます (切り替えが可能です)。UnitGraph の機能が有効にしておく必要があります。グラフのタイミング セクションは、そのままのタイミングが表示されていることを示すために変わります。
+
+![](StatRaw.png)
+
+
+
+### Dynamic Resolution Cruising (?)
+
+シーンにグラフ ビューを使用する場合、動的な解像度がプロジェクトでの活かし方を調節することができます。以下のグラフは単純すぎる理想的なシーン モデルです。これらのコンソール変数のそれぞれがプロジェクトのどこで機能し、望みの結果を出すためにどのように使用するのかを示しています。
+
+
+![](DynResCruising.png)
+
+
+[COMMENT:none]
+-TODO A BUNCH OF CONSOLE COMMANDS -
+[/COMMENT]
+
+| 参照番号r | コンソール変数 | 説明 |
+| --- | --- | ---|
+| 1 | **r.DynamicRes.TargetedGPUHeadRoom** | 予定されている負荷を超える前に GPU 用のヘッドルーム (フレーム予算をパーセントで)。出荷プラットフォーム次第または有効にしているレンダリング機能による場合が多いです。たとえば、モーション ブラーは高速回転またはカメラ移動のためには、さらに余裕が必要です。 |
+| 2 | **r.DynamicRes.MinResolutionChangePeriod** | このフレーム数を超えると解像度が変更できるようになります。目的は複数あります: 測定ノイズにもかかわらず、所定の primary screen percentage での GPU 消費をモデルするための発見的方法のより良い信頼性、[Temporal Upsample's](#テンポラルアンチエイリアシングのアップサンプル) のを避けるため、アンチエイリアシング相違の原因となりうるフレーム単位のオフセット ジッターと解像度の変更 |
+| 3 | **r.DynamicRes.HistorySize** | ヒューリスティックのフレーム履歴のフレーム数。短すぎると履歴にノイズが多すぎてヒューリスティックの信頼性が下がり、長すぎると順応が非常に遅くなります。 |
+| 4 | **r.DynamicRes.ChangePercentageThreshold** | 割り当てサイズを実際に変更するために必要な最小の変更 (パーセント)。解像度のサイズが近いもの同士で変更し続けても意味がありません。値が小さすぎると、解像度が常に変わり続けます。大きすぎると GPU の割り当て分を超えるリスクが高くなります。 |
+| 5 | **r.DynamicRes.CPUBoundScreenPercentage** | CUP の制限がある場合ターゲットにすべき primary screen percentage。CPU と GPU が同じメモリ帯域を共有しているプラットフォーム上で解像度を下げるために screen percentage を低い設定にする場合に便利です。 |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Screen Resolution Over Budget Panic Switch
+
+カメラカットや非常に高負荷のビジュアル エフェクトがシーンで使われるなど、、動的な解像度がすぐに割り当て量を超えてしまう場合があります。使用しているヒューリスティックはこれがいつ起こるか予測できません。そうなった場合、割り当て量を超えたフレーム数を下げるために「パニック」スイッチを使って解像度を急速に下げます。使用可能な GPU タイミングを持つ連続する N (数値) 個のフレームが割り当て量を超過していると発見すると、ヒューリスティックはすぐに解像度を適用して割り当て量を超過した GPU タイミングの調整を試みます。さらに自動履歴リセットを実行して、これまで負荷が低かったフレーム タイミングがより高負荷のヒューリスティックに影響しないようにします。
+
+以下のコンソール コマンドを使って、解像度を下げるためにパニック スイッチをフリップさせる前に GPU が割り当て量を超える可能性のある連続フレームの最大数を調整することができます。
+
+	r.DynamicRes.MaxConsecutiveOverbudgetGPUFrameCount
+
+![](OverBudgetPanicGraph.png)
+
+1. この急増は GPU がレンダリング スレッドと同期していないことの探知とそれが原因の解像度変化フレーム レイテンシーを表します。
+1. フレーム ID
+1. 解像度の変化点
+1. パニックが検出されるところ
+
+この例では、フレームが設定割り当て量の 33.3 ms (ミリ秒) をはるかに超えているため、割り当て量超えパニック スイッチがすぐにシーンの解像度を下げています。 
+
+![](OverBudgetPanicExample.png)
+
+以下のキャプチャは Infiltrator のデモのものです (エピック ゲームズ ランチャーの **[Learn]** タブで入手できます。カメラ カットと高負荷のエフェクトがフレームにある場合、**Stat Raw** コマンドでシーン ビヘイビアを特定することで
+
+
+![](CameraCut.png)
+
+1. カメラカットの後、フレームのレンダリング負荷が急激に高くなります。
+1. 動的な解像度はパニック反応を起こして解像度をすぐに下げます。
+
+
+![](ExpensiveEffect.png)
+
+1. フレームは高負荷の視覚効果の開始点でさらに上がります。
+1. 再び、動的な解像度がパニック反応を起こして解像度を下げます。
+
+
+
+
+
+### VR Non-TAAU Dynamic Resolution (WIP: still needs to be implemented)
+
+TODO WRITE THIS
+
+(This may just go in SamD's doc or at the very least high-level mention and then link to it.)
+
+
+
+VR に TAAU を使用しない場合、レンダラは、ヘッドマウント ディスプレイのコンポジタへ渡す前に、視点の spatial upscale pass の作成を避けます。静的な vr.PixelDensity は primary screen percentage = 100% のビューの解像度を定義し続け、動的な解像度は通常どおり primary screen percentage の変更だけ行います。 
+
+TODO GRAPH
+
+
+
+
+
+
+
+
+### ビューポートで異なる Primary Screen Percentages でコンテンツをテストする方法
+
+プロジェクトで動的な解像度を有効にする場合、テストして、低めの primary screen percentage を使用する時に、意図したより大幅に違って見えないようにする必要があります。低めの解像度では、ディテールがいくつか失われ、アセットの外観が意図したようにならない場合があります。まさにこれが、すべてのエディタ ビューポートでテスト用スライダーを使って Screen Percentage を設定できる理由です。 
+
+![](ScreenPercentageViewportSlider.png)
+
+スライダーを使って低め / 高めの screen percentage をビューポートに適用して、適宜コンテンツを確認します。特にアーティストは、プロジェクト作業において、スライダーを使って screen percentages を幅広い範囲で確認することをお勧めします。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100](CompSP1.png)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 100](CompSP1.png)
+	[/PARAM]
+[/OBJECT]
+
+画面上の表示比率のスライダーで調節すると、ビューポート (右下) のスライダーは 100 ではない値を示します。ビューポート画面上の表示比率はデフォルト解像度から変更されていることの合図になります。
+
+![](ViewportSPValue.png)
+
+
+この値が 100 を超えると赤で表示されます。負荷が高いという意味なので、パフォーマンスの遅滞や減少を感じたらデフォルト値に戻すようにしましょう。 
+
+![](SPViewport_HIGH.png)
+
+逆に値が 100 未満の場合は、設定された画面上の表示比率がビューポートのデフォルト値ではないインジケータとしてリスト表示されます。
+
+![](SPViewport_LOW.png)
+
+
+
+
+
+### サポート対象プラットフォーム
+
+動的な解像度が信頼できるタイムスタンプ クエリ処理ができるかどうかは RHI (Rendering Hardware Interface) の性能にかかっています。そのため、動的な解像度は、PIE またはゲームにおいて、次の機能およびプラットフォームでサポートされています。 
+
+
+Windows D3D11
+|  | Editor PIE | ゲーム |
+| --- | --- | --- |
+| **No Game Max FPS** | サポートあり | サポートあり |
+| **Game Thread Max FPS** | サポートあり | サポートあり |
+| **r.VSyncEditor 1** | サポートなし | 対応中 |
+
+
+| RHI | サポート |
+| --- | --- |
+| **Windows D3D12** | 垂直同期をオンにした Windows D3D11 と同じ |
+| **PlayStation 4** | あり |
+| **Xbox One D3D12** | あり |
+| **Switch** | 現時点で未検証 |
+| **Vulkan** | なし:タイムスタンプ クエリが未実装 |
+| **Metal** | 現時点で未検証 |
+| **OpenGL** | 実装の予定なし |
+
+
+
+
+### C++ で動的な解像度のヒューリスティックを置き換える方法
+
+エンジンに装備されているレンダリング スレッド ヒューリスティックは **DynamicResolution.cpp** 内で完全に独立しています。ヒューリスティックがゲームコードのプラグインでまるごと置き換えられるように設計されています。 
+
+たとえば、次のフレームで起こることのヒントを与えるゲームプレイ コードを作りたいと思い、プロジェクトでデフォルトのヒューリスティックを置き換える必要があれば、そうなるようにヒューリスティック全体を書き換えることができます。`IDynamicResolutionState` と `ISceneViewFamilyScreenPercentage` を以下のように再度実装することで、デフォルトの動的な解像度ステートを置き換えることができます。
+
+	GEngine->ChangeDynamicResolutionStateNextFrame(new FMyGameSpecificDynamicResolutionState());
+
+[REGION:note]
+レンダラが画面上の表示比率の演算でむやみに 100 で割らないように **ResolutionFraction** と機能するようになりました。アップスケールは TAA アップサンプルでも行われ、spatial upscale は以下のように 1 を解像度の割合で割って求めるので、「スケール」ではなく **割合** と呼びます。
+
+	Resolution Fraction = Screen Percentage/100 = 1/Upscaling Factor
+
+[/REGION]	
+
+
+
+
+### よくある質問 (FAQ)
+
+動的な解像度に関する一般的な質問です。
+
+* 動的な解像度はコンソールを使用するエディタで強制的に有効 / 無効にすることはできますか (**`**)?
+
+	* できます。コンソール変数 **r.Test.DynamicRes.EnableOverride 2** を使用してください。 
+
+	* 動的な解像度のヒューリスティックを置き換えることはできますか？
+
+	* はい、モジュラー型なので、C++ でのホットプラグが可能です。アンリアル エンジン 4 は 1 つのヒューリスティックを維持するだけでなく、ゲームプレイ コードまたはシーケンサーでトリガすることができるカスタム ゲームスレッド イベントを使って、スタンドアローンのカスタム ヒューリスティックを作成できるアーキテクチャになっています。
+
+	* 動的な解像度はどの secondary screen percentage にも使用できますか？
+
+	* できます。コンソール変数 **r.SecondaryScreenPercentage.GameViewport 1** で使用することができます。
+
+* secondard screen percentage の動的な解像度を調節することはできますか？
+
+	* できません。できてしまった場合はバグで解決する必要があるので、エピック ゲームズまでご連絡ください。
+
+	* `ScreenPercentage` の **FPostProcessSettings** の関数はなぜ動的な解像度に無視されるのですか？ 
+
+	* これは、画面上の表示比率を Post Process Volume の設定でマニュアルで縮小拡張できるようにした以前のメカニズムの一部です。動的な解像度を使うと、GPU の作業負荷に応じて自動的に処理されるので、その設定が必要なくなります。
+
+* 動的な解像度に表示フラグ オプションがないのはなぜですか？ 
+
+	* グローバルな内容なので、ゲーム スレッドに決定権をもたせているからです。画面上の表示比率の表示フラグは [Primary Screen Percentage](#primaryspatialupscale) のみ切り替えます。 
+
+* エディタ ビューポートでサポートが動的な解像度に対応していないのはなぜですか？
+
+	* エディタでの作業中に解像度が変わると気が散ります。PIE 中はどのビューポートも動的な解像度に対応しません 
+
+* Primary と Secondary それぞれの Screen Percentages はマテリアルでアクセスできますか？
+
+	* できません。マテリアルは画面上の表示比率とは関係なくレンダリングされるので、使用する必要はありません。
+
+
+### 制限事項
+
+動的な解像度にはいくつか制限事項があります。
+
+* 複数のワールドの PIE には設計上対応していません。 
+* TAAU を有効にすると VR と動作します。今後のリリースで MSAA に対応する予定です。
+* API はモバイル レンダラと完全に互換性があります。ただし、ビューのサイズを primary screen percentage の上限で設定されたレンダー ターゲットのバッファ サイズと同じにならないように維持するための努力はありません。
+* ガウスによる Depth of Field (DoF) と [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) (DFAO) には解像度変更の問題があります。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

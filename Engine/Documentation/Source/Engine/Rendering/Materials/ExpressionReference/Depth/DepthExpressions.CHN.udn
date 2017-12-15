@@ -57,7 +57,8 @@ Version:4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PixelDepthNetworks]
 [REGION:lightbox]
 [![](PixelDepthNetwork.png)(w:570)](PixelDepthNetwork.png)
@@ -65,7 +66,8 @@ Version:4.9
 [/EXCERPT:PixelDepthNetworks]
 
 
--->
+
+[/COMMENT]
 
 在此示例中，已将材质网络应用于地板。请注意当地板后退 2048 个以上单位时，线性插值在两种颜色之间是如何进行混合的。使用了 Power（幂）表达式来加强这两种颜色之间的对比，并产生更有意义的视觉效果。
 
@@ -90,7 +92,8 @@ Version:4.9
 | :---:| :---:|
 | 结果 | 网络（单击可查看大图）|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SceneDepthNetwork]
 [REGION:lightbox]
 [![](SceneDepthNetwork.png)(w:488)](SceneDepthNetwork.png)
@@ -98,12 +101,14 @@ Version:4.9
 [/EXCERPT:SceneDepthNetwork]
 
 
--->
+
+[/COMMENT]
 
 
 在此示例中，我们已将材质网络应用于一个半透明球体。请注意，SceneDepth（场景深度）节点将读取该球体背后的像素，而不是读取球体表面的像素。
 
-<!--- Commented out Per Martin M's suggestion with UEDOC-2671---
+[COMMENT:none]
+- Commented out Per Martin M's suggestion with UEDOC-2671---
 [REGION:note]
 **程序员需知：**SceneDepth（场景深度）返回原始深度值（从 0 到 2^24-1 的整数）。这个非线性深度可以规范化，如下所示：
       
@@ -111,7 +116,8 @@ Version:4.9
 	NormalizedDepth = 1 - MaxZ / (SceneDepth + MaxZ)
 
 [/REGION]
---->
+-
+[/COMMENT]
 产生的规范化深度是 0.0 到 1.0 范围内的线性深度。
 
 [/REGION]

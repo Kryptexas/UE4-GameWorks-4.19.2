@@ -22,7 +22,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在开始将动态动画应用到角色之前，我们需要先设置要使用的角色。 
 模板角色没有任何可供我们使用的动态骨骼，因此我们将把动画从模板角色重定位到一个《无尽之剑》（Infinity Blade）的角色，该角色具有我们可以通过 AnimDynamics 影响的骨骼。 
@@ -146,7 +146,7 @@ WEVotwqetOs
 
 在下一步我们将使用 AnimDynamics 节点使背带和炉子动起来，使它们对角色运动作出反应。 
 
-%Steps%
+
 
 
 

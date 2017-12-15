@@ -184,7 +184,9 @@ Pawns和建筑的生命条都使用`DrawActorsHealth`方式在画布上进行描
 
 如需返回到上一菜单，菜单共享指针的数组都被存储在`MenuHistory`变量中。 这个变量如同堆栈，存储之前查看过的菜单，这样在返回时很方便，同时能移除存储菜单父类的需求，这样菜单可以在多个场合中重新使用。‏
 
-<!-- ![](StrategyGameMainMenu2.png)(w:700) -->
+[COMMENT:none]
+ ![](StrategyGameMainMenu2.png)(w:700) 
+[/COMMENT]
 
 菜单动画使用在`SStrategyMenuWidget::SetupAnimations`中定义的插值曲线。 每条曲线都定义了起始时间、持续时间和插值方式，而且可以正反向播放。 如需在特定时间播放动画属性，则使用`GetLerp()`，它会返回在0.0f和1.0f之间的值。‏‎‏
 

@@ -116,13 +116,15 @@ Description: 关于碰撞、碰撞响应及碰撞预制的所有内容。
 
 ### 碰撞
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:spacerEX]
 [REGION:raw]
 ![](spacer.png)
 [/REGION]
 [/EXCERPT:spacerEX]
- -->
+ 
+[/COMMENT]
 
 [VAR:spacer]
 [INCLUDE:#spacerEX]

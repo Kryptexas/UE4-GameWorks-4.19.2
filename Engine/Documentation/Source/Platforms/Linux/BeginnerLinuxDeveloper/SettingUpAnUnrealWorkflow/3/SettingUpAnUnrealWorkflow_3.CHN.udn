@@ -26,7 +26,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 准备这个关键步骤时，需要将下载虚幻引擎源代码副本下载到硬盘中。 
 在教程的这个部分中，需要从终端运行数个工具，在 Linux 电脑上生成 UE4 二进制版本。
@@ -39,4 +39,4 @@ SkillLevel:Beginner
 
 此时，您的硬盘上便拥有一个完整生成的 UE4 二进制版本。现在就可以在 Linux 系统上运行引擎啦！
 
-%Steps%
+

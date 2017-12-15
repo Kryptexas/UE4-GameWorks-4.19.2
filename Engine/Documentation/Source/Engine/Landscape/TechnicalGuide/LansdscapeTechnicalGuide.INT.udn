@@ -37,7 +37,7 @@ Each component's height data is stored in a single texture. Because of this, its
 
 A very simple Landscape is illustrated below (outlined in green) containing four components. Each component is made up of a single quad. One component has been separated to show how the vertices where the components meet are duplicated.
 
-![Landscape_Components.jpg](Landscape_Components.jpg)(w:256 h:256)
+![Landscape_Components.jpg](Landscape_Components.jpg)(w:256)
 
 
 ## Component Sections
@@ -50,7 +50,7 @@ The size of each section (in number of vertices) must be a power of two (with a 
 
 An individual component is illustrated below (outlined in green) containing four sections. Each section is made up of 9 (3x3) quads. Again, you can see that the vertices where the sections meet are duplicated.
 
-![Landscape_Component_Sections.jpg](Landscape_Component_Sections.jpg)(w:256 h:256)
+![Landscape_Component_Sections.jpg](Landscape_Component_Sections.jpg)(w:256)
 
 
 ## Calculating Heightmap Dimensions

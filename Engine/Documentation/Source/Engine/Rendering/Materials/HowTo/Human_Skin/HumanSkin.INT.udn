@@ -24,11 +24,13 @@ tags:Materials
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
 [/REGION]
---->
+-
+[/COMMENT]
 
 
 Getting Human skin to look correct when rendered is a very complex topic with no single perfect solution for getting correct results. 

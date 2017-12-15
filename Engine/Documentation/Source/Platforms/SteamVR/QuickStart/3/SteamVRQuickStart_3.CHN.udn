@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:3622909
+Availability:Public
+Title:3.自由发挥！
+Crumbs:%ROOT%, Platforms/SteamVR
+Description:通过此指南中提供的方法，使用额外内容完善关卡并阅读相关要点。 
+Navigation:platform
+Version:4.17
+Skilllevel:Beginner
+Platform:SteamVR
+type:multi-step
+parent:Platforms/SteamVR/QuickStart
+order:3
+Checkpoint:SteamVRQS
+tags:SteamVR
+
+[nav]
+
+能够通过 SteamVR 和 HTC Vive 查看 UE4 项目后，可尝试将以下内容添加到项目中。
+
+* 使用 [移植工具](Engine/Content/Browser/UserGuide/Migrate/) 将移动内容实例中的内容移入项目进行使用。
+
+* 添加 [运动控制器](Platforms\VR\MotionController)，使用户能拟真式地在 VR 中移动物体。
+
+* 构建时使用 [GPU 性能分析](Engine/Performance/GPU/) 跟踪项目性能。
+
+[nav]
+

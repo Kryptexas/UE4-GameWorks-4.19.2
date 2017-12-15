@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:보안 카메라 전환 버튼
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -103,7 +103,8 @@ Screen (화면) 블루프린트는 본질적으로 여러가지 Scene Capture �
 
 
 
-<!--------------------------------
+[COMMENT:none]
+------------------------------
 
 
 
@@ -153,5 +154,6 @@ _Event Graph_ 가 하는 일은 다음과 같습니다:
 * 플레이어가 Box Component 를 빠져나가면, 도움말을 없애고 E 키 입력 처리를 중지합니다.
 [/EXCERPT:ButtonEG]
 
---------------------------------->
+-------------------------------
+[/COMMENT]
 

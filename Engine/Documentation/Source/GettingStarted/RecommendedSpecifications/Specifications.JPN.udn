@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:3085417
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ハードウェア＆ソフトウェア仕様
 SEO-Title:ハードウェア＆ソフトウェア仕様
 Crumbs: %ROOT%, GettingStarted
 Description:アンリアル エンジンを用いた開発に必要なハードウェアの最低限スペックと推奨スペック及び必須のソフトウェア
-version:4.9
+version:4.18
+Type:reference
+Parent:GettingStarted
+Order:
+Tags:Specifications
 
 %Globals:OSSelect_Linux%
 
@@ -58,7 +62,8 @@ version:4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinHardware]
 |||
 | -------- | --- |
@@ -70,10 +75,10 @@ version:4.9
 [EXCERPT:MacOSMinHardware]
 |||
 | -------- | --- |
-| **オペレーティング システム** | Mac OS X 10.10.5  |
+| **オペレーティング システム** | macOS 10.13 High Sierra  |
 | **プロセッサ** | クアッドコア Intel、2.5 GHz 以上 |
 | **メモリ** | 8 GB RAM |
-| **ビデオカード** | OpenGL 4.1 対応のグラフィック カード |
+| **ビデオ カード** | Metal 1.2 対応のグラフィック カード |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -81,9 +86,10 @@ version:4.9
 | **オペレーティング システム** | Ubuntu 15.04  |
 | **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
 | **メモリ** | 16 GB RAM |
-| **Video Card** | 	最新の NVIDIA バイナリ ドライバー付きの NVIDIA GeForce 470 GTX 以上|
+| **ビデオ カード** | 	最新の NVIDIA バイナリ ドライバー付きの NVIDIA GeForce 470 GTX 以上|
 [/EXCERPT:LinuxMinHardware]
--->
+
+[/COMMENT]
 
 
 [PUBLISH:Licensee]
@@ -92,7 +98,7 @@ version:4.9
 [/REGION]
 [/PUBLISH:Licensee]
 
-## ソフトウェアの必要最低条件
+##ソフトウェアの必要最低条件
 
 以下はエンジンまたはエディタを実行するための必要条件です。
 
@@ -141,11 +147,12 @@ version:4.9
 
 [PUBLISH:Licensee]
 [REGION:note]
-**注意：** 「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
+**注意：** `//depot/UE4/Engine/Extras/Redist/en-us` に格納されている `UE4PrereqSetup.msi` ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
 [/REGION]
 [/PUBLISH:Licensee]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinSoftware]
 | エンジンを実行する ||
 | -------- | --- |
@@ -157,13 +164,13 @@ version:4.9
 [EXCERPT:MacOSMinSoftware]
 | エンジンを実行する ||
 | -------- | --- |
-| **オペレーティング システム** | Mac OS X 10.10.5  |
+| **Operating System** | macOS 10.12.6 Sierra  |
 [/EXCERPT:MacOSMinSoftware]
 
 [EXCERPT:LinuxMinSoftware]
 | エンジンを実行する ||
 | -------- | --- |
-| **オペレーティング システム** | かなり新しい Linux distro (CentOS 6.x は一番古いです)  |
+| **オペレーティング システム** | 適度に新しい Linux distro (CentOS 6.x はテストが行われた中で最も古いものです)  |
 | **Linux Kernel Version** | kernel 2.6.32 以上 |
 | **追加の依存関係** | glibc 2.12.2 以上  |
 [/EXCERPT:LinuxMinSoftware]
@@ -178,10 +185,11 @@ UE4 のクラッシュ レポート機能を使用するには、**[Windows Erro
 [Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
--->
+
+[/COMMENT]
 
 
-以下は、エンジンで開発を行うプログラマに必要な条件です。
+以下は、アンリアル エンジンで開発を行うプログラマに必要な条件です。
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -224,7 +232,8 @@ UE4 のクラッシュ レポート機能を使用するには、**[Windows Erro
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinDevelopment]
 | エンジンで開発を行う ||
 | -------- | --- |
@@ -236,7 +245,7 @@ UE4 のクラッシュ レポート機能を使用するには、**[Windows Erro
 [EXCERPT:MacOSMinDevelopment]
 | エンジンで開発を行う ||
 | -------- | --- |
-| **Xcode Version** | 7.2.1 |
+| **Xcode Version** | 9.0 [REGION:note]実行している Xcode のバージョンが正しいことを検証する必要があれば、ターミナル ウィンドウから以下のコマンドを実行します。 `sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer`[/REGION] |
 [/EXCERPT:MacOSMinDevelopment]
 [EXCERPT:LinuxMinDevelopment]
 | エンジンで開発を行う ||
@@ -247,9 +256,11 @@ UE4 のクラッシュ レポート機能を使用するには、**[Windows Erro
 | **IDE** | QtCreator 3.1 または KDevelop 4.6|
 | **ビルド システム** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:VS]
 Visual Studio 2015 Professional または Visual Studio 2015 Community:
 
@@ -257,15 +268,16 @@ Visual Studio 2015 Professional または Visual Studio 2015 Community:
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
 [/EXCERPT:VS]
--->
+
+[/COMMENT]
 
 [PUBLISH:Licensee]
 ## グラフィック カード ドライバ
 
 現時点では、各カードメーカーがリリースしている最新の安定した、以下のバージョンを推奨しています。
 
-* [Download NVIDIA drivers here](http://www.nvidia.com/Download/index.aspx?lang=en-us)
-* [Download AMD drivers here](http://support.amd.com/us/gpudownload/Pages/index.aspx)
+* [NVIDIA のドライバはここからダウンロードしてください](http://www.nvidia.com/Download/index.aspx?lang=en-us)
+* [AMD ドライバはここからダウンロードしてください](http://support.amd.com/us/gpudownload/Pages/index.aspx)
 
 
 ## パフォーマンス ノート
@@ -281,7 +293,7 @@ VTune はパフォーマンスの問題特定に大変便利なツールです�
 * 24GB RAM
 * 300GB 10K SATA (OS)
 * 2X 300GB 10K SATA (RAID0 for DATA)
-* Nvidia Geforce 470 - 580
+* NVIDIA Geforce 470 - 580
 
 
 **Artist/LD:**

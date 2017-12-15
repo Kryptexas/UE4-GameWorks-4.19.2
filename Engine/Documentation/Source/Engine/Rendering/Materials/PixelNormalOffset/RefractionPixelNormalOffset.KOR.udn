@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3378497
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:굴절 모드: 픽셀 노멀 오프셋
 Crumbs:
@@ -71,7 +71,8 @@ topic-image:PNO_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:IORWithoutNormals]
 [REGION:lightbox]
@@ -97,4 +98,5 @@ topic-image:PNO_Topic.png
 [/REGION]
 [/EXCERPT:PNOWithNormals]
 
---->
+-
+[/COMMENT]

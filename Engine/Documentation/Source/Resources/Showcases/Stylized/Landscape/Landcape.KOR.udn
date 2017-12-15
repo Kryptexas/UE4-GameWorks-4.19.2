@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Stylized Rendering 랜드스케이프
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -66,13 +66,13 @@ Version: 4.9
 
 
 
-<!---
+[COMMENT:none]
 [EXCERPT:SlopeDiagram]
 [REGION:raw]
 ![](LandSlopeDiagram.png)
 [/REGION]
 [/EXCERPT:SlopeDiagram]
---->
+[/COMMENT]
 
 
 [VAR:GrassSize]
@@ -113,13 +113,15 @@ h:295
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OutlineBlendNetwork]
 [REGION:lightbox]
 [![](OutlineBlend.png)(w:500)](Resources/Showcases/Stylized/Landscape/OutlineBlend.png)
 [/REGION]
 [/EXCERPT:OutlineBlendNetwork]
--->
+
+[/COMMENT]
 
 ### 랜드스케이프 스플라인
 

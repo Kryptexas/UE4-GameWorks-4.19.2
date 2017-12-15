@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Mesh 타입데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Mesh 타입데이터 모듈을 통해 사용자는 스프라이트 파티클 대신 폴리곤 메시를 사용하는 이펙트를 만들 수 있습니다.
+Description:Mesh 타입 데이터 모듈은 스프라이트 파티클이 아닌 스태틱 메시 인스턴스를 사용하는 이미터를 말합니다. 파편이나 잔해같은 효과를 내는 데 좋습니다.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:3
+topic-image:LootBucket.png
 
 [TOC(start:2 end:3)]
 
@@ -35,7 +38,8 @@ tags:Particles
 |**Face Camera Direction Rather Than Position**| 카메라 위치보다는 방향 향하기 - True 면 모든 카메라 향 옵션은 카메라의 위치를 향하기 보다는 카메라가 보는 방향을 향하게 됩니다. |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AxisLockOption]
 [REGION:simpletable]
 | 옵션 | 설명 |
@@ -90,5 +94,6 @@ tags:Particles
 | _PSMA_MeshFaceCameraWithLockedAxis_ | 축 잠그고 메시 방향 카메라 - 업 벡터를 잠긴 방향으로 유지하면서 카메라를 향하게 합니다. |
 [/REGION]
 [/EXCERPT:MeshAlignmentOption]
--->
+
+[/COMMENT]
 

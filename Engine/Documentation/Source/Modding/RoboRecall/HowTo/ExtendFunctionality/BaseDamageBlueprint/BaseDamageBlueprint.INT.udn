@@ -11,7 +11,9 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/5 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/5 
+[/COMMENT]
 
 [NAV]
 
@@ -25,19 +27,19 @@ Since you've learned how to make nodes in the previous steps, this section will 
 
 1. Create an **Event Hit** node.
 
-	![image alt text](image_0.png)(w:140 h:280 convert:false)
+	![image alt text](image_0.png)(w:140 convert:false)
 
 2. Pull off the **Other** pin and search for **!=** to create a **Not Equals** node.
 
-	![image alt text](image_1.png)(w:594 h:440 convert:false)
+	![image alt text](image_1.png)(w:594 convert:false)
 
 3. Set the second input pin on the **Not Equals** node to `shell`, you'll need to scroll down a ways to find the Blueprint simply called `shell`.
 
-	![image alt text](image_2.png)(w:870 h:538 convert:false)
+	![image alt text](image_2.png)(w:870 convert:false)
 
 4. Next up you'll need to setup a bit of logic using an **And** node, a** Branch** node, and the **bCanExplode** variable.
 
-	![image alt text](image_3.png)(w:746 h:278 convert:false)
+	![image alt text](image_3.png)(w:746 convert:false)
 
 	[REGION:tip]
 	There are a number of keyboard shortcuts in the **Event Graph**, once of which is **Hold B + Left Click** to create a **Branch** node, arguably one of the most used logic nodes in **Blueprints**.
@@ -45,17 +47,17 @@ Since you've learned how to make nodes in the previous steps, this section will 
 
 5. Now you're going to set up how much damage the GrenadeGun will do by getting the **Ammo Remaining **in the gun, multiplying it by 1000 and adding 1000 to it.
 
-	![image alt text](image_4.png)(w:546 h:76 convert:false)
+	![image alt text](image_4.png)(w:546 convert:false)
 
 	**Ammo Remaining** is a variable that is apart of the base pistol class, so you can find it by searching for **Get Ammo Remaining**. The **Multiply** node is actually an **Int * Float** node, and can be found by searching for **Int * Float**. And finally, the **Addition** node can be found by searching for **Float + Float**.
 
 6. You'll only want the gun to explode once, so you'll need a **Do Once** node connected to the **True** pin of the **Branch** node.
 	
-	![image alt text](image_5.png)(w:934 h:236 convert:false)
+	![image alt text](image_5.png)(w:934 convert:false)
 
 7. You're going to need a **Self** node and a **Get Player Controller** node.
 
-	![image alt text](image_6.png)(w:264 h:126 convert:false)
+	![image alt text](image_6.png)(w:264 convert:false)
 
 8. Finally, to do some damage you'll need a **Apply Radial Damage** node, that will take a bunch of inputs from what you've created and will require some settings changed. Connect it up as shown below. You'll need to change 3 settings on **Apply Radial Damage** node: **Damage Radius**, **Damage Type Class**, and **Do Full Damage**.
 
@@ -96,7 +98,8 @@ After this step, you will have a functional weapon that will explode when thrown
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_3"
 
@@ -390,5 +393,6 @@ After this step, you will have a functional weapon that will explode when thrown
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

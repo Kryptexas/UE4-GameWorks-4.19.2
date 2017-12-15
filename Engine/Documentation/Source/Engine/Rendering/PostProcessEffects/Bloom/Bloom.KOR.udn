@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482475
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs:
 Title:블룸
@@ -43,7 +43,8 @@ Topic-image:bloom_Topic.png
 | **#1/#2/#3/#4/#5 Size** || 블룸 #1/#2/#3/#4/#5 크기 - 화면 폭을 기준으로 한 백분율 크기입니다. 일정 수치로 제한됩니다. 큰 수치가 필요하다면 한 단계 낮은 해상도 (높은 번호) 블러를 대신 사용하세요. [INCLUDE:#Size] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
@@ -70,7 +71,8 @@ Topic-image:bloom_Topic.png
 | #1 | #2 | #3 | #4 | #5 |
 [/REGION]
 [/EXCERPT:Size]
--->
+
+[/COMMENT]
 
 ## 블룸 컨볼루션
 
@@ -79,10 +81,10 @@ Topic-image:bloom_Topic.png
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Convolution for Bloom: Enabled](FFTBloom_Enabled.png)
+	![블룸 컨볼루션: 켜짐](FFTBloom_Enabled.png)
 	[/PARAM]
 	[PARAM:after]
-	![Convolution for Bloom: Disabled](FFTBloom_disabled.png)
+	![블룸 컨볼루션: 꺼짐](FFTBloom_disabled.png)
 	[/PARAM]
 [/OBJECT]
 [REGION:caption]
@@ -139,7 +141,8 @@ Topic-image:bloom_Topic.png
 	[/OBJECT]
 * 블룸 컨볼루션 고급 프로퍼티로 커널 이미지에 약간의 트윅 작업을 하는 것으로 컨볼루션 작동방식을 크게 바꿀 수 있을 것입니다.
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:cbtextureproperties]
 [REGION:simpletable]
@@ -158,7 +161,8 @@ Topic-image:bloom_Topic.png
 * Never Stream:  **Enabled**
 [/EXCERPT:cbtexturepropertieslist]
 
------>
+---
+[/COMMENT]
 
 ## 블룸 더트 마스크
 
@@ -167,10 +171,10 @@ Topic-image:bloom_Topic.png
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Dirt Mask Enabled](DirtMaskEnabled.png)(w:600)
+	![더트 마스크 켜짐](DirtMaskEnabled.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![Dirt Mask Disabled](DirtMaskDisabled.png)(w:600)
+	![더트 마스크 꺼짐](DirtMaskDisabled.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 
@@ -185,6 +189,7 @@ Bloom Dirt Mask (블룸 더트 마스크)를 켜려면, Post Process Volume 의 
 | **Dirt Mask Intensity** || 블룸 더트 마스크 강도 - 블룸 더트 마스크의 (선형) 색 스케일입니다. 이 프로퍼티는 더트 마스크의 밝기를 조정하는 데 사용됩니다. |
 | **Dirt Mask Tint Color** || 블룸 더트 마스크 색조 - 더트 마스크 텍스처에 색을 입히거나 어둡게 만듭니다. 더트 마스크 밝기와 색을 조정하는 데 사용할 수 있습니다.|
 [/REGION]
+
 ### 더트 마스크 이미지 실전 사례
 
 더트 마스크 텍스처를 생성하여 블룸 더트 마스크에 사용하도록 구성할 때, 몇 가지 유념해야 하는 것이 있습니다.
@@ -200,7 +205,8 @@ Bloom Dirt Mask (블룸 더트 마스크)를 켜려면, Post Process Volume 의 
 	* 텍스처에 색수차(chromatic aberration, 컬러 프린지)를 사용하면 더트 마스크 느낌을 살리는 데 도움이 될 수 있습니다.
 
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:dirtmasktextureproperty]
 [REGION:simpletable]
@@ -226,7 +232,8 @@ Bloom Dirt Mask (블룸 더트 마스크)를 켜려면, Post Process Volume 의 
 [REGION:caption] 비히클 게임에서 더트 마스크 텍스처를 사용한 예제입니다.[/REGION]
 [/EXCERPT:dirtmaskexample]
 
------>
+---
+[/COMMENT]
 
 
 ## 교육 자료

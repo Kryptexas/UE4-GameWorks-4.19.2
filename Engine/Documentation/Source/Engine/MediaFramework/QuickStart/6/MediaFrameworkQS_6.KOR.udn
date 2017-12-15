@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Title:6 - 직접 해보기!
+Crumbs:%ROOT%
+Description:예제에 추가로 직접 해볼 수 있는 것들과 추가 문서에 대한 링크입니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:6
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+미디어 프레임워크 툴을 사용하여 프로젝트에 추가해 볼 수 있는 몇 가지 것들입니다:
+
+* 플레이어가 TV [재생을 제어](Engine/MediaFramework/HowTo/ControllingPlayback) 할 수 있도록 합니다.
+* 미디오 소스에 [미디어 플레이리스트](Engine\MediaFramework\HowTo\MediaPlaylists\) 를 사용하여 플레이어가 TV 채널을 변경할 수 있도록 합니다.
+* 레벨에 별도의 미디어 플레이어, 미디어 사운드, 미디어 소스 애셋을 가진 세 번째 TV 블루프린트를 추가합니다.
+
+아래는 TV 블루프린트를 확장시켜 플레이어가 채널을 변경하고, 빨리감기 되감기와 아울러 TV 를 끈 뒤 재생을 재개하는 기능까지 추가한 것입니다:
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KebXFsnLPsE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[NAV]

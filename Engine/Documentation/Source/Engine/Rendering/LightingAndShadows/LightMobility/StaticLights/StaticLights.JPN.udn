@@ -78,11 +78,15 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-<!-- 
+[COMMENT:none]
+ 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting02]
--->
-<!-- Long Description Excerpt
+
+[/COMMENT]
+[COMMENT:none]
+ Long Description Excerpt
 [EXCERPT:Static001]
 Static light (静的ライト) は静的ライトとシャドウを完全にキャストします。これはつまり、これらによるエフェクトがマップを明るくするために **ライトマス** と間接ライティングキャッシュへ焼き付けられることを意味します。**Static light (静的ライト) は可動/動的アクタに直接の影響はなく、オブジェクトに対してスペキュラハイライトを作成することはありません。** しかし間接ライティングキャッシュへベイクされるため、可動/動的オブジェクトに対して _マイナー_ な間接効果をもたらします。
 [/EXCERPT:Static001]
--->
+
+[/COMMENT]

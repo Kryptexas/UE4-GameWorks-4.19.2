@@ -28,7 +28,8 @@ WxYiLbnbQ_A
 
 在这份文档中，我们将设置一个和上面视频里类似的角色，当然你可以将此应用于你自己制作的角色上，创建分层动画。
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intro]
 对于本指南，我们已经使用 **Blueprint Third Person** 模板创建了新项目，并启用了 **默认资源**。
 
@@ -38,24 +39,19 @@ WxYiLbnbQ_A
 
 下载后，您可以从启动程序，通过 **Add To Project** 按钮将 Animation Starter Pack 添加到您的项目中。
 [/EXCERPT:Intro]
--->
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+[/COMMENT]
+
+## Steps
+
+[REGION:buttonlist]
+
 	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup:description%")
 	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup:description%")
 	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup:description%")
 	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings "%Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

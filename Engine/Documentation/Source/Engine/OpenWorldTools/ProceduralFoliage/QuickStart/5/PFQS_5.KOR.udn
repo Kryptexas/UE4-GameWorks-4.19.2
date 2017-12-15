@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 5. 프로시저럴 폴리지 블로킹 볼륨 구현
 Crumbs:
@@ -23,7 +23,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 **Procedural Foliage Blocking Volume** 은 레벨에 배치하여 원하는 대로 크기를 조절할 수 있는 볼륨 액터로, 
 이 경계 안에는 폴리지 액터를 스폰하지 않습니다.
 다음 섹션에서는 레벨에 **Procedural Foliage Blocking Volume** 을 추가하는 법과, 그것을 사용해서 폴리지 메시 스폰을 막는 법을 알아보겠습니다.
@@ -60,4 +60,4 @@ Version: 4.8
 	|2: | 볼륨 추가 후|
 
 
-%Steps%
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:잠입자 데모
 Crumbs:%ROOT%, Resources,
@@ -10,45 +10,8 @@ Related: Engine/Animation
 Related: Engine/Content/Tools/MayaRiggingTool
 Version: 4.9
 Skilllevel: Intermediate
+topic-image:Infiltrator_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/Infiltrator:title%](Infiltrator_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Infiltrator:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Infiltrator:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Infiltrator]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/Infiltrator:title%](Infiltrator_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Infiltrator:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Infiltrator:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Infiltrator]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](Infiltrator_Page_Header.png)
 

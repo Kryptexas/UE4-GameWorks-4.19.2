@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Before we get started, the first thing that we will need to do is create a [Project](Engine/Basics/Projects) to work from for the duration of this guide. 
 In the steps below we will use Unreal Engine 4's [Project Browser](Engine/Basics/Projects/Browser) to create our project.
@@ -102,5 +102,5 @@ mac
 
 In the next step, we will cover the basic controls for navigating the **Viewports** inside the Unreal Editor. 
 
-%Steps%
+
 

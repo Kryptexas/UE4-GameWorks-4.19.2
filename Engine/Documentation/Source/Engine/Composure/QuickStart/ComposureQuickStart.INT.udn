@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Crumbs: %ROOT%
 Title:Composure Quick Start
 Description: Getting up and running with Composure in UE4.
@@ -49,19 +49,9 @@ After going through this tutorial, developers will know the following:
 * 	How to create a shot that uses Composure. 
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\Composure\QuickStart\1 "%Engine/Composure/QuickStart/1:title%")

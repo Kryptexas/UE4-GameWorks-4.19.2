@@ -8,21 +8,14 @@ Version: 4.9
 ![](SimplygonLogo.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")
-	[/PARAM]
-[/OBJECT]
+## Essentials
 
-<!--
+[REGION:buttonlist]
+* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")	
+[/REGION]
+
+[COMMENT:none]
+
 [EXCERPT:License]
 [REGION:warning]
 Simplygon is distributed with Unreal Engine but licensees must first obtain a license from Donya Labs ([](http://simplygon.com/)) to use this feature. Please contact them for details on obtaining a license. 
@@ -31,4 +24,5 @@ See [CompilingSimplygon](Engine/UI/Tools/Simplygon/Compiling) for more informati
 [/PUBLISH:Licensee]
 [/REGION]
 [/EXCERPT:License]
--->
+
+[/COMMENT]

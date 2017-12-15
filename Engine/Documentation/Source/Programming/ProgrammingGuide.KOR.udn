@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:프로그래밍 가이드
 Crumbs: %ROOT%
 Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보입니다.
-version: 4.9
+version: 4.18
 parent:%ROOT%
 order:4
 type:landing
@@ -23,7 +23,7 @@ C++ 클래스는 Blueprint 클래스에 대한 베이스 클래스로 사용될 
 
 ## 개발 구성
 
-[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"!BuildGraph")]
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy")]
 
 ## 언리얼 엔진 아키텍처
 
@@ -43,10 +43,20 @@ C++ 로 프로그래밍을 하든, 블루프린트로 하든, 그 둘을 조합�
 
 ## 언리얼 엔진 API 레퍼런스
 
-%API:role%
-%API/Runtime/Core:role%
-%API/Runtime/CoreUObject:role%
-%API/Runtime/Engine:role%
+[OBJECT:Role]
+	[PARAM:icon]
+	![](%ROOT%/ue4_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Unreal Engine C++ API Reference
+	[/PARAM]
+	[PARAM:description]
+	API programming reference for Unreal Engine C++ source code
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://api.unrealengine.com/cpp
+	[/PARAMLITERAL]
+[/OBJECT]
 
 ## 시스템 가이드
 
@@ -59,20 +69,10 @@ C++ 로 프로그래밍을 하든, 블루프린트로 하든, 그 둘을 조합�
 %Programming/Slate:role%
 %Programming/UnrealBuildSystem:role%
 
-## 자동화 빌드
-
-[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"BuildGraph")]
 
 ## 애셋 처리 레퍼런스 가이드
 
 [REGION:buttonlist]
 %Programming/Assets/AsyncLoading:role%
-[PUBLISH:Docs]
-%Programming/Assets/CustomImporters:role%
-%Programming/Assets/CustomExporters:role%
-[/PUBLISH:Docs]
 %Programming/Assets/Registry:role%
-[PUBLISH:Docs]
-%Programming/Assets/ThumbnailRendering:role%
-[/PUBLISH:Docs]
 [/REGION]

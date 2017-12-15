@@ -32,7 +32,8 @@ Landscape layers can be imported from external programs via implementation of th
 
 ![](Photoshop_Layer_Example.png)
 
-<!--
+[COMMENT:none]
+
 ### Landscape Size vs. Layer Size
 
 The following chart shows the relation between Landscape height map size and Landscape layer size. It is very important that you make sure that you Landscape layer is the correct size. If the layer size is wrong it will not import into UE4.
@@ -52,7 +53,8 @@ The following chart shows the relation between Landscape height map size and Lan
 If your layers are not output at the correct size you will receive the following warning.  
 
 ![](Landscape_Layer_Import_Error.png)
--->
+
+[/COMMENT]
 
 
 ### Layer Import 

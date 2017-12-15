@@ -1,29 +1,16 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1 - ブレンドするアニメーションを設定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:このステップではプレイヤー キャラクターを更新し、移動のアニメーションの上にレイヤー化したいアニメーションの AnimMontage を作成します。
 version:4.14
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:1
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[レイヤー アニメーション ホーム](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このステップではデフォルトのプレイヤー キャラクターを更新し、移動のアニメーションの上にレイヤー化したいアニメーションの AnimMontage を作成します。 
 
@@ -75,4 +62,4 @@ Animation Starter Pack はエピックのランチャーの **マーケットプ
 
 次のセクションでは、デフォルトのプレイヤー キャラクターを変更して調整し、いつ武器を発砲するかを定義します。 
 
-%Steps%
+[NAV]

@@ -258,7 +258,8 @@ Version:4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorParamDefaultItem]
 [REGION:prop_sublist]
 	* **R**
@@ -280,5 +281,6 @@ Version:4.9
 [EXCERPT:GroupDefinition]提供一种将参数名称组织成 MaterialInstanceConstant（材质实例常量）中的组（即类别）的方法。材质中所有具有相同“组”（Group）属性名称的参数都将在实例中该类别下列出。[/EXCERPT:GroupDefinition]
 
 [EXCERPT:ParameterNameDefinition]指定用于在材质实例中以及通过代码来识别参数的名称。[/EXCERPT:ParameterNameDefinition]
--->
+
+[/COMMENT]
 

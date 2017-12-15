@@ -54,21 +54,18 @@ version:4.9
 **虚幻动态图形 UI 设计器 (UMG)** 是一款视觉 UI 创作工具，可用于创作想要呈现给用户的 UI 元素，比如游戏内的 HUD、菜单或与界面相关的其他图形。UMG 的核心是控件，即用于构成界面的一系列预先制作的功能（比如按钮、复选框、滑块、进度条等）。这些控件在专门的控件蓝图中进行编辑，编辑时将用到两个选项卡进行构建：设计器选项卡实现界面的视觉布局，而图形选项卡则实现使用控件时提供的功能。 
 [/EXCERPT:umgheader]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		入门
-	[/PARAM]
-	[PARAM:links]
+## 入门
+
+[REGION:buttonlist]
+
 		[REGION:topics fourth]
 		[INCLUDE:#topics]
 		[/REGION]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Topics]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -139,28 +136,19 @@ version:4.9
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Topics]
--->
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		延展阅读
-	[/PARAM]
-	[PARAM:links]
+[/COMMENT]
+
+## 延展阅读
+
+[REGION:buttonlist]
+
 	[REGION:topics third]
 	[OBJECT:TopicCompact]
 		[PARAM:image]
 			![](AnchorsTopic.png)(w:283 h:117)
-		[/PARAM]
-		[PARAM:title]
-			锚
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Anchors]
-		[/PARAM]
-	[/OBJECT]
+		
+[/REGION]
 	[OBJECT:TopicCompact]
 		[PARAM:image]
 			![](AnimationTopic.png)(w:283 h:117)

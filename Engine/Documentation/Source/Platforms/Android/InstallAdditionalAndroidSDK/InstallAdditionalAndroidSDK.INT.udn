@@ -1,0 +1,181 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Installing Additional Android SDK
+Description: Showing you how to install additional Android SDKs
+Type: how-to
+SkillLevel: advanced
+Version: 4.17
+parent:Platforms/Android
+Order: 1
+Tags: Android
+
+Depending on which type of Android device you are developing for, you may need to install additional Android SDKs so that your Unreal Engine 4 project will run. In the following document, we will take a look at how to go about installing additional Android SDKs.
+
+%Globals:osselect_linux%
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#WindowsSetup]
+    [/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#MacOSSetup]
+    [/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    linux
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#LinuxSetup]
+    [/PARAM]
+[/OBJECT]
+
+
+
+[COMMENT:none]
+
+[EXCERPT:WindowsSetup]
+## Steps
+
+To install additional Android SDKs, you will need to first open the **Android SDK Manager** by doing the following.
+
+1. First, locate the **NVPACK\android-sdk-windows\tools** folder on your PC.
+
+    ![](AddSDK_01.png)
+
+1. Locate the **Android.bat** file and double-click on it to open it up.
+
+     ![](AddSDK_02.png)
+
+1. Once the **Android SDK Manager** loads, press the **Deselect All** option to make sure that you do not uninstall any SDKs that you might need.
+
+     ![](AddSDK_04.png)
+
+1. Next, locate the Android API version you want to install and expand the available options. For this example we will use **Android 7.1.1 (API 25)** so make sure to click the checkmark box next the **SDK Platform** under the Android 7.1.1 (API 25) section.
+
+     ![](AddSDK_05.png)
+
+1. Finally, press the **Install 1 package** button to start downloading and installing.
+
+     ![](AddSDK_06.png)
+
+
+## End Result
+
+When completed, the **Status** will change to a folder icon with a checkmark on it, indicating this is installed. 
+
+![](AddSDK_07.png)
+
+[/EXCERPT:WindowsSetup]
+
+
+[EXCERPT:MacOSSetup]
+## Steps
+
+To install additional Android SDKs, you will need to first open the **Android SDK Manager** by doing the following.
+
+1. First, locate the **NVPACK\android-sdk-windows\tools** folder on your Mac.
+
+    ![](MACSDK_01.png)
+
+1. Locate the **Android** file and double-click on it to open it up.
+
+     ![](MACSDK_02.png)
+
+    [region:note]
+    If you receive the following error when trying to launch the Android updater, you will need to install the following version of [Java](https://support.apple.com/kb/dl1572?locale=en_US) from the Apple Website.
+
+    ![](MACSDK_07.png)
+
+    * [**Java for OS X 2017-001**](https://support.apple.com/kb/dl1572?locale=en_US)
+    [/region]
+    
+1. Once the **Android SDK Manager** loads, press the **Deselect All** option to make sure that you do not uninstall any SDKs that you might need.
+
+     ![](MACSDK_03.png)
+
+1. Next, locate the Android API version you want to install and check the checkmark box next to the **SDK Platform** to flag it for download and install.
+
+     ![](MACSDK_04.png)
+
+1. Finally, press the **Install 1 package** button to start downloading and installing.
+
+     ![](MACSDK_05.png)
+
+
+## End Result
+
+When completed, the **Status** will change to a folder icon with a checkmark on it, indicating this is installed. 
+
+![](MACSDK_06.png)
+
+[/EXCERPT:MacOSSetup]
+
+
+[EXCERPT:LinuxSetup]
+## Steps
+
+To install additional Android SDKs, you will need to first open the **Android SDK Manager** by doing the following.
+
+1. First, locate the **NVPACK\android-sdk-linux\tools** folder on your PC.
+
+    ![](LinuxSDK_01.png)
+
+1. Locate the **Android** file and double-click on it to open it up.
+
+    ![](LinuxSDK_02.png)
+
+1. Once the **Android SDK Manager** loads, press the **Deselect All** option to make sure that you do not uninstall any SDKs that you might need.
+
+    ![](LinuxSDK_03.png)
+
+1. Next, locate the Android API version you want to install and expand the available options. For this example we will use **Android 8.1.0 (API 27)** so make sure to click the checkmark box next the **SDK Platform** under the Android 8.1.0 (API 27) section.
+
+    ![](LinuxSDK_04.png)
+
+1. Finally, press the **Install 1 package** button to start downloading and installing.
+
+     ![](LinuxSDK_05.png)
+
+
+## End Result
+
+When completed, the **Status** will change to a folder icon with a checkmark on it, indicating this is installed. 
+
+![](LinuxSDK_06.png)
+
+[/EXCERPT:LinuxSetup]
+
+[/COMMENT]
+
+
+
+
+
+

@@ -2,7 +2,11 @@ Availability:Public
 Title:Shared Pointers
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:Smart pointers that support shared ownership, automatic invalidation, weak references, and more.
+Type:reference
 Version: 4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 

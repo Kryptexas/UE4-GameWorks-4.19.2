@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3367477
+﻿INTSourceChangelist:3782314
 Title: 언리얼 엔진 4.1 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -23,13 +23,15 @@ order:1
 | **DirectX** | June 2010 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 QA_APPROVED_UE4_BUILD_2014  
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 ## Major New Features

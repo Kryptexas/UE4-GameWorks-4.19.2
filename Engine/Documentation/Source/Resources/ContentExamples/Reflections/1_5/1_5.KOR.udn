@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.5 - 스크린 스페이스 리플렉션
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -10,67 +10,13 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/Reflections/1_4 "%Resources/ContentExamples/Reflections/1_4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[리플렉션 홈](Resources/ContentExamples/Reflections)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/Reflections/1_6 "%Resources/ContentExamples/Reflections/1_6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_5:title%](Reflections_1_5_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_5:title%](Reflections_1_5_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Reflections_1_5_Topic.png
 
 [REGION:fullwidth]
 
 ![](Reflections_1_5_Header.png)
+
+[/REGION]
 
 **Screenspace Reflection** (스크린 스페이스 리플렉션)은 동적인 포스트 프로세스 이펙트입니다. 화면상에 있는 것만 반사할 수 있기 때문에, 완벽하게 반사성을 띄는 표면에는 약간 이상한 부작용이 생길 수 있습니다. 그러나 머티리얼에 약간의 러프니스를 더해 주는 정도로 이러한 부작용은 희석시켜 버릴 수 있습니다.
 
@@ -78,5 +24,3 @@ Version: 4.9
 **스크린 스페이스 리플렉션** 을 켜려면 콘솔 명령 `r.ssr 1` 또는 뷰포트의 **표시 > 라이팅 기능 > 스크린 스페이스 리플렉션** 을 선택하면 됩니다.
 [/REGION]
 
-
-[/REGION]

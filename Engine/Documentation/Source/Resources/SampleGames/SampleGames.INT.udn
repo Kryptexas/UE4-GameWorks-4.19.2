@@ -3,41 +3,7 @@ Title:Example Game Projects
 Crumbs:%ROOT%, Resources
 Description:Full sample games demonstrating the implementation of various genres.
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames:title%](Resources/SampleGames/StrategyGame/StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames:title%](Resources/SampleGames/StrategyGame/StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Resources/SampleGames/StrategyGame/StrategyGameTopic.png
 
 
 [EXCERPT:SampleGames]
@@ -52,10 +18,8 @@ Example Game Projects are simplified gaming experiences created by Epic's develo
 We intend users to analyze and pick apart these examples taking the parts that are most useful to them.  The documentation over each one is designed to aid in this process and provide some insight into how each game was designed and created. You may feel free to use any of these systems or elements in your own games.
 [/Excerpt:SampleGames]
 
-[REGION:topics third]
 %Resources/SampleGames/UnrealMatch3:TopicCompact%
 %Resources/SampleGames/PlatformerGame:TopicCompact%
 %Resources/SampleGames/ShooterGame:TopicCompact%
 %Resources/SampleGames/StrategyGame:TopicCompact%
 %Resources/SampleGames/CardGame:TopicCompact%
-[/REGION]

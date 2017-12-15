@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.4 - プロジェクトをコンパイルする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 コード変更がインゲームで反映されているかを確認するためにプロジェクトをコンパイルします。 
 
@@ -68,4 +68,3 @@ CPP Game Mode クラスをブループリントに拡張します。C++ クラ�
 
 1.	`BP_FPSProjectGameMode` ブループリントを保存してからブループリント エディタを閉じるようにします。
 
-%Steps%

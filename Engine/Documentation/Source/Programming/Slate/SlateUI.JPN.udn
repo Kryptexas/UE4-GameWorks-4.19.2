@@ -32,19 +32,15 @@ Version:4.9
 
 スレートとは、アンリアルのカスタム仕様の UI プログラミング フレームワークの名称です。エディタ インターフェースはスレートを使ってビルドされます。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)
-	[/PARAM]
-	[PARAM:title]
-		スレートに関するトピック
-	[/PARAM]
-	[PARAM:links]
+## スレートに関するトピック
+
+[REGION:buttonlist]
+
 		* [](Programming/Slate/Architecture "%Programming/Slate/Architecture:Description%")
 		* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
 		* [](Programming/Slate/InGameUI "%Programming/Slate/InGameUI:Description%")
 		* [](Programming/Slate/Overview "%Programming/Slate/Overview:Description%")
 		* [](Programming/Slate/Setup "%Programming/Slate/Setup:Description%")
 		* [](Programming/Slate/Widgets "%Programming/Slate/Widgets:Description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

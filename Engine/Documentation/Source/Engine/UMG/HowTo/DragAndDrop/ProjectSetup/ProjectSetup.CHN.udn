@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 开始之前，我们需要在项目设置阶段创建一些资源。
 
@@ -68,4 +68,4 @@ type:how-to
 
 项目设置完成后，下一步我们将开始设置 HealthBar 控件蓝图（可拖放 UI 的一块）。 
 
-%Steps%
+

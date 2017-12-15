@@ -45,7 +45,8 @@ related:Engine/Blueprints/TechnicalGuide
 
 ![](match3_banner.png)(convert:false)
 
-<!--
+[COMMENT:none]
+
 [OBJECT:SampleDownload]
 	[PARAMLITERAL:url]
 	[/PARAMLITERAL]
@@ -53,7 +54,8 @@ related:Engine/Blueprints/TechnicalGuide
 	Unreal Match 3 Game
 	[/PARAMLITERAL]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 **Unreal Match 3** サンプル ゲームは、アンリアル エンジン4 (UE4) の多様性と柔軟性を示すために制作されました。 
 Unreal Match 3 は、UE4 デベロッパーに対して、ミッドエンドからローエンドのスマートフォン向けのモバイル ゲームの制作方法を示します。 
@@ -144,7 +146,8 @@ Unreal Match 3 プロジェクトは UE4 ツールセット内の多様なツー
 [/OBJECT]
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 ## プロジェクトにおける C++ とブループリントの併用
 
 
@@ -168,4 +171,5 @@ Unreal Match 3 プロジェクトは UE4 ツールセット内の多様なツー
 
 ## iOS App Store と Google Play にプロジェクトをリリースする方法
 
--->
+
+[/COMMENT]

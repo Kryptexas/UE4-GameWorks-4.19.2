@@ -1,29 +1,17 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1 - 필수 구성
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:여기서는 다이내믹 애니메이션을 적용하는 데 사용할 캐릭터를 준비하도록 하겠습니다.
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order: 1
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 캐릭터에 다이내믹 애니메이션을 적용하기 전, 사용하고픈 캐릭터를 먼저 준비해야 합니다.
 템플릿 캐릭터에는 사용할 수 있는 다이내믹 본이 없습니다. 인피니티 블레이드 캐릭터에는 있긴 하지만 애니메이션이 없으므로, 템플릿 캐릭터의 애니메이션을 리타게팅하여 가져오도록 하겠습니다.
@@ -147,7 +135,4 @@ WEVotwqetOs
 
 다음 단계에서는 애님 다이내믹스 노드로 장비와 화로에 애니메이션을 적용하여 캐릭터 운동에 반응하도록 하겠습니다.
 
-%Steps%
-
-
-
+[NAV]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:랜드스케이프 기즈모
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -154,9 +154,11 @@ IdzHGD7iWdg
 	[REGION:note]
 	**Region Selection** (리전 선택) 툴을 사용하여 선택된 리전이 있고, **Use Region as Mask** (리전을 마스크로 사용) 옵션이 켜져 있다면, 붙여넣은 데이터는 마스크 리전에 걸러서 적용됩니다.  
 	[/REGION]
-<!----
+[COMMENT:none]
+--
     ![pastemask_region.jpg](pastemask_region.jpg)(w:667 h:363) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667 h:363)
----->
+--
+[/COMMENT]
 
 
 
@@ -201,7 +203,8 @@ Layer Name 이 랜드스케이프 상에 존재하는 레이어 이름에 일치
     ![export_layerfile.jpg](export_layerfile.jpg)(w:625 h:436)
 
 
-<!--
+[COMMENT:none]
+
 ## 기즈모 리스트
 
 ![gizmolist.jpg](gizmolist.jpg)(w:267 h:60)
@@ -216,6 +219,7 @@ Layer Name 이 랜드스케이프 상에 존재하는 레이어 이름에 일치
 | ![gizmolist_remove.jpg](gizmolist_remove.jpg) | 목록에 현재 선택되어 있는 기즈모를 제거합니다. |
 | ![gizmolist_goto.jpg](gizmolist_goto.jpg) | 기즈모의 위치, 크기, 로테이션을 목록에 현재 선택되어 있는 기즈모의 것으로 설정합니다. |
 
--->
+
+[/COMMENT]
 
 [INCLUDE:Engine/Landscape#landscape002]

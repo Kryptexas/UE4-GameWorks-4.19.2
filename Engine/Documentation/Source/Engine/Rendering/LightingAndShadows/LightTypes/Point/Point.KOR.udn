@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3215424
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:포인트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:포인트 라이트 기초입니다.
 Version: 4.14
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%](PointLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Point:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Point]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%](PointLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Point:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Point]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:PointLight_Topic.png
 
 [REGION:fullwidth raw]
 ![](PointLight_Header.png)
@@ -55,25 +17,10 @@ Version: 4.14
 [EXCERPT:Intro]
 **Point Light** (포인트 라이트)는 현실에서의 백열전구가 텅스텐 필라멘트에서 모든 방향을 빛을 뿜듯이 작동하는 라이트입니다. 그러나 퍼포먼스상의 이유로, 포인트 라이트는 공간의 딱 한 지점에서 모든 방향으로 동등하게 빛을 뿜도록 단순화되어 있습니다.   The **Point Light** when placed can be set to one of three **Mobility** settings:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](PointLight_stationary.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**스태틱** - (왼쪽 그림) 라이트를 게임에서 변경할 수 없다는 뜻입니다. 렌더링에 가장 빠른 방법으로, 라이팅을 굽는 것이 가능합니다.
+* **스태틱** - (왼쪽 그림) 라이트를 게임에서 변경할 수 없다는 뜻입니다. 렌더링에 가장 빠른 방법으로, 라이팅을 굽는 것이 가능합니다.
+* **스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 반사광과 그림자만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹으로 처리하는 라이트입니다. 이 세팅으로 게임에서 라이트의 색과 강도를 변경하는 것도 가능합니다만, 이동하지는 않으며 라이트를 부분적으로 굽는 것이 가능합니다.
+* **무버블** - (왼쪽 그림) 완전히 동적인 라이트로, 다이내믹 섀도잉이 가능합니다. 렌더링 속도는 가장 느리지만 게임플레이 도중 유연성은 가장 높습니다.
 
-	**스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 반사광과 그림자만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹으로 처리하는 라이트입니다. 이 세팅으로 게임에서 라이트의 색과 강도를 변경하는 것도 가능합니다만, 이동하지는 않으며 라이트를 부분적으로 굽는 것이 가능합니다.
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](PointLight_movable.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**무버블** - (왼쪽 그림) 완전히 동적인 라이트로, 다이내믹 섀도잉이 가능합니다. 렌더링 속도는 가장 느리지만 게임플레이 도중 유연성은 가장 높습니다.
-	[/PARAM]
-[/OBJECT]
 [/EXCERPT:Intro]
 
 아래는 **포인트 라이트** 를 레벨에 배치한 예제 둘입니다.

@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:3769005
+Availability: Public
+Crumbs: %ROOT%
+Title: 오큘러스 사전 요구사항
+Description: UE4 에서 Oculus Rift 를 사용하도록 구성하는 데 관련된 정보입니다.
+Type: Reference
+Version: 4.16
+Parent: Platforms/Oculus
+Order: 1
+Tags: Oculus Rift
+Tags: Platform
+topic-image:PreRecProfiling_Topic_Image.png
+
+
+여기서는 UE4 프로젝트가 Oculus Rift HMD 와 작동하도록 하는 데 필요한 정보를 찾아보실 수 있습니다.
+
+## 알려지지 않은 소스 활성화
+
+언리얼 엔진 4 (UE4) 가상 현실(VR) 프로젝트를 개발할 때는, **Unknown Sources** (알려지지 않은 소스) 옵션을 켜야 오큘러스의 등록 또는 검토 절차를 거치지 않은 어플리케이션을 실행시킬 수 있습니다. **Unknown Sources** 옵션을 켜는 방법은 다음과 같습니다:
+
+1. Oculus Store 를 열고 우상단 구석에 있는 **톱니** 아이콘을 클릭하여 **Settings** 메뉴 옵션을 띄우고, **Settings** 단어를 클릭합니다.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_01.png)(w:512)](Platforms\Oculus\Rift_UKS_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
+
+1. 왼쪽에서 **General** (일반) 섹션을 선택합니다. 그리고 **Unknown Sources** (알려지지 않은 소스) 섹션에서, 버튼을 클릭하면 이 옵션이 켜집니다.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_02.png)(w:512)](Platforms\Oculus\Rift_UKS_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
+
+1. 버튼을 클릭한 이후, 메시지가 표시됩니다. **Allow** (허용) 버튼을 클릭하여 계속합니다.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_03.png)(w:512)](Platforms\Oculus\Rift_UKS_03.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
+
+1. 완성되면, 다음 그림처럼 버튼이 파랗게 변합니다.
+    
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_04.png)(w:512)](Platforms\Oculus\Rift_UKS_04.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
+
+    [region:note]
+    이 변경사항을 기본 설정으로 되돌리려면, 버튼을 다시 한 번 클릭하여 체크 표시를 X 로 되돌리면 됩니다.
+    [/region]
+
+## SteamVR 문제해결
+
+Oculus Rift 실행 관련 문제가 있는 경우, Oculus Support Center 페이지에서 대부분의 문제 해결 사례를 찾아보실 수 있습니다.
+
+[**Oculus Support Center**](https://support.oculus.com/)
+
+
+

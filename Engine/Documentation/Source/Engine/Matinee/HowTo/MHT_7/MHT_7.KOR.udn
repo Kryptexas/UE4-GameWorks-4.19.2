@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:애니메이션 및 사운드 재생
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -6,20 +6,14 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 Version: 4.9
 SkillLevel: Intermediate
 
- 
----
+
 여기서는 **스켈레탈 메시** 에 애니메이션과 이동을 적용하여 플랫폼에 점프하는 캐릭터를 만들겠습니다. **Sound Track** 을 사용하여 배경 음악과 사운드도 추가하겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네 액터와 소품 추가
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네 액터**, **스켈레탈 메시 액터** 를 추가한 다음 캐릭터가 점프해 올라갈 수 있는 플랫폼을 만들겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네 액터와 소품 추가
+
+이번 단계에서는 **마티네 액터**, **스켈레탈 메시 액터** 를 추가한 다음 캐릭터가 점프해 올라갈 수 있는 플랫폼을 만들겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** - **마티네 추가** 버튼을 클릭합니다.
 
@@ -57,15 +51,9 @@ SkillLevel: Intermediate
 	
 	![](BoxHeightGray.jpg)
 
+## 마티네에 액터 및 트랙 추가
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네에 액터 및 트랙 추가
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네** 에 **SK_Mannequin** 를 추가한 다음 시퀀스에 사용할 트랙을 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 **마티네** 에 **SK_Mannequin** 를 추가한 다음 시퀀스에 사용할 트랙을 추가하겠습니다.
 
 1.  **월드 아웃라이너** 에서 **MatineeActor** 를 선택한 다음, **마티네 열기** 버튼을 클릭합니다.
 
@@ -87,15 +75,9 @@ SkillLevel: Intermediate
 
 	![](MHT7_MoveEndMarker.png)
 
+## 동작 및 애니메이션 추가
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		동작 및 애니메이션 추가
-	[/PARAM]
-	[PARAM:description]
-	여기서는 캐릭터가 박스 위로 점프하는 동작 및 애니메이션을 구성하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 캐릭터가 박스 위로 점프하는 동작 및 애니메이션을 구성하겠습니다.
 
 1.  **마티네** 를 열어둔 채, **Movement** 트랙에 클릭하고 **타임 바** 를 **3.00** 으로 옮긴 다음 **Enter** 키를 쳐 키프레임을 추가합니다. 
 
@@ -173,15 +155,9 @@ SkillLevel: Intermediate
 
 	_시퀀스 끝의 어두운 부분은 애니메이션이 루핑 설정되었음을 나타냅니다._
 
+## 사운드 추가 및 마티네 마무리
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		사운드 추가 및 마티네 마무리
-	[/PARAM]
-	[PARAM:description]
-	여기서는 사운드 트랙을 사용하여 사운드를 추가하고 시퀀스를 마무리하도록 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 사운드 트랙을 사용하여 사운드를 추가하고 시퀀스를 마무리하도록 하겠습니다.
 
 1. **마티네** 창을 최소화시킨 다음 **콘텐츠 브라우저** 에서 **Game/Audio** 폴더 안에 **Explosion01** 애셋을 클릭합니다.
 
@@ -234,42 +210,4 @@ SkillLevel: Intermediate
 	_**SK_Mannequin** 액터가 박수 위로 점프하는 것이 보이며, 폭발 사운드 이펙트와 음악이 재생되는 것도 들을 수 있습니다._
 
 	_다중 카메라 앵글, FOV, 포스트 프로세싱 이펙트, 슬로모 트랙이 포함된 **Director Track** 을 적용하여 자신만의 폴리싱 작업을 할 수도 있습니다._
-
-
-
-	
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

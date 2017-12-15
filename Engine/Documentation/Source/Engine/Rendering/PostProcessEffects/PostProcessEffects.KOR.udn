@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3474032
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 포스트 프로세스 이펙트
 Crumbs: %ROOT%, Engine
@@ -11,49 +11,6 @@ type:landing
 tags:Rendering
 Topic-image:ppe_topic.png
 
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/PostProcessEffects:title%](Engine/Rendering/PostProcessEffects/ppe_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/PostProcessEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/PostProcessEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/PostProcessEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/PostProcessEffects:title%](Engine/Rendering/PostProcessEffects/ppe_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/PostProcessEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/PostProcessEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/PostProcessEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 [REGION:banner]
 ![Post Process Effects](ppe_landing_banner1.png)
 [/REGION]
@@ -111,7 +68,8 @@ PostProcessVolume 안에서 찾을 수 있는 프로퍼티에 대한 설명입�
 [DIR(output:"topiccompact" parent:"Engine/Rendering/PostProcessEffects" org:"hierarchy" tags:"Post Process" end:"1")]
 
 
-<!---
+[COMMENT:none]
+-
 
 [REGION:topics fourth]
 [OBJECT:TopicCompact]
@@ -249,5 +207,6 @@ PostProcessVolume 안에서 찾을 수 있는 프로퍼티에 대한 설명입�
 [/REGION]
 
 
---->
+-
+[/COMMENT]
 

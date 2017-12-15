@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]教程的该部分讲述使用 **蓝图** 延展 C++ 类的功能。然而，C++ 代码的正确编写只作为测试，而并非作为蓝图教程。我们推荐阅读 [%Engine\Blueprints\QuickStart:title%](Engine\Blueprints\QuickStart) 来了解蓝图。[/REGION]
 
@@ -196,4 +196,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

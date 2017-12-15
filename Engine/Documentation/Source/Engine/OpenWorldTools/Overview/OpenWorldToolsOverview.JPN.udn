@@ -11,7 +11,8 @@ Version:4.8
 ![](T_Kite_Demo_00.png)
 
 
-<!--## 前提条件
+[COMMENT:none]
+## 前提条件
 
 プロジェクトで Procedural Foliage ツールを使うには、まずメイン ツールバーから **[Edit]** > **[Editor Preferences (エディタの環境設定)]** > **[Experimental (実験的)]** を選択して、プロジェクトの Procedural Foliage を必ず有効にしておいてください。 
 Experimental セクションの **[Procedural Foliage]** の文字の横にあるチェックマーク ボックスをクリックして、[Procedural Foliage] オプションを有効にします。 
@@ -22,7 +23,8 @@ Experimental セクションの **[Procedural Foliage]** の文字の横にあ�
 
 Open World Demo Collection をダウンロードしたら、このクイックスタートで使用するプロジェクトに追加してください。方法は、UE 4 ランチャーの **Vault** セクションにある Open World Demo Collection を探して **[Add to Project (プロジェクトに追加)]** ボタンをクリックします。追加先に選択可能なプロジェクトの一覧が表示されます。このクイックスタートで使用するプロジェクトを選んで、**[Add to Project (プロジェクトに追加)]** を押してコンテンツを追加します。再度プロジェクトを開くと、「 **Kite Demo** 」というフォルダが出来ています。必要なコンテンツはこのフォルダの中にあります。
 
--->!
+
+[/COMMENT]!
 
 ##ツールの種類 
 UE4 の Open World ツールで、配置の判断を手動で設定することなく、コンピューターアルゴリズムを使用してレベル内にスタティックメッシュを配置することができます。 
@@ -60,7 +62,8 @@ Procedural Foliage ツールの使用に関する詳細は、 プロシジャル
 [/OBJECT]
 [/region]
 
-<!--
+[COMMENT:none]
+
 #### Foliage Type アクタ
 Procedural Foliage ツールは **Foliage Types** と呼ばれるアクタを使用します。 
 Foliage Types は、例えば利用するスタティックメッシュやスタティックメッシュをスポーンする大きさなど、フォリッジに設定するさまざまなプロパティを定義します。
@@ -74,7 +77,8 @@ Foliage Types は、例えば利用するスタティックメッシュやスタ
 |**Placement**| Placement セクションは、Mesh セクションで指定したスタティックメッシュをレベル全域のオブジェクトに配置する方法を調整するセクションです。|
 |**Growth**| Growth セクションは、シミュレーション開始時の木々の大きさと、シミュレーション終了時までに木々が「Grow (成長)」する大きさを定義します。|
 |**Instance Settings**| Instance Settings は Foliage Type に使用したスタティックメッシュをレベルに表示する方法を調整します。|
--->!
+
+[/COMMENT]!
 
 ### Grass ツール
 [region:note]
@@ -105,7 +109,8 @@ Grass ツールの使用に関する詳細は、以下のリンクから Grass �
 [/OBJECT]
 [/region]
 
-<!--
+[COMMENT:none]
+
 #### Grass Type アクタ
 Grass ツールは **Landscape Grass Types** と呼ばれるアクタを使用します。
 Landscape Grass Types は、例えば草に利用するスタティックメッシュやスタティックメッシュをスポーンする数など、Grass に設定できるさまざまなプロパティを定義します。
@@ -116,7 +121,8 @@ Landscape Grass Types は、例えば草に利用するスタティックメッ�
 | プロパティ名 | 説明 |
 | ------------ | ----------- |
 |**Grass Varieties**| 草に使用するスタティックメッシュのタイプや草の密度、またはカリング距離設定を指定することができます。|
--->!
+
+[/COMMENT]!
 
 
 

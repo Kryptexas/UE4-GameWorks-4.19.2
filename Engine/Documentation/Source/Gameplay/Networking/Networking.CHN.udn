@@ -6,17 +6,10 @@ Description:针对多人模式设置连网游戏。
 version: 4.9
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		该部分的主题
-	[/PARAM]
-	[PARAM:description]
-		以下是一份关于 UE4 多人游戏的主题列表。请查看[](Gameplay/Networking/Overview)部分了解入门信息！
-	[/PARAM]
-	[PARAM:links]
+## 该部分的主题
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Networking/Overview "%Gameplay/Networking/Overview:Description%")
 		* [](Gameplay/Networking/Example "%Gameplay/Networking/Example:Description%")
 		* [](Gameplay/Networking/Blueprints "%Gameplay/Networking/Blueprints:Description%")
@@ -35,6 +28,6 @@ version: 4.9
 		* [](Gameplay/Networking/CharacterMovementComponent "%Gameplay/Networking/CharacterMovementComponent:Description%")
 		* [](Gameplay/Networking/Actors/ReplicationPerformance "%Gameplay/Networking/Actors/ReplicationPerformance:Description%")
 		
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

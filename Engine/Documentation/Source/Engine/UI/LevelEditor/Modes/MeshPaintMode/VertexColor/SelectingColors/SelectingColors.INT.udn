@@ -3,7 +3,11 @@ Title:Selecting Colors
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:An overiview of the process of color selection for Mesh Paint Mode.
 Version: 4.9
-
+parent:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+type:how-to
+order:1
+skilllevel:Beginner
+topic-image:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/ColorpickerCropped.png
 
 [EXCERPT:Intro]
 The Mesh Paint tool relies on a pair of colors for its work. Users may choose a _Paint Color_ as well as an _Erase Color_ and swap between them at any time. Color selections are made by way of a standard  [Color Picker window](Engine/UI/ColorPicker).

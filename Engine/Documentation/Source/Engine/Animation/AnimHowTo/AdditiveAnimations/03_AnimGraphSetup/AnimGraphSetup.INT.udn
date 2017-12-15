@@ -4,26 +4,12 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we set up our AnimGraph to handle the blending of our AnimMontage and the movement pose from our State Machine. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:3
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Layered Animations - Home ](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this step, we set up our AnimGraph to handle the blending of our AnimMontage and the movement pose from our State Machine. 
 
@@ -69,6 +55,4 @@ In this step, we set up our AnimGraph to handle the blending of our AnimMontage 
 
 Our AnimGraph is complete, but we still need to modify some settings on the **Layered blend per bone** node to finish up which we will do next.  
 
-
-
-%Steps%
+[NAV]

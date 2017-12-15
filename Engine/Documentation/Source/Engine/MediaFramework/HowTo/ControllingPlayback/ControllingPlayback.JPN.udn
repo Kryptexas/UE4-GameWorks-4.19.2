@@ -1,140 +1,167 @@
-﻿INTSourceChangelist:3336131
+﻿INTSourceChangelist:3726250
 Availability:Public
-Title:再生の巻き戻しと早送り操作
+Title:ブループリントでビデオの再生方法を制御する
 Crumbs:%ROOT%, Engine
-Description:メディア アセットの再生の調節方法の例
-parent:Engine/MediaFramework
-order:3
-checkpoint: editorqs
-Version:4.15
+Description:ブループリントでビデオの早送り、巻き戻し、ポーズ、再生開始を操作する方法 
+Type: how-to
 SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/MediaFramework/HowTo
+Order:3
+Tags:Media Framework
+Tags:Video Playback
 Related:Engine\MediaFramework
 
-Media Framework は、プレイヤーによるビデオの再生だけでなく、ビデオの巻き戻し、停止、早送りの再生レートの調節を可能にします。 
-この操作ガイドでは、プレイヤーは以下のようなレベル内で、巻き戻し用のボタンを押したり、別のボタンを押して早送りしたり、さらに別のボタンで再生をします。 
+アンリアル エンジン 4 プロジェクト内でのビデオ再生に加えて、さまざまな [ブループリント](Engine/Blueprints) ノードを使って、プレイヤーによるビデオの制御を可能にすることができます。 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-s6rTrV5-Mdo
-[/PARAMLITERAL]
-[/OBJECT]
+この操作ガイドでは、ビデオの早送り、巻き戻し、ポーズ、停止、再生開始のそれぞれの機能を作成して、プレイヤーがビデオの再生方法を制御する仕組みを説明します。
+
+![](FinalHero.png)
+
+[REGION:note]
+すべてのプレイヤー プラグインが早送り / 逆再生に対応しているわけではありません。詳細は、[メディア フレームワークの技術リファレンス](Engine/MediaFramework/TechReference) をご覧ください。 
+[/REGION]
 
 ## ステップ
 
 [REGION:note]
 ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
-再生するプレイリストを追加するコンピュータ上に [サポートされているビデオ ファイル](Engine\MediaFramework\TechReference) がいくつか必要です。お持ちのビデオを使用するか、あるいは **右クリック** して [サンプル ビデオ](Infiltrator Demo.mp4) をダウンロードすることもできます。 
+再生するビデオが必要です。右クリック して [サンプル ビデオ](Infiltrator Demo.mp4) をダウンロードすることもできます。
 [/REGION]
 
-1.	プロジェクト内に **「Movies」** という名前のフォルダを作ります。そしてエクスプローラーでビデオをその **「Movies」** フォルダに追加します。 
+1.	**[コンテンツ ブラウザ]** の **Sources** パネルを展開し **「Movies」** という名前で新規フォルダを追加したら右クリックして **[Show in Explorer]** を選択します。 
 
 	![](ControllingPlayback_01.png)
 
-1.	 **「File Media Source」** (または何か別のソースアセット) を作成して、そのアセットをビデオに指定します。 
+1.	サンプル映像 (対応する映像) をパソコン上のプロジェクトの **「Content/Movies」** フォルダにドラッグします。
 
 	![](ControllingPlayback_02.png)
 
-1.	**Media Sound Wave** と **Media Texture** アセットに関連づいている **「VideoPlayer」** という名前の **Media Player** アセットを作成します。
+	[REGION:warning]
+	ビデオ コンテンツをプロジェクトでパッケージ化およびデプロイするために、コンテンツは常にプロジェクトの **Content/Movies** フォルダに置かれている状態にしておく必要があります。 
+	[/REGION]
+
+1.	プロジェクトで、**Media Player** と関連する **Media Texture** アセットを作成し、それぞれに **「MediaPlayer」** と **「MediaPlayer_Video」** と名前を付けます。 
+
+1.	**「Video」** という名前で **File Media Source** アセットを作成し、その中で、**ファイル パス** を **Step 2** に追加されたビデオに指定します。 
 
 	![](ControllingPlayback_03.png)
 
-1.	**Media Player** アセット内の **[Play on Open]** オプションのチェックを外します。 
+1.	**Media Player** アセットを開き、**[Play on Open]** オプションを無効にします。 
 
 	![](ControllingPlayback_04.png)
 
-1.	**コンテンツ ブラウザ** の **StarterContent/Shapes** で **Shape_Plane** をレベルにドラッグします。  
+	この例では、Media Source を開くと自動的に再生開始になるのではなく、プレイヤーが再生の制御を行えるようにします。 
 
-	![](ControllingPlayback_05.png)
+1.	メイン エディタの **[Modes]** パネルの **[Basic]** から、**[Plane]** をレベルにドラッグし、自由にサイズ変更します。 
 
-1.	**Translate (W)**、**Rotation (E)**、**Scale (R)** ツールを使って、スタティックメッシュのサイズと位置を自由に調節します。 
+1.	**MediaPlayer_Video** テクスチャを **Plane** にドラッグし、そのプレーンの **[Details]** パネルに **Media Sound Component** を追加し、**Media Player** アセットを使用する設定にします。 
 
-1.	**[Ctrl]** を押しながら、**Sound Wave** アセットと **Media Texture** アセットを両方選択して、レベル内の **スタティックメッシュ** 上にリリースします。 
+	[REGION:lightbox]
+	[![](ControllingPlayback_05.png)(w:600)](ControllingPlayback_05.png)
+	[/REGION]
+
+	[REGION:caption]クリックしてフルサイズで表示[/REGION]
+
+1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、次に **[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
 	![](ControllingPlayback_06.png)
 
-	すると **マテリアル** が自動作成され、スタティックメッシュに適用されます。 
+1.	**Level Blueprint** で **「Media Player Object Reference」** 型の **「MediaPlayer」** という変数を作成し、**MediaPlayer** アセットに指定します。 
 
-1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、**[Open Level Blueprint]** を選択します。 
+1.	**Ctrl** を押しながら **MediaPlayer** 変数をグラフへドラッグし、右クリックして **Open Source** と **Event Begin Play** を使って **Video** File Media Source アセットを開きます。 
 
 	![](ControllingPlayback_07.png)
 
-1.	**「MediaPlayer」** という名前の **Media Player Reference** タイプの **変数** を追加し、**VideoPlayer** Media Player アセットに設定します。 
+1.	**Up** キーボード イベントを追加して **Flip Flop** に接続し、**Media Player** 変数を引き出して、**Play** と **Pause** を下図のように使用します。 
 
 	![](ControllingPlayback_08.png)
 
+	プレイヤーが **Up** 矢印キーボード キーを押すと、Media Source が再生を開始し、もう 1 度押すとビデオがポーズします。 
+
 	[REGION:note]
-	**Default Value** を代入する前に **コンパイル** する必要があります。 
+	ポーズは Play Rate が 0.0 に設定された状態です。ただし、すべての Media Sources がポーズをサポートしているわけではありません (たとえば、Web Cam その他のビデオ キャプチャ ハードウェア ソース)。 
+	**Can Pause** ブループリント ノードを使って、Media Source のポーズ対応を決定することができます。 
 	[/REGION]
 
-1.	**Event Begin Play** ノード、**Media Player** 変数を追加し、**Open Source** を使って **MyVideo** File Media Source アセットを開きます。
+1.	**Left** および **Right** キーボード イベントを追加して、**Media Player** 変数を引き出し、左向きのキーは **-2**、右向きのキーは **2** の **Set Rate** を使います。 
 
 	![](ControllingPlayback_09.png)
 
-1.	**MediaPlayer** アセットに **Pressed** を設定して **2** Keyboard Event を追加します。 
+	これにより、Player が Left 矢印キーボード キーを押すとビデオの再生レートを「-2」に設定することができます (値 1.0 の倍速でのビデオ逆送り再生が、通常の順送り再生です)。 
+	右向き矢印のキーボード キーを押すと、ビデオは通常の再生速度の倍速で順送り再生されます。プレイヤーが巻き戻しキーあるいは早送りキーを押す回数を決めたり、再生レートを倍速、4 倍速、または 6 倍速以上に調整するためのブループリント ロジックを追加することができます。
+
+	[REGION:note]
+	1.0 以外の Play Rates がプレイヤーのプラグインによってサポートされていたとしても、実際に選択できる再生レートは使用中の Media Source に依存します。 
+	サポート対象のレートは、**Get Forward Rates** または **Get Reverse Rates** Blueprint ノードで確認できます。**Support Rate** 関数にレートを入力してもサポート対象かどうかを判断できます。 
+
+	![](SupportRates.jpg)
+
+	**[Thinned]** レートと **[Unthinned]** レートには違いがあります。Thinned はいくつかのフレームがスキップされるレートであり、Unthinned はすべてのフレームをデコードするレートです。 
+
+	[/REGION]
+
+1.	**[Down]** キーボード イベントを追加して **Flip Flop** へ接続し、**Media Player** リファレンスを引き出して **Get Time** 関数コールを使います。 
 
 	![](ControllingPlayback_10.png)
 
-1.	**MediaPlayer** アセットの **Set Rate** を使って **1** と **3** Keyboard Events を追加し、各ノードの **Rate** 値を調節します。 
+	**Get Time** 関数コールは、格納しておいてビデオを再度開いて再生を開始する時に使用する現在の再生時間を返します。 
+
+1.	**Get Time** ノードの **Return Value** を右クリックして **Stop Time** という名前の変数へ昇格させて、以下のようにすべてのノードを **Close** 関数コールへ接続します。 
 
 	![](ControllingPlayback_11.png)
 
-	レートを **-1.0** に設定すると、ビデオは逆送りで再生し、**2.0** にすると順送りにスクラブして早送り速度が倍になります。 
+	これによりキーボードの下向き矢印を押すと Media Player が終了しますが、Media Player が停止した現在時刻は位置は変数に格納されます。 
 
-	[REGION:warning]
-	現時点では、Media Player アセットへのコマンド発行時に、オーディオ同期が失敗する場合があります。プレイヤーがそれらを処理するために、コマンド間に短い遅延を挿入することができます。これらの問題については、今後のエンジンのアップデートで修正可能な方法を調査中です。 
-	[/REGION]
+1.	**Flip Flop** の **B** ピンを引き出して、**Open Source** ノードを使い、**Media Source** を **Video** Media Source に設定します。 
 
-1.	**Level ブループリント** を閉じて、**[Play (プレイ)]** ボタンをクリックしてエディタで再生します。 
+	![](ControllingPlayback_12.png)
 
+	これにより、ビデオが再度開きます。ただしビデオの冒頭から開きます。これについて説明します。 
+
+1.	**Media Player** 参照を引き出して、**Assign On Media Opened** Event Dispatcher を使って以下のように接続します。 
+
+	![](ControllingPlayback_13.png)
+
+	すると Media Source が完全に開いた時に接続しているイベントのみを呼び出す [Event Dispatcher](Engine/Blueprints/UserGuide/EventDispatcher/) が作成されます。 
+	Media Source に命令を伝える前に Media Source が開いていることが確認することができるので、Media Player にコマンドを発行する時のグッドプラクティスです。 
+	Media Source を開いた直後に Media Player に直接コマンドを発行すると、Media Source が完全に開いていることが保証されず、失敗を引き起こす可能性のあるコマンドを受け取る可能性があります。 
+
+1.	**Media Player** 参照を引き出して、**Seek** function followed by the **Play** 関数の後に **Seek** 関数を呼び出します。 
+
+1.	**Stop Time** 変数を **Seek** ノード上の **Time** ピンに接続して、**Seek** ノードと **Play** ノードを **OnMediaOpened** イベントに以下のように接続します。 
+
+	![](ControllingPlayback_14.png)
+
+	これで、プレイヤーが下向き矢印キーを押すと、Media Player の終了前に現在時刻が格納されるようになりました。 
+	もう 1 回押すと **Video** Media Source が開きます。完全に開くと、ビデオの再生前 (再生の開始前) に指定された **Stop Time** へ移動します。 
+
+1.	**Level ブループリント** を開き、エディタのメイン ツールバーから **[Play]** ボタンを押して再生します。 
 
 ## 最終結果
 
+**上向き**、**下向き**、**左向き**、**右向き** 矢印キーを使って、ビデオの再生を調整します。 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-s6rTrV5-Mdo
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	jNDpBQFRVQw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-エディタでプレイする場合、ビデオ再生はレベルがロードされてもすぐには始まりません。プレイヤーが **2** キーを押すと、ビデオのプレイが始まります。 
-**1** キーを押すと巻き戻しが始まり、**3** キーを押すとビデオの早送りが始まります。
-巻き戻しおよび早送りの速度は、**Set Rate** ノードの **Rate** 値で決定されます。この値を調節して、順送りまたは逆送りでの再生速度を速くします。 
+**上向き矢印** はビデオの再生 / 一時停止、**下向き矢印** はビデオの終了 / 再開、**左向き矢印** は巻き戻し、**右向き矢印** は早送りです。 
 
-ここではキーボードを押すサンプルを紹介しましたが、コマンドを発行するボタンをプレイヤーが押す UMG でビルトしたユーザー インターフェース内で同じ機能が使えます。 
-
-## その他の検討事項
-
-高度な再生機能は、使用しているプレイヤー プラグインおよび Media Source によっては利用できない場合があります。 
-例えば、すべての Media Source が再生レートの調整や変更に対応しているわけではありませんし、すべてのプラグインがこれらの機能をサポートしているわけでもありません。 
-
-Media Source とプレイヤーの組み合わせによっては速度変更ができる場合もありますが、一定の変更幅のみで、再生がとぎれる可能性があります (フレームが飛んで切れます)。 
-再生機能の中には、例えば CanPause、GetForwardRates、GetReverseRates など、ブループリント経由でクエリを実行できるものもあります。 
-すべての再生機能 (Play、Rewind、Pause、SetRate など) には、意図している演算の成功 / 失敗を示す Boolean の戻り値が含まれています。
-
-現時点では、再生関数コールの連鎖を防ぐ WmfMedia プレイヤー プラグインにも制限があります。例えば、Play -> SetRate -> Pause -> SetRate -> Play というようにコマンドの連鎖をまとめて文字列にすると： 
-
-[REGION:lightbox]
-[![](ExampleChain.png)](ExampleChain.png)
-[/REGION]
-
-_図をクリックしてフルサイズ表示_
-
-Media Player 用ステートマシンは壊れる可能性があります。復旧させる唯一の方法は、Media Source あるいは Playlist を開くことです。 
-
-コールを連鎖させたい場合、各コール間に Delay ノードを挿入して、プレイヤーに現在のコマンドの処理時間を十分に与えるのも手段の 1 つです。 
-
-![](ExampleChainDelays.png)
 
 
 

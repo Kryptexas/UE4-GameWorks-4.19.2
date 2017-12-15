@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1. 초기 레벨 구성
 Crumbs:
@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 다음 섹션에서는 그래스 툴로 작업할 새 레벨과 랜드스케이프 터레인을 만들겠습니다.
 
@@ -63,4 +63,4 @@ Version: 4.8
 
 
 
-%Steps%
+

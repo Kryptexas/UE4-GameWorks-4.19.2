@@ -1,0 +1,249 @@
+﻿INTSourceChangelist:3735117
+Availability:Public
+Crumbs: %ROOT%
+Title:物理アセット エディタ - ツールとプロファイル
+Description:物理アセット エディタ内のツールおよびプロファイルのプロパティの使い方
+Type:Reference
+Version:4.18
+Parent:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Animation/Persona/Modes
+Related:Engine/Physics/PhAT/SkeletonTree
+Order:
+Tags:Physics
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:0 convert:false)[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+
+**[Tools]** タブおよび **[Profiles]** タブから、[ボディ](Engine/Physics/PhysicsBodies) の生成方法を選択し、
+割り当てられたボディおよびコンストレイントに対してカスタム プロファイルを作成することができます。 
+
+![](ToolsAndProfiles.png)(w:450)
+
+
+## ツール タブ
+
+**[Tools]** タブを使うと、物理アセットのバッチ編集の実施が可能になります。[スケルトン ツリー](Engine/Physics/PhAT/SkeletonTree) 内のスケルトン全体または選択したボディに対して、 
+追加、生成、再生成ができるようになります。
+
+![](Tools.png)
+
+
+### ボディ作成の設定
+
+以下は、ボディにプリミティブ形状、サイズなどの作成や編集を行うためのオプションです。
+
+![](BodyCreationSettings.png)
+
+[REGION:raw]
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Min Bone Size** | この値より短いボーンはボディ作成が無視されます。 |
+| **Primitive Type** | ボディ作成時に使用するジオメトリ タイプです。 [INCLUDE:#primitivetype] |
+| **Vertex Weighting Type** | ボディで頂点を近似する場合、どのように頂点をボーンに対してマップするか。 [INCLUDE:#vertexweightingtype] |
+| **Auto Orient to Bone** | 作成されたボディを対応するボーンに対して自動的に正しい方向に置くかどうか。 |
+| **Walk Past Small Bones** | 小さなボーンは完全にスキップするかどうか (隣接するボーンとマージするのではなく)。 |
+| **Create Body for All Bones** | ボーンごとに強制的にボディを作成します。|
+| [REGION:tablesection] 詳細プロパティ [/REGION] |  |
+| **Min Bone Size** | この値より短いボーンはボディ作成が無視されます。 |
+| **Hull Accuracy** | 凸包を作成する時の目標精度です。 |
+| **Max Hull Verts** | 凸包を作成する時に、作成すべき最大頂点数です。 |
+[/REGION]
+
+[COMMENT:none]
+-
+
+[EXCERPT:primitivetype]
+* Box
+* Capsule
+* Sphere
+* Single Convex Hull
+* Multi Convex Hull
+[/EXCERPT:primitivetype]
+
+[EXCERPT:VertexWeightingtype]
+* Any Weight
+* Dominant Weight
+[/EXCERPT:VertexWeightingtype]
+
+-
+[/COMMENT]
+
+### コンストレイント作成の設定
+
+ボディのコンストレイントの作成や編集には、以下のオプションがあります。
+
+![](ConstraintCreationSettings.png)
+
+[REGION:raw]
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Create Joints** | 隣接して作成されたボディとの間にコンストレイントを作成するかどうかを設定します。 |
+| **Angular Constraint Mode** | ボディ間に作成した角度コンストレイントのタイプです。 [INCLUDE:#constraintmode] |
+[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#vertexweightingtype]
+[EXCERPT:constraintmode]
+| --- | --- |
+| **Free** | 軸にコンストレイントがありません。 |
+| **Limited** | 軸の自由度が制限されます。
+| **Locked** | 軸全体にコンストレイントがあります。 |
+[/EXCERPT:constraintmode]
+
+-
+[/COMMENT]
+
+
+#### ボディの生成オプション
+
+**[Body Creation]** および **[Constraint Creation]** カテゴリにプロパティを設定すると、 
+選択したボディ、コンストレイント、ボーンには、追加、生成、再生成用のアクションが表示されます。
+
+![](ToolsBodyButton.png)
+
+[REGION:simpletable]
+| ボタン |  |
+| --- | --- |
+| ![](AllBodies.png) | すべての物理ボディとコンストレイントが再生成されます。 |  
+| ![](GenerateAllBodies.png) | コンストレイントを選択した場合、すべてのボディとコンストレイントを新しい設定で再生成することができるボタンです。 | 
+| ![](ReGenerateBodies.png) | 選択したボディはコンストレイントも一緒に新しい設定に置き換えられます。| 
+[/REGION]
+
+
+## プロファイル タブ
+
+物理アセットの **[Profiles]** タブでは、プロファイルに保存してから [スケルトン ツリー](Engine/Physics/PhAT/SkeletonTree) で選択した
+ボディまたはコンストレイントへの割り当てが可能な **物理アニメーション** と **コンストレイント** に対する設定群の表示、選択、編集を行うことができます。
+
+![](Profiles.png)
+
+
+[REGION:note]
+詳細については [ボディとコンストレイントにプロファイルを使用する](Engine/Physics/PhAT/HowTo/UsingProfiles) をご覧ください。
+[/REGION]
+
+
+
+### 現在のプロファイル
+
+**[Current Profile]** ドロップダウンで、作成された新規または既存プロファイルを見つけることができます。プロファイルを選択すると、プロファイル リストからの削除、 
+選択したボディまたはコンストレイントからの割り当て / 割り当て解除を行うオプションが利用できるようになります。
+
+![](CurrentProfile.png)
+
+[REGION:simpletable]
+| オプション | 説明 | 
+| --- | --- |
+| **New** | プロパティを設定したプロファイルを新規作成し、ボディまたはコンストレイントに割り当てることができます。 |
+| **Delete** | **[Current Profile]** の選択肢に設定されると、カスタム プロファイルが取り除かれます。 |
+| **Assign** | 選択したボディまたはコンストレイントを **[Current Profile]** の選択肢に割り当てます。 |
+| **Unassign** | **[Current Profile]** の選択肢から選択したボディまたはコンストレイントの割り当てを解除します。 |
+[/REGION]
+
+**矢印** のドロップダウンをクリックすると、Current Profile のオプションがいくつか利用できます。
+
+![](CurrentProfileMenu.png)
+
+[REGION:simpletable]
+| オプション | 説明 | 
+| --- | --- |
+| **Duplicate** | 現在設定されているプロファイルをコピーします。 |
+| **Set Current Constraint Profile** | 現在作成されているプロファイルから、割り当て、割り当て解除、削除をするためにCurrent Profile として使用するものを 1 つ選びます。 |
+[/REGION]
+
+
+#### 現在のプロファイルへの割り当て
+
+プロファイルに割り当てたボディまたはコンストレイントの状況を確認できる場所がいくつかあります。
+
+* [Details] パネル
+* [グラフ](Engine/Physics/PhAT/Graph)
+
+**[Details]** パネルには、選択したボディに使用している **Current Profile** が一覧表示されます。プロファイルが割り当てられていない場合は **[None]** と表示されます。
+
+![](CurrentProfileAssignment.png)
+
+[REGION:imagetable]
+| ![](CurrentProfile_Name.png) | ![](CurrentProfile_None.png) |
+| --- | --- |
+| プロファイルが割り当てられていない場合 | 割り当てられたプロファイル |
+[/REGION]
+
+[グラフ](Engine/Physics/PhAT/Graph) には、選択したボディおよびコンストレイントが表示されます。ボディとコンストレイントは **Current Profile** として選択したプロファイルによって 
+網掛けになります。 
+
+![](Engine\Physics\PhAT\Graph\ProfileAssignment.png)
+
+例えば、グラフには選択したボディとコンストレイントが表示されます。 
+一方 [Profile] タブには **[MyPhysicalAnimation_Profile]** に設定した、グラフ中の 4 つのボディの 2 つに割り当てられている物理アニメーションの Current Profile を表示します。選択した Current Profile をノードに割り当てると、ノードは網掛けのない塗りつぶし色になります。 
+Current Profile が割り当てられていないノードは、網掛けになります。コンストレイントに対する Current Profile は **[None]** に設定されているため、表示されているコンストレイントはすべて塗りつぶしで表示されます。 
+
+
+[REGION:note]
+グラフのノードに関する詳細情報は、[コンストレイント グラフ](Engine/Physics/PhAT/Graph) を参照してください。
+[/REGION]
+
+
+
+#### 物理アニメーションのプロファイル
+
+ボディを選択し Physical Animation Profile に割り当てると、以下のオプションを使用することができます。
+
+![](PhysicalAnimationSettings.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Is Local Simulation** || 操作ターゲットがいるのはワールドかローカル空間か。 |
+| **Orientation Strength** || 方向エラーの修正に使用する強度です。 |
+| **Angular Velocity Strength** || 角速度エラーの修正に使用する強度です。 |
+| **Position Strength** || 線形位置エラーの修正の使用する強度です。ローカルではないシミュレーションのみに使用します。 |
+| **Velocity Strength** || 線形速度の修正に使用する強度です。ローカルではないシミュレーションのみに使用します。 |
+| **Max Linear Force** || 線形エラーの修正に使用する最大の力です。 |
+| **Max Angular Force** || 角エラーの修正に使用する最大の力です。 |
+[/REGION]
+
+#### コンストレイント プロファイル
+
+コンストレイントを選択し Constraints Profile に割り当てると、以下のオプションを使用することができます。  
+
+[REGION:lightbox]
+[![](ConstraintSettings.png)(h:500)](ConstraintSettings.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズの画像を表示 [/REGION]
+
+[REGION:note]
+詳細は、[コンストレイント リファレンス](Engine/Physics/Constraints/ConstraintsReference) をご覧ください。
+[/REGION]
+
+
+### サムネイル
+
+**コンテンツ ブラウザ** で物理アセットのサムネイル画像の表示の仕方を調整します。サムネイルのピッチ (上下動)、ヨー (左右回転)、ズームを調整することができます。 
+
+![](ThumbnailSettings.png)
+
+サムネイルのピッチ、ヨー、ズーム値を調整すると、**コンテンツ ブラウザ** のサムネイルにリアルタイムで反映されます。
+
+![](CB_Thumbnail.png)
+
+### 物理
+
+割り当てられたすべてのプロファイルに対して、以下のオプションが使用できます。
+
+![](PhysicsSettings.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Use Async Scene** || true の場合、物理アセットのボディは物理シーンに非同期になります。false の場合、物理シーンに同期されます。 |
+[/REGION]

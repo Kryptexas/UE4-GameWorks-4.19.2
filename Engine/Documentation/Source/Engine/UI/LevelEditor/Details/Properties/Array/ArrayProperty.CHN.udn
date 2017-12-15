@@ -27,7 +27,8 @@ Availability:Public
 | **Delete（删除）** | 删除当前元素。[INCLUDE:#ArrayDelete] |
 | **Duplicate（副本）** | 在当前元素后面向数组插入该元素的一个副本。[INCLUDE:#ArrayDuplicate] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ArrayInsert]
 [REGION:imagetable]
 | ![](array.png) | ![Array with inserted element](array_insert.png) |
@@ -51,4 +52,5 @@ Availability:Public
 | 复制元素之前 | 复制元素之后|
 [/REGION]
 [/EXCERPT:ArrayDuplicate]
--->
+
+[/COMMENT]

@@ -83,7 +83,8 @@ To learn how to use the gizmo, you can read about the [gizmo tool](Engine/Landsc
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#importexport]
 [EXCERPT:pastemode]
 | Selection | Description |
@@ -103,4 +104,5 @@ To learn how to use the gizmo, you can read about the [gizmo tool](Engine/Landsc
 | **Layer Name** | Set the name of the imported heightmap layer. |
 [/EXCERPT:importexport]
 
---->
+-
+[/COMMENT]

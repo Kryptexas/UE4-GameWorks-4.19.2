@@ -55,7 +55,8 @@ Version:4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PixelDepthNetworks]
 [REGION:lightbox]
 [![](PixelDepthNetwork.png)(w:570)](PixelDepthNetwork.png)
@@ -63,7 +64,8 @@ Version:4.9
 [/EXCERPT:PixelDepthNetworks]
 
 
--->
+
+[/COMMENT]
 
 これは、マテリアル ネットワークを床に適用した例です。床が 2048 ユニットを超えて薄まる際の、2 色間の線形補間のブレンディング方法にご注目ください。2 色間のコントラストを増すために Power 式が使用され、より意味のある視覚効果となっています。
 
@@ -87,7 +89,8 @@ Version:4.9
 | :---: | :---: |
 | 結果 | ネットワーク (クリックしてフルサイズ表示) |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SceneDepthNetwork]
 [REGION:lightbox]
 [![](SceneDepthNetwork.png)(w:488)](SceneDepthNetwork.png)
@@ -95,12 +98,14 @@ Version:4.9
 [/EXCERPT:SceneDepthNetwork]
 
 
--->
+
+[/COMMENT]
 
 
 この例では、マテリアルネットワークを半透明の球へ適用しています。球の表面のピクセルではなく、SceneDepth ノードによる球の裏側のピクセルの読み込み方にご注目ください。
 
-<!--- Commented out Per Martin M's suggestion with UEDOC-2671---
+[COMMENT:none]
+- Commented out Per Martin M's suggestion with UEDOC-2671---
 [REGION:note]
 **プログラマー:** SceneDepth は生の深度値を返します (0 から 2^24-1 までの整数)。この非線形深度は以下のようにノーマライズされています。
       
@@ -108,7 +113,8 @@ Version:4.9
 	NormalizedDepth = 1 - MaxZ / (SceneDepth + MaxZ)
 
 [/REGION]
---->
+-
+[/COMMENT]
 結果としてノーマライズされた深度は、0.0 と 1.0 の範囲の線形です。
 
 [/REGION]

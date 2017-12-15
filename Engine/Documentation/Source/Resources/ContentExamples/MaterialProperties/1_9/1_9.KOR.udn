@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.9 - 오파시티 마스크 클립 값
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -16,62 +16,7 @@ Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
 Version: 4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/MaterialProperties/1_8 "%Resources/ContentExamples/MaterialProperties/1_8:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[콘텐츠 예제 홈](Resources/ContentExamples)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/MaterialProperties/1_10 "%Resources/ContentExamples/MaterialProperties/1_10:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties/1_9:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties/1_9:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties/1_9:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_9]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties/1_9:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties/1_9:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties/1_9:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_9]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 ![](MP_1_9_001.png)

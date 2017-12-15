@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:3590438
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs:%ROOT%
 Title: 클로딩 툴 프로퍼티 참고서
 Description: 클로딩 툴에서 사용할 수 있는 프로퍼티 참고서입니다.
 Type:reference
 Version:4.17
-Parent:Engine/Physics/Cloth
-Related:Engine/Physics/Cloth/Overview
+Parent:Engine/Physics/Cloth/Overview
 Order:2
 Tags:Physics
 Tags:Cloth
@@ -47,7 +46,8 @@ Tags:Cloth
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:createclothsection]
 ![](CreateClothSection.png)(w:350)
@@ -58,10 +58,17 @@ Tags:Cloth
 | [REGION:tablesection] Collision 콜리전 [/REGION] |||
 | **Physics Asset** || 피직스 애셋 - 콜리전을 추출해 낼 피직스 애셋입니다. 이 옵션은 구체 및 캡슐(Sphyll)을 익스포트하지만, 최대 32 볼록 면( 또는 5 박스)까지 지원합니다. |
 || %spacer4% |||
-<!---| [REGION:tablesection] Auto Fix 자동 픽스 [/REGION] |||--->
-<!---| **Try Auto Fix** ||  |--->
-<!---| **Auto Fix Threshold** ||  |--->
-<!---| **Simulated Particle Max Distance** ||  |--->
+<!---| [REGION:tablesection] Auto Fix [/REGION] |||-
+[/COMMENT]
+[COMMENT:none]
+-| **Try Auto Fix** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Auto Fix Threshold** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Simulated Particle Max Distance** ||  |-
+[/COMMENT]
 [/EXCERPT:createclothsection]
 
 [EXCERPT:createclothsectionLOD]
@@ -123,7 +130,8 @@ Tags:Cloth
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#masksettings]
 
 [EXCERPT:masksettings]
@@ -141,7 +149,8 @@ Tags:Cloth
 | **Apply** || 적용 - 마스크를 피지컬 메시에 적용합니다. |
 [/EXCERPT:masksettings]
 
---->
+-
+[/COMMENT]
 
 
 ### 환경설정
@@ -183,7 +192,8 @@ Tags:Cloth
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#constraintgconfig]
 
 [EXCERPT:constraintgconfig]
@@ -197,7 +207,8 @@ Tags:Cloth
 [EXCERPT:windmethod]
 | --- | --- | --- |
 | **Legacy** || 레거시 - 레거시 바람 모드를 사용합니다. 가속도가 항력이나 양력에 상관 없이 시뮬레이션에 바로 영향받습니다. |
-<!--- | **Accurate** ||  | --->
+<!--- | **Accurate** ||  | -
+[/COMMENT]
 [/EXCERPT:windmethod]
 
 --->

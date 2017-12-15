@@ -10,44 +10,8 @@ version: 4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Components
 tags:Blueprints
+topic-image:Engine/Blueprints/UserGuide/Components/componentslist_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Components:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Components:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Components:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Components:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2 end:2)]
 

@@ -7,42 +7,11 @@ Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 Related: Resources/Showcases/Stylized
 Version: 4.9
+topic-image:postprocessing_compact.png
 
 [REGION:banner]
 ![](PostProcessing_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing:title%](postprocessing_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PostProcessing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing:title%](postprocessing_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 The Content Examples provided in the **PostProcessing** map illustrate how to add screen effects inside and outside of a Post Processing Volume. By adjusting the properties of a Post Processing Volume you can achieve effects like lens flares, screen tinting or blurring and many others as well as define how volumes interact with one another or a player. 

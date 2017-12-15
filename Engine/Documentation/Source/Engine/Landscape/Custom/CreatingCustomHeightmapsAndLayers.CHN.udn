@@ -16,8 +16,10 @@ Description:在您的地貌中创建和使用自定义高度图和图层。
 ## 图层
 
 地貌图层是特殊贴图，可以帮助细分地貌的外观和感觉。 
-<!--Each Landscape Layer can be thought of 
--->
+[COMMENT:none]
+Each Landscape Layer can be thought of 
+
+[/COMMENT]
 ### 图层格式
 如需正确导入外部程序中创建的地貌图层，此图像应符合以下要求。 
 * 灰度，每像素8位，单通道文件。
@@ -26,7 +28,8 @@ Description:在您的地貌中创建和使用自定义高度图和图层。
 如果您正在Photoshop中创建图层，您应该在创建文档时使用以下设置。 
 ![](Photoshop_Layer_Example.png)
 
-<!--
+[COMMENT:none]
+
 ### Landscape Size vs. Layer Size
 
 The following chart shows the relation between Landscape height map size and Landscape layer size. It is very important that you make sure that you Landscape layer is the correct size. If the layer size is wrong it will not import into UE4.
@@ -46,7 +49,8 @@ The following chart shows the relation between Landscape height map size and Lan
 If your layers are not output at the correct size you will receive the following warning.  
 
 ![](Landscape_Layer_Import_Error.png)
--->
+
+[/COMMENT]
 
 
 ### 图层导入 

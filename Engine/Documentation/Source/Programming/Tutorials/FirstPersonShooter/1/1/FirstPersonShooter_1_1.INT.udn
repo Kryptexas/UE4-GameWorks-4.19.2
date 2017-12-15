@@ -20,7 +20,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to create a starting point for our First Person Shooter (FPS) game by using Unreal Engine 4's Project Browser.
 
@@ -74,4 +74,3 @@ During this step, we're going to create a starting point for our First Person Sh
 
 1.	Finally, close the **Project Settings** menu and save your project before moving onto the next step.
 
-%Steps%

@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 For this step you'll be creating a much more involved Environment Query. It's going to create a grid of points, projected onto the NavMesh, then run a series of tests to figure out the best place to hide. Some of the tests will simply cull out completely unsatisfactory locations, such as those that are visible to the Player's Character (Trace), others will weight the potential hiding spots based on if they are reachable on the NavMesh (PathFinding) or how much a point is in front of the Player's Character (Dot Product).
 
@@ -102,11 +102,12 @@ Just a quick reminder:
 
 	![](final.png)
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:eqsqs125]
 * **Line A - Rotation** = PlayerContext
 * **Line B - Line From** = PlayerContext
@@ -133,4 +134,5 @@ Just a quick reminder:
 * **Scoring Equation** = Inverse Linear
 * **Scoring Factor** = 2.0
 [/EXCERPT]
--->
+
+[/COMMENT]

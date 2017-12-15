@@ -13,14 +13,10 @@ Version:4.9
 
 请在下列各节中查看详细信息，并在 **内容范例** 项目中 **Paper 2D** 映射中查看更多范例： 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/project_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	Paper 2D 主题
-	[/PARAM]
-	[PARAM:links]
+## Paper 2D 主题
+
+[REGION:buttonlist]
+
 		* [](Engine/Paper2D/Sprites "%Engine/Paper2D/Sprites:description%")
 			* [](Engine/Paper2D/Sprites/Editor "%Engine/Paper2D/Sprites/Editor:description%")
 			* [](Engine/Paper2D/Sprites/RenderGeometry "%Engine/Paper2D/Sprites/RenderGeometry:description%")
@@ -33,8 +29,8 @@ Version:4.9
 		* [](Engine\Paper2D\Importing"%Engine\Paper2D\Importing:description%")
 		* [](Resources/ContentExamples/Paper2D "%Resources/ContentExamples/Paper2D:description%")
 		* [Paper 2D 视频教程](https://docs.unrealengine.com/latest/INT/Videos/index.html?category=2D)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

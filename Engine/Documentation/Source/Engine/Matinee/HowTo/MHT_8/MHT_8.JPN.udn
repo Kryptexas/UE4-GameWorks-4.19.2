@@ -11,14 +11,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Matinee アクタとプロップを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Matinee アクタ** とシーンで使用するアセットを追加します。
-	[/PARAM]
-[/OBJECT]
+## Matinee アクタとプロップを追加する
+
+この手順では、**Matinee アクタ** とシーンで使用するアセットを追加します。
 
 1. **ツールバー** メニューから **[マチネ]** を選択し、**[Add Matinee (マチネ追加)]** ボタンをクリックします。 
 
@@ -96,14 +91,9 @@ SkillLevel:Intermediate
 
 	_マチネでアクタの可視性と、デフォルトで非表示になっているものを制御します。_
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネにアセットを追加し、トラックを設定する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、すべてのアセットを **マチネ** に追加し、シーケンスを操作するために使用するトラックを定義します。 
-	[/PARAM]
-[/OBJECT]
+## マチネにアセットを追加し、トラックを設定する
+
+この手順では、すべてのアセットを **マチネ** に追加し、シーケンスを操作するために使用するトラックを定義します。
 
 1. **ワールド アウトライナー** またはビューポートからマチネを選択し、[詳細] パネルで **[Open Matinee]** を選択し、開いたら最小化します。 
 
@@ -154,14 +144,9 @@ SkillLevel:Intermediate
 	![](MHT8_MatineeFinished.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Matinee アクタをブループリントで使用する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Explode** eventが **マチネ** シーケンスで呼び出されたときにイベントをトリガーし、**マチネ** 終了時にパーティクル エフェクトをアクティベートします。
-	[/PARAM]
-[/OBJECT]
+## Matinee アクタをブループリントで使用する
+
+この手順では、**Explode** eventが **マチネ** シーケンスで呼び出されたときにイベントをトリガーし、**マチネ** 終了時にパーティクル エフェクトをアクティベートします。
 
 1.	レベル ビューポートまたは **ワールド アウトライナー** で **Matinee アクタ** を選択します。次に、メイン ツールバーから **ブループリント** ボタンをクリックし、**[Open Level Blueprint]** を選択します。 
 

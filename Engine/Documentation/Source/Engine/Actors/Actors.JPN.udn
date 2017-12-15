@@ -15,8 +15,10 @@ track:LevelDesign_Beginner|7
 ![](actorBanner.png)
 [/REGION]
 
-<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**Static Mesh アクタ** が得られます。
--->
+[COMMENT:none]
+ 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**Static Mesh アクタ** が得られます。
+
+[/COMMENT]
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 

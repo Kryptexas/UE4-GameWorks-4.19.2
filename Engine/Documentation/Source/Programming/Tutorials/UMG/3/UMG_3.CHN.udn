@@ -19,7 +19,7 @@ Description:创建菜单蓝图以将其作为菜单屏幕显示内容来使用�
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 在 **Unreal Editor（虚幻编辑器）** 中，我们可以按下 **Compile（编译）** 按钮来编译新代码。 这样我们就可以把 **User Widgets（用户控件）** 来作为菜单使用。
@@ -176,4 +176,4 @@ Description:创建菜单蓝图以将其作为菜单屏幕显示内容来使用�
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

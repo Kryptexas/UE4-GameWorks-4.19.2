@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3474032
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs: %ROOT%
 Title:씬 프린지 (Scene Fringe)
@@ -33,7 +33,8 @@ Topic-image:SceneFringe_topic.png
 | **Fringe Intensity** | 프린지 강도 - 색 변환 정도를 조절하는 스케일 인수입니다. [INCLUDE:#Intensity] |
 | **Fringe Saturation** | 프린지 채도 - 변환된 색의 채도를 조절하는 스케일 인수입니다. 값이 낮을 수록 결과물이 무뎌지고, 높을 수록 색 변환이 훨씬 도드라집니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:240) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:240) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:240)
@@ -41,4 +42,5 @@ Topic-image:SceneFringe_topic.png
 | 0.0 | 1.0 | 5.0 |
 [/REGION]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

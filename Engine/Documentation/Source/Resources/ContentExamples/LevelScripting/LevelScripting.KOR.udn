@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:레벨 스크립팅
 Crumbs:%ROOT%, Resources
 Description:레벨 스크립팅 예제 레벨 개요입니다.
 Version: 4.9
+topic-image:level_scripting_topic.png
 
 [REGION:banner]
 ![](level_scripting_header.png)(convert:false)
@@ -11,41 +12,7 @@ Version: 4.9
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelScripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelScripting:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelScripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelScripting:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!--Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]-->
-
-**Level Scripting** (레벨 스크립팅) 예제 레벨에 오신 것을 환영합니다!
+Welcome to the **Level Scripting** example level!
 
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
@@ -56,14 +23,12 @@ Version: 4.9
 
 ## 예제
 
-[REGION:topics fourth]
 %Resources/ContentExamples/LevelScripting/1_1:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_2:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_3:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_4:TopicCompact%
-[/REGION]
-
 
 ## 관련 글타래 및 추가 참고자료
+
 * [](Engine/Blueprints)
 * [](Engine/Matinee)

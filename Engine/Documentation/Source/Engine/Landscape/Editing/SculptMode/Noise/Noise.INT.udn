@@ -73,7 +73,8 @@ In this example, Noise has been painted onto the smooth Landscape surface giving
 
 The brush strength determines the amount of raising or lowering that can happen when using the Noise tool.
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:noise]
 |Selection | Description |
@@ -84,4 +85,5 @@ The brush strength determines the amount of raising or lowering that can happen 
 [/EXCERPT:noise]
 
 
---->
+-
+[/COMMENT]

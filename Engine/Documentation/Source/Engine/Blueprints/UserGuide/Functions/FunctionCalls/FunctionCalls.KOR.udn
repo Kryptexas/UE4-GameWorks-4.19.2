@@ -1,51 +1,12 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:펑션 콜
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 타겟 액터나 오브젝트의 코드 정의 함수와 사용자 정의 함수 둘 다를 실행하는 노드입니다.
-Related: Engine\Blueprints\UserGuide\Functions
+Related: Engine/Blueprints/UserGuide/Functions
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%](Engine\Blueprints\UserGuide\Functions.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions\FunctionCalls]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%](Engine\Blueprints\UserGuide\Functions.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions\FunctionCalls]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
+topic-image:Engine/Blueprints/UserGuide/Functions.png
 
 [EXCERPT:Intro]
 **Function Call** 이란 블루프린트 안에서 가능한 동작들로, 타겟 액터나 오브젝트가 속하는 함수에 

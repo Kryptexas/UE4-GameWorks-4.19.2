@@ -8,25 +8,6 @@ related: Engine/Animation/Persona/Modes/Skeleton
 related: Engine/Animation/Skeleton
 related: Engine/Animation/Persona/AssetEditor
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/AnimationNotifies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/AnimationNotifies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/AnimationNotifies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![Animation Notifies Window](AnimationNotifies.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.5 - 앰비언트 큐브맵
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
@@ -8,63 +8,8 @@ Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 Version: 4.9
+topic-image:Resources/ContentExamples/PostProcessing/PP_5.png
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/PostProcessing/1_4 "%Resources/ContentExamples/PostProcessing/1_4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[포스트 프로세싱 홈](Resources/ContentExamples/PostProcessing)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/PostProcessing/1_6 "%Resources/ContentExamples/PostProcessing/1_6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing/1_5:title%](Resources/ContentExamples/PostProcessing/PP_5.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PostProcessing/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing/1_5:title%](Resources/ContentExamples/PostProcessing/PP_5.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PostProcessing/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 ![](1_5_01.png)

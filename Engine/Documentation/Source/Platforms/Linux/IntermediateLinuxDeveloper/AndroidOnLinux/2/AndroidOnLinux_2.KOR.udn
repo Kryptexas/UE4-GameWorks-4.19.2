@@ -3,7 +3,7 @@ Availability: Public
 Title: 2 - Setting up your Android Device
 Crumbs:%ROOT%
 Description:Learn how to enable an Android's development environment.
-Version: 4.14
+Version: 4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order: 2

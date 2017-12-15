@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 제동
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -53,7 +53,8 @@ _두 개의 각형 스윙 모션은 제동값을 공유하며, 각형 트위스�
 
 또는 피직스 컨스트레인트에서 볼 수 있는 프로퍼티 관련해서는 [](Engine/Physics\Constraints\ConstraintsReference) 문서를 참고하세요.
 
-<!--
+[COMMENT:none]
+
 ## PhysicalMaterial Damping
 This can be thought of like the air resistance that is applied to a body. A force is applied to a body to try and slow it down, and the strength of the force is proportional to the 
 speed that the object is moving. There is a separate setting for linear and angular damping, so you can control how much it will try and resist translation and rotation movement. 
@@ -80,7 +81,8 @@ Sometimes you want to apply damping or a force to objects only in a certain area
 PhysicsVolume is the desired velocity that objects in that volume should achieve. You can think of this as the speed of a river or wind-tunnel in that area. You can then modify 
 the RigidBodyDamping property to control how strongly a physics body will try and achieve that velocity when in the volume. Setting a zero ZoneVelocity and a high RigidBodyDamping 
 can make the volume act like jelly. Setting a horizontal ZoneVelocity and a moderate RigidBodyDamping can make it act like a flowing river of water.
--->
+
+[/COMMENT]
  
 
 

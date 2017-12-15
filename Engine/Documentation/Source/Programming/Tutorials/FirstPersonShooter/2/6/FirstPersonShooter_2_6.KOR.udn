@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.6 - 캐릭터에 메시 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 다음 링크에서 샘플 메시를 다운로드한 뒤 압축을풀어주세요:
@@ -93,4 +93,3 @@ Version: 4.15
 
 1.	Esc 키를 치거나 레벨 에디터의 **중지** 버튼을 눌러 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-%Steps%

@@ -58,7 +58,7 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 1. From the **Project Settings** menu, go to the **Platforms** section and click on the **Android** section.
 
 	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)(w:639 h:385)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)
+	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)(w:639)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -68,7 +68,7 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 1. Now in the **APKPackaging** section, set the **Minimum SDK** and **Target SDK** version to **21**.
 
 	[REGION:lightbox]
-	[![](OGL3_04.png)(w:639 h:385)](OGL3_04.png)
+	[![](OGL3_04.png)(w:639)](OGL3_04.png)
 	[/REGION]
 
 	[REGION:caption]

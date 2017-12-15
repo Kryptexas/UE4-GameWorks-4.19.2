@@ -28,16 +28,10 @@ _上图是该部分完成后的效果。_
 * 更改摄像机视图
 * 为角色添加第一人称模型
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming/Tutorials/FirstPersonShooter/2/1"%Programming/Tutorials/FirstPersonShooter/2/1:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/2/2"%Programming/Tutorials/FirstPersonShooter/2/2:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/2/3"%Programming/Tutorials/FirstPersonShooter/2/3:description%")
@@ -46,5 +40,5 @@ _上图是该部分完成后的效果。_
 	* [](Programming/Tutorials/FirstPersonShooter/2/6"%Programming/Tutorials/FirstPersonShooter/2/6:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/2/7"%Programming/Tutorials/FirstPersonShooter/2/7:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/2/8"%Programming/Tutorials/FirstPersonShooter/2/8:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

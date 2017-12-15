@@ -7,52 +7,10 @@ related:Platforms/Mobile
 related:Engine/Paper2D
 related:Engine/UMG
 related:Engine/Blueprints/TechnicalGuide
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:unrealmatch3_topic.png
 
 ![](match3_banner.png)(convert:false)
 
-<!--
-[OBJECT:SampleDownload]
-	[PARAMLITERAL:url]
-	[/PARAMLITERAL]
-	[PARAMLITERAL:title]
-	Unreal Match 3 Game
-	[/PARAMLITERAL]
-[/OBJECT]
--->
 
 The **Unreal Match 3** sample game was created to showcase the versatility and flexibility of Unreal Engine 4 (UE4). 
 Unreal Match 3 will show UE4 developers how to create a mobile game that is targeted towards mid to lower end smart 
@@ -142,29 +100,3 @@ While the Unreal Match 3 project utilizes many different tools within the UE4 to
 	[/PARAMLITERAL]
 [/OBJECT]
 [/REGION]
-
-<!--
-## Using C++ and Blueprints together in a project
-
-
-## How to setup and use UMG for the  Menu System
-
-
-## How to set up In App Purchase
-
-
-## How to set up Ads for iOS and Android
-
-
-## How to setup Achievements for iOS and Android
-
-
-## How to setup a High score system
-
-
-## How to reduce your projects shipping size
-
-
-## Getting your project on both iOS App Store and Google Play
-
--->

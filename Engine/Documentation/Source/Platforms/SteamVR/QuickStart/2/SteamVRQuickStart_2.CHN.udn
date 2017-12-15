@@ -21,7 +21,7 @@ Platform:SteamVR
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 此章节讲述如何设置可在 SteamVR 上使用的虚幻引擎 4（UE4）项目。
 
@@ -95,5 +95,5 @@ Platform:SteamVR
 您可感受到在虚拟世界中站立的地面和真实世界中的地面相匹配。
 
 
-%Steps%
+
 

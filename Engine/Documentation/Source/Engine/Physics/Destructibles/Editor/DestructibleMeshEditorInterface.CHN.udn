@@ -21,7 +21,9 @@ The **Destructible Mesh Editor** consists of six areas:
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
-<!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
+[COMMENT:none]
+ For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). 
+[/COMMENT]
 
 ## Menu Bar
 

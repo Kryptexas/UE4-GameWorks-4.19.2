@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429234
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 오디오 & 사운드
 Crumbs: %ROOT%, Engine
@@ -23,7 +23,7 @@ topic-image:audio_topic.png
 
 ## 시작하기
 
-[DIR(output:"role" parent:Engine/Audio" type:"!reference" type:"!how-to" org:"hierarchy" end:"1")]
+[DIR(output:"role" parent:Engine/Audio" type:"landing,overview,quick start" org:"hierarchy" end:"1")]
 
 ## 참고서
 

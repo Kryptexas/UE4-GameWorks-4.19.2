@@ -4,7 +4,7 @@ Title: AnimGraph Pose Nodes
 Description:Describes how Pose Assets, Animation Blueprints, and Pose Nodes can be used to play curve driven animation at runtime.
 Type: Reference
 Version: 4.16
-Parent: Engine/Animation
+Parent: Engine/Animation/AnimPose
 Order: 1
 topic-image:PoseNodeTopic.png
 Related: Engine\Animation\AnimHowTo\CreatePoseAsset
@@ -16,7 +16,8 @@ Tags:Animation
 Tags:Animation Blueprint
 Tags:Animation Blending
 
-<!-- Page refactored and split off into two pages, no longer needed
+[COMMENT:none]
+ Page refactored and split off into two pages, no longer needed
 
 [TOC (start:2 end:2)]
 
@@ -125,7 +126,8 @@ On the **Pose Driver** node itself, you have the following options:
 | **Type** | [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] | 
 | **Twist Axis** | The axis to use when **Type** is set to **SwingOnly** (X, Y or Z). | 
 
-<!--
+[COMMENT]
+
 [EXCERPT:typetable]
 | Option | Description |
 | ----------- |------|
@@ -133,7 +135,8 @@ On the **Pose Driver** node itself, you have the following options:
 | **Swing Only** | Consider only swing for interpolation. | 
 | **Translation** | Consider translation relative to parent. | 
 [/EXCERPT:typetable]
--->
+
+[/COMMENT]
 
 For additional information see the Unreal Engine Live Stream on Animation Topics which include a **Pose Driver** example:
 
@@ -156,7 +159,8 @@ For additional information see the Unreal Engine Live Stream on Animation Topics
 [/OBJECT]
  
 
- -->
+ 
+[/COMMENT]
 
 
 

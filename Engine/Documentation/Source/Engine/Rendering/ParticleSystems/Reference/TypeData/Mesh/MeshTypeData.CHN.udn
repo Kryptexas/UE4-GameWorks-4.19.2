@@ -32,7 +32,8 @@ Description:在多边形网格物体代替粒子使用的位置，网格物体�
 |**Apply Particle Rotation As Spin**（应用粒子旋转为旋转值）|如果该项为TRUE，那么'平面粒子'的旋转量将会被应用到与方向坐标轴有关的网格物体上（网格物体指向的方向）。 否则，'平面粒子'旋转值将被应用到相机面向坐标轴的网格物体上。|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AxisLockOption]
 [REGION:simpletable]
 |**选项**|**描述**|
@@ -87,4 +88,5 @@ Description:在多边形网格物体代替粒子使用的位置，网格物体�
 | _PSMA_MeshFaceCameraWithLockedAxis_ |面向相机并保持向上的向量以作为锁定的方向。|
 [/REGION]
 [/EXCERPT:MeshAlignmentOption]
--->
+
+[/COMMENT]

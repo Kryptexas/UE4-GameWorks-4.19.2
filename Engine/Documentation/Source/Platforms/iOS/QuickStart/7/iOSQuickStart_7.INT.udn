@@ -2,37 +2,164 @@ Title:7. Test Your Map on a Device
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:Launch a map from Unreal Editor to your iOS device for testing.
 Availability:Public
-Version: 4.9
-SkillLevel: Intermediate
-
+Version:4.18
+SkillLevel:Intermediate
+Checkpoint:iOSQS
+order:7
 
 [VAR:Steps]
 [OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/iOS/QuickStart/6 "%Platforms/iOS/QuickStart/6:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/iOS/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/iOS/QuickStart/8 "%Platforms/iOS/QuickStart/8:title%")
-	[/PARAM]
+    [PARAM:previous]
+        [Previous Step](Platforms/iOS/QuickStart/6 "%Platforms/iOS/QuickStart/6:title%")
+    [/PARAM]
+    [PARAM:current]
+    [/PARAM]
+    [PARAM:home]
+        [Quick Start Home](Platforms/iOS/QuickStart)
+    [/PARAM]
+    [PARAM:next]
+        [Next Step](Platforms/iOS/QuickStart/8 "%Platforms/iOS/QuickStart/8:title%")
+    [/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    %windows%
+    [/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    %macos%
+    [/PARAM]
+[/OBJECT]
+
+
+
+[VAR:windows]
+
 
 %Globals:OSSelect%
+## Steps
+
+This section we will go over importing your mobile provision so that you can build and deploy UE4 projects to iOS devices.
+
+1. First, make sure to connect your iOS device to your computer via a USB cable if it is not already connected.
+
+1. Next, open your project in Unreal Editor.
+
+    ![](open_project.png)(w:640)
+
+1. Open up your project settings by going to **Edit** > **Project Settings**.
+    
+	![](Platforms\iOS\QuickStart\6\Provision_01.png)
+
+1. Then under **Platforms** > **iOS** in the **Mobile Provision** section, press the **Import Provision** button to import your provision and then do the same for the **Import Certificate**. 
+
+	![](Platforms\iOS\QuickStart\6\Provision_02.png)
+
+1. If things have been setup and imported correctly, you should see the word **Valid** in the **Status**. 
+
+	![](Platforms\iOS\QuickStart\6\Provision_03.png)
+
+	[region:note]
+	If you are having issues with the Mobile Provisions check out the official [Apple Help](https://developer.apple.com/library/content/documentation/IDEs/Conceptual/AppDistributionGuide/Troubleshooting/Troubleshooting.html)for more troubleshooting information. 
+	[/region]
+
+1. In the toolbar, click the arrow next to **Launch** to open the **Launch Options** menu and select the iOS device.
+
+    [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    ![](launch_ios.png)
+    [/PARAM]
+    [/OBJECT]
+
+    [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    ![](launch_ios_Mac.png)
+    [/PARAM]
+    [/OBJECT]
+
+1. The current map is cooked and packaged and installed on your device.
+
+    ![](project_cooking.png)  
+    ![](project_packaging.png)  
+    ![](project_deploying.png)
+
+1. A message is displayed when the game is successfully installed to your device.
+
+    ![](project_success.png)
+
+## End Result
+
+When completed, locate the app on your iOS device and open it up. Once opened, you should see something similar to the following image on your iOS device.
+
+![](game_device.png)
+
+[/VAR]
+
+[VAR:macos]
 
 
+%Globals:OSSelect%
+## Steps
 
-1. Connect your device to your computer if it is not already connected.
+This section we will go over importing your mobile provision so that you can build and deploy UE4 projects to iOS devices.
 
-1. Open your project in Unreal Editor.
+1. First, make sure to connect your iOS device to your computer via a USB cable if it is not already connected.
+
+1. Next, open your project in Unreal Editor.
 
 	![](open_project.png)(w:640)
+
+1. Open up your project settings by going to **Edit** > **Project Settings**.
+    
+	![](Platforms\iOS\QuickStart\6\Provision_01.png)
+
+1. Then under **Platforms** > **iOS** in the **Mobile Provision** section, press the **Import Provision** button to import your provision. You only need to import a **Certificate** if you are using one from a different project or machine. 
+
+	![](Platforms\iOS\QuickStart\6\Provision_02.png)
+
+1. If things have been setup and imported correctly, you should see the word **Valid** in the **Status**. 
+
+	![](Platforms\iOS\QuickStart\6\Provision_03.png)
+
+	[region:note]
+	If you are having issues with the Mobile Provisions check out the offical [Apple Help](https://developer.apple.com/library/content/documentation/IDEs/Conceptual/AppDistributionGuide/Troubleshooting/Troubleshooting.html)for more troubleshooting information. 
+	[/region]
 
 1. In the toolbar, click the arrow next to **Launch** to open the **Launch Options** menu and select the iOS device.
 
@@ -64,57 +191,22 @@ SkillLevel: Intermediate
 	[/PARAM]
 	[/OBJECT]
 
-
 1. The current map is cooked and packaged and installed on your device.
 
 	![](project_cooking.png)  
 	![](project_packaging.png)  
 	![](project_deploying.png)
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%windows%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%macos%
-	[/PARAM]
-[/OBJECT]
+1. A message is displayed when the game is successfully installed to your device.
 
+	![](project_success.png)
 
-<!--
-[VAR:windows]
-5\. A message is displayed when the game is successfully installed to your device.
+## End Result
 
-![](project_success.png)
-
-6\. Launch the app that is installed on your device to test the game.
+When completed, locate the app on your iOS device and open it up. Once opened, you should see something similar to the following image on your iOS device.
 
 ![](game_device.png)
 
 [/VAR]
 
-[VAR:macos]
 
-[/VAR]
--->
-
-%Steps%

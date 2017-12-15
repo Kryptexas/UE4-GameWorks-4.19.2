@@ -91,10 +91,12 @@ Panner は Time の入力値によって変化する UV を生成します。Coo
 
 **ScreenPosition** 表現式は、現在レンダリング中のピクセルのスクリーン空間位置を出力します。  
 
-<!--| アイテム | 説明|
+[COMMENT:none]
+| アイテム | 説明|
 | -------- | ----------- |
 | [REGION:tablesection]プロパティ[/REGION] ||
-| **Screen Align** | True の場合、ScreenPosition が位置を同次座標で割り、スクリーンアライメント用に位置を[0,0] - [1,1] へマップ付します。 |-->
+| **Screen Align** | True の場合、ScreenPosition が位置を同次座標で割り、スクリーンアライメント用に位置を[0,0] - [1,1] へマップ付します。 |
+[/COMMENT]
 
 [REGION:fullwidth]
 ![ScreenPositionExample.png](ScreenPositionExample.png)

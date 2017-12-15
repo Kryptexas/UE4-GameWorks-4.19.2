@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:VR 일람표
 Crumbs:%ROOT%, Platforms, Platforms/VR
 Description:VR 개발시 간단히 참고할 수 있는 팁과 정보입니다.
 Navigation:platform
-Version: 4.9
+Version: 4.17
 parent:Platforms/VR
 type:overview
 
 [TOC(start:2)]
 
-<!--
+[COMMENT:none]
+
 ## 키보드 단축키
 
 | 단축키 | 설명 |
@@ -18,7 +19,8 @@ type:overview
 | **Control+R** | 게임플레이 도중 뷰를 리셋시킵니다. 헤드셋을 차기 전 게임을 실행했을 경우, 게임플레이를 시작할 때 바로 도움이 됩니다. |
 | **Alt+Enter** | VR 모드를 토글합니다. 독립형 게임 프리뷰 창을 전체화면 및 스테레오 모드로 만들어, 게임 디스플레이를 헤드셋으로 전송합니다. |
 
--->
+
+[/COMMENT]
 
 ## VR 게임 실행
 언리얼 엔진 4 (UE4) 는 이제 가상현실(VR) 프로젝트를 필요에 따라 실행시킬 수 있는 여러가지 방법을 제공합니다.
@@ -56,17 +58,10 @@ UE4 는 VR 디바이스 사용시 겪을 수 있는 문제 디버깅에 도움�
 | 명령 | 설명 |
 | ------- | ----------- |
 | `Stereo On/Off` | Head Mounted Display (HMD) 디바이스에 대한 스테레오 렌더링을 켜거나 끕니다. |
-| `r.screenpercentage [30-300]` | 화면 백분율을 설정합니다. 수치가 크면 퀄리티가, 낮으면 퍼포먼스가 좋아집니다. |
+| `vr.PixelDensity` | VR 패널 화면 해상도를 설정합니다. 수치가 크면 퀄리티가, 낮으면 퍼포먼스가 좋아집니다. |
 
-### 오큘러스 전용 명령
-| 명령 | 설명 |
-| ------- | ----------- |
-| `Stereo Show` | 세팅 목록을 로그에 출력합니다. |
-| `Stereo Reset` | Inter-Pupillary Distance (IPD) 리셋 및 IPD 와 Stereo 오버라이드를 비웁니다. |
-| `HMD [Enable/Disable]` | HMD 디바이스를 켜거나 끕니다. |
-| `HMD sp [30-300]` | 화면 백분율을 설정합니다. 수치가 높을수록 퀄리티는 높아지고, 낮을 수록 퍼포먼스가 높아집니다. |
-| `HMD Vsync [On|Off|Reset]` | VR 디바이스의 Vsync 를 제어 또는 리셋합니다. |
-| `Ovrversion` | LibOVR 버전 및 빌드 날짜를 로그에 출력합니다. |
+
+
 
 
 

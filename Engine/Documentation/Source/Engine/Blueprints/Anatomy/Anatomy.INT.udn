@@ -6,45 +6,8 @@ version: 4.9
 parent:Engine/Blueprints
 order:3
 tags:Blueprints
+topic-image:Anatomy.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Anatomy:title%](Anatomy.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Anatomy:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Anatomy:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Anatomy]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Anatomy:title%](Anatomy.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Anatomy:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Anatomy:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Anatomy]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 ## Blueprint Classes
@@ -78,19 +41,11 @@ For more on the key differences between _Functions_ and _Macros_, see the [Bluep
 
 You can also collapse sections of your _Graph_ into nested _Graphs_ for organization. 
 
-[OBJECT:TopicButtonList]
-[PARAM:links]
+[REGION:buttonlist]
 * [](Engine/Blueprints/UserGuide/Functions "%Engine/Blueprints/UserGuide/Functions:description%")
 * [](Engine/Blueprints/UserGuide/Functions/FunctionCalls "%Engine/Blueprints/UserGuide/Functions/FunctionCalls:description%")
 * [](Engine/Blueprints/BP_HowTo/MakingFunctions "%Engine/Blueprints/BP_HowTo/MakingFunctions:description%")
 * [](Engine/Blueprints/UserGuide/Macros "%Engine/Blueprints/UserGuide/Macros:description%")
 * [](Engine/Blueprints/BP_HowTo/MakingMacros "%Engine/Blueprints/BP_HowTo/MakingMacros:description%")
 * [](Engine/Blueprints/BP_HowTo/CollapsingGraphs "%Engine/Blueprints/BP_HowTo/CollapsingGraphs:description%")
-[/PARAM]
-[/OBJECT]
-
-
-<!--
-	Data Only Blueprints
-	Child Blueprints
--->
+[/REGION]

@@ -124,7 +124,9 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
     [refepiclogo]:Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
 	段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT:none]
+ clear float 
+[/COMMENT]
 	[/REGION]    
 
 #### HTML 出力
@@ -132,7 +134,9 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 	<p>幅、高さ、左をフローとにしたリファレンス イメージ <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> です。</p>
 	<p>段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。</p>
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT:none]
+ clear float 
+[/COMMENT]
 	[/REGION]
     
 #### 結果
@@ -145,7 +149,9 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。
 
 [REGION:clear]
-	<!-- clear float -->
+	[COMMENT:none]
+ clear float 
+[/COMMENT]
 [/REGION]
 
 ### テーブル

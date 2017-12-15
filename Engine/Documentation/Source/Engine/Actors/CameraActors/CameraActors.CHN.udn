@@ -32,16 +32,12 @@ Rt_L_KI4G3U
 
 “摄像机 Actor” 的使用方法极其简单：在 **Modes（模式）** 面板中选定，然后将其拖入世界场景。将摄像机 Actor 放置进世界场景后，即可结合蓝图或 Matinee 作为关卡的视点使用。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		相关页面
-	[/PARAM]
-	[PARAM:links]
+## 相关页面
+
+[REGION:buttonlist]
+
 		* [使用摄像机](Gameplay/HowTo/UsingCameras "%Gameplay/HowTo/UsingCameras%")
 		* [在蓝图中使用摄像机](Gameplay/HowTo/UsingCameras/Blueprints "%Gameplay/HowTo/UsingCameras/Blueprints%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

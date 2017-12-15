@@ -12,21 +12,15 @@ order:1
 
 手順を説明しながら、レベル内のアクタに影響を与えるいくつかのプロパティを変更します。例えば、アクタのスケーリングを変更してサイズを大きくしたり、マテリアルを適用、アクタの物理をオンにする、およびゲームプレイ中に他のアクタにぶつかると登録するようにコリジョン設定を微調整するなどします。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## Steps
+
+[REGION:buttonlist]
+
 	* [](GettingStarted\HowTo\DetailsPanel\Transform)
 	* [](GettingStarted\HowTo\DetailsPanel\Materials)
 	* [](GettingStarted\HowTo\DetailsPanel\Collision)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [REGION:call_to_action]
 	[前のステップ](GettingStarted\HowTo\DetailsPanel\Transform "%GettingStarted\HowTo\DetailsPanel\Transform:title%")

@@ -7,42 +7,11 @@ Related: Engine/Content/FBX/MorphTargets
 Related: Engine/Animation/Persona/MorphTargetPreviewer
 Related: Engine/Content/FBX
 Version: 4.9
+topic-image:MorphTargets_Compact.png
 
 [REGION:banner]
 ![](MorphTargets_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MorphTargets:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MorphTargets:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MorphTargets]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MorphTargets:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MorphTargets]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 The Content Examples provided inside the **MorphTargets** map demonstrate how with the use of a Skeletal Mesh (and additional assets outlined below in example 1.2), it is possible to use a Morph Target to blend between objects or scale aspects of a Skeletal Mesh. 

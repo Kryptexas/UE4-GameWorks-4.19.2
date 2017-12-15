@@ -1,0 +1,288 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Volumetric Lightmaps
+Description: Volumetric lighting samples used for global illumination of dynamic objects and unbuilt scene preview.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:VLM_Topic.png
+Social-image:LitMoveableCharacterVLM.png
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+[REGION:note]
+Volumetric Lightmaps replace the [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache) and Volume Lighting Samples going forward. 
+
+The Indirect Lighting Cache can be re-enabled by opening the **World Settings** > **Lightmass Settings** and setting the **Volume Lighting Method** to **VLM Spare Volume Lighting Samples**.
+[/REGION]
+
+
+
+
+Lightmass generates lightmaps for indirect lighting on static objects. However, dynamic objects like characters need a method of receiving indirect lighting as well. This is done by 
+storing precomputed lighting in all points in space called **Volumetric Lightmap** at built-time to calculate the indirect lighting for dynamic objects at runtime. 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](LitMoveableCharacterILC.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](LitMoveableCharacterVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]  [/REGION]
+[REGION:caption]
+Dynamic objects rendered with Volumetric Lightmaps render much more accurately than with the Indirect Lighting Cache.
+[/REGION]
+
+
+
+
+## How It Works
+
+From a high-level point of view, the Volumetric Lightmaps system works in the following manner:
+
+* Lightmass places lighting samples throughout the level and computes indirect lighting for them during the lighting build. 
+* When it comes time to render a dynamic object, the Volumetric Lightmap is interpolated to each pixel being shaded, providing precomputed indirect lighting.
+* If no lighting was available (the object is new or moved too much), the Volumetric Lightmap interpolates lighting to each pixel no matter what.
+
+When a Lightmass Importance Volume is placed, the Volumetric Lightmap cover it entirely with 4x4x4 bricks of lighting samples. These bricks are placed with higher-density near static 
+geometry where indirect lighting is changing the most. This data structure allows efficient interpolation of indirect lighting to any point in space on the GPU. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Lighting Samples | (Old Method)](ILC_Placement.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method) ](VLM_Placement.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+
+Each of these points is a lighting samples, which uses a 3rd Order Spherical Harmonic to store the incoming lighting in all directions. 
+
+![](VolumeLightmap.png)(w:375)
+
+Use the view mode for **Volumetric Lightmap** to visualize the lighting samples in the level viewport by clicking **Show** > **Visualize** > **Volumetric Lightmap**.
+
+[REGION:imagetable]
+| [INCLUDE:#enableviewmode] | [INCLUDE:#visualize] |
+| --- | --- |
+| Enable Volumetric Lightmap view mode | Visualizing Volumetric Lightmap lighting samples |
+[/REGION]
+
+When visualizing the Volumetric Lightmap, you can see the density that is present around geometry compared to areas that are only within the Lightmass Importance Volume but do not have any geometry near them.
+
+
+[COMMENT:none]
+--
+
+[EXCERPT:enableviewmode]
+[REGION:lightbox]
+[![](ViewModeVLM.png)(h:500)](ViewModeVLM.png)
+[/REGION]
+[REGION:caption] Click image for full size. [/REGION]
+[/EXCERPT:enableviewmode]
+
+
+[EXCERPT:visualize]
+[REGION:lightbox]
+[![](Visualize.png)(h:500)](Visualize.png)
+[/REGION]
+[REGION:caption] Click image for full size. [/REGION]
+[/EXCERPT:visualize]
+
+-
+[/COMMENT]
+
+
+
+
+### Previewing Unbuilt Lighting
+
+The Volumetric Lightmaps also allows previewing of objects with unbuilt lighting. When you move a Static Mesh that had lighting previously built for it, it will automatically switch to 
+the Volumetric Lightmaps until the next lighting build. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](UnbuildILC.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](UnbuiltVLM.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]
+ 
+[/REGION]
+[REGION:caption]
+The column in the center has been copied and is now lit by the Volumetric Lightmap until lighting is built again.
+[/REGION]
+
+
+### Precomputed Lighting on Movable Objects
+
+Unlike the [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache) where interpolation between a lighting sample happens once for the whole component, the Volumetric Lightmap
+is more reliable by interpolating to each pixel instead. This leads to a reliable distribution of detail that results in fewer cases of light leaking. 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache  | (Old Method)](MovableCharacterILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap  | (New Method)](MovableCharacterVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+For character, the added detail of Volumetric Lightmaps blends the character better with the environment.
+
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](MovableObjectILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](MovableObjectVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+For movable objects that are embedded in any static geometry, it now provides a better match for the static object lighting compared to the Indirect Lighting Cache. 
+
+
+
+
+[COMMENT:none]
+- [INCLUDE:Engine/Rendering/LightingAndShadows/VolumetricLightmaps#Volumetricfog] --
+[/COMMENT]
+
+### Precomputed Lighting on Volumetric Fog
+
+[EXCERPT:volumetricfog]
+
+Volumetric Lightmaps support static lighting application for Volumetric fog by having each fog voxel interpolate precomputed lighting to its position in space. 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Spot Light with | No Indirect Light Bounce](SpotLightNoBounce.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Spot Light with | Indirect Light Bounce](SpotLightIndirectBounce.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+Stationary Lights have their indirect lighting stored in lightmaps, which now affects fog. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light with Emissive Color](SkylightEmissiveFogColor.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light Volumetric Lightmap](SkylightVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+Skylights are shadowed properly, preventing indoor areas from becoming over-fogged.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache: | Static and Emissive for Static Lighting | (Old Method) ](ILCStaticLighting.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap: | Static and Emissive for Static Lighting | (New Method) ](VLMStaticLighting.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+Static and Emissive for Static lights affect fog without costing anything since they're all merged into the Volumetric Lightmap. 
+
+[/EXCERPT:volumetricfog]
+
+
+## Settings
+
+The Volumetric Lightmap settings can be accessed from the **World Settings** located under the **Lightmass Settings**.
+
+![](VLMSettings.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --------| -------- | ----------- |
+| **Volumetric Lighting Method** || Technique used for providing precomputed lighting at all positions inside the Lightmass Importance Volume.  [INCLUDE:#vlmethod] |
+| **Volumetric Lightmap Detail Cell Size** || Size of a Volumetric Lightmap voxel at the highest density (used around geometry), in world space units. This setting has a large impact on build times and memory and should be used with caution. |
+| **Volumetric Lightmap Maximum Brick Memory Mb** || The maximum amount of memory to spend on Volumetric Lightmap Brick data. High-density bricks will be discarded until this limit is met with bricks furthest from geometry discarded first. Trimming memory too heavily will result in inconsistent resolution and it would be better to increase **Volumetric Lightmap Detail Cell Size** instead. |
+[/REGION]
+
+[COMMENT:none]
+--
+[INCLUDE:#vlmethod]
+[EXCERPT:VLMethod]
+| --- | --- | --- |
+| **VLM Volumetric Lightmap** || Lighting samples are computed in an advanced grid which covers the entire Lightmass Importance Volume. Higher-density grids are used near geometry. The Volumetric Lightmap is interpolated efficiently on the GPU per-pixel allowing accurate indirect lighting for dynamic objects and volumetric fog. Positions outside of the Importance Volume reuse the border texels of the Volumetric Lightmap (clamp addressing). On mobile, interpolation is done on the CPU at the center of each object's bounds.  |
+| **VLM Sparse Volume Lighting Samples** || Volume lighting samples are placed on top of static surfaces at medium-density and everywhere else in the Lightmass Importance Volume at low-density. Positions outside of the Importance Volume will have no indirect lighting. This method requires CPU interpolation, so the Indirect Lighting Cache is used to interpolate results for each dynamic object, adding Rendering Thread overhead. Volumetric Fog cannot be affected by precomputed lighting with this method. |
+| | %spacer2% | |
+[/EXCERPT:VLMethod]
+
+-
+[/COMMENT]
+
+
+## Performance
+
+The following considerations should be taken into account when considering performance and memory usage with Volumetric Ligthmaps.
+
+* Volumetric Lightmaps on a third person character cost .02ms of GPU time on the PlayStation 4. All Indirect Lighting Cache Rendering Thread cost is removed.  
+* In Epic's Paragon map Monolith, memory usage increased from 5Mb with the Indirect Lighting Cache to 30Mb with Volumetric Lightmaps at default **Detail Cell Size** settings. Memory usage can be seen under the
+**Stat Memory** command in the Editor with **Volumetric Lightmap Memory**
+
+	[REGION:lightbox]
+	[![](StatMemory.png)(w:700)](StatMemory.png)
+	[/REGION]
+	[REGION:caption] Click image for full size. [/REGION]
+
+
+### Volumetric Lightmap versus Indirect Lighting Cache
+
+Below are the details of the comparisons between the Indirect Lighting Cache and Volumetric Lightmaps. 
+
+[REGION:simpletable]
+| --- | --- |
+| **Volumetric Lightmaps** | **Precomputed Light Volumes/Indirect Lighting Cache** |
+| [INCLUDE:#vlm] | [INCLUDE:#ilc] |
+[/REGION]
+
+
+[COMMENT:none]
+- 
+[INCLUDE:#ilc]
+[EXCERPT:ILC]
+* Costly interpolation on the CPU
+* Per-object interpolation, even on instanced components
+* Cannot affect Volumetric Fog
+* Placed with high-density only on top of static surfaces resulting in leaking from low-density samples
+* Black samples outsides of the Lightmass Importance Volume
+* Supports level streaming
+[/EXCERPT:ILC]
+
+[EXCERPT:VLM]
+* Efficient interpolation on the GPU
+* Per-pixel interpolation
+* Works with Volumetric Fog
+* Placed with high-density all around static surfaces
+* Border voxels are stretched to cover area outside of the Lightmass Importance Volume
+* Does not currently support level streaming
+[/EXCERPT:VLM]
+
+-
+[/COMMENT]

@@ -26,7 +26,9 @@ Social-image:HDRDisplayOutput_Social.png
 	![High Dynamic Range (HDR) ](HDR.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-[REGION:caption] <!--- Spacer --->
+[REGION:caption] [COMMENT:none]
+- Spacer -
+[/COMMENT]
 [/REGION]
 [REGION:caption]
 此范例为模拟，仅限展示之用。在 LDR 屏幕上无法表达出 HDR 的差异。 
@@ -66,7 +68,8 @@ Game User Settings 控制将自动锁定当前可用的最接近输出设备，�
 | **r.HDR.Display.ColorGamut** | 这是输出显示的色域。[INCLUDE:#colorGamut] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
@@ -88,7 +91,8 @@ Game User Settings 控制将自动锁定当前可用的最接近输出设备，�
 | **3** | ACES, D60 |
 | **4** | ACEScg, D60 |
 [/EXCERPT:colorGamut]
---->
+-
+[/COMMENT]
 
 设置 GameUserSettings 的蓝图或 C++ 调用后，即可运行烘焙项目，使用命令行参数 `-game mode`、使用 Standalone 游戏模式、或使用专属全屏在新窗口中使用 Play-in-Editor（PIE）模式（按下 **Alt** + **Enter** 或使用控制台窗口中的 `fullscreen` 命令）。 
 

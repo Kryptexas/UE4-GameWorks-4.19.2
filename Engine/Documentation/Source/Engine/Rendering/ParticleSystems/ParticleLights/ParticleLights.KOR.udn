@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429247
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:파티클 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -89,10 +89,12 @@ nyGqpilZe08
 
 
 
-<!--
+[COMMENT:none]
+
 ## 관련자료
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef005]
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef007]
--->
+
+[/COMMENT]

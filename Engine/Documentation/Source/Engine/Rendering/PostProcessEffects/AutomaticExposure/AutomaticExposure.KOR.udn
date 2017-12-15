@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 눈 순응 (자동 노출)
@@ -30,7 +30,8 @@ Topic-image:EyeAdap_Topic.png
 | **Speed Down** | 암순응 속도 - 밝은 환경에서 어두운 환경으로의 순응이 일어나는 속도입니다. |
 | **Auto Exposure Bias** | 자동 노출 편향 - 노출 세팅 편향을 조절합니다. 이 값은 지수적 의미를 지닙니다: [INCLUDE:#ExposureOffset] 1.5 같은 분수나 예제 범위 밖으 수치도 잘 됩니다. 눈 순응이 활성 상태일 때 이 값이 자동 노출에 더해집니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ExposureOffset]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -42,7 +43,8 @@ Topic-image:EyeAdap_Topic.png
 | 2 | 4 배 밝기 |
 [/REGION]
 [/EXCERPT:ExposureOffset]
--->
+
+[/COMMENT]
 
 눈 순응은 [Histogram](#Histogram) (막대그래프)를 기반으로, 다음과 같은 방법을 사용합니다:
 

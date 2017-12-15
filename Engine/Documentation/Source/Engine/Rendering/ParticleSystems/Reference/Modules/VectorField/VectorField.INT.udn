@@ -120,7 +120,8 @@ The **Vector Field Scale Over Life** module allows for the scaling of a local ve
 
 
 
-<!---------Vector Field Includes--------
+[COMMENT:none]
+-------Vector Field Includes--------
 [EXCERPT:LocalTranslateNote]
 [REGION:note]
 	Although you can change the translation of a local vector field numerically, it is far more intuitive to do it via the move widget in the **Preview** Pane. This widget is available whenever the Local Vector Field module is selected in the Emitter List.
@@ -131,4 +132,5 @@ The **Vector Field Scale Over Life** module allows for the scaling of a local ve
 
 
 
---------End Vector Field Includes----------->
+--------End Vector Field Includes---------
+[/COMMENT]

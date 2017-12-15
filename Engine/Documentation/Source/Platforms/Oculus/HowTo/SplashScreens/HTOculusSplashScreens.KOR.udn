@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:3719384
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title: Oculus Rift 에 스플래시 화면 사용
+Description: VR 에서 레벨을 로드할 때 스플래시 화면을 표시하도록 구성하는 방법입니다.
+Type: how-to
+Skilllevel: Intermediate
+Version: 4.17
+Parent: Platforms/Oculus
+Order: 2
+tags: Oculus
+prereq: Platforms\Oculus\HowTo\StandingCamera
+prereq: Platforms/VR/UsingTouchControllers
+prereq: Platforms\Oculus\HowTo\GuardianSystem
+
+![](HTSplashScreen_Hero_Image.png)
+
+UE4 VR 프로젝트에서 레벨을 바꿀 때마다, 엄청난 양의 데이터가 (언)로드되어 약간의 프레임 레이트 문제가 생길 수 있습니다. 이러한 문제를 피하는 데 도움을 주고 또 발생할 수 있는 프레임 레이트 문제를 덮기 위해, 새 레벨을 로드할 때 사용자에게 스플래시 화면이나 무비를 표시하는 방법이 있습니다. 여기서는 UE4 프로젝트에 스플래시 화면을 구성하고 호출하는 방법을 다뤄보겠습니다.
+
+## 단계
+
+[region:note]
+ * 여기서는 다음 zip 파일에 들어있는 두 개의 파일을 다운로드하여 압축을 풀고 임포트해야 할 것입니다. **[Oculus Splash Screen Source Files](OclusSplashScreenSourceContent.zip)**
+[/region]
+
+1. VRPawn 을 열고 **이벤트 그래프** 로 갑니다. 그 안에서 우클릭하고 다음과 같은 블루프린트 노드를 검색하여 추가합니다:
+
+    * Event Begin Play (플레이 시작 이벤트)
+    * Set Tracking Origin (트래킹 원점 설정)
+    * Enable Auto Loading Splash Screen (자동 로딩 스플래시 화면 활성화)
+    * Add Loading Splash Screen (로딩 스플래시 화면 추가)
+    * Hide Splash Screen (스플래시 화면 숨김)
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_00.png)(w:446)](HTSplashScreen_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. 스플래시 화면 호출은 레벨이 로드될 때마다 하려 하므로, 먼저 스플래시 화면 자동 로드 옵션을 켠 뒤 스플래시 화면으로 사용할 것을 설정해 주도록 하겠습니다. 마지막으로 스플래시 화면을 숨긴 뒤 나중에 다시 필요할 때 호출하도록 하겠습니다. 이제 다음 이미지와 같이 VRPawn 이벤트 그래프에 노드 구성을 합니다:
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_01.png)(w:772)](HTSplashScreen_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+    [REGION:note]
+    **Enable Auto Loading Splash Screen** 의 **Auto Show Enabled** (자동 표시 활성화) 프로퍼티를 체크해야 레벨이 로드될 때마다 스플래시 화면이 자동 호출됩니다.
+    [/REGION]
+
+1. **Add Loading Splash Screen** 노드에 있는 **Texture** 입력이 이 노드가 호출되었을 때 표시할 텍스처 또는 무비를 결정합니다. 텍스처를 **T_UE4_Logo_00** 또는 아무거나 원하는 것으로 설정합니다.
+    
+    [REGION:lightbox]
+    [![](HTSplashScreen_02.png)(w:353)](HTSplashScreen_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+    [REGION:note]
+    스플래시 이미지로 사용할 텍스처를 선택할 때, 텍스처 압축을 **UserInterface2D** 로, **Never Stream** (스트리밍 안함) 옵션도 설정해 주는 것이 좋습니다. 그래야 최고 퀄리티의 스플래시 화면을 볼 수 있습니다.
+    [/REGION]
+
+1. 이제 다음 노드를 VRPawn 이벤트 그래프에 연결, 스플래시 화면을 표시하고 숨길 수 있도록 합니다. 완성된 모습은 다음 이미지와 같을 것입니다:
+
+    * Motion Controller (L)Trigger
+    * Show Loading Splash Screen
+    * Hide Loading Splash Screen
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_03.png)(w:467)](HTSplashScreen_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+    [REGION:note]
+    이런 식으로 스플래시 화면을 표시할 수는 있지만, 이 함수 기능을 레벨 블루프린트에 추가해 두면, 레벨이 로드될 때 스플래시 화면이 표시되고 레벨 로드가 끝나면 숨겨질 것입니다.
+    [/REGION]
+
+1. 그 작업이 완료된 VRPawn 블루프린트 모습은 다음 이미지와 같을 것입니다. HMD 를 쓰고 터치 컨트롤러를 쥐고 VR 상호작용 영역 가운데 섭니다.
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_04.png)(w:467)](HTSplashScreen_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+## 최종 결과
+
+이제 터치 컨트롤러의 왼쪽 트리거를 쥘 때마다, 씬이 검정색으로 변하고 UE4 로고 텍스처 또는 설정한 다른 이미지가 표시됩니다. 왼쪽 트리거를 놓으면 레벨로 다시 돌아옵니다. 예제는 다음 비디오와 같습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	H_APZ1h8H5o
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 프로젝트 다운로드
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**Oculus Rift Splash Screens Example Project**](https://epicgames.box.com/s/1rirqbohl7inchgnssznuam7ylalrzk4)
+
+
+
+

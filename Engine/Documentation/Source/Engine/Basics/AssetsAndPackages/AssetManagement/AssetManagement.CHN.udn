@@ -1,104 +1,130 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3588288
+Availability:Docs
 Crumbs: %ROOT%
-Title: Asset Management
-Description: Asset Loading and Unloading
-Type: Overview
-SkillLevel: Intermediate
-Version: 4.17
-Parent: Engine/Basics/AssetsAndPackages
-Order: 0
-Tags: Assets
-Tags: Asset Management
+Title:资源管理
+Description:资源加载与卸载
+Type:Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Engine/Basics/AssetsAndPackages
+Order:0
+Tags:Assets
+Tags:Asset Management
+Related:Engine/Basics/AssetsAndPackages
+Related:Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking
+
 
 [TOC (start:2 end:3)]
 
-Unreal Engine 4 handles [asset](Engine/Basics/AssetsAndPackages/) loading and unloading automatically, which relieves developers of the burden of coding systems to tell the engine exactly when each asset is going to be needed. However, there are cases where a developer might want more precise control over when and how assets are discovered, loaded, and audited. For these cases, the **Asset Manager** can help. The Asset Manager is a unique, global object that exists in the editor as well as in packaged games, and can be overridden and customized for any project. It provides a framework for managing assets that can divide content into chunks that make sense in the context of your project, without losing the advantages of Unreal Engine 4's [loose package architecture](Engine/Basics/AssetsAndPackages/). It also provides a set of tools to help audit disk and memory usage, giving you the information you need to optimize the organization of your assets for [cooking and chunking](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking) when deploying your game.
+虚幻引擎 4 自动处理 [资源](Engine/Basics/AssetsAndPackages/) 加载与卸载，开发者无需编写系统代码告知引擎具体所需的资源。然而，某些情况下开发者可能需要更精确地掌控资源发现、加载与审核的时机与方法。在这些情况下，**资源管理器（Asset Manager）** 便能大显身手。资源管理器是存在于编辑器和打包游戏中的独特全局对象，可根据不同项目进行覆盖和自定义。它提供了一个管理资源的框架，可将内容划分为数据块，对应项目的上下文，而同时保证虚幻引擎 4 [松散打包架构](Engine/Basics/AssetsAndPackages/) 的优势。它同时提供了一套工具，协助审核硬盘和内存使用，提供所需信息，以优化资源组织，在部署游戏时进行 [烘焙和数据块划分](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking)。
 
 
-## Primary Assets, Secondary Assets, and Primary Asset Labels
+## 主资源、次资源和主资源标签
 
-Conceptually, the asset management system in Unreal Engine 4 breaks all assets into two types: **Primary Assets** and **Secondary Assets**. Primary Assets can be manipulated directly by the Asset Manager via their [**Primary Asset ID**](API:FPrimaryAssetId), which is obtained by calling `GetPrimaryAssetId`. In order to designate assets made from a specific `UObject` class as Primary Assets, override `GetPrimaryAssetId` to return a valid `FPrimaryAssetId` structure. Secondary Assets are not handled directly by the Asset Manager, but instead are loaded automatically by the engine in response to being referenced or used by Primary Assets. By default, only `UWorld` assets (levels) are Primary; all other assets are Secondary. In order to make a Secondary Asset into a Primary Asset, the `GetPrimaryAssetId` function for its class must be overridden to return a valid `FPrimaryAssetId` structure.
-
-
-## Asset Manager and Streamable Managers
-
-The [Asset Manager](API:UAssetManager) object is a singleton that manages discovery and loading of Primary Assets. The base Asset Manager class that is included in the engine provides basic management functionality, but can be extended to suit project-specific needs. A [**Streamable Manager**](API:FStreamableManager) structure, contained within the Asset Manager, performs the actual work of asynchronously loading objects, as well as keeping objects in memory via the use of **Streamable Handles** until they are no longer needed and can be unloaded. Unlike the singleton Asset Manager, there are multiple Streamable Managers in different parts of the engine and for different use cases.
+从概念上来说，虚幻引擎 4 的资源管理系统将所有资源分为两类：**主资源** 和 **次资源**。资源管理器通过主资源的 [**主资源 ID**](API:FPrimaryAssetId) 即可直接对其进行操作，调用 `GetPrimaryAssetId` 即可获得此 ID。为将特定 `UObject` 类构成的资源指定为主资源，覆盖 `GetPrimaryAssetId` 即可返回一个有效的 `FPrimaryAssetId` 结构。次资源不由资源管理器直接处理，但其被主资源引用或使用后引擎便会自动进行加载。默认只有 `UWorld` 资源（关卡）为主资源；所有其他资源均为次资源。为将次资源设为主资源，必须覆盖其类的 `GetPrimaryAssetId` 函数，返回一个有效的 `FPrimaryAssetId` 结构。
 
 
-## Asset Bundles
+## 资源管理器和可流送管理器
 
-An **Asset Bundle** is a named list of specific assets associated with a Primary Asset. Asset Bundles are created by tagging the `UPROPERTY` section of a `TAssetPtr` or `FStringAssetReference` member of a `UObject` with the "AssetBundles" meta tag. The value of the tag will indicate the name of the bundle where the Secondary Asset should be stored. For example, the following Static Mesh asset, stored in the member variable called `MeshPtr`, will be added to the Asset Bundle called "TestBundle" when the UObject is saved:
+[资源管理器](API:UAssetManager) 对象是一个单例，负责管理主资源的发现与加载。引擎中所包含的基础资源管理器类拥有基础的管理功能，但也可进行延展，满足项目特定的需求。[**可流送管理器**](API:FStreamableManager) 结构涵盖在资源管理器中，执行实际的异步对象加载，并使用 **可流送句柄** 将对象保存在内存中，直到不再需要后进行卸载。与单件的资源管理器不同，引擎不同区域中有多个可流送管理器，用途皆有所不同。
 
-	/** Mesh */
+
+## 资源束
+
+**资源束（Asset Bundle）** 是与主资源相关特定资源的命名列表。用“AssetBundles”元标签对 `UObject` 的 `TAssetPtr` 或 `FStringAssetReference` 成员的 `UPROPERTY` 代码段进行标记即可创建资源束。标签的数值将显示保存次资源的束的命名。举例而言，以下保存在 `MeshPtr` 成员变量中的静态网格体资源在 UObject 被保存时将被添加到名为“TestBundle”的资源束。
+
+	/** 模型 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display, AssetRegistrySearchable, meta = (AssetBundles = "TestBundle"))
 	TAssetPtr<UStaticMesh> MeshPtr;
 
-A second way to use Asset Bundles is by registering them at runtime with the project's Asset Manager class. In this case, a programmer will need to write code that fills in an `FAssetBudleData` structure and then passes that structure to the Asset Manager's `AddDynamicAsset` function, along with a Primary Asset ID to be associated with the Secondary Assets in the bundle.
+使用资源束的第二种方式是用项目的资源管理器类在运行时将其注册。在此情况下，程序员需要编写代码填入 `FAssetBudleData` 结构，然后将结构传至资源管理器的 `AddDynamicAsset` 函数，并使主资源 ID 与束中的次资源关联起来。
 
 
-### Registering and Loading Primary Assets From Disk
+### 从硬盘注册并加载主资源
 
-Most Primary Assets can be found in the Content Browser and exist as asset files stored on disk, so that they can be edited by artists or designers. The easiest way for a programmer to create a class that can be used in this way is to inherit from `UPrimaryDataAsset`, which is a version of `UDataAsset` that has the functionality for loading and saving Asset Bundle data built in. If a different base class is desired, such as `APawn`, `UPrimaryDataAsset` is useful as a minimal example of the features that must be added to get Asset Bundles working for your class. The following class stores Zone Theme data in Fortnite, which tells the game what art assets to use when building the visual representation of an area in the game's map selection mode:
+多数主资源均在 **Content Browser** 中，并作为资源文件保存在硬盘上，以便美术师或设计师进行编辑。程序员创建可以此法使用的类的最简单方式是从 `UPrimaryDataAsset` 继承，它是 `UDataAsset` 的一个版本，拥有加载和保存内置资源束数据的功能。如需要不同的基类，如 `APawn`，`UPrimaryDataAsset` 可用作一个最小范例，代表使资源束能够用于类的必备元素。以下类在 Fortnite 中保存区域主题数据，在游戏的地图选择模式中构建区域的演示时，这些数据能够告知游戏使用何种美术资源：
 
-	/** A zone that can be selected by the user from the map screen */
+	/** 用户能够从地图画面中进行选择的区域 */
 	UCLASS(Blueprintable)
 	class FORTNITEGAME_API UFortZoneTheme : public UPrimaryDataAsset
 	{
 		GENERATED_UCLASS_BODY()
 
-		/** Name of the zone */
+		/** 区域名称 */
 		UPROPERTY(EditDefaultsOnly, Category=Zone)
 		FText ZoneName;
 
-		/** The map that will be loaded when entering this zone */
+		/** 进入此区域时将进行加载的地图 */
 		UPROPERTY(EditDefaultsOnly, Category=Zone)
 		TAssetPtr<UWorld> ZoneToUse;
 
-		/** The blueprint class used to represent this zone on the map */
+		/** 用于在地图上展示此其余的蓝图类 */
 		UPROPERTY(EditDefaultsOnly, Category=Visual, meta=(AssetBundles = "Menu"))
 		TAssetSubclassOf<class AFortTheaterMapTile> TheaterMapTileClass;
 	};
 
 
-Because this class inherits from `UPrimaryDataAsset`, it has a working version of `GetPrimaryAssetId` that uses the asset’s short name and native class. For example, a `UFortZoneTheme` saved under the name "Forest" would have a Primary Asset ID of "FortZoneTheme:Forest". Whenever a `UFortZoneTheme` asset is saved in the Editor, the `AssetBundleData` member of `PrimaryDataAsset` will be updated to include it as a Secondary Asset.
+此类继承自 `UPrimaryDataAsset`，因此其拥有 `GetPrimaryAssetId` 的可用版本，其使用资源的短命名和原生类。举例而言，以命名“Forest”保存的 `UFortZoneTheme` 的主材质 ID 名称为“FortZoneTheme:Forest”。`UFortZoneTheme` 资源保存在编辑器中时，`PrimaryDataAsset` 的 `AssetBundleData` 成员将被更新，将其作为次资源包含。
 
-Registering and loading our Primary Assets requires the following actions:
+注册并加载主资源需要以下操作：
 
-1. **Make the engine aware of the project's custom Asset Manager class, if one exists.** Do this by modifying the project's `DefaultEngine.ini` file, and setting the `AssetManagerClassName` variable under the `[/Script/Engine.Engine]` section. The final value should be in the following format:
+1. **如果项目拥有自定义资源管理器类，则需要让引擎知悉。**完成此操作的方法是修改项目的 `DefaultEngine.ini` 文件，并设置 `[/Script/Engine.Engine]` 代码段下的 `AssetManagerClassName` 变量。最终的数值应为以下格式：
 	[/Script/Engine.Engine]
 	AssetManagerClassName=/Script/Module.UClassName
-Where "Module" refers to your project's module name, and "UClassName" refers to the name of the `UClass` you wish to use. In our Fortnite example, the module name for the project is "FortniteGame", and the class we want to use is called `UFortAssetManager` (meaning its `UClass` name is `FortAssetManager`), so the second line would read:
+其中“Module”代表项目的模块名，“UClassName”则代表希望使用的 `UClass` 名。在 Fortnite 中，项目的模块名为“FortniteGame”，希望使用的类则名为 `UFortAssetManager`（意味着其 `UClass` 命名为 `FortAssetManager`），因此第二行应为：
 	AssetManagerClassName=/Script/FortniteGame.FortAssetManager
-[REGION:note]The default Asset Manager class does not need to be overridden unless there is a need for special functionality. The default engine class, `UAssetManager`, can be used, in which case this step can be skipped.[/REGION]
+[REGION:note]除非需要特殊功能，默认资源管理器类不需要被覆盖。可使用默认引擎类 `UAssetManager`，然后即可略过此步骤。[/REGION]
 
-1. **Register your Primary Assets with the Asset Manager.** This can be done in three ways: by configuring with the **Project Settings** menu, by manually adding an array of asset paths to scan in `DefaultGame.ini`, or by programming your Asset Manager class to do so during startup.
+1. **用资源管理器注册主资源。**有三种方法可执行此操作：用 **Project Settings** 菜单进行配置、在 `DefaultGame.ini` 中手动添加资源路径的阵列进行扫描，或通过编程使资源管理器类在启动过程中执行。
 	
-	* Configuring via **Project Settings** (under the **Game / Asset Manager** section) looks like this:
+	通过 **Project Settings**（在 **Game / Asset Manager** 部分下）进行配置如下图所示：
 	![](ProjectSettingsAssetManager.png)
-	[REGION:caption]Paths to scan for primary assets can be configured.[/REGION]
+	[REGION:caption]可对扫描主资源的路径进行配置。[/REGION]
+	[REGION:note]
+	| 设置 | 效果 |
+	| --- | --- |
+	| Primary Asset Types to Scan | 列出要寻找和注册的主资源类型，以及在何处进行寻找，并对其执行何种操作。|
+	| Directories to Exclude | 不进行主资源显式扫描的目录。这可用于排除测试资源。|
+	| Primary Asset Rules | 列出特定的规则覆盖（Rules Overrides），其将说明资源的处理方式。查看 [](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking) 中的详细内容。|
+	| Only Cook Production Assets | 如勾选此项，被指定为 DevelopmentCook 的资源在烘焙过程中将出现错误。可用于确保最终发布的版本中不含测试资源。|
+	| Primary Asset ID Redirects | 资源管理器查找 ID 出现在列表中的主资源的数据时，其 ID 将被提供的其他 ID 所替换。|
+	| Primary Asset Type Redirects | 资源管理器查找主资源的数据时，将使用列表中提供的类型名称，而非其原生类型。|
+	| Primary Asset Name Redirects | 资源管理器查找主资源的数据时将使用列表中提供的资源名称，而非其原生名称。|
+	[/REGION]
 	
-	* To edit `DefaultGame.ini`, find (or create) a section called `/Script/Engine.AssetManagerSettings` and add your Primary Asset classes manually. The format looks like this:
+	* 如需编辑 `DefaultGame.ini`，要找到（或创建）一个名为 `/Script/Engine.AssetManagerSettings` 的代码段并手动添加主资源类。格式如下：
 			[/Script/Engine.AssetManagerSettings]
 			!PrimaryAssetTypesToScan=ClearArray
 			+PrimaryAssetTypesToScan=(PrimaryAssetType="Map",AssetBaseClass=/Script/Engine.World,bHasBlueprintClasses=False,bIsEditorOnly=True,Directories=((Path="/Game/Maps")),SpecificAssets=,Rules=(Priority=-1,bApplyRecursively=True,ChunkId=-1,CookRule=Unknown))
 			+PrimaryAssetTypesToScan=(PrimaryAssetType="PrimaryAssetLabel",AssetBaseClass=/Script/Engine.PrimaryAssetLabel,bHasBlueprintClasses=False,bIsEditorOnly=True,Directories=((Path="/Game")),SpecificAssets=,Rules=(Priority=-1,bApplyRecursively=True,ChunkId=-1,CookRule=Unknown))
 
-	* If you want to register Primary Assets directly in code, override the `StartInitialLoading` function in your Asset Manager class and call `ScanPathsForPrimaryAssets` from there. In this case, it is recommended that you put all Primary Assets of the same type in the same subfolder. This will make asset discovery and registration faster.
+	* 如希望直接在代码中注册主资源，则覆盖资源管理器类中的 `StartInitialLoading` 函数并从该处调用 `ScanPathsForPrimaryAssets`。因此，推荐您将所有同类型的主资源放入相同的子文件夹中。这将使资源查找和注册更为迅速。
 	
-1. **Load the asset.** The Asset Manager functions `LoadPrimaryAssets`, `LoadPrimaryAsset`, and `LoadPrimaryAssetsWithType` can be used to begin loading Primary Assets at the appropriate time. Assets can be unloaded later with `UnloadPrimaryAssets`, `UnloadPrimaryAsset`, and `UnloadPrimaryAssetsWithType`. When using these load functions, a list of Asset Bundles can be specified. Loading this way will cause the Asset Manager to load the Secondary Assets referenced by those Asset Bundles as described above.
+1. **加载资源。**资源管理器函数 `LoadPrimaryAssets`、`LoadPrimaryAsset` 和 `LoadPrimaryAssetsWithType` 可用于在适当的时间开始加载主资源。之后资源可通过 `UnloadPrimaryAssets`、`UnloadPrimaryAsset` 和 `UnloadPrimaryAssetsWithType` 进行卸载。使用这些加载函数时，可指定一个资源束列表。以此法进行加载将使资源管理器按以上描述的方式加载这些资源束应用的次资源。
 
 
-### Registering and Loading Dynamically-Created Primary Assets
+### 注册并加载动态创建的主资源
 
-Primary Asset Bundles can also be dynamically registered and loaded at runtime. There are two Asset Manager functions that are useful to understand for doing this:
-* `ExtractStringAssetReferences` examines all `UPROPERTY` members of the `UScriptStruct` it is given, and identifies asset references, which are then stored in an array of asset names. This array can be used when creating an Asset Bundle.
-* `RecursivelyExpandBundleData` will find all references to Primary Assets and recursively expands to find all of their Asset Bundle dependencies. In this case, it means that the TheaterMapTileClass referenced by the ZoneTheme above will be added to the AssetBundleData.
-It then registers the named dynamic asset and starts loading it. 
+主资源束也可在运行时动态注册和加载。有两个资源管理器函数可用于理解此操作：
+* `ExtractStringAssetReferences` 检查给定的 `UScriptStruct` 的全部 `UPROPERTY` 成员，并识别资源引用（然后这些引用将被保存在一个资源名阵列中）。此阵列可在创建资源束时使用。
+`ExtractStringAssetReferences` 参数：
+| 参数 | 目的 |
+| --- | --- |
+| `Struct` | 搜索资源引用的 UStruct。|
+| `StructValue` | 结构体的 `void pointer`。|
+| `FoundAssetReferences` | 用于返回结构体中找到的资源引用的阵列。|
+| `PropertiesToSkip` | 返回阵列中所排除的属性名阵列。|
 
-For example, Fortnite uses the following code in its custom Asset Manager class to construct and load assets based on "theater" data that was downloaded during the game:
+* `RecursivelyExpandBundleData` 将找到对主资源的全部引用，并递归扩展找到其全部资源束依赖性。因此，这意味着上方 ZoneTheme 所引用的 TheaterMapTileClass 将被添加到 AssetBundleData。
+然后它将注册命名的动态资源并开始加载。
+`RecursivelyExpandBundleData` 参数：
+| 参数 | 目的 |
+| --- | --- |
+| `BundleData` | 包含资源引用的束数据。它们将被递归扩展，可用于加载一套相关资源。|
 
-	// Construct the name from the theater ID
+举例而言，Fortnite 在其自定义资源管理器类中使用以下代码，基于游戏中下载的“剧院”数据构造和加载资源：
+
+	// 从剧院 ID 构建命名
 	UFortAssetManager& AssetManager = UFortAssetManager::Get();
 	FPrimaryAssetId TheaterAssetId = FPrimaryAssetId(UFortAssetManager::FortTheaterInfoType, FName(*TheaterData.UniqueId));
 				
@@ -108,11 +134,11 @@ For example, Fortnite uses the following code in its custom Asset Manager class 
 	FAssetBundleData GameDataBundles;
 	GameDataBundles.AddBundleAssets(UFortAssetManager::LoadStateMenu, AssetReferences);
 
-	// Recursively expand references to pick up tile blueprints in Zone
+	// 递归延展引用，获得区域中的图块蓝图
 	AssetManager.RecursivelyExpandBundleData(GameDataBundles);
 
-	// Register a dynamic asset 
+	// 注册动态资源 
 	AssetManager.AddDynamicAsset(TheaterAssetId, FStringAssetReference(), GameDataBundles);
 
-	// Start preloading
+	// 开始预加载
 	AssetManager.LoadPrimaryAsset(TheaterAssetId, AssetManager.GetDefaultBundleState());

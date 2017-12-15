@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 블루프린트 작업방식 툴
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,46 +7,7 @@ version: 4.9
 parent:Engine/Blueprints
 order:3
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Workflow:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Workflow:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Workflow]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Workflow:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Workflow:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Workflow]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:bp_workflow_topic.png
 
 블루프린트 작업시 사용할 수 있는 핵심 툴은 그래프 코멘트, 프로젝트 내 모든 그래프 대상 검색, 중단점을 통한 시스템 디버깅 등입니다.
 

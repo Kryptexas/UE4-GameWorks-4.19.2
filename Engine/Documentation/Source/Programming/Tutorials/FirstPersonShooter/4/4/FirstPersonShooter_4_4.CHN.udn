@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们在状态图表中添加 5 个状态：
 
@@ -74,4 +74,4 @@ Version:4.11
 
 	![](ConnectEntrytoIdle.png)
 
-%Steps%
+

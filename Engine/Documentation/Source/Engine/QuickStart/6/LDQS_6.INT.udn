@@ -22,7 +22,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 By now you may have noticed the "Preview" labels in the shadows and the light leaking under walls. 
 
@@ -67,4 +67,4 @@ At this point you should have **Built** the level lighting and previewed your ga
 
 In the next step, you will be given some examples of how you can take this sample level and build upon it using the methods that were provided throughout the course of this guide. Also, additional links to more detailed documentation related to the topics covered in this guide are provided which will serve as reference when constructing levels on your own. 
 
-%Steps%
+

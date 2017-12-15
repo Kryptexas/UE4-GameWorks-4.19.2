@@ -196,11 +196,13 @@ The button on the far right of the menu bar is:
 |---|---|---|
 |[INCLUDE:#SourceControlButtons] | **Source Control Status** | This tells whether you are connected to source control. You can mouse over for connection details, and click to set up a connection. Perforce and Subversion are supported. See [Source Control documentation](Engine/UI/SourceControl) for details.|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SourceControlButtons]
 ![](button_SourceControl_On.png) = On ![](button_SourceControl_Off.png) = Off
 [/EXCERPT:SourceControlButtons]
--->
+
+[/COMMENT]
 
 ### Toolbar
 

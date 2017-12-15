@@ -12,14 +12,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネ アクタ、通路、ライトを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**マチネ アクタ** を追加し、小さな通路を作成し、ライトを追加します。 
-	[/PARAM]
-[/OBJECT]
+## マチネ アクタ、通路、ライトを追加する
+
+この手順では、**マチネ アクタ** を追加し、小さな通路を作成し、ライトを追加します。
 
 1. **ツールバー** メニューから **[マチネ]** を選択し、**[Add Matinee]** ボタンをクリックします。 
 
@@ -69,14 +64,9 @@ SkillLevel:Intermediate
 
 	![](MHT5_AddPointLight.png)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		ライトをマチネに追加し、トラックをセットアップする
-	[/PARAM]
-	[PARAM:description]
-	この手順では、ライトを **マチネ** に追加し、トラックにキーフレームをセットアップします。 
-	[/PARAM]
-[/OBJECT]
+## ライトをマチネに追加し、トラックをセットアップする
+
+この手順では、ライトを **マチネ** に追加し、トラックにキーフレームをセットアップします。
 
 1. **ワールド アウトライナー** で Matinee アクタをクリックしてマチネを開き、[詳細] パネルで **[Open Matinee]** を選択し、マチネ を開きます。 
 
@@ -113,14 +103,9 @@ SkillLevel:Intermediate
 	![](MHT5_AllKeysAdded.png)(w:720)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		動きと強度を調整する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、ライトの動きをセットアップし、その強度を調整します。 
-	[/PARAM]
-[/OBJECT]
+## 動きと強度を調整する
+
+この手順では、ライトの動きをセットアップし、その強度を調整します。
 
 1. Movement トラック上のマチネで、2 つめのキーフレーム上 (**2.00**) でクリックして、マチネを最小化し、ライトを通路の中央に移動します。 
 
@@ -145,14 +130,9 @@ SkillLevel:Intermediate
 	_これにより、ライトの強度が高まり、通路中央に向かって移動するにつれて、より明るくなります。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		ライトのカラーと減衰半径を調整する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、通路を移動するにつれてライトのカラーとサイズ (すなわち **減衰半径**) を調整します。 
-	[/PARAM]
-[/OBJECT]
+## ライトのカラーと減衰半径を調整する
+
+この手順では、通路を移動するにつれてライトのカラーとサイズ (すなわち **減衰半径**) を調整します。
 
 1. マチネの **Light Color** トラック上で、最初のキーフレームを (**0.00** で) クリックし、**Set Color** を選択します。**Color Picker** ウィンドウでカラーを選択します。 
 
@@ -169,14 +149,9 @@ SkillLevel:Intermediate
 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		仕上げ - ビルドと再生
-	[/PARAM]
-	[PARAM:description]
-	この手順では **マチネ** を終了し、ジオメトリとライティングを **ビルド** し、成果物を見るためにエディタで **再生** します。 
-	[/PARAM]
-[/OBJECT]
+## 仕上げ - ビルドと再生
+
+この手順では **マチネ** を終了し、ジオメトリとライティングを **ビルド** し、成果物を見るためにエディタで **再生** します。
 
 1. ワールド アウトライナーで **Matinee アクタ** を選択し、Play セクションで Play on Level Load と Looping を **有効** にします。 
 

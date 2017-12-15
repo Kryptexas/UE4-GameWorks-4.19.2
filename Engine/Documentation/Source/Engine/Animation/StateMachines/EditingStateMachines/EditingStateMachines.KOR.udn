@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3198499
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 스테이트 머신 편집
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
@@ -7,6 +7,7 @@ version: 4.14
 related:Engine\Animation\StateMachines\CreatingStateMachines
 related:Engine\Animation\StateMachines\TransitionRules
 related:Engine\Animation\AnimBlueprints
+type:how-to
 
 State Machine, [스테이트 머신](Engine\Animation\StateMachines\Overview) 이라는 것이 스켈레탈 메시의 애니메이션 전환 흐름을 편하게 분석해 볼 수 있는 수단이 되기는 하지만, 그 중에서도 가장 중요한 부분은 스테이트 머신의 각 노드 안에서 실제로 어떤 일이 벌어지는가 입니다. 이 점을 염두에 두고서 꼭 기억해야 할 것은, 스테이트 머신의 각 노드 유형의 주목적은 다음과 같습니다:
 

@@ -293,11 +293,13 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 
 	![](Landscape_BaseNodeOpacity.png)
 
-	<!--
+	[COMMENT:none]
+
 	[REGION:tip]
 	ランドスケープに開ける穴に別々のマテリアルを使用する場合は、テクスチャが Base Color スロットへ渡されること、またはランドスケープの一部を見えないようにする際に、その部分を黒くしないように注意してください。
 	[/REGION]
-	-->
+	
+[/COMMENT]
 
 1. 次に、 **LandscapeVisibilityMask** ノードをマテリアル グラフに追加して、 **Opacity Mask** 入力へ出力を接続します。
 
@@ -358,11 +360,13 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 Landscape Hole マテリアルの使用に関する詳細は、[オパシティマスクを使って穴を作成する](Engine\Landscape\Editing\SculptMode\#オパシティマスクを使って穴を作成する) を参照してください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 ![Landscape_Material_Default.png](Landscape_Material_Default.png)(w:900 h:327)
 
 ![Landscape_Material_Viewport.png](Landscape_Material_Viewport.png)(w:900 h:327)
--->
+
+[/COMMENT]
 
 ## テセレーションと変位
 

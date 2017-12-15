@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3355414
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ソースからアンリアル エンジンをビルドする
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -8,7 +8,7 @@ Related:GettingStarted
 Related:Engine/Content/QuickStart
 Related:Programming/QuickStart
 Related:Engine/QuickStart
-Related: Programming/UnrealBuildSystem
+Related:Programming/UnrealBuildSystem
 Version:4.11
 SkillLevel:Advanced
 topic-image:topic_buildingUE.png
@@ -106,7 +106,8 @@ tags:Unreal Build System
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowscompile]
 
 Microsoft Visual Studio 2015 がインストール済であることを確認してから、ソースからアンリアル エンジンをビルドしてください。システムの仕様に応じて、エンジンをコンパイルするには 10 分から 40 分程度かかることがあります。
@@ -172,9 +173,11 @@ XCode の最新版がインストール済であることを確認してから�
 最低 8 GB の RAM および最低 8 コアのマルチコア プロセッサを持つマシンでソース コードをコンパイルすることをお勧めします。
 
 [/EXCERPT:linuxcompile]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:windowsrun]
 
 1.	スタートアップ プロジェクトを **UE4** に設定します。
@@ -222,7 +225,8 @@ XCode の最新版がインストール済であることを確認してから�
 
 	![](CompiledEditor_Linux.png)
 [/EXCERPT:linuxrun]
--->
+
+[/COMMENT]
 
 ## アンリアル エンジンの使用を開始する
 

@@ -29,7 +29,9 @@ _点击下图下载 .xlsx 格式的支持文件和 URL 电子表格。_
 [![](MediaFrameworkExtentions.png)](SupportedExtentions.xlsx)
 [/REGION]
 
-<!-- 编辑注释 - 如有需要，可在 Attachments 文件夹中更新列表。 -->
+[COMMENT:none]
+ 编辑注释 - 如有需要，可在 Attachments 文件夹中更新列表。 
+[/COMMENT]
 
 上方的支持文件格式列表仍在更新中。随着引擎版本更新将支持更多文件延展名。为获得最佳兼容性和性能，推荐使用 H.264 **.mp4** 文件格式。 
 此外，上表中指出的文件格式为引擎 4.15 版本所支持的格式。 

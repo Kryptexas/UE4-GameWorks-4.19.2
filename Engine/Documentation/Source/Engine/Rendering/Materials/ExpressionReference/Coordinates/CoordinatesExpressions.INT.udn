@@ -91,10 +91,12 @@ The **SceneTexelSize** expression allows you to offset by texel sizes, as you wo
 
 The **ScreenPosition** expression outputs the screen-space position of the pixel currently being rendered.  
 
-<!--| Item | Description |
+[COMMENT:none]
+| Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
-| **Screen Align** | If true, ScreenPosition divides the position by the homogeneous coordinate and maps the position to [0,0] - [1,1] for screen alignment. |-->
+| **Screen Align** | If true, ScreenPosition divides the position by the homogeneous coordinate and maps the position to [0,0] - [1,1] for screen alignment. |
+[/COMMENT]
 
 [REGION:fullwidth]
 ![ScreenPositionExample.png](ScreenPositionExample.png)

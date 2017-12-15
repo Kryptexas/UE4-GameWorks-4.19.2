@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title:A
 Crumbs:Shared/Glossary
 Description:
@@ -11,9 +11,11 @@ Availability:NoPublish
 Actor 액터
 	[/PARAM]
 	[PARAM:Definition]
-<!--
+[COMMENT:none]
+
 **Actor** (액터)는 언리얼 엔진 4 에서 가장 중요한 개념입니다. 게임은 액터로 가득차며, 게임의 모든 상호작용형 개체는 액터입니다. 보통은 하나 이상의 컴포넌트로 구성되며, 게임플레이 도중 **레벨** 에 배치 또는 **스폰** 가능하며, 멀티플레이 게임에서는 네트워크 리플리케이션을 지원합니다.
--->
+
+[/COMMENT]
 
 [EXCERPT:Glossary_Actor]
 **Actor**, 액터란 레벨에 배치할 수 있는 오브젝트를 말합니다. 액터는 이동, 회전, 스케일과 같은 3D 트랜스폼을 지원하는 범용 클래스입니다. 액터는 게임플레이 코드(C++ 또는 블루프린트)를 통해 생성(스폰) 및 소멸 가능합니다. C++ 에서 AActor 는 모든 액터의 베이스 클래스입니다.

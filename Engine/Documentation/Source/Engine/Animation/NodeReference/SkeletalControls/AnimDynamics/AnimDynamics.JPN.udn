@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3060419
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:AnimDynamics
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:AnimDynamics を使用して物理ベースのセカンダリ アニメーションを作成する方法を説明します。 
 version:4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:title%](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics\AnimDynamicsNode.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\AnimDynamics]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:title%](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics\AnimDynamicsNode.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\AnimDynamics]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:AnimDynamicsNode.png
 
 
 **AnimDynamics** ノードは、小さなソルバーです。Skeletal Mesh アセット用の物理ベースのセカンダリ アニメーションを提供するために使用できます。 
@@ -121,62 +88,6 @@ AnimDynamics のコア アプリケーションは **[Details]** パネルの **
 AnimDyamics の使用手順については、[**動的アニメーションを作成する**](Engine\Animation\AnimHowTo\AnimDynamics) をご覧ください。 
 [/REGION]
 
-
-<!--
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		LODThresholdMSE
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Performance
-	[/PARAM]
-	[PARAM:content]
-		%p100%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p100]
-
-[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
-
-[/VAR]
-
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:35 convert:false)[/VAR]
-
-[REGION:raw]
-| プロパティ| %spacer% | 説明 |
-| --- | --- | :--- |
-| **ノード** || %doxygen:UAnimGraphNode_AnimDynamics::Node% |
-| **Preview Live** || %doxygen:UAnimGraphNode_AnimDynamics::bPreviewLive% |
-| **Show Linear Limits** || %doxygen:UAnimGraphNode_AnimDynamics::bShowLinearLimits% |
-| **Show Angular Limits** || %doxygen:UAnimGraphNode_AnimDynamics::bShowAngularLimits% |
-| **Show Planar Limit** || %doxygen:UAnimGraphNode_AnimDynamics::bShowPlanarLimit% |
-| **Show Spherical Limit** || %doxygen:UAnimGraphNode_AnimDynamics::bShowSphericalLimit% |
-| **Show Collision Spheres** || %doxygen:UAnimGraphNode_AnimDynamics::bShowCollisionSpheres% |
-| **Last Preview Component** || %doxygen:UAnimGraphNode_AnimDynamics::LastPreviewComponent% |
-| **Cached Node Titles** || %doxygen:UAnimGraphNode_AnimDynamics::CachedNodeTitles% |
-| **Edit Preview Shape** || %doxygen:UAnimGraphNode_AnimDynamics::EditPreviewShape% |
-| **Post Load** || %doxygen:UAnimGraphNode_AnimDynamics::PostLoad% |
-| **Reset Button Clicked** || %doxygen:UAnimGraphNode_AnimDynamics::ResetButtonClicked% |
-| **Reset Sim** || %doxygen:UAnimGraphNode_AnimDynamics::ResetSim% |
-| **Serialize** || %doxygen:UAnimGraphNode_AnimDynamics::Serialize% |
-| **Get Node Title** || %doxygen:UAnimGraphNode_AnimDynamics::GetNodeTitle% |
-| **Get Tooltip Text** || %doxygen:UAnimGraphNode_AnimDynamics::GetTooltipText% |
-| **Validate Anim Node During Compilation** || %doxygen:UAnimGraphNode_AnimDynamics::ValidateAnimNodeDuringCompilation% |
-| **Customize Details** || %doxygen:UAnimGraphNode_AnimDynamics::CustomizeDetails% |
-| **Draw** || %doxygen:UAnimGraphNode_AnimDynamics::Draw% |
-| **Get On Screen Debug Info** || %doxygen:UAnimGraphNode_AnimDynamics::GetOnScreenDebugInfo% |
-| **Get Preview Dynamics Node** || %doxygen:UAnimGraphNode_AnimDynamics::GetPreviewDynamicsNode% |
-| **Get Controller Description** || %doxygen:UAnimGraphNode_AnimDynamics::GetControllerDescription% |
-| **Post Edit Change Property** || %doxygen:UAnimGraphNode_AnimDynamics::PostEditChangeProperty% |
-| **Draw Linear Limits** || %doxygen:UAnimGraphNode_AnimDynamics::DrawLinearLimits% |
-| **Draw Angular Limits** || %doxygen:UAnimGraphNode_AnimDynamics::DrawAngularLimits% |
-| **Get Node** || %doxygen:UAnimGraphNode_AnimDynamics::GetNode% |
-[/REGION]
--->
 
 
 

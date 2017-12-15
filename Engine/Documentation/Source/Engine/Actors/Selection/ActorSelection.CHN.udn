@@ -2,46 +2,7 @@
 Title:选择Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:关于关卡编辑器视口中提供的选择Actors方法的概述。
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Selection:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Selection:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Selection]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Selection:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Selection:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Selection]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:actorselection_topic.png
 
 [TOC(start:2)]
 

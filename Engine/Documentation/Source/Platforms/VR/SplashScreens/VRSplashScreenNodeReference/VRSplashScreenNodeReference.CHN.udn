@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:3689149
+Availability:Public 
+Crumbs: %ROOT%
+Title:VR 过渡画面节点参考
+Description:VR 过渡画面节点的具体功能。
+Type:Reference
+Version:4.17
+Parent:Platforms/VR/SplashScreens
+Order:
+Tags:VR 
+
+[TOC(start:1)]
+
+## VR 过渡画面节点参考
+
+以下部分将详细解读 VR 过渡画面节点上每个属性的作用。查看 VR 过渡画面节点时，您将会看到一个泛型和一个 Oculus 专属的类型。针对 Oculus 头戴显示器进行开发时，只能选择 Oculus 专属的类型。其他所有头戴显示器均使用泛型。
+
+## 泛型过渡画面
+
+### 启用过渡画面自动加载
+
+![](Platforms\VR\SplashScreens\VRLS_EnableAutoLoading.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**In Auto Show Enabled**|如为 true，则在关卡加载时加载过渡画面。
+
+### 隐藏过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_Hide_Splash.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Hide Splash Screen**|隐藏过渡画面。|
+
+### 设置过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_Set_Splash.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Texture**|过渡画面使用的纹理。必须为 B8R8G8A8 格式。|
+|**Scale**|纹理的大小。|
+|**Offest**|开始渲染纹理的位置。|
+|**Show Loading Movie**|显示一个“加载中”动画。|
+|**Show on Set**|显示调用合成器时指定的纹理。|
+
+### 显示过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_Show_Splash.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Show Splash Screen**|显示过渡画面。|
+
+## Oculus 专属过渡画面
+
+以下详解每种 Oculus 专属过渡画面节点的操作。请注意，在针对 Oculus 头戴显示器进行开发时才可使用以下节点。
+
+### 添加加载过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Add_Loading.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Texture**|过渡画面中使用的纹理资源。Gear VR 将其用作加载图标的路径；当前版本中 Gear VR 将忽略其他所有参数。|
+|**Translation in Meters**|过渡画面中央的初始平移，以米为单位。|
+|**Rotation**|过渡画面的初始旋转，枢轴位于过渡画面的中央。|
+|**Size in Meters**|过渡画面四边形的大小，以米为单位。|
+|**Delta Rotation**|每个第二帧对四边形变形添加的旋转增量。四边形围绕其中心旋转。|
+|**Clear Before Add**|如为 true，则在添加新过渡前进行清除。|
+
+### 清除加载过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Clear_Loading_Splash.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Clear Loading Splash Screen**|移除所有过渡画面。|
+
+### 启用过渡画面自动加载
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Enable_Auto_Load.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Auto Show Enabled**|如为 true，则启用地图加载时的过渡画面自动显示。|
+
+### 隐藏加载图标
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Hide_Loading.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Hide Loading Icon**|清除加载图标。此调用将清除所有过渡。|
+
+### 隐藏加载过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Hide_Loading_SS.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Clear**|隐藏后清除所有启动画面。|
+
+### 启用过渡画面自动加载
+
+![](Platforms\VR\SplashScreens\VRLS_OC_IsAutoLoasding.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Is Auto Loading Splash Screen Enabled**| 如果调用 LoadMap 时过渡画面自动显示，则返回 true。|
+
+### 启用加载图标
+
+![](Platforms\VR\SplashScreens\VRLS_OC_IsLoadingIconEnabled.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Is Loading Icon Enabled**| 如过渡画面在加载图标模式中，则返回 true。|
+
+### 显示加载过渡画面
+
+![](Platforms\VR\SplashScreens\VRLS_OC_ShowLoadingSplashScreen.png)
+
+|设置名称 | 描述|
+|---------------|----------------------------------------------------|
+|**Show Loading Splash Screen**|显示加载过渡画面。|

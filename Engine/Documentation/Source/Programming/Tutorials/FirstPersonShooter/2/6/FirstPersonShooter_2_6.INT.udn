@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 Download and extract the sample mesh from the following link:
@@ -92,4 +92,3 @@ It's now time to view your newly added mesh in-editor.
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

@@ -83,12 +83,14 @@ Lighting Channel の影響は動的に適用されます。つまり、Static Li
 | **オフ** | 0.42ms   StandardDeferredLighting 1 draws 1 prims 3 verts |
 | **オン**  | [INCLUDE:#per1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:per1]
 0.8% 0.09ms   NonShadowedLights 0 draws 0 prims 0 verts  
 0.7% 0.08ms   StandardDeferredLighting 3 draws 0 prims 0 verts
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## モバイルで使用する
 

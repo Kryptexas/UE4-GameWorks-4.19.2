@@ -1,0 +1,229 @@
+﻿INTSourceChangelist:3735117
+Availability:Public
+Crumbs: %ROOT%
+Title:物理アセット・エディタ - スケルトン ツリー
+Description:物理アセット・エディタにおけるスケルトン ツリーの使用方法
+Type:Reference
+Version:4.18
+Parent:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT
+Related:Engine/Animation/Persona
+Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Animation/Persona/Modes
+Order:
+Tags:Physics
+Tags:Animation
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:10 convert:false)[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+![](SkeletonTree.png)
+
+
+**[Skeleton Tree (スケルトン ツリー)]** パネルには、コリジョン ボディ、プリミティブ、コンストレイントなどの追加セットと一緒に、
+現在の [物理セット エディタ](Engine/Physics/PhAT) アセットのスケルタル階層が表示されます。以下の操作を行うことができます。
+
+* 特定のボーンをアタッチされたボティとコンストレイントと一緒にスケルタル階層で選択および表示する。
+* ボディ、プリミティブ、コンストレイントを作成および編集する。ラグドール アニメーション、コンストレイント、コリジョン インタラクションの結果を確認するためにビューポートでシミュレーションする。
+* プレビュー アセットを作成する。このアセットは一時的に適用されるアセットで、例えばキャラクター上で武器がどのように見えるかをプレビューする場合などに便利です。
+
+
+## インターフェースの種類
+
+![](SkeletonTreeInterface.png)
+
+1. [検索欄](#検索欄)
+1. [ボーンの階層リスト](#ボーン階層リスト)
+1. [スケルトン オプション](#選択コンテキストメニュー)
+
+### 検索欄
+
+![](SearchLine.png)
+
+**検索** 欄では、スケルタル階層を迅速にフィルタリングすることができます。これは、入力されたテキストを含む名前で階層をフィルタリングして行います。 
+
+![](SearchExample.png)
+[REGION:caption] 上の図では、**Pelvis** というテキストを含むボーン名、ボディ、コンストレイントのみになるように階層をフィルタリングしました。 [/REGION]
+
+### ボーン階層リスト
+
+![](BoneHierarchyList.png)
+
+このウィンドウには、選択した物理アセットが現在使用しているすべてのボーン、コンストレイント、プレビュー オブジェクトがすべて表示されます。この中で、ボディ、プリミティブ、コンストレイント、 
+プレビュー オブジェクトの追加と割り当てができます。ボーン階層リストによる調整のほとんどは、右クリックで表示されるコンテキストメニューから行うことができます。 
+このメニュー オプションは右クリックしたオブジェクトよって異なります (以下のコンテキスト メニューのセクションを参照)。  
+
+
+### 選択可能なコンテキスト メニュー
+
+ボーン階層リスト内でボーン、ボディ、プリミティブ、コンストレイントを右クリックすると、選択したオブジェクト固有のコンテキスト メニューにアクセスします。
+
+以下は利用可能なコンテキスト メニューとそれに関連したオプションです。
+
+#### ボーン コンテキスト メニュー
+
+ボーンを右クリックすると、以下のコンテキスト メニューが表示されます。
+
+![](BoneContextMenu.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Copy Selected Bone Names** || 選択したボーンの名前をクリップボードへコピーします。
+| **Reset Selected Bone Transforms** || 選択したボーンのトランスフォームをリセットします。 |
+|**Add Preview Asset** || プレビュー目的でボーンへの一時的な適用が可能な全てのアセットのメニューを開きます。例えば、特定のアーマーをボーンに適用した特定のアーマーの外見を見たい時に、このオプションを使用します。ただし、これは永久的な適用ではなく、プレビュー中のみ見えることにご注意ください。 |
+|**Remove All Attached Assets** || アタッチされているすべてのアセットをスケルトンとメッシュから取り除きます。|
+| **Add/Replace Bodies** || [ツール](Engine/Physics/PhAT/ToolsAndProfiles#toolstab) タブの中の現在の生成設定を使って選択されたボーンに対してボディを追加または置き換えます。 |
+| **Select All Bodies** || スケルトン ツリーですべてのボディを選択します。 |
+| **Select All Constraints** || スケルトン ツリーですべてのコンストレイントを選択します。 |
+[/REGION]
+
+
+
+#### ボディ コンテキスト メニュー
+
+ボディを右クリックすると、以下のコンテキストメニューが表示されます。
+
+![](BodyContextMenu.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Regenerate Bodies** || [ツール](Engine/Physics/PhAT/ToolsAndProfiles#toolstab) タブの中の現在の生成設定を使って選択されたボディを再生成します。 |
+| **Add Shape** || このボディに形状を追加します。ボックス、球、カプセル形状が選択可能です。  |
+| **Collision** || ボディ間のコリジョンを調整します。 [INCLUDE:#collisionbody] |
+| **Constraints** || 選択されたボディと階層リストから選択したボディの間にコンストレイントを作成します。 |
+| **Physics Type** || このボディに使う物理タイプです。キネマティックまたはシュミレートです。 |
+| **Physical Material** || すべてのボディに適用する物理マテリアルを選択します。 |
+| **Copy Properties** || 現在選択しているオブジェクトのプロパティを次に選択するオブジェクトにコピーします。 |
+| **Paste Properties** || 前に選択したオブジェクトのプロパティを現在選択しているオブジェクトに渡します。 |
+|**Delete Slot** || 現在選択しているボディを削除します。 |
+| **Delete All Bodies Below** || スケルトン階層ツリーで現在選択しているボディの下層のすべてのボディを選択します。 |
+| **Mirror** || 反対側でボディを見つけて、コンストレイントとボディを複製します。 |
+| **Assign** || 選択したボディを現在選択している物理アニメーション プロファイルに割り当てます。 |
+| **Unassign** || 現在選択している物理アニメーション プロファイルから選択したボディの割り当てを解除します。 |
+| **Copy Collision From Static Mesh** || 指定したスタティックメッシュから凸型コリジョンをコピーします。 |
+| **Select All Bodies** || スケルトン ツリーですべてのボディを選択します。 |
+| **Select All Constraints** || スケルトン ツリーですべてのコンストレイントを選択します。 |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#collisionbody]
+[EXCERPT:collisionbody]
+| --- | --- | --- |
+| **Weld** || 現在選択しているボディを一緒に結合します。 |
+| **Enable Collision** || 現在選択しているボディ間でコリジョンを有効にします。 |
+| **Enable Collision All** || 現在選択しているボディとすべてのボディの間でコリジョンを有効にします。 |
+| **Disable Collision** || 現在選択しているボディ間でコリジョンを無効にします。 |
+| **Disable Collision** || 現在選択しているボディとすべてのボディの間でコリジョンを無効にします。 |
+|| %spacer2% |||
+[/EXCERPT:collisionbody]
+
+-
+[/COMMENT]
+
+#### プリミティブ コンテキスト メニュー
+
+プリミティブを右クリックすると、以下のコンテクスト メニューが表示されます。
+
+![](PrimitiveContextMenu.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Duplicate** || 選択したプリミティブを複製します。 |
+| **Delete** || 選択したプリミティブを削除します。 |
+| **Select All Bodies** || スケルトン ツリーですべてのボディを選択します。 |
+| **Select All Constraints** || スケルトン ツリーですべてのコンストレイントを選択します。 |
+[/REGION]
+
+
+#### コンストレイント コンテキスト メニュー
+
+コンストレイントを右クリックすると、以下のコンテキストメニューが表示されます。
+
+![](ConstraintContextMenu.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Snap** || 選択したコンストレイントをボーンにスナップします。 |
+| **Reset** || コンストレイントをデフォルト状態にリセットします。|
+| **Axes and Limits** || このコンストレイントの軸と制限を編集します。 [INCLUDE:#constraint] |
+| **Convert** || コンストレイントをさまざまなプリセットに変換します。 [INCLUDE:#convert]  |
+| **Copy Properties** || 現在選択しているオブジェクトのプロパティを次に選択するオブジェクトにコピーします。 |
+| **Paste Properties** || 前に選択したオブジェクトのプロパティを現在選択しているオブジェクトに渡します。 |
+| **Delete** || 現在選択しているボディを削除します。 |
+| **Assign** || 選択したコンストレイントを現在選択している物理アニメーション プロファイルに割り当てます。 |
+| **Unassign** || 現在選択している物理アニメーション プロファイルから選択したコンストレイントの割り当てを解除します。 |
+| **Copy Collision From Static Mesh** || 指定したスタティックメッシュから凸型コリジョンをコピーします。 |
+| **Select All Bodies** || スケルトン ツリーですべてのボディを選択します。 |
+| **Select All Constraints** || スケルトン ツリーですべてのコンストレイントを選択します。 |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#convert]
+[EXCERPT:constraint]
+| --- | --- | --- |
+| **Cycle Constraint Orientation** ||  異なる基本軸間のコンストレイント方向の切り変えを循環表示します。 |
+| **Cycle Active Constraint** || それぞれのコンストレイント軸が孤立してアクティブかを循環して切り替えます。 |
+| **Lock Swing** || swing 1 または 2 をロック (Locked) または制限付き (Limited) に設定します。 |
+| **Lock Twist** || ねじれをロック (Locked) または制限付き (Limited) に設定します。 |
+|| %spacer2% |||
+[/EXCERPT:constraint]
+
+[EXCERPT:convert]
+* Ball & Socket
+* Hinge
+* Prismatic
+* Skeletal
+[/EXCERPT:convert]
+
+-
+[/COMMENT]
+
+
+#### プレビュー アセットのコンテキスト メニュー
+
+**プレビュー アセット** は、スタティック メッシュやスケルタル メッシュなど、プレビュー目的でボーンやソケットに一時的に適用されているアセットです。
+
+[Preview Asset] を 右クリック すると、以下のコンテキスト メニューが表示されます。
+
+![](PreviewAssetContextMenu.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+|**Add Preview Asset** || プレビュー目的でボーンへの一時的な適用が可能な全てのアセットのメニューを開きます。例えば、特定のアーマーをボーンに適用した特定のアーマーの外見を見たい時に、このオプションを使用します。ただし、これは永久的な適用ではなく、プレビュー中のみ見えることにご注意ください。 |
+|**Remove All Attached Assets** || 現在メッシュ上にある全ての Preview アセットをすべて削除します。|
+[/REGION]
+
+### スケルトンの表示 / 非表示オプション
+
+[Skeleton Options] ウィンドウでは、ボーン、ボディ、コンストレイント、プリミティブの表示 / 非表示を有効にすることができます。 
+
+![](ShowHideOptions.png)
+
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Filtering Flattens Hierarchy** || ツリーのアイテムを検索する時、階層を維持するか、平らにするかを設定します。 |
+| **Hide Parents When Filtering** || フィルタリングの際に、親アイテムをグレーアウトするか、完全に非表示にするかを設定します。 |
+| **Show Bodies** || ツリービューにボディを表示します。ボディはコリジョンに使用するプリミティブ形状の集まりです。 |
+| **Show Constraints** || ツリービューにコンストレイントを表示します。コンストレイントは、ボディ間に生じる動きの仕組みを調整します。 |
+| **Show Primitives** || ツリービューにプリミティブ形状 (球、ボックス、カプセルなど) を表示します。 |
+| **Show All Bones** || スケルトンにひとつひとつのボーンを表示します。 |
+| **Show Mesh Bones** || メッシュで使用するボーンを表示します。 |
+| **Show LOD Bones** || 表示中の LOD (level of detail) で使用するボーンを表示します。 |
+|**Show Weighted Bones** || 重み付けされた頂点をもつボーンを表示します。|
+| **Hide Bones** || すべてのボーンを非表示にします (ソケットおよびアタッチされたアセットは引き続きリストに表示されます)。 |
+[/REGION]

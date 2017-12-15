@@ -4,41 +4,12 @@ Crumbs: %ROOT%, Resources
 Description:Overview of the samples provided in the Cloth Content Examples.
 Related: Engine/Physics/Apex
 Version: 4.9
+topic-image:Cloth_Compact.png
 
 [REGION:banner]
 ![](Cloth_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Cloth:title%](Cloth_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Cloth:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Cloth:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Cloth]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Cloth:title%](Cloth_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Cloth:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Cloth]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

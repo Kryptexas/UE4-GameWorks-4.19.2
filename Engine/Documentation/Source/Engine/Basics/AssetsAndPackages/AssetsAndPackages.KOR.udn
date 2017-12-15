@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3588288
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs: %ROOT%
 Title: 애셋과 패키지
@@ -39,9 +39,14 @@ Related: Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking
 애셋 이름변경은 에디터 콘텐츠 브라우저에서 선택한 뒤, 그 이름 부분을 클릭하거나 F2 키를 누르면 됩니다. 애셋을 다른 폴더로 이동 또는 복사하는 것은, 콘텐츠 브라우저에서 선택한 뒤 드래그하면 됩니다. 이런 식으로 이름변경 또는 이동을 할 때, 다른 애셋이 그 이름변경 또는 이동되는 애셋을 가리키고 있는 경우 적절히 업데이트되며, 원본 애셋 자리에 보이지 않는 **리디렉터** 가 남게 됩니다. 리디렉터 정리는 콘텐츠 브라우저에서 우클릭한 뒤 "Fix Up Redirectors in Folder" (폴더의 리디렉터 고치기) 옵션을 선택하면 됩니다. 그러면 리디렉터를 가리키던 모든 애셋이 새 위치의 애셋을 가리키도록 한 뒤, 리디렉터를 제거합니다. 참고로 이 때 애셋을 다시 저장해야 합니다. 콘텐츠 브라우저 안에서 애셋의 삭제도 가능한데, 애셋에 우클릭하여 뜨는 메뉴를 통해서나, 애셋을 선택한 뒤 Delete 키를 눌러도 됩니다. 한 애셋이 다른 애셋에 레퍼런싱된 경우, 삭제된 애셋 대신 기존 애셋을 (있는 경우) 사용할 것인지 묻는 메뉴가 뜹니다.
 
 ![](FixupRedirectors.png)
-[REGION:caption]폴더나 콘텐츠 브라우저의 소스 패널 내 아무 곳에 우클릭하면 "Fix Up Redirectors in Folder" (폴더의 리디렉터 고치기) 옵션이 나옵니다.[/REGION]
 
-[REGION:note]애셋 이동 또는 이름변경은 콘텐츠 브라우저에서 해야 합니다. 애셋 파일에 대한 이름변경, 이동, 삭제가 에디터 외부, 즉 운영체제의 파일 탐색기를 통해 이루어진 경우, 영향받은 애셋을 가리키는 애셋은, 프로젝트에 여전히 존재한다 하더라도 검색에 실패할 것입니다.[/REGION]
+[REGION:caption]
+폴더나 콘텐츠 브라우저의 소스 패널 내 아무 곳에 우클릭하면 "Fix Up Redirectors in Folder" (폴더의 리디렉터 고치기) 옵션이 나옵니다.
+[/REGION]
+
+[REGION:note]
+애셋 이동 또는 이름변경은 콘텐츠 브라우저에서 해야 합니다. 애셋 파일에 대한 이름변경, 이동, 삭제가 에디터 외부, 즉 운영체제의 파일 탐색기를 통해 이루어진 경우, 영향받은 애셋을 가리키는 애셋은, 프로젝트에 여전히 존재한다 하더라도 검색에 실패할 것입니다.
+[/REGION]
 
 애셋에 대한 레퍼런스는 그 레퍼런스에 경로가 포함됩니다. 예: Blueprint'/MyProject/Content/Characters/MyCharacter.MyCharacter'.
 
@@ -72,10 +77,17 @@ Related: Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking
 애셋 팩을 프로젝트에 추가하려면:
 
 1. **학습** 탭 하단에 위치한 **저장소** 에서 애셋 팩을 찾습니다.
+	
 	![](Vault.png)
+
 1. **프로젝트에 추가** 를 누릅니다.
+
 1. 나타나는 목록에서 프로젝트를 선택합니다.
-	[REGION:lightbox]![](SelectedProject.png)[/REGION]
+	
+	[REGION:raw]
+	![](SelectedProject.png)
+	[/REGION]
+
 1. **프로젝트에 추가** 를 누릅니다.
 
 다음 번 프로젝트를 열 때 모든 콘텐츠가 애셋 팩 폴더명 안에 들어가 있을 것입니다.

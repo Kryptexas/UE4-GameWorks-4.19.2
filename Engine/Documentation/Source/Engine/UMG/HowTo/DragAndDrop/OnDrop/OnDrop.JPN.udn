@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:4.On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -31,7 +31,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 メインの **HUD** Widget ブループリントをセットアップし、**OnDrop** 関数を行うときに起こることをオーバーライドします。 
 
@@ -81,11 +81,12 @@ type:how-to
 	_フルサイズ表示するにはここをクリック_
 
 	**Remove DPIScale** のチェックを外して、**Return Value** のチェックボックスにチェックを入れています。[](Engine/UMG/UserGuide/DPIScaling) を取り除く必要はなく、この関数を処理したため true として戻します。 
+
 	このスクリプトでは、最初に既存の Health Bar ウィジェットを取り除いてから、Drag Offset に相対的に画面の新しい位置に再度追加しています。 
 
 HUD はドラッグしたウィジェットをドロップ処理するようにセットアップされて、ヘルスバーを表示させます。 
 次のこのチュートリアルの最後のステップでは、ドラッグしたウィジェットをセットアップし、ヘルスバーの形状を模倣し、Character ブループリントに対してこの HUD をビューポートに追加するように指示します。 
 
-%Steps%
+
 
 

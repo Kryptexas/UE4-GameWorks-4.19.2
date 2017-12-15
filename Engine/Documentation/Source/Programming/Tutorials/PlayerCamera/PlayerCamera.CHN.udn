@@ -51,22 +51,16 @@ Description:学习使用玩家输入来同时操作相机和Pawn。
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\PlayerCamera\1 "%Programming\Tutorials\PlayerCamera\1:description%")
 	* [](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:description%")
 	* [](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:description%")
 	* [](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

@@ -1,0 +1,149 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Crumbs: %ROOT%
+Title: Android Virtual Keyboard
+Description:Going over setting up the Android Virtual Keyboard for use in UE4.
+Type:how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/Android
+Order: 1
+Tags:Android
+
+[TOC(start:1 end:2)]
+
+All Unreal Engine 4 (UE4) Android-based projects offer support for using either the standard pop up dialog input box or the operating system's virtual keyboard. In the following document, we will take a look at how to set up and call either virtual keyboard in your UE4 projects.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![New Keyboard Input](AVK_New.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Old Keyboard Input](AVK_Old.png)
+    [/PARAM]
+[/OBJECT]
+
+
+## Steps
+
+To enable the Virtual Keyboard in your project, you will need to do the following:
+
+1. From the **Main Menu** go to **Edit** and then click on the **Project Settings** option.
+
+    ![](AVK_01.png)
+
+1. In the Project Settings menu go to **Platforms** > **Android** and under the **APKPackaging** section look for and click on the check mark box next to the **Enable improved virtual keyboard [Experimental]** option to enable it.
+
+    [REGION:lightbox]
+    [![](AVK_02.png)(w:546)](AVK_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Right-click in the  **Content Browser** and then go to **User Interface** and click on the **Widget Blueprint** option, giving this new Blueprint a name of **Input Text**.
+
+    ![](AVK_03.png)
+
+1. Double - click on the Input Text UMG widget to open it up and from the **Palette** drag a **TextBox** into the UMG graph.
+
+    [REGION:lightbox]
+    [![](AVK_04.png)(w:546)](AVK_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Position the **TextBox** so that it is in the middle of the Canvas panel and then press the **Compile** and **Save** buttons.
+
+    [REGION:lightbox]
+    [![](AVK_05.png)(w:546)](AVK_05.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+    [Region:note]
+    Keep in mind that your application is responsible for ensuring input elements are visible and not obscured behind the virtual keyboard. You can use the supplied **OnVirtualKeyboardShown** and **OnVirtualKeyboardHidden** event handlers to make sure that UI elements do not obscure the virtual keyboard.
+    [/region]
+
+1. Open up the **Level Blueprint** and add the following nodes to the Event Graph.
+
+    [REGION:lightbox]
+    [![](AVK_06.png)(w:546)](AVK_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+    * **Event Begin Play**
+    * **Create Widget**
+    * **Add to Viewport ** 
+
+1. Connect the **Event Begin Play** node to the **Create Widget ** node and then connect the **Create Widget** node to the **Add Viewport** node. When completed your **Level Blueprint** should look like the following image.
+
+    [REGION:lightbox]
+    [![](AVK_07.png)(w:546)](AVK_07.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Next, in the Create Widget Blueprint node, in the **Class** input, add the **InputText** Widget Blueprint that was created earlier.
+
+    ![](AVK_08.png)
+
+1. Save the level, giving it a name of **AndroidVirtualKeyboard** then open up your Project Settings and go to **Maps & Modes** and in the **Default Maps** input the **AndroidVirtualKeyboard** map into the **Editor Startup Map** and the **Game Default Map**.
+
+    [REGION:lightbox]
+    [![](AVK_09.png)(w:546)](AVK_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Now from the Main Menu, click on the small white triangle next to **Launch** and from the displayed list, select the Android device you want to deploy your UE4 project too.
+
+    ![](AVK_10.png)
+
+## End Result 
+
+Once your project launches on your Android device, press on the text input box and when you do, you should now be able to input the text you want using the Android system keyboard like in the following video.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    Xu-oZzh8WGM
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+
+You can also disable the virtual keyboard using the **Android.NewKeyboard** console variable followed by one of the following numbers. Doing this is particularly useful when the user is using a language requiring a different IME (Input Method Editor).
+
+|Command Name|Input |Description |
+|---------------------|----------|------------|
+|**Android.NewKeyboard**| 0| Uses the check mark box setting that was set in the UE4 editor.|
+|**Android.NewKeyboard**| 1| Forces the new keyboard to be used.|
+|**Android.NewKeyboard**| 2| Forces the dialog to be used.|
+
+
+
+
+

@@ -17,7 +17,8 @@ Description:介绍了虚幻引擎中应用的各种坐标空间。
 | **Viewport(视口空间) ** | **ViewportCoordinates(视口坐标系)**, **WindowCoordinates(窗口坐标系) ** | [INCLUDE:#Viewport] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TranslatedWorld]
 [REGION:simpletable]
 | ------ | ------ |
@@ -44,7 +45,8 @@ Description:介绍了虚幻引擎中应用的各种坐标空间。
 | 顶部/底部 |  0,高度-1 |
 [/REGION]
 [/EXCERPT:Viewport]
--->
+
+[/COMMENT]
 
 ## 空间变换
 

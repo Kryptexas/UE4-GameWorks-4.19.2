@@ -21,7 +21,7 @@ Description:入力と C++ コードのバインド
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** で「MyPawn.h」を開いて MyPawn のクラス定義の下部に以下のコードを追加します:
 
@@ -264,4 +264,4 @@ Description:入力と C++ コードのバインド
 	[/PARAM]
 [/OBJECT]
 
-%Steps%
+

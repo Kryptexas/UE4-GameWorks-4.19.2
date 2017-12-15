@@ -402,9 +402,11 @@ DistanceToNearestSurface（与最近表面的距离）的作用是告诉材质�
 [![](DistanceFieldGradient_Example.png)(w:960)](DistanceFieldGradient_Example.png)
 [/Region]
 
-<!---
+[COMMENT:none]
+-
 ![](DistanceFieldGradient_Example.png)
---->
+-
+[/COMMENT]
 
 | 编号 | 说明|
 | -------- | ----------- |

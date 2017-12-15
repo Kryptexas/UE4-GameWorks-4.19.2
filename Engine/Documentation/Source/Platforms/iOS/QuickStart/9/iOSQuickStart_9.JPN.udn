@@ -22,7 +22,7 @@ SkillLevel:Intermediate
 [/VAR]
 
 
-%Steps%
+
 
 互換性およびパフォーマンスに関する詳細です。
 * [](Platforms\iOS\DeviceCompatibility)
@@ -39,4 +39,4 @@ SkillLevel:Intermediate
 [](Platforms\Mobile\Previewer) を使用すれば、デバイスにデプロイせずにご自分のモバイルゲームをプレビューすることもできます。
 
 
-%Steps%
+

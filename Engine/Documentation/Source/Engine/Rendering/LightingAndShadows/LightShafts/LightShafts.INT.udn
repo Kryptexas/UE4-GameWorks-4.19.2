@@ -3,45 +3,7 @@ Title:Light Shafts
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Simulating light scattered in the atmosphere.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightShafts:title%](LShaft_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightShafts:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightShafts:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightShafts]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightShafts:title%](LShaft_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightShafts:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightShafts:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightShafts]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:LShaft_Topic.png
 
 [REGION:banner]
 ![](lightShafts_banner.png)
@@ -93,8 +55,10 @@ The bloom method captures the scene's color (including translucency and fog in-s
   
 These effects (occlusion and bloom) cost separately, so it is best to only enable the one you want. At 1080p on a 680GTX, occlusion is .5ms and bloom on a single light is .68ms. 
 
-<!-- Redundant Images
+[COMMENT:none]
+ Redundant Images
 [REGION:lightbox]
 [![](2LightShafts.png)(h:250)](2LightShafts.png) [![](5LightShafts.png)(h:250)](5LightShafts.png) 
 [/REGION]
--->
+
+[/COMMENT]

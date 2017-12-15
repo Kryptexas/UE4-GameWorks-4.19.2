@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3616288
-Availability:Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Animation
 Title:アニメーションの最適化
 Description:最適化の技術を使って Animation ブループリントのパフォーマンスを高めます。
@@ -17,13 +17,13 @@ Related:Engine/Performance
 [TOC (start:2 end:2)]
 
 [](Engine/Animation/AnimBlueprints) を作成する際に、プロジェクトのアニメーションができる限りスムーズに動くように注意すべきことがいくつかあります。 
-その一部は、デフォルトで有効になっていますが、他のものは Animation ブループリントをセットアップする際に講じる手段を考える必要があります。 
+その一部は、デフォルトで有効になっていますが、他のものは Animation ブループリントをセットアップする際にどのような手法をとるかを考える必要があります。 
 C++ を使ってできる作業もあり、いつ、どのようにアニメーションを更新するかを制御することもできます。これは、パフォーマンスの向上につながることがあります。 
 
 
 ## マルチスレッドのアニメーションの更新
 
-これを使うと、多くのアニメーションの作業をワーカースレッドで実行することができます。デフォルトで有効になっていて、 [Project Settings](https://docs.unrealengine.com/latest/INT/Engine/UI/ProjectSettings/) にあります。 
+これを使うと、多くのアニメーションの作業をワーカースレッドで実行することができます。デフォルトで有効になっていて、 [Project Settings (プロジェクト設定)](https://docs.unrealengine.com/latest/INT/Engine/UI/ProjectSettings/) にあります。 
 
 * **[Project Settings]** の **[General Settings]、> [Anim Blueprints]** に進み、**[Allow Multi Threaded Animation Update] ** が有効になっていることを確認します。
 
@@ -217,12 +217,14 @@ Animation ブループリントで確実に Fast Path を使うようにする�
 	上の図では、AnimGraph でブループリントのロジックを実行していて、警告オプションを有効にしているため、Compier Results に警告メッセージが表示されます。警告上でクリックすると、問題となっているノードがわかります。 
 	これは最適化すべき場所を追跡するのに役立ち、問題の原因となっているノードを特定することができます。 
 
-<!--
+[COMMENT:none]
+
 ## Update Rate Optimization (URO)
 
 WB Note - Omitting this for now as it's slated for improvements in 4.18
 
--->
+
+[/COMMENT]
 
 
 ## 一般的なヒント
@@ -233,8 +235,8 @@ WB Note - Omitting this for now as it's slated for improvements in 4.18
 プロジェクトのサイズとスコープに応じてさらに変更が必要になるかもしれませんが、一般的に以下から始めると良いでしょう。 
 [/REGION]
 
-* **Parallel Update の条件が満たされていることを確認します**
-	 * `UAnimInstance::NeedsImmediateUpdate` では、ゲーム スレッドで実行しているアニメーションの更新フェーズを避けるために満たさなければならない全条件を見ることができます。 
+* **Parallel Update の条件が満たされていることを確認する**
+	 * `UAnimInstance::NeedsImmediateUpdate` では、ゲーム スレッドで実行しているアニメーションの更新フェーズを避けるために満たすべき全条件を見ることができます。 
 	キャラクターの動きでルート モーションが必要な場合、並列更新はできません。キャラクターの動きはマルチ スレッドではないからです。 
 * **Blueprint Virtual Machine の呼び出しを回避する**
 	* [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) を C++ コードにします。 

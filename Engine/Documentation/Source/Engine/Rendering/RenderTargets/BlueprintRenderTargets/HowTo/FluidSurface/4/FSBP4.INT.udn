@@ -52,7 +52,8 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompBP]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -1155,4 +1156,5 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 [/OBJECT]
 [/EXCERPT:CompBP]
 
--->
+
+[/COMMENT]

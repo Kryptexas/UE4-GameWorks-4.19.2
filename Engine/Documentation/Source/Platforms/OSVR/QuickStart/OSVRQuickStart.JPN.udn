@@ -19,21 +19,15 @@ social-image:googlevr_social.png
 PC および Android ベースのスマートフォンを使って UE4 と OSV を使う方法を説明します。
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Platforms/OSVR/QuickStart/1 "%Platforms/OSVR/QuickStart/1:description%")
 	* [](Platforms/OSVR/QuickStart/2 "%Platforms/OSVR/QuickStart/2:description%")
 	* [](Platforms/OSVR/QuickStart/3 "%Platforms/OSVR/QuickStart/3:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

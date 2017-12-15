@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%
-Title: Create a New Global Shader as a Plugin
-Description: Creating and setting up a new Global shader via a Plugin.
+Title: 새로운 글로벌 셰이더를 플러그인으로 생성
+Description: 플러그인을 통해 새로운 글로벌 셰이더를 만들고 구성하는 법입니다.
 Type: how-to
 SkillLevel: Advanced
 Version: 4.17
@@ -14,36 +14,26 @@ Tags:Plugin
 Checkpoint:shaderqs
 
 
-The Unreal Engine 4 (UE4) Plugin system allows anyone to add a wide range of new functionality to UE4 without the need to recompile and distribute the entire engine. In the following How - To we will recreate the Lens Distortion global shader plugin to demonstrate how you would go about implementing a global shader that is controllable via Blueprints.
+언리얼 엔진 4 (UE4) 플러그인 시스템을 통해 누구든 다양한 신기능을 추가하고도 전체 엔진을 다시 컴파일하여 배포할 필요가 없습니다. 여기서는 렌즈 디스토션 글로벌 셰이더 플러그인을 다시 만들어 보면서 블루프린트를 통해 제어할 수 있는 글로벌 셰이더를 구현하는 법을 알아보겠습니다.
 
 [REGION:lightbox]
 [![](HT_Hero_Image.png)(w:600)](HT_Hero_Image.png)
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+클릭하면 이미지 원본을 확인합니다.
 [/REGION]
 
 [region:note]
-For this example, we will be re-creating the existing Lens Distortion plugin that can be found in **Engine\Plugins\Compositing\LensDistortion** to a new Plugin called **Foo** to demonstrate how you would implement this workflow.
+이번 예제에서는, **Engine\Plugins\Compositing\LensDistortion** 에서 찾을 수 있는 기존 렌즈 디스토션 플러그인을 **Foo** 라는 새로운 플러그인으로 다시 만들어보면서 이 작업방식 구현 방법을 선보이도록 하겠습니다.
 [/region]
 
-The Shaders in Plugins Quick Start will walk you through creating and using global shader as a Plugin. 
+Shaders in 플러그인 퀵 스타트에서 글로벌 셰이더를 만들어 플러그인으로 사용하는 법을 단계별로 확인하실 수 있습니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\Rendering\ShaderInPlugin\QuickStart\1 "%Programming\Rendering\ShaderInPlugin\QuickStart\1:description%")
-	* [](Programming\Rendering\ShaderInPlugin\QuickStart\2 "%Programming\Rendering\ShaderInPlugin\QuickStart\2:description%")
-	[/PARAM]
-[/OBJECT]
-Programming\Rendering\ShaderInPlugin\QuickStart\2
+## 단계
 
+[DIR(output:"checkpoint" parent:"Programming\Rendering\ShaderInPlugin\QuickStart" org:"hierarchy")]
 
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Programming\Rendering\ShaderInPlugin\QuickStart\1 "%Programming\Rendering\ShaderInPlugin\QuickStart\1:title%")
+[/REGION]

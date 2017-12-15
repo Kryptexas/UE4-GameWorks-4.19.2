@@ -1,0 +1,334 @@
+﻿INTSourceChangelist:3716175
+Availability:Public
+Crumbs: %ROOT%
+Title:Mesh Distance Fields
+Description:ゲーム開発における Mesh Distance Field の使い方および機能の概要
+Type:Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:
+Tags:Lighting
+Tags:Distance Fields
+
+
+[REGION:banner]
+![](DistanceFieldsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+
+アンリアル エンジン 4 (UE4) では **Distance Field** のパワーを利用してゲーム内のスタティックメッシュ アクタにダイナミック アンビエント オクルージョンとシャドウイングを生成することができます。さらに、アクタの Mesh Distance Field による表現は、GPU パーティクル コリジョンなどの他の機能と使用して Mesh Distance Field でアクタを表現することができます。 
+マテリアル エディタと組み合わせて使用すれば、ダイナミック フロー マップも作成することができます。 
+
+それでは UE4 の Mesh Distance Field の仕組み、そしてゲームでの使い方について説明します。 
+
+## 仕組み
+
+スタティックメッシュのサーフェスは **Signed Distance Field** (SDF) を使って表現します。最も近いサーフェスまでの距離をボリューム テクスチャに格納して使用します。メッシュ外にあるポイントは正の距離、 
+メッシュ内のすべてのポイントは負の距離として格納されます。以下の例では、後から木を描写できるように
+正の距離がトレースおよび格納されています。
+
+![](DistanceField.jpg)(w:400)
+
+SDF の最初のプロパティは光線のトレースに役立ちます。 
+最も近いサーフェスまでの距離が分かっているので、空のスペースに安全にスキップ (Sphere Tracing) できるようになります。結果、少ない手順で交点を定義することができます。ディスタンス フィールドをレイトレーシングすることにより結果が可視化されるため、 
+光線がメッシュと交わるとライトにシャドウがかかります。
+
+![](RayTrace.jpg)(w:400)
+
+2 つ目のプロパティは、SDF を使いやすくします。光線のトレース時に、光線が通過した最も近い距離を遮蔽しているオブジェクトでトラックすることで、 
+余分な負荷をかけずにおおよそのコーン交点を取得することができます。Distance Field を使って、エリア シャドウおよびスカイ オクルージョンを非常にソフトにする設定が可能になります。このプロパティは、 
+少ないコーン数で受け取り地点の半球全体に対するソフトな可視性を計算することができるので、 
+[ディスタンス フィールド アンビエント オクルージョン](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) などの機能で非常に重要です。 
+
+![](ConeTrace.jpg)(w:400)
+
+[COMMENT:none]
+--
+
+レベル全体は、ボリューム テクスチャに保存されているインスタンス化された Distance Field で表現されます。ランドスケープは [ハイトフィールド]() により別に表現されます。
+ハイト フィールドはディスタンス フィールド アンビエント オクルージョンのために使用しますが、Ray Traced Distance Field Soft Shadow には影響を与えません。
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene View](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Mesh Distance Fields View](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+-
+[/COMMENT]
+
+
+[REGION:note]
+詳細は、[ライティングへのディスタンス フィールドの使用方法](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm) をご覧ください。
+[/REGION]
+
+[EXCERPT:scenerepresentation]
+### シーンの表現
+
+各レベルは、配置したアクタに対してすべてこれらの Mesh Distance Field で構成されて作成されます。Mesh Distance Field は、 
+結果をボリューム テクスチャに格納するトライアングルのレイトレースを使って「オフライン」で生成されます。このため、メッシュ ディスタンス フィールド生成をランタイム時に行うことはできません。このメソッドは、一番近いサーフェスを見つけてその情報を格納するために、 
+Signed Distance Field の光線をすべての方向で計算します。
+
+ビューポートで **[Show]** > **[Visualize]** > **[Mesh Distance Fields]** を選択すると、シーンを表現する Mesh Distance Fields を視覚化することができます。
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](EnableMDFViewMode.png)(w:400 h:450)](EnableMDFViewMode.png) [/REGION] | [REGION:lightbox] [![](VisualizeMeshDistanceFields.jpg)(w:750 h:450)](VisualizeMeshDistanceFields.jpg) [/REGION] |
+| --- | --- |
+| 視覚化を有効にするメニュー | Mesh Distance Field の視覚化 |
+| _画像をクリックしてフルサイズ表示_ | _画像をクリックしてフルサイズ表示_ |
+[/REGION]
+
+グレイよりも白が多いエリアが表示された場合、メッシュ サーフェスの交差判定に多くのステップが必要となります。サーフェスに対するグレージング角の光線を交差させるには、 
+シンプルなメッシュの作成よりも作業手順が多くなります。 
+[/EXCERPT:scenerepresentation]
+
+#### 品質
+
+Mesh Distance Field 表現の品質はボリューム テクスチャの解像度で調整します。これは、**スタティックメッシュ エディタ** の [ビルド設定](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#ビルド設定) の中にある 
+**[Distance Field Resolution Scale]** で変更することができます。 
+
+![](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\BuildSettings.png)(w:400)
+
+
+大きなメッシュは様々はエラーを起こしやすいため、同じサイズのメッシュでレベルを構成した場合、Mesh Distance Field の品質が最も良くなります。例えば [Fortnite](https://www.epicgames.com/fortnite) では、メッシュをグリッドに合わせるか、またはプロップをレベルの回りに置くことで
+エラーも少なく、非常にきれいに仕上がりました。ランドスケープは[ハイト フィールド](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion#landscapes) で別に処理され、Distance Field の解像度の影響は受けません。
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](Mesh.jpg)(w:375)](Mesh.jpg) [/REGION] | [REGION:lightbox] [![](LowResDistanceField.jpg)(w:375)](LowResDistanceField.jpg) [/REGION] | [REGION:lightbox] [![](HighResDistanceField.jpg)(w:375)](HighResDistanceField.jpg) [/REGION] |
+| --- | --- | --- |
+| オリジナルのメッシュ | 解像度が低すぎると重要な特性が表現されない | 解像度をあげると重要な特性が表現される |
+| 画像をクリックしてフルサイズ表示 | 画像をクリックしてフルサイズ表示 | 画像をクリックしてフルサイズ表示 |
+[/REGION]
+
+重要な特性をキャプチャできるようにメッシュ ディスタンス フィールドの解像度を調節します。メッシュの解像度を高くすると、 
+メッシュ ディスタンス フィールドのメモリ使用量も増えます。スタティックメッシュ エディタのビューポートの左上にメッシュ ディスタンス フィールドのサイズが表示されます。
+
+[REGION:lightbox]
+[![](SMEditorDFSize.png)(w:500)](SMEditorDFSize.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+メッシュ ディスタンス フィールドが生成されると、解像度に応じて角が丸くなります。これは解像度を高くしてオフセットすることができます。ほとんどの場合、メッシュの複雑度によりますが、特に重要ではありません。メッシュ 1 つあたりのボリューム テクスチャの最大サイズは、 
+解像度 128x128x128 、8 メガバイトです。
+
+[REGION:imagetable]
+| ![](QualityCorners1.png)(h:250) | ![](QualityCorners2.png)(h:250) | ![](QualityCorners4.png)(h:250) |
+| --- | --- | --- |
+|  |  |  |
+[/REGION]
+
+薄いサーフェスの場合は、メッシュの内部に負のテクセルを使用しなければ表現できません。これはルートを探すために必要となります。解像度を高くすると、多くの詳細をより正確にキャプチャすることができますが、 
+[ディスタンス フィールド アンビエント オクルージョン]Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) を使用し、かつサーフェスが正しく表示されない場合、サーフェスから遠いオクルージョンは正確になるので、 
+スカイ オクルージョンでは通常は目立ちません。 
+
+![](QualityCorners3.png)(w:400)
+
+
+#### Global Distance Field
+
+[EXCERPT:visualizeGlobalDF1]
+Global Distance Field は、カメラを追いかけながらレベル内で Signed Distance Fields オクルージョンを使用する、低解像度の Distance Field です。オブジェクト毎に Mesh Distance Field のキャッシュを作成し、
+それをカメラ周囲を中心としたクリップマップと呼ばれるいくつかのボリューム テクスチャに合成します。新たに見えるエリアや、シーンの変更の影響を受けるエリアだけを更新する必要があります。 
+そのため、合成の負荷はあまりかかりません。  
+[/EXCERPT:visualizeGlobalDF1]
+
+
+[EXCERPT:visualizeGlobalDF2]
+スカイ オクルージョンでコーン トレースを演算処理する場合、オブジェクトの Distance Field はシェーディングされているポイント近くでサンプリングされます。
+一方、はるかに高速な Global Distance Field はさらに離れた場所でサンプリングされます。 
+
+[Show] > **[Visualize]** > **[Global Distance Fields]** をクリックすることで、Global Distance Field をビューポートで視覚化できます。 
+
+[REGION:lightbox] 
+[![](EnableGDFViewMode.png)(w:400 h:485)](EnableGDFViewMode.png) 
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+以下はオブジェクトごとに Mesh Distance Field で視覚化した場合と、カメラのビューと距離に合わせてそれらをクリップマップで組み合わせた Global Distance Field で視覚化した場合の比較です。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Mesh Distance Fields Visualization](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/ODFVisualization.png)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Global Distance Fields Visualization](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/GDFVisualization.png)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:visualizeGlobalDF2]
+
+[REGION:note]
+詳細は [ディスタンス フィールド アンビエント オクルージョン](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) ページをご覧ください。
+[/REGION]
+
+#### フォリッジ
+
+Foliage アセットは Distance Field を利用して、動的オクルージョンを与える、またはカスケード シャドウ マップがシャドウをかける以上のディスタンス シャドウイングを可能にします。 
+
+ゲームで Foliage アセットを使用する場合、以下のオプションと組み合わせると最高のパフォーマンスと品質を引き出すことができます。 
+
+#### Two-Sided Distance Field
+
+(木のような) 高密度のメッシュの場合、通常はマスクされたマテリアルで構成されていたサーフェスで葉や枝の多数の穴を表現しますが、
+これらはソリッドなサーフェスとして適切に表現することはできません。このため、**スタティックメッシュ エディタ** の [ビルド設定](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#BuildSettings) で 
+ **[Two-Sided Distance Field Generation]** を有効にします。このオプションはフォリッジと相性が良いですが、光線を伸ばす負荷が高くなります。
+
+[REGION:imagetable]
+| ![](BuildSettings_TwoSided.png) | | | | [INCLUDE:#twosided] |
+| ---- | ---- | ---- | --- | --- |
+|  |  |  |  |  |
+[/REGION]
+
+このサンプルでは、左側の木はデフォルトの不透明な Mesh Distance Field による表現、そして右側の木は **[Two-Sided Distance Field Generation]** を有効にしました。両面のメッシュ ディスタンス フィールドは、
+グレイよりも白が多く、サーフェスが透過していることが分かります。つまり、ボリューム テクスチャの生成時に、不透明な表現にした場合よりも
+メッシュ交差判定にさらに手間がかかり、負荷も高くなります。
+
+
+[COMMENT:none]
+-
+[EXCERPT:twosided]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Opaque Mesh Distance Field](DFTwoSided1.png)(h:404)
+	[/PARAM]
+	[PARAM:after]
+	![Two-Sided Mesh Distance Field](DFTwoSided2.png)(h:404)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:twosided]
+-
+[/COMMENT]
+
+##### フォリッジ ツールの設定
+
+[Foliage ツール](Engine/Foliage) では、アンビエント オクルージョンとシャドウイングのために、フォリッジのタイプに Distance Field のライティング機能を使ってもらいたいならば、そのフォリッジのタイプを有効化しなければなりません。この設定はデフォルトでは無効になっています。
+草などのフォリッジ アセットの中には、インスタンス数が非常に多いためタイル カリング バッファをオーバーフローしてしまう場合があり、その時に目障りなアーティファクトが発生してしまうからです。そのため、必要なフォリッジ アセットに対してのみ  
+**[Affect Distance Field Lighting]** を有効にします。
+
+![](FoliageToolSettings.png)
+
+[COMMENT:none]
+-
+#### ランドスケープ
+
+ランドスケープは Mesh Distance Field の代わりにハイトフィールドを使って表現します。Mesh Distance Field 表現を伴わないピクセルを有効にしてオクルージョンを受け取ることが可能になったこのハイトフィールドに対して、おおよそのコーン交差が計算されます。
+ただし、セルフ シャドウイングやディスタンス フィールド シャドウイングはありません。ランドスケープの場合、非常に遠くにあるシャドウイングに対しては **Far Shadows** を使用します。
+
+![](Landscape.png)(w:700)
+[REGION:caption] ディスタンス フィールド アンビエント オクルージョン ビューモードでのランドスケープ ハイトフィールド[/REGION]
+
+-
+[/COMMENT]
+
+[COMMENT:none]
+-
+### カリング
+
+シーンを構成するオブジェクトは完全に GPU で管理されるので、以下のオブジェクトのカリングは CPU 上で実行する場合の 100 倍高速になります。 
+
+
+* GPU で完全に管理されているシーン オブジェクト
+	- CPU は更新デルタを送信する
+	- オブジェクトの移動に必要なのはマトリックスのアップデートのみ
+* オブジェクトのカリングを CPU 上と比べて 100 倍速く表示する
+	- Kite デモでは 200 万個の木のインスタンス > PS4 の画面上で 50k @ .1ms
+	- オブジェクトからパイプラインへのすべての操作を GPU で行うため実現可能
+	- 光線が SDF を進む時トライアングルは含まないのでグラフィック API コールはオブジェクト上では使用しません。これによりオブジェクトの管理とカリングを GPU 上で行うことが可能になります。
+	(他の技法と併用して)。
+-
+[/COMMENT]
+
+
+### ディスタンス フィールドを有効にする 
+
+プロジェクトの Mesh Distance Field を有効にするには、ファイル メニューから **[Edit]** > **[Project Settings]** で [Project Settings] を開き、**[Rendering]** セクションを選択します。 
+
+[REGION:lightbox]
+[![](ProjectSettingsWindow.png)(w:450)](ProjectSettingsWindow.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+**[Lighting]** カテゴリの **[Generate Mesh Distance Fields (Mesh Distance Fields を生成する)]** の横にあるチェックボックスを切り替えます。 
+
+![](GeneratedMeshDF.png)(w:450)
+
+これを有効にすると、プロジェクトを再起動を求められます。 
+
+![](RestartEditorButton.png)(w:450)
+
+次回プロジェクトをロードする時に、Mesh Distance Field が生成されていることを示す以下のポップアップが画面下の端に表示されます。 
+
+![](BuildingMeshDFs.png)(w:450)
+
+再起動したら、**[Show]** > **[Visualize]** > **[Mesh DistanceFields]** をクリックすればビューポートに Mesh Distance Field を視覚化することができます。このような表示になるはずです。
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene View](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![Mesh Distance Fields Visualization](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:caption] このレベルの全体はボリューム テクスチャに保存されているインスタンス化された Distance Field によって表現されます。 [/REGION]
+
+
+### メモリ使用と最適化
+
+* **r.AOListMeshDistanceFields** はメモリサイズでソートされている Mesh Distance Field を出力ログへダンプします。コンテンツの最適化に便利な手法です。
+[EXCERPT:optimizations]
+* **[Project Settings]** > **[Rendering]** で有効にします。 
+	[REGION:lightbox]
+	[![](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\ProjectSettings.png)(w:500 h:250)](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\ProjectSettings.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+	* **[Compress Mesh Distance Fields]** を有効にすると、Distance Fields ボリューム テクスチャを圧縮してメモリに格納することができます。これにより、メモリ使用量は減りますが、
+		レベル ストリーミングを使用している場合は、レベルのストリーミング時にゲームプレイで処理落ちが発生します。
+	* **Eight Bit Mesh Distance Fields** は、Distance Fields ボリュームを 16-bit 浮動小数点ではなく 8-bit 固定小数点形式で
+		保存するかどうかを設定します。メモリは半分しか使用しませんが、大きいメッシュ、または薄いメッシュがあるとアーティファクトが発生します。
+[/EXCERPT:optimizations]
+* グローバル ディスタンス フィールドは、[Mobility (可動性)] が [Static (静的)] または [Stationary (固定)] に設定されている場合、静的プリミティブをキャッシュします。グローバル ディスタンス フィールド全体は主に静的キャッシュから派生しているので、Movable (ムーバブルな) プリミティブが変更されると
+付近の他の Movable プリミティブのみが Global Distance Field への再合成を必要とします。 
+
+
+### 制限事項
+
+**ディスタンス フィールド テクニックに関する制限事項**
+* 機能レベル 5 のプラットフォームのみサポートしています (DX-11 以上)。
+* 剛体メッシュからシャドウのみキャストします。スケルタルメッシュの場合、Distance Field Ambient Occlusion (DFAO) およびソフトな直接シャドウウィングのある間接的に照らされるエリア [カプセル シャドウ](Engine/Rendering/LightingAndShadows/CapsuleShadows) を使用します。 
+*  World Position Offset や変位でメッシュを変形するマテリアルは、Distance Field による表現はオフラインで生成されており、このような変形情報がないため、アーティファクトが発生します。 
+
+**現在の実装の制限事項 (今後改善される見込みです)**
+* 不均等なスケーリングは正しく処理できません (ミラーリングは問題ありません) 。ただし、2x 以下であればメッシュをスケーリングしても通常は気付きません。 
+* Static Mesh コンポーネント、Instanced Static Mesh コンポーネント、フォリッジ、ランドスケープ (ハイトフィールド) のみがサポートされています。フォリッジは、[Foliage Tool Settings] の **[Affect Distance Field Lighting]** で有効にしなければなりません。 
+
+**ハードウェアの制約事項**
+* HD 4000 は大規模な地図をアロケートするための RHICreateTexture3D call でハングアップするため、すべてのメッシュ ディスタンス フィールド 機能は Intel カード上では無効にされています。
+
+
+### リファレンス
+
+* [Quilez,Inigo. "Raymarching Distance Fields." N.p, 2008](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+
+
+
+## 基本
+
+[DIR(output:"topiccompact" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields" org:"hierarchy" tags:"Distance Fields" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields" org:"hierarchy" tags:"Lighting" tags:"!Distance Fields" end:"1")]
+
+
+

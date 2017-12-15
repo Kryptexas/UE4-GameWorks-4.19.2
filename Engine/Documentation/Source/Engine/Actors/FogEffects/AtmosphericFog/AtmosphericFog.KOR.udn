@@ -1,49 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:애트머스페릭 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:Atmospheric Fog, 애트머스페릭 포그 액터는 대기를 매개로 공기 밀도, 빛의 산란 등의 대기 표현에 사실감을 더해주는 액터입니다.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:atmofog_topic.png
 
 [REGION:banner]
 ![Atmospheric Fog](atmofog_banner.png)
@@ -105,7 +66,8 @@ Atmospheric Fog 액터에 있는 프로퍼티는 다음과 같습니다:
 | Density Decay Height of 1.0 (64 km) and Max Scattering of 4 | Density Decay Height of 1.0 (64 km) and Max Scattering of 1 |
 [/REGION]
 [/EXCERPT:examples]
-<!---Includes
+[COMMENT:none]
+-Includes
 [EXCERPT:PrecomputeParams]
 [REGION:simpletable]
 	|**프로퍼티** | **설명** |
@@ -115,4 +77,5 @@ Atmospheric Fog 액터에 있는 프로퍼티는 다음과 같습니다:
 	| *Inscatter Altitude Sample* | 인스캐터 고도 샘플 - 인스캐터 컬러 샘플링 채취를 위한 여러가지 고도의 수치입니다. (3D 텍스처 차원 크기로, 1-32 입니다). |
 [/REGION]
 [/EXCERPT:PrecomputeParams]
-End Includes----->
+End Includes---
+[/COMMENT]

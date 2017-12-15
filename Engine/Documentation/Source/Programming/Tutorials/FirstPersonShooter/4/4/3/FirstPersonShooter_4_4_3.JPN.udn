@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Run から Jump Start する遷移を追加します。
 
@@ -38,4 +38,3 @@ Version:4.15
 
 	![](IsFallingtoResult.png)
 
-%Steps%

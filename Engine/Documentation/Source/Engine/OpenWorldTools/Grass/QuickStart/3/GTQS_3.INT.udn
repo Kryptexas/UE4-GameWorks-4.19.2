@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Before we can begin to use the Grass Tools we first have to create Material that can work with both the Landscape terrain and the **Landscape Grass Type**. 
 In the following section we will cover how to set up this Material as well as how to link it so that it will work with the Landscape Grass Type. 
@@ -92,4 +92,4 @@ If you would like to have a more in-depth look at how the Landscape terrain work
 
 
 
-%Steps%
+

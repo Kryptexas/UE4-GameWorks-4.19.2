@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3618359
+Availability:Public
 Crumbs: %ROOT%
-Title: Slate Clipping System
-Description: An overview of the Clipping System for Slate in Unreal Engine 4.
-Type: Overview
+Title:スレートのクリップ処理システム
+Description:アンリアル エンジン 4 のスレートのクリップ処理の概要
+Type:Overview
 SkillLevel:Advanced
 Version:4.17
 Parent:Programming/Slate
+Related:Engine/UMG/UserGuide/Clipping
 Order:1
 Tags:Programming
 Tags:Slate
@@ -20,105 +21,110 @@ Tags:UMG UI Designer
 [TOC(start:2 end:3)]
 
 [REGION:warning]
-With the release of Unreal Engine 4.17, the new Slate Clipping System will break backwards compatability for versions 4.16 and earlier that update. See the [Conversion Guide](#conversionguide) section of this 
-page to update your project. 
+アンリアル エンジン 4.17 のリリースにより、新しいスレートのクリップ処理システムは 4.16 以前のバージョンに対して後方互換性を破ります。プロジェクトのアップデートについては、 
+本ページの [変換ガイド](#4stop16以前と4stop17以降の変換ガイド) をご覧ください。 
 [/REGION]
 
-The Unreal Engine 4 (UE4) uses Slate's clipping system to restrict graphics or text to a region of your screen. This is done by creating a clipping rectangle (or clipping rect) bounding box around the 
-objects and panels that are created. This system is used throughout the UE4 Editor and the UMG UI Designer tools. Slate enables users to move panels and resize them as needed in the Editor
-and the clipping system enables the text and graphics to be contained to their clipping rect. With UMG this enables better render transforms that clip appropriately for your UI. 
 
-## What's New
 
-With the release of Unreal Engine 4.17, the clipping system has been overhauled to be much more flexible than it was in previous versions. This allows for more rendering effects to be 
-added later for tool systems like [UMG](Engine/UMG/UserGuide) for UI in your games. The clipping system used prior was limited and based entirely around axis-aligned boxes for clipping,
-whcih lead to noticeable difficulties with render transforms, generally around edges, like the example below.
+
+アンリアル エンジン (UE4) には、グラフィックスやテキストを画面の範囲内に制限するスレートのクリップ処理システムが導入されています。作成されたオブジェクトとパネルの周囲に 
+長方形 (またはクリップする領域) を作成します。このシステムはエディタおよび UMG UI Designer ツール全体で使用されます。ユーザーは、スレートを使って必要な時にエディタでパネルを移動し、そのサイズを変更することができます。 
+クリップ処理システムを使うと、テキストとグラフィックスをクリップする領域に収めることができます。UMG のレンダリング トランスフォームはさらに優秀で、UI に合うようにクリップします。 
+
+## 新機能
+
+アンリアル エンジン 4.17 では、クリップ処理システムをさらに柔軟にするために大幅な見直しを行いました。これにより、プロジェクトの UI に使用する [UMG](Engine/UMG/UserGuide) などのツール システムにレンダリング エフェクトを追加する可能性が広がりました。
+これまでのバージョンで使われていたクリップ処理システムはレイアウト空間が座標軸に平行のみという制限があったため、 
+下図のように、エッジ周りのレンダリング トランスフォーム全般が非常に難しい作業でした。
 
 [REGION:imagetable]
 | --- | --- | --- | --- | --- | --- |
 | ![](OldClippingIssue1.png)(w:350) | | | | | ![](OldClippingIssue2.png)(w:350) |
 [/REGION]
 
-The comparison list below will give you a general overview of what has changed:
+この例では、ウィジェットが回転しているのにクリップする領域 (白い点) は回転していないため、キャンバス パネル境界内にあるにもかかわらずグラフィックによるレンダリングが行われていないことが分かります。 
+
+クリッピング システムのバージョン 1.0 と 2.0 の違いを比較すると、このようになります。
 
 [REGION:simpletable]
-| Clipping 1.0 | Clipping 2.0 |
+| Clipping 1.0 (4.16 以前) | Clipping 2.0 (4.17 以降) |
 | ------------ | ------------ |
 | [INCLUDE:#clipping1] | [INCLUDE:#clipping2] |  
 [/REGION]
 
-Because the new system allows for clipping to occur in the render space of the widgets instead of axis-aligned, this means that the system no longer need to be concerned with clipping issues (left),
-and instead clips the outmost widget. Now any transform that is applied to the inner widgets will be correctly clipped at the edges (right).
+これまでは空間は座標軸に平行であることが必須でしたが、新しいシステムはウィジェットのレンダリング空間でのクリップ処理に対応しているため、 
+(左図のような) クリップ処理の問題に対する心配がなくなり、ウィジェットの最外部にクリップするようになりました。ウィジェットの内側でトランスフォームを適用すると、端 (右) にぴったりクリップされます。
 
 [REGION:imagetable]
 | ![](ClippingOld.png)(w:350) | | | | | ![](ClippingNew.png)(w:350) |
 | --- | --- | --- | --- | --- | --- |
-| 4.16 and earlier clipping and transforms. ||||| 4.17 and later, clipping applied at edges |
-|  ||||| along with transforms to the children. |
+| 4.16 以前のクリッピングとトランスフォーム ||||| 4.17 以降で子のトランスフォームに合わせて |
+|  ||||| 端でクリップ処理を適用した場合 |
 [/REGION]
 
-
-For the most part, you shouldn't need to worry about changing the clipping state of a widget. If you were to consider game UI as an example, you wouldn't really need to adjust the widget in UMG and 
-mostly would change this for something like a scroll panel, or in cases, like the Editor, where you can't control the length of the text and need to clip it for resizing the windows or parts of the panel.
+ほとんどの場合、ウィジェットのクリップ ステートの変更を心配する必要はありません。例えばゲーム UI であれば、UMG ではウィジェット調節の必要はなく、スクロール パネル、またはエディタのようにテキストの長さを調節できないので、ウィンドウのサイズ変更のためップする必要のある場合にウィジェットを変更します。
 
 ![](ClippingExamples.png)(w:500)
 
-Here are a few examples of something you might see and how you can use clipping with them:
+以下は、各種クリップ処理設定の一例です。
 
-* Left - No clipping is enabled on the button or the text.
-* Center - Clipping is enabled on the text
-* Right - Clipping is enabled on the button.
+* 左 - ボタン上またはテキスト上でのクリップ処理が有効にされていない。
+* 中央 - テキスト上でクリップ処理が有効にされている。
+* 右 - ボタン上でクリップ処理が有効にされている。
 
-Take note of the difference it makes for who is responisble for clipping. Since the system clips to bounds, things like padding do not factor in here, so if the button is set to clip (right), the 
-contents will run all the way to the edge before they clip, whereas if the text is responsible for clipping (center), then the text clips based on things like the button content padding that 
-reduces the space the text has to fit into.
+異なるオブジェクトにクリップ処理を割り当てた時に生じる差に注目してください。境界線までクリップするため、パディングのようなものはここでは考慮されません。従って、ボタンにクリップ処理を設定すると、文字が端までずっと続いてからカットされます (右)。 
+その一方で、ボタンではなくテキストがクリップされる場合は、 
+テキストを収めるスペースをどれくらいにするかに基づいてクリップします (中央)。
 
-In addition to the simple axis-aligned examples of clipping, the system also supports arbitrary clipping quads that are stacked on top of each other. 
+シンプルな座標軸に平行なクリップ処理の例の他にも、積み重なっている任意のクワッドにも対応しています。 
 
 ![](TransformClipping.png)(w:400)
 [REGION:caption]  [/REGION]
 
-While this example is extreme, being able to combine multiple arbitrary clipping zones together is a prerequisite to being able to introduce 3D transforms and projections, since any widget being
-clipped with a projection would need to perform clipping in projected space. 
+これは極端なサンプルですが、3D トランスフォームとプロジェクションの導入には、プロジェクションでクリップされるウィジェットは投影空間でクリッピングを実行しなければならないので、
+複数の任意のクリップする領域にまとめられることが必須です。 
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:clipping1]
-* Axis-aligned clipping - Only functions in layout space
-* Every Widget gets clipped
-* All clipping is done in the pixel shader (requires 6 floats per vertex)
-* Allowed batching across clipping rects, since the rects are part of the batch data
-* Render Transforms are "special" in that they allow rendering outside the clipping rect provided by the parent, with side effects when the layout rect is clipped
+* 座標面に平行なクリップ処理は、レイアウト空間のみで機能します。
+* ウィジェットはすべてクリップされます。
+* クリッピングはすべてピクセル シェーダーで行われます (頂点ごとに浮動小数点が 6 個必要)。
+* 領域がバッチデータの一部なので、クリップする領域全体をバッチ処理できます。
+* 親から与えられたクリップする領域外でもレンダリング可能であり、レイアウト領域がクリップされる時に問題があるという点でレンダリング トランスフォームは「特殊」です。
 [/EXCERPT:clipping1]
 
 
 [EXCERPT:clipping2]
-* A clipping that is an arbitrary quad
-	* Axis-aligned clipping zone using Scissor Rects to clip - which avoides unnecessary pixel shader operations
-	* Complex clipping zones use the stencil buffer to compose an arbitrary stack of clipping zones into the stencil buffer that is then used to clip draw calls
-* Very few widgets clip now (by default), consisting mostly of scroll panels and editable text fields
-	* Render Transforms are no longer "special", so any transform can allow you to render outside of another widget, provided it doesn't clip.
-* Slate can no longer batch across clipping zones. This free's up 6 floats in the Slate vertex format, and no longer need to clip in the pixel shader
+* 任意のクワッドであるクリップ処理
+	* Scissor Rects を使って座標軸に平行にクリップした領域は、不要なピクセル シェーダー操作を防ぎます。
+	* クリッピング ゾーンが複雑な場合は、ステンシル バッファが使われます。クリップするゾーンを自由に積み重ねたものをステンシル バッファの中に構成するためです。ドローコールをクリップする際はこれが使用されます。
+* 大部分はスクロール パネルと編集可能なテキスト フィールとで構成されているため、現時点で (デフォルトで) クリップするウィジェットは極めて少ないです。
+	* レンダリング トランスフォームはもはや「特殊」ではなくなりました。トランスフォームを使えば、クリップしないという条件で別のウィジェット外でレンダリングすることが可能になります。
+* スレートはクリップする領域全体でのバッチができなくなりました。そのため、スレート頂点フォーマットの 6 つの浮動小数点が解放されるため、ピクセル シェーダーでクリップする必要がなくなりました。
 [/EXCERPT:clipping2]
 
----->
+--
+[/COMMENT]
 
 
-## Conversion Guide
+## 4.16 以前と 4.17 以降の変換ガイド
 
-The changes to the Slate clipping system in 4.17 will break compatibility for any previous versions, so you'll want to use the sections below to update your project to avoid any conversion issues and to
-learn about the new methods you can use to debug widgets in your project.
+4.17 でのスレート クリップ処理システムへの変更は、以前のバージョンで使っていた後方互換性を破りました。以下のセクションでは、従来の問題を避けるためのプロジェクトのアップデート方法、 
+およびプロジェクトでウィジェットのデバッグに使用できるメソッドについて説明します。
 
 
-### Enabling Clipping of Widgets
+### ウィジェットのクリップ処理を有効にする
 
-For all your UMG Widgets, you can adjust the **Clipping** property located in the **Details** panel of the selected Widget.
+すべての UMG ウィジェットに対して、選択したウィジェットの **[Details]** パネルの **Clipping** プロパティを調整することができます。
 
 ![](UMGClippingProperty.png)(w:600)
 
-You can read more about [Clipping with UMG UI Designer](Engine/UMG/UserGuide/Clipping) here.
+詳細は [UMG UI Designer を使ってクリップ処理をする](Engine/UMG/UserGuide/Clipping) を参照してください。
 
-To enable clipping in your code, you'll set the clipping property for `EWidgetClipping` to one of the following states:
+コードでクリップ処理を有効にするには、`EWidgetClipping` のクリップ処理用のプロパティを以下のいずれかのステートにする必要があります。
 
 * Inherit
 * ClipToBounds
@@ -126,7 +132,7 @@ To enable clipping in your code, you'll set the clipping property for `EWidgetCl
 * ClipToBoundsAlways
 * OnDemand
 
-Here's a code example: 
+以下がコードの例です。 
 
 	SNew( SBorder )
 	.Clipping(EWidgetClipping::ClipToBounds)
@@ -135,19 +141,18 @@ Here's a code example:
 	]
 
 
-### Deprecated APIs
+### 非推奨とする API
 
-The following APIs have been deprecated. For 4.16 and earlier versions where you may have needed these, consider if you would even need to use these now. Since not every widget clips, you may no longer need any
-code that was possibly "tricking" the clipping system to allow you to move the clipping zone.
+以下の API は 4.16 現在、非推奨となっています。プロジェクトでこれらを使用している場合は、今それを使う必要があるのか検討してください。すべてのウィジェットがクリップするわけではないので、
+クリップ処理システムでクリップする領域をうまく移動することができるコードは必要なくなりました。
 
-* `FSlateDrawElement::Make___(...)` - We no longer pass a clipping rect into every draw call, so you only need to remove the function call, and you'll automatically be using the new version.
-* `SScissorRectBox` - This is no longer necessry since every axis-aligned clipping rect is now a scissor rect. Make sure to delete these and make replace the job it was doing by making its most direct child widget have clipping enabled.
+* `FSlateDrawElement::Make___(...)` - ドローコールごとにクリップする領域をパスする必要はなくなったので、関数コールを削除すれば自動的に新しいバージョンを使えるようになります。
+* `SScissorRectBox` - 座標軸に平行にクリップする領域は、どれもシザー領域となったため必要なくなりました。必ず削除し、直下の子ウィジェットでクリップ処理を有効にして、これまで行われていたこのジョブを置き換えてください。
 
 
-### Custom Clipping
+### カスタム クリッピング
 
-If you needed to clip internally in your widget, as an example, the `SProgressBar` needs to clip the progress bar draawing at arbitrary locations based on its progress. In order to add your own 
-clipping, you would do the following in `OnPaint`:
+ウィジェット内でクリップが必要となる場合があります。例えば、`SProgressBar` は、その進捗に応じて任意の位置を描画するプログレス バーをクリップする必要があります。クリップ処理を追加するためには、`OnPaint` で以下を行います。
 
 	OutDrawElements.PushClip(FSlateClippingZone(AllottedGeometry));
 
@@ -155,9 +160,9 @@ clipping, you would do the following in `OnPaint`:
 
 	OutDrawElements.PopClip();
 
-The `FSlateClippingZone` is the arbitrary clipping area in window space that can be intialized using several methods that should allow for a straightforward conversion of your existing code.
+`FSlateClippingZone` は、既存コードに簡単な規則を可能にするいくつかのメソッドで初期化することができる、ウィンドウ領域の任意のクリップ対象領域です。
 
-If you also need your custom clipping to affect Hit Testing, you will need to push your clipping zone onto the Hit Test Grid by setting up the following:
+Hit Testing を変更するカスタム クリップ処理も必要であれば、以下を設定してクリップする領域を Hit Test Grid 上にプッシュする必要があります。
 
 	OutDrawElements.PushClip(FSlateClippingZone(AllottedGeometry));
 	Args.GetGrid().PushClip(FSlateClippingZone(GetCachedGeometry()));
@@ -168,46 +173,39 @@ If you also need your custom clipping to affect Hit Testing, you will need to pu
 	Args.GetGrid().PopClip();
 
 [REGION:note]
-The clipping rect for the Hit Test Grid is using cached geometry, instead of the AllotedGeometry. In `OnPaint`, `AllotedGeometry` is in window space, while the Hit Test Grid is in desktop space, so you have
-to use geometry that you'd get in Tick.
+Hit Test Grid 用のクリッピング領域は、AllotedGeometry ではなくキャッシュ ジオメトリを使います。`OnPaint` では、Hit Grid はデスクトップ領域、`AllotedGeometry` は画面領域です。
+従って、Tick に入ったらジオメトリを使用しなければなりません。
 [/REGION]
 
-### Wrapped Clipping States
+### クリップ処理ステートのラップ処理
 
-In some instances, a widget that has a clipping state isn't going to be responsible for clipping. For example, the `SScrollBox` lets you publically change the clipping state like any other widget, however, 
-when the `SScrollBox` was constructed it set **bClippingProxy = true**. This makes it so that when Slate goes to render that widget, it will ignore the clipping state of that particular widget.
+時々、クリップ処理ステートのあるウィジェットがクリップ処理をしない場合もあります。例えば、`SScrollBox` は他のウィジェットと同じくクリップ処理ステートの公式な変更が可能ですが、 
+SScrollBox` を構築すると、`bClippingProxy` が `true` に設定されます。スレートがそのウィジェットをレンダリングする時、クリップ処理ステートを無視するため、スレートがそのウィジェットをレンダリングするとクリップ処理ステートを無視します。
 
-Internally, the `SScrollBox` informs another nested widget that it needs to clip, or perform whatever clipping state it was told to do. Additionally, when users change the clipping state, the 
-`SScrollBox` overrides `virtual void SWidget::OnClippingChanged()` function so that it knows when to mirror the new clipping state to the nested private widgets. 
+内部では、`SScrollBox` 別のネスト化したウィジェットに情報を送る、あるいは命令されたクリップ処理ステートはすべて実行します。さらに、クリップ処理ステートをユーザーが変更する時、 
+`SScrollBox` が `OnClippingChanged` という名前の `SWidget` 関数をオーバーライドするので、新しいクリップ処理ステートをネスト化されたプライベート ウィジェットにミラーするタイミングが分かります。 
 
-### Culling Changes
+### カリングの変更
 
-Now that clipping is performed in render space, the engine still performs culling using a simple bounding box, although, it is based on the bounding box of the render transformed clipping zone.
-Additionally, clipping and culling might become more nuanced over time, so if you have a custom panel and were doing `MyClippingRect.IntersectionWith` in order to cull widgets that can't possibly
-be drawn, you should now use the following:
-
-	SWidget::IsChildWidgetCulled
-
-The following is an example of this:
+クリップ処理はレンダリング領域で実行されますが、エンジンはまだシンプルなバウンディング ボックスを使ってカリングを実行します。ただし、ボックスはレンダリング トランスフォームされたクリップ対象領域のバウンディング ボックスに基づきます。さらに、クリップ処理とカリングは時間経過と共にさらにニュアンスを帯びるので、カスタム パネルがあって `MyClippingRect.IntersectionWith` を使って描画が不可能なウィジェットの特定とカリングを行っている場合、`SWidget` 関数 `IsChildWidgetCulled` を使えるようになりました。以下が例です。
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 
-	if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
-	{
-		// Paint this widget.
-	}
+		if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
+		{
+			// Paint this widget.
+		}
 	}
 
 [REGION:warning]
-Any place where you're taking in `MyClippingRect` in your OnPaint call should be renamed to `MyCullingRect`.
+OnPaint コールで `MyClippingRect` を受け取る場所の名前はすべて `MyCullingRect` に変更します。
 [/REGION]
 
-Even with the changes to the clipping system, Slate's culling approach hasn't changed and with the example below, you'll need to keep in mind that if the parent widget (blue) is culled when outside
-the clipping zone (green), the child widget (yellow) will also be culled even if it has a transform that allows it to render entirely outside of the bounds of the parent, like in this example where
-the child is still in the clipping zone but the parent is outside. This is true even when the clipping property **Clip to Bounds - Without Intersecting** enabled since the flag would only be checked
-by the direct parent widget.
+クリップ処理システムを変更しても、スレートのカリング方法は変更されません。以下の例では、親ウィジェット (青) がクリップする領域外 (緑) でカリングされると、 
+レンダリングを可能にするトランスフォームが親の範囲の完全に外側にある場合でも、子ウィジェット (黄) はカリングされます。フラグは直接の親ウィジェットによってのみチェックされるので、 
+クリップ処理プロパティ **[Clip to Bounds - Without Intersecting]** が有効にされた場合も同じです。
 
 
 [OBJECT:ComparisonSlider]
@@ -220,50 +218,51 @@ by the direct parent widget.
 [/OBJECT]
 
 
-## Debugging Clipping
+## クリップ処理のデバッグ
 
-The **Widget Reflector** has been updated to indicate the clipping state for selected widgets inside the Editor.
+**Widget Reflector** はエディタ内で選択したウィジェットのクリップ処理ステートを表示します。
 
 [REGION:fullwidth]
 ![](WidgetReflector.png)
 [/REGION]
-[REGION:caption] A text block has been selected using the Widget Reflector that indicates the Clipping state to be set to On Demand. [/REGION]
+[REGION:caption]クリップ処理ステートが [On Demand] に設定されていることを表示する [Widget Reflector] を使ってテキスト ブロックが選択されています。[/REGION]
 
-To open the **Widget Reflector** you can navigate to the file menu > **Window** > **Developer Tools** > **Widget Reflector**.
+**[Widget Reflector]** を開くには、ファイル メニューから **[Window]** > **[Developer Tools]** > **[Widget Reflector]** を選択します。
 
-The following console variables can be used to debug clipping and culling states for any widget in the Editor.
+以下は、エディタ内のすべてのウィジェットのクリップ処理およびカリング ステートのデバッグに使用可能なコンソール変数です。
 
 [REGION:simpletable]
-| Console Variable | Description |
+| コンソール変数 | 説明 |
 | --- | --- |
-| **Slate.ShowClipping** | When enabled, this shows yellow outlines for all axis-aligned clipping rects (Scissor Rects) and red outlines for all stencil clipping quads. [INCLUDE:#showclipping] |
-| **Slate.DebugCulling** | When enabled, this allows you to better understand how the culling in a panel is working or not working correctly. It disables clipping on the GPU, but everything continues as normal, so it enables you to see all the things rendering outside the bounds of clip zones an dsee if they are being culled when you expect them to be. |
-| **Slate.EnableDrawEvents** | When enabled, draw evennts will be enabled so that when you're debugging with RenderDoc or something similar that it's easier to understand the batches or clipping state transitions. This is enabled by default when using a Debug build. |
-||
+| **Slate.ShowClipping** | 有効にすると、座標軸に平行にクリップする領域 (シザー領域) は黄色の枠線、ステンシル クリッピング クワッドは赤の枠線が表示されます。 [INCLUDE:#showclipping] |
+| **Slate.DebugCulling** | 有効にすると、パネルでのカリングの仕組み、および正しく動作しない原因が分かりやすくなります。GPU のクリップ処理を無効にしますが、そのまま正常に動作し続けるため、クリップする領域外でレンダリングされるものをすべて表示して、期待通りにカリングが行われているかを確認することができます。 |
+| **Slate.EnableDrawEvents** | 有効にするとドロー イベントが有効になり、RenderDoc などのデバッグ時にバッチまたはクリップ処理ステートの推移が理解しやすくなります。Debug ビルドの使用時はデフォルトで有効になります。 |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:showclipping]
 [REGION:lightbox]
 [![](ShowClipping.png)(w:200)](ShowClipping.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
 [/EXCERPT:showclipping]
 
 [EXCERPT:debugculling]
 [REGION:lightbox]
 [![](Slate_Culling.png)(w:250)](Slate_Culling.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
 [/EXCERPT:debugculling]
 
 [EXCERPT:drawevents]
 [REGION:lightbox]
 [![](Slate_Culling.png)(w:250)](Slate_Culling.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
-[/EXCERPT:drawevents]--->
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+[/EXCERPT:drawevents]-
+[/COMMENT]
 
 
 

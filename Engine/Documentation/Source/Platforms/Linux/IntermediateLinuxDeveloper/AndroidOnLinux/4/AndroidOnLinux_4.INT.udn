@@ -2,7 +2,7 @@ Availability: Public
 Title: 4 - Deploying your Level
 Crumbs:%ROOT%
 Description:Learn how to deploy a level onto your Android device from UE4.
-Version: 4.14
+Version: 4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order: 4

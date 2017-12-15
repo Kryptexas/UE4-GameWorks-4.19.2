@@ -20,7 +20,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this final section of the tutorial, we're going to associate the animation blueprint that we created with our character blueprint.
 
@@ -57,4 +57,3 @@ Congratulations! You've learned how to:
 
 You've just completed the C++ First Person Shooter tutorial!
 
-%Steps%

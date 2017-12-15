@@ -11,7 +11,7 @@ reference-image:vr_contentBrowser.gif
 reference-image:vr_contextOption.gif
 reference-image:vr_radialMenu.gif
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 
@@ -31,17 +31,6 @@ The VR Editor and Mesh Editor are experimental features. For this particular rel
 * Redesigned Radial Menu with context sensitive actions
 * Smart Snapping allows for quickly and accurately placing objects relative to other assets in the level
 * Ability to save Static Mesh changes made during Simulate Mode
-
-## Downloading the Dev-Geometry GDC 2017 Features Branch
-
-To download the Dev-Geometry GDC 2017 Features Branch:
-
-1. [Associated your GitHub account with your EpicID](https://www.unrealengine.com/ue4-on-github). 
-
-1. Download the build from our GitHub repository: [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry)
-
-1. [Compile](Programming/Development/BuildingUnrealEngine) and [run Unreal Editor](GettingStarted/RunningUnrealEngine).
-
 
 ## Mesh Editor
 
@@ -168,22 +157,13 @@ Corner sharpness enables you to control how closely the subdivision surface foll
 
 VR Mode is enabled by default in this build, and you can enter with the hotkey (**Alt + ~**) or via the button on the Level Editor Toolbar. In addition, auto-entry will take you into VR Mode when the Oculus or Vive Headset is on.
 
-[REGION:note]Auto-entry can be enabled or disabled in the **Editor Preferences** under **Experimental > VR Editor**.[/REGION]
+[REGION:note]Auto-entry can be enabled or disabled in the **Editor Preferences** under **Editor Settings > General > VR Mode**.[/REGION]
 
 Controllers are now Asynchronous on both Vive and Oculus. The left controller is used for access to menus and options, while the right controller is used to select and manipulate items.
 
 ![](controllers.png)(w:640)
 
-Teleportation no longer grays out the world and automatically resets the World Scale back to 1:1.
-
 Half-trigger press options have been removed. Interacting with the world is now done via full trigger presses.
-
-**OCULUS ONLY**: A "hard reset / Panic Button" has been added. Clicking in the left thumbstick will perform the following actions at once:
-
-* Deselect all selected items
-* Close all open windows / Asset Editors
-* Cancel Simulate 
-* Place the user in Actor / Selection Mode
 
 Options to Undo/Redo have been assigned to the right thumbstick/touchpad.
 
@@ -211,7 +191,7 @@ Rotation Gizmo now has an indicator for the asset's original position.
 
 ## Editor Windows
 
-Windows are no longer docked to the Controller when opened. Instead, they open slightly offset from the left controller. The Close button is now nested beside the interaction bar underneath each window
+Windows are no longer docked to the Controller when opened. Instead, they open slightly offset from the left controller. The Close button is now nested beside the interaction bar underneath each window.
 
 When opening a window, if you keep the trigger depressed, you will see a preview of where the window will be placed.
 

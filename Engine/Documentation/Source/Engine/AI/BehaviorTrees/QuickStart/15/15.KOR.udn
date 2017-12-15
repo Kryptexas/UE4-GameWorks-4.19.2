@@ -1,26 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 15. 다음 단계
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:15 단계. 다음 단계
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:15
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/14 "%Engine/AI/BehaviorTrees/QuickStart/14:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이 단순한 트리를 가지고 할 수 있는 일이 엄청 많습니다. 다음과 같은 아이디어 시도해 보면 어떨까요?
 
@@ -37,32 +26,20 @@ version: 4.9
 * 비헤이비어 트리에 **인바이언먼트 쿼리 시스템** 을 통합시켜 서있거나 서성일 곳을 선택합니다.
 * AI 캐릭터의 이동 속도를 변경하여 순찰중일 때는 걷게, 플레이어를 추적할 때는 뛰게 만듭니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
-	* [](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
-	* [](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem "%Engine/AI/EnvironmentQuerySystem:description%")
-	[/PARAM]
-[/OBJECT]
+## AI
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		외부 링크
-	[/PARAM]
-	[PARAM:links]
-	* [Behavior Trees for Next-Gen Game AI](http://aigamedev.com/insider/presentation/behavior-trees/ "AIGameDev.com 에서 호스팅되는 이 비디오는 비헤이비어 트리의 장점과 기능에 대해 이야기합니다. 사이트에 가입해야 하지만, 가입은 무료입니다.")
-	[/PARAM]
-[/OBJECT]
+* [](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
+* [](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
+* [](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
+* [](Engine/AI/EnvironmentQuerySystem "%Engine/AI/EnvironmentQuerySystem:description%")
+	
+## 외부 링크
+	
+* [Behavior Trees for Next-Gen Game AI](http://aigamedev.com/insider/presentation/behavior-trees/ "Hosted on AIGameDev.com, this video will talk you through the benefits and functionality of Behavior Trees. You have to sign up on the site, but sign up is free.")
+
+[NAV]
 
 
-%Steps%
+
+
+

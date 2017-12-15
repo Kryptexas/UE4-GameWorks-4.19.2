@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:문 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -7,18 +7,11 @@ Version: 4.9
 SkillLevel: Beginner
 
 
----
 다음 단계에서는 트리거 볼륨에 들어가고/나갈 때 열리고/닫히는 간단한 문을 만들어 보겠습니다.
 
-[EXCERPT:ProjectStart]
-[OBJECT:TopicList]
-	[PARAM:title]
-		프로젝트 생성하기
-	[/PARAM]
-	[PARAM:description]
-	이 섹션에서는 프로젝트를 셋업해 봅니다.
-	[/PARAM]
-[/OBJECT]
+## 프로젝트 생성하기
+
+이 섹션에서는 프로젝트를 셋업해 봅니다.
 
 1. **언리얼 프로젝트 브라우저** 창에서 **새 프로젝트** 를 생성한 다름 **블루프린트 삼인칭** 템플릿을 사용합니다.
 
@@ -29,16 +22,10 @@ SkillLevel: Beginner
 1. 프로젝트에 이름을 붙입니다.
 
 1. 위 각각을 정의한 상태로, **프로젝트 생성** 을 클릭하여 새 프로젝트를 만듭니다.
-[/EXCERPT:ProjectStart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		문과 트리거 배치하기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 문을 배치하고 그 문에 트리거를 추가합니다.
-	[/PARAM]
-[/OBJECT]
+## 문과 트리거 배치하기
+
+이번 단계에서는 문을 배치하고 그 문에 트리거를 추가합니다.
 
 1.  **콘텐츠 브라우저** 안에서 **Props** 폴더를 찾아 선택한 다음 **SM_DoorFrame** 스태틱 메시를 찾습니다.
 
@@ -94,14 +81,9 @@ SkillLevel: Beginner
 
 1. 문과 트리거가 배치되었으니, **마티네** 액터를 추가하여 열고/닫아 주겠습니다. 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네 액터 추가하기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네** 액터를 추가한 다음 **키프레임** 을 설정하여 문을 열고/닫아 주겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네 액터 추가하기
+
+이번 단계에서는 **마티네** 액터를 추가한 다음 **키프레임** 을 설정하여 문을 열고/닫아 주겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 다음 **마티네 추가** 버튼을 클릭합니다.
 
@@ -166,14 +148,9 @@ SkillLevel: Beginner
 1. **마티네** 시퀀스 셋업이 완료되었습니다. 다음 단계에서는 **마티네** 를 **트리거** 에 걸어 마무리하겠습니다. 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		**마티네** 를 **트리거 박스** 에 걸어주기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네** 를 **트리거 박스** 에 걸어 트리거에 들어갈 때 열리고 나갈 때 닫히도록 만들겠습니다.
-	[/PARAM]
-[/OBJECT]
+## **마티네** 를 **트리거 박스** 에 걸어주기
+
+이번 단계에서는 **마티네** 를 **트리거 박스** 에 걸어 트리거에 들어갈 때 열리고 나갈 때 닫히도록 만들겠습니다.
 
 1. **툴바** 메뉴에서 **블루프린트** 를 선택한 다음 **레벨 블루프린트 열기** 버튼을 클릭합니다.
 
@@ -238,13 +215,3 @@ SkillLevel: Beginner
 	Z2son2Wcgbo
 	[/PARAMLITERAL]
 	[/OBJECT]
-
----
-
-
-
-
-
-
-
-

@@ -15,59 +15,19 @@ topic-image:MobileGameDevelopment_topic.png
 ![](mobile_banner.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Starting Out
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"topiccompact" type:"quick start" tags:"mobile")]
-	[/PARAM]
-[/OBJECT]
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Mobile Platforms
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" type:"quick start" tags:"mobile")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Mobile Services
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+## Mobile Platforms
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		General Mobile Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
+
+## Mobile Services
+
+[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Mobile")]
+
+## General Mobile Development
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
 

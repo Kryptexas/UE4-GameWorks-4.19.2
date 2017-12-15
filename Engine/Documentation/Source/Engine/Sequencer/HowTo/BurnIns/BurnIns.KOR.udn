@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:번 인 적용
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 [EXCERPT:intro]
 시네마틱 무비를 만들어 렌더링 출력할 때, 샷의 이름, 날짜, 시간, 프레임 정보 등 씬에 관련된 정보를 오버레이 형식으로 포함시키고 싶을 때가 있습니다.

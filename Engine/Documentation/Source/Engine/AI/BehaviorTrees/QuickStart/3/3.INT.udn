@@ -3,25 +3,12 @@ Title: 3. Create the Basic Assets
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 3. Create the Basic Assets
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
+[NAV]
 
 To start, you will need create 4 assets in the **Content Browser**: an AI Controller Blueprint, a Character Blueprint, a Behavior Tree Asset, and a Black Board Asset.
 
@@ -61,8 +48,7 @@ To start, you will need create 4 assets in the **Content Browser**: an AI Contro
 
 	Name the **Blackboard** "FollowerBlackboard".
 
-
-%Steps%
+[NAV]
 
 
 

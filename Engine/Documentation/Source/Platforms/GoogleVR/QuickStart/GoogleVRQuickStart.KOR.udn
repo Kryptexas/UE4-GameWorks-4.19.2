@@ -1,18 +1,23 @@
-﻿INTSourceChangelist:3602897
+﻿INTSourceChangelist:3723511
 Availability: Public
 Crumbs: %ROOT%
 Title:구글 VR 퀵 스타트
 Description:구글 VR 구성 및 사용 방법 안내입니다.
 Type: quick start
+type:landing
 SkillLevel: Intermediate
 Version: 4.17
 Parent: Platforms/GoogleVR
-Order: 2
+Order:2
 tags:Google VR
-Checkpoint: 1
+tags:Getting Started
+Checkpoint:GoogleVRQS
+prereq:Platforms/Android/GettingStarted/
 topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
 
 ![](Google_Cardboard_Headset.png)
+
+## 목적
 
 Google VR (구글 VR) 퀵 스타트는 구글 VR 을 사용하는 UE4 프로젝트 구성 방법을 안내해 드립니다.
 
@@ -20,23 +25,16 @@ Google VR (구글 VR) 퀵 스타트는 구글 VR 을 사용하는 UE4 프로젝�
 Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것들이 총망라된 매우 자세한 문서를 제공하고 있습니다. [공식 Google Daydream Unreal](https://developers.google.com/vr/unreal/) 도움말 사이트에서 문서를 찾아보실 수 있습니다.
 [/region]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/GoogleVR/QuickStart/1 "%Platforms/GoogleVR/QuickStart/1:description%")
-	* [](Platforms/GoogleVR/QuickStart/2 "%Platforms/GoogleVR/QuickStart/2:description%")
-	* [](Platforms/GoogleVR/QuickStart/3 "%Platforms/GoogleVR/QuickStart/3:description%")
-	[/PARAM]
-[/OBJECT]
+## 목표
+* 구글 VR 개발을 타겟으로 삼는 UE4 프로젝트를 새로 만듭니다.
+* 프로젝트에 구글 VR 을 사용하기 위한 필수 프로젝트 세팅을 설정합니다.
+* 선택한 구글 VR HMD 에 UE4 프로젝트를 설치하고 확인합니다.
 
+[DIR(output:"checkpoint" parent:"Platforms/GoogleVR/QuickStart")]
 
+[REGION:call_to_action]
+ [클릭하면 시작합니다.](Platforms/GoogleVR/QuickStart/1 "%Platforms/GoogleVR/QuickStart/1:title%")
+[/REGION]
 
 
 

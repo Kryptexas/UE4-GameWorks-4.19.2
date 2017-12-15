@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3439832
+﻿INTSourceChangelist:3748365
 Availability:Public
-Title:ランタイムに動的オブジェクトをアニメートする
+Title:ブループリントでアクタをシーケンサーとリバインドする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:この例では、シーケンスでオーサリングされているものとは異なる動的オブジェクトにシーケンスをランタイムに適用する方法を説明します。
-Version:4.15
+Description:この例では、シーケンスでオーサリングされているものとは異なるシーケンスを動的オブジェクトにランタイムに適用する方法を説明します。
+Version:4.18
 SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
@@ -13,143 +13,110 @@ Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
 type:how-to
 
-ゲームプレイ目的でシネマティックスを作成する場合、ランタイムに動的にスポーンされるオブジェクトをシーケンサーでアニメートする必要が生じるかもしれません。 
-例えば、パスに沿って移動するアニメートしたオブジェクトを作成し、そのオブジェクトがプレイヤーによって定義可能なものであるとします。 
-[](Engine/Blueprints) で、**Get Sequence Bindings** ノードを使ってレベル シーケンスからバインディング識別子を公開し、こうしたバインディングを自分のものでオーバーライドすることができます。 
+ゲームプレイ目的でシネマティックスを作成する場合、ランタイムに動的にスポーンされるオブジェクトをシーケンサーでアニメートしたいと思うことがあるかもしれません。 
+例えば、シーケンサー内でパスに沿って移動するオブジェクトを作成し、アニメートすることができますが、そのオブジェクトがゲームプレイ中にスポーンしプレイヤーによって定義可能なものであるとします。
+[](Engine/Blueprints) で、**Get Sequence Bindings** ノードを使ってレベル シーケンスからバインディング識別子を公開し、こうしたバインディングを自分の設定でオーバーライドすることができます。 
 
-この例では、オブジェクトをアニメートしパスに沿って動かし、プレイヤーがボタンを押すことでオブジェクトを変更できるようにします。
+この例では、Empty Actor をアニメートしパスに沿って動かし、プレイヤーがボタンを押すことでオブジェクトを別のエフェクトに変更できるようにします。 
 
 ![](EndResult.png)
 
 
 [REGION:note]
-この操作ガイドでは **Starter Content** を有効にした状態で、デフォルトの **Target Hardware** と **Project Settings** で**Blueprint Third Person Template** プロジェクトを使います。 
+ここでは **Starter Content** を有効にした状態で **Blueprint Third Person Template** を使います。 
 [/REGION]
 
 ## ステップ
 
-1.	**コンテンツ ブラウザ** で、**Actor** クラスに基づき 2 つの新規 **ブループリント** を作成します。ひとつは **Cube_Blueprint** 、もうひとつは **Sphere_Blueprint** という名前を付けます。 
+1.	**[Modes]** パネルの**[Basic]** から、 **Empty Actor** をレベルにドラッグします。 
 
 	![](DynamicAnim_01.png)
 
-	デフォルト シーケンスでは、Cube ブループリントを使用しますが、プレイヤーがキーを押すと Sphere ブループリントに置き変わります。 
+	これからシーケンサー内で Empty Actor をアニメートし、Sequence Bindings をオーバーライドして、アクタを異なるパーティクル エフェクトに変更します。 
 
-1.	各ブループリント内で、**Shape_Cube** メッシュを使う **Static Mesh** コンポーネントと、もうひとつ **Shape_Sphere** メッシュを使う **Static Mesh** コンポーネントを追加します。 
+1.	メイン ツールバーから **[Cinematics (シネマティックス)]** ボタンをクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** を選択してシーケンスに任意の名前を付けます。 
 
 	![](DynamicAnim_02.png)
 
-1.	**[Modes]** パネルから **Empty Actor** をレベル ビューポートの任意の場所にドラッグします。 
+1.	レベル内で Empty Actor を選択します。次に Empty Actor をシーケンサーに追加します。 
 
-	![](DynamicAnim_03.png)(w:940)
+	![](DynamicAnim_03.png)
 
-1.	**メイン ツールバー** から **[Cinematics (シネマティックス)]** ボタンと、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックして、任意の名前を付けます。 
+1.	Empty Actor で **Track** ボタンをクリックし、 **Transform** を選択します。 
 
 	![](DynamicAnim_04.png)
 
-1.	シーケンス内で、レベルで **Empty Actor** を選択した状態で、**Add** をクリックして、次に **Add Actor** をクリックしてシーケンスに追加します。 
+1.	**Transform** トラックにキーフレームを追加し、レベル内の現在の位置で Empty Actor を初期化します。 
 
 	![](DynamicAnim_05.png)
 
-1.	**Empty Actor** の **Transform** トラックを追加し、レベル内の最初の位置として **0** にキーを追加します。 
+1.	タイムラインをフレーム **75** まで動かします。次に、レベルで Empty Actor を動かし、新しい位置にキーフレームを追加します。 
 
 	![](DynamicAnim_06.png)
 
-1.	タイムラインをフレーム **50** まで動かします。次に、レベルで **Empty Actor** を動かし、**S** を押してその新しい位置に新規キーを追加します。 
+1.	シーケンサーでひとつめのキーフレームを右クリックして、フレーム **150** まで動かし、右クリックして **Transform** キーを **Paste** します。 
 
-	![](DynamicAnim_07.png)(w:740)
+	![](DynamicAnim_07.png)
 
-1.	タイムラインをフレーム **100** まで動かします。次に、**Empty Actor** を開始位置に戻し、**S** を押して、そのトランスフォーム終了位置にキーを追加します。 
+	ひとつめのキーをコピーして、それを最後に貼り付けると、ループ可能な滑らかなシーケンスになります。 
 
-	![](DynamicAnim_08.png)(w:740)
+1.	レベル シーケンスの **[Details (詳細)]** パネルで、**[Auto Play]** を有効にし、**[Loop]** を **[Loop Indefinitely]** に設定します。 
 
-	フレーム 100 でシーケンサー内で **]** キーを押して、このキーでシーケンスを終了することもできます。 
+	![](DynamicAnim_08.png)
 
-1.	レベル ビューポートでレベル シーケンスを選択します。次に、**[Details]** パネルで、**[Loop]** を **[Loop Indefinitely]** に設定します。 
+1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、次に **[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
 	![](DynamicAnim_09.png)
 
-1.	レベル ビューポートでレベル シーケンスを選択した状態で、**メイン ツールバー** から、**[Blueprints]** を選択し、続いて **[Open Level Blueprint]** を選択します。 
+1.	**レベル ブループリント** で右クリックして **Flip Flop** に接続された **F** keyboard event を追加します。 
 
 	![](DynamicAnim_10.png)
 
-1.	グラフ内で 右クリック して、レベル シーケンスへのリファレンスを作成します。 
-
-	![](DynamicAnim_10b.png)
-
-	この場合、レベル シーケンスに **Master** という名前を付けましたが、別の名前を付けることもできます。 
-
-1.	右クリック して、**Event Begin Play** ノードを追加します。次に、レベル シーケンスのリファレンスからドラッグして、**Play (Sequence Player)** ノードを追加します。 
+1.	**Spawn Actor from Class** ノードを 2 つ追加し (ひとつは **Blueprint Effect Fire** を使用し、もうひとつは **Blueprint Effect Sparks** を使用)、以下のように **Make Transform** ノードに接続します。 
 
 	![](DynamicAnim_11.png)
 
-1.	以下のようにノードを接続します。 
+1.	**SpawnActor Blueprint Effect Fire** ノードの **Return Value** で右クリックして、**Promote to Variable** を選択し、**Fire BP** と名前を付けます。 
 
 	![](DynamicAnim_12.png)
 
-	これでゲーム開始時にシーケンスが自動的に開始します。 
+1.	**SpawnActor Blueprint Effect Sparks** の **Return Value** を **Sparks BP** に昇格させます。 
 
-1.	グラフ内で右クリックし、 **1** Keyboard Event を追加し、 **Flip Flop** ノードに接続します。 
+1.	レベル シーケンスに参照を追加して、そこから **Add Binding** ノードを追加します。 
 
 	![](DynamicAnim_13.png)
 
-	初めて 1 を押すと、Empty Actor が Cube に変わります。再度 1 を押すと、Sphere に変わります。 
-
-1.	右クリック して、 **Spawn Actor from Class** ノードを作成し、クラスを **Cube Blueprint** として設定します。 	
-
-	![](DynamicAnim_13b.png)
-
-1.	Return Value を **右クリック** し、 **Cube** に **変数化** し、 **Spawn Transform** からドラッグして **Make Transform** を使用します。 
+1.	別の **Add Binding** ノードを作成し、それぞれを以下のように接続し、**Actor** として **Fire BP** と **Sparks BP** を入力します。 
 
 	![](DynamicAnim_14.png)
 
-	ここでは、1 を押したときに、Cube ブループリントをスポーンし、Cubeという変数として格納し、スポーンするデフォルト トランスフォームを与えます。 
-
-1.	**Flip Flop** ノードの **B** ピンから、**Spawn Actor from Class** (**Sphere Blueprint** に設定されている) を使って、それを格納する変数を作成し、以下のように接続します。 
+1.	**Get Sequence Binding** ノード (以下でハイライトされているオプション) を右クリックして、それを両方の **Add Binding** ノードに接続します。 
 
 	![](DynamicAnim_15.png)
 
-	さらに **1** を押すと、Sphere ブループリントを作成し、スポーンし、後で使用するために変数として格納します。 
+	**Get Sequence Binding** ノードで対象のレベル シーケンスとオーバーライドする **Binding** を指定することができます。
+	この例では、レベル シーケンス (Empty Actor) にリストされたトラックがひとつだけあり、これをオーバーライドすることができます。 
+	オーバーライド可能なレベル シーケンスに追加されたオブジェクトが、ドロップダウン メニューに表示されます。 
 
-1.	グラフ内で右クリックし、 **Get Sequence Bindings** ノードを追加します。**[Details]** パネルでそれをレベル シーケンスにポイントします。 
+1.	**Sparks BP** 変数と **Fire BP** 変数を取り込んで、**IsValid** ノードを使って、オブジェクトが有効ならば **Destroy Actor (アクタを破棄)** します。 
 
-	![](DynamicAnim_16.png)
-
-	これでブループリント スクリプトを通してレベル シーケンス内のコンテンツにアクセスしオーバーライドすることができます。 
-
-1.	グラフ内で 右クリック して、**Add Binding** ノードを追加し、以下のノードを接続します。 
-
-	![](DynamicAnim_17.png)
-
-	[REGION:note]
-	ここまでで、レベル シーケンスへのリファレンスを **Target** として接続し、**Get Sequence Bindings** ノードを **Binding** として接続しました。スポーンした Cube に対して作成した変数は **Actor** として接続しました。 
-	これでレベル シーケンス内の Empty Actor (**Actor**) を指定したアクタに置換することができます (スポーンする **Cube** または **Sphere**)。Empty Actor に適用されたアニメーションも、バインディングの一部として設定したアクタに適用されます。 
+	[REGION:lightbox]
+	[![](DynamicAnim_16.png)(w:900)](DynamicAnim_16.png)
 	[/REGION]
 
-1.	スクリプトの **Sphere** 部分に対して前のステップを繰り返し、 **Actor** として **Cube** を **Sphere** に置き換えます。 
+	[REGION:caption]画像をクリックしてフルサイズで表示[/REGION]
 
-	![](DynamicAnim_18.png)
+	スクリプトが完成し、炎または火花のエフェクトがスポーンし、レベル シーケンスの Empty Actor をオーバーライドし、他のパーティクル エフェクトを破棄します (有効な場合)。 
 
-1.	スクリプトの Cube 部分の **Add Binding** ノードの後に、**Sphere** 変数を使って、**?IsValid** チェックを行い、 (有効ならば) **Destroy Actor** します。 
-
-	![](DynamicAnim_19.png)
-
-	これで Cube スポーン時に Sphere が破棄されます。 
-
-1.	スクリプトの **Sphere** 部分に対して前のステップを繰り返し、**Cube** 変数で **?IsValid** チェックを行い、 (有効ならば) **Destroy Actor** します。 
-
-	![](DynamicAnim_20.png)
-
-	これで Sphere スポーン時に Cube が破棄されます。 
-
-1.	エディタで再生し、**1** キーを押して、スポーンしたアクタ間を循環させます。 
+1.	エディタで再生し、**F** キーを押して、スポーンしたアクタ間で循環させます。 
 	## 最終結果
 
 
-エディタで再生し、1 キーを押すと、Empty Actor が Cube または Sphere のいずれかのスポーンしたアクタに置き換わりますが、適用したアニメーションを使い続けます。 
+エディタで再生し、**F** キーを押すと、Empty Actor がスポーンした炎または火花のエフェクトに置き換わりますが、Empty Actor に適用したアニメーションを使い続けます。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	XdahqJz2cyM
+	pJF0XlbEl24
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -165,9 +132,14 @@ type:how-to
 	[/PARAMLITERAL]
 [/OBJECT]
 
-一連のアクタを設定、バインドし、**Set Binding** ノードを使ってバインディングすることができます。特定のバインディングに対して **Reset Binding** ノードを使ったり、レベル シーケンス全体に対して **Reset Binding** ノードを使うこともできます。 
+バインディングを追加できるだけでなく、以下を行うこともできます。
+* **Remove Binding (バインディングを取り除く)** で、指定したアクタを指定したバインディングから取り除きます。
+* **Reset Binding (バインディングをリセット)** で、指定したバインディングをそのデフォルト設定に戻します。
+* **Reset Binding (バインディングをリセット)** で、すべてのオーバーライドしたバインディングをそのデフォルト設定に戻します。
+* **Set Binding (バインディングの設定)** で指定したバインディングを、指定したアクタでオーバーライドします。 
 
 ![](AdditionalFunctions.png)
+
 
 
 

@@ -83,12 +83,14 @@ Version:4.13
 | **off** | 0.42ms   StandardDeferredLighting 1 draws 1 prims 3 verts |
 | **on**  | [INCLUDE:#per1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:per1]
 0.08ms   CopyStencilToLightingChannels 1 draws 1 prims 3 verts  
 0.45ms   StandardDeferredLighting 1 draws 1 prims 3 verts
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## 移动平台
 

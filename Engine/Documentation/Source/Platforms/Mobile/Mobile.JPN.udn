@@ -16,59 +16,35 @@ topic-image:MobileGameDevelopment_topic.png
 ![](mobile_banner.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		はじめよう
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## はじめよう
+
+[REGION:buttonlist]
+
 		[DIR(output:"topiccompact" type:"quick start" tags:"mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		モバイル プラットフォーム
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## モバイル プラットフォーム
+
+[REGION:buttonlist]
+
 		[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		モバイル サービス
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## モバイル サービス
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		一般的なモバイル ゲーム開発
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 一般的なモバイル ゲーム開発
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

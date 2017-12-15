@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Crumbs: %ROOT%
+Title:1 - 필수 구성
+Description:앞으로 사용할 필수 콘텐츠 임포트 및 애셋 구성 단계입니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:1
+tags:Media Framework
+ 
+[NAV]
+
+앞으로 사용할 애셋을 임포트하고 만들어보는 프로젝트 준비 작업을 하는 단계입니다.
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트를 사용하고 있습니다. 이번 튜토리얼에 사용할 [샘플 애셋](Sample_Content.rar) 콘텐츠를 다운로드하여 압축을 풀기도 해야 합니다.
+[/REGION]
+
+## 단계
+
+1. 프로젝트에서 **콘텐츠 브라우저** 를 띄운 뒤 **소스** 패널을 펼치고 **콘텐츠** 폴더에 우클릭하고 **Movies** 라는 폴더를 새로 만듭니다.
+
+	![](Setup_01.png)
+
+	[REGION:warning]
+	프로젝트와 미디어 파일 패키징 및 설치를 위해서는, **반드시** 미디어 파일을 프로젝트의 **Content/Movies** 폴더에 넣어야 합니다.
+	[/REGION]
+
+1. **Movies** 폴더에 우클릭한 뒤 **Show in Explorer** (탐색기에서 표시) 옵션을 선택합니다.
+
+	![](Setup_02.png)
+
+1. 샘플 비디오를 컴퓨터의 **Content/Movies** 폴더에 넣습니다.
+
+	![](Setup_03.png)
+
+	[REGION:tip]
+	별도의 비디오를 사용하려면, [](Engine\MediaFramework\TechReference\) 문서를 참고하여 지원되는 비디오 파일 포맷인지 확인하시기 바랍니다.
+	[/REGION]
+
+1. **Movies** 폴더에 우클릭한 뒤, **Media** 아래 **File Media Source** (파일 미디어 소스)를 선택하고 이름을 **Video_01** 이라 합니다. 
+
+	![](Setup_04.png)
+
+	**파일 미디어 소스** 애셋은 디바이스 로컬에 저장된 (샘플) 비디오 파일을 가리키는 데 쓰입니다.
+
+1. **파일 미디어 소스** 애셋을 열고, **...** 기호를 클릭한 뒤 컴퓨터의 샘플 비디오 파일을 가리켜 줍니다.
+
+	![](Setup_05.png)
+
+	재생을 위한 소스를 만들긴 했지만, **Media Player** (미디어 플레이어) 애셋이 있어야 실제 비디오를 플레이할 수 있습니다.
+
+1. **Movies** 폴더에 우클릭한 뒤 **Media** 아래에서 **미디어 플레이어** 를 선택합니다.
+
+	![](Setup_06.png)
+
+1. **Create Media Player** 대화창에서 **Video output Media Texture asset** (비디오 미디어 텍스처 애셋 출력) 옵션을 켜고 **OK** 버튼을 누른 뒤 이름을 **MediaPlayer_01** 이라 합니다. 
+
+	![](Setup_07.png)
+
+	그러면 비디오 재생에 필요한 미디어 플레이어 애셋에 **미디어 텍스처** 가 자동 생성 및 할당됩니다.
+
+	![](Setup_08.png)
+
+1. **MediaPlayer_01** 애셋을 연 뒤, **미디어 에디터** 의 **디테일** 패널에서 **Loop** (반복) 옵션을 켭니다.
+
+	![](Setup_09.png)
+
+	[미디어 에디터](Engine\MediaFramework\MediaEditorReference\) 안에서 **Video_01** 파일에 더블클릭하면 재생이 시작됩니다. **디테일** 패널에 재생 방식을 결정하는 옵션이 있습니다 (여기서는 이 비디오를 반복 재생하도록 설정했습니다). 
+	기본으로 켜진 다른 옵션이 있는데 **Play on Open** (열리면 재생)은 블루프린트나 C++ 를 통해 비디오가 열리면 자동 재생되도록 하는 옵션입니다.
+
+1. **콘텐츠 브라우저** 에서 **TV** 라는 폴더를 새로 만들고 샘플 콘텐츠의 **SM_TV** 및 **T_TV_M2** 파일을 끌어 프로젝트에 놓아 **모두 임포트** 합니다.
+
+	![](Setup_10.png)	
+		
+
+## 최종 결과
+
+구성에 필요한 애셋 준비를 마치고 비디오 재생에 필요한 몇 가지 초기 미디어 프레임워크 애셋(파일 미디어 소스, 미디어 플레이어, 미디어 텍스처 애셋)을 만들었습니다.
+레벨 안에서 비디오 재생에 쓰일 스태틱 메시 TV 임포트 작업도 마쳤으며, 다음에는 텍스처를 사용하여 TV 머티리얼을 구성해 보도록 하겠습니다.
+
+[NAV]
+
+
+

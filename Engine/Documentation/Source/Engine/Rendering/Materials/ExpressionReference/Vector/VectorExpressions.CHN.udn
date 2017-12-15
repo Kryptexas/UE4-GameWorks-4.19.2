@@ -59,7 +59,8 @@ Version:4.9
 [REGION:warning]
 **在虚幻引擎 4 中，建议您不要使用此表达式，因为照明计算现在延迟进行。**
 [/REGION:warning]
-<!--
+[COMMENT:none]
+
 LightVector（光线矢量）表达式是三通道矢量值，代表光线相对于表面的方向。
 
 **用法示例：**LightVector（光线矢量）可用来计算定制照明算法，例如简单的朗伯（Lambert）照明模型。
@@ -69,7 +70,8 @@ LightVector（光线矢量）表达式是三通道矢量值，代表光线相对
 [REGION:note]
 	对自发光输出进行评估时，LightVector（光线矢量）表达式无效，此表达式只能用于 LightFunction（光线功能）或 DeferredDecal（延迟贴花）材质。
 [/REGION]
--->
+
+[/COMMENT]
 
 
 (#ObjectBounds)

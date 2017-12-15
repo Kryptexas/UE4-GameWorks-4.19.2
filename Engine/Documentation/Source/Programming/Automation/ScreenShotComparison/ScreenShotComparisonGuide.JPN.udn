@@ -1,56 +1,265 @@
-﻿INTSourceChangelist:2721416
+﻿INTSourceChangelist:3782314
 Availability:Public
-Title:スクリーンショット比較機能のユーザーガイド
-Crumbs: %ROOT%, Programming, Programming/Automation
-Description:デベロッパーを対象としたスクリーンショットの作成と比較に関するガイド
-Version:4.9
+Crumbs: %ROOT%
+Title:スクリーンショットの比較ツール
+Description:UE4 で自動化システムを使ったスクリーンショットの作成と比較の概要。
+Type:Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Programming/Automation
+related:Engine/Deployment/UnrealFrontend
+Order:
+Tags:Programming
+Topic-image:ScreenshotComparison_Topic.png
+Social-image:ScreenshotComparisonBrowser.png
 
-スクリーンショット ブラウザ ツールで、QA は素早く簡単にスクリーンショットの比較ができます。スクリーンショットは自動化テストの際に作成され、UnrealFrontend ツールで表示することが出来ます。 
-スクリーンショットの履歴は保持されるため、QA は最新と過去のスクリーンショットを比較し、最新のビルドで明らかなレンダリング エラーを特定することができます。
 
-## スクリーンショットの作成
+[TOC(start:2 end:2)]
 
-$ スタンド アローンのゲーム インスタンスを開始する：
+Screenshot Comparison (スクリーンショット比較) ブラウザでは、エディタでキャプチャーしたスクリーンショットを、メンバーや QA チーム側で迅速に比較することができます。自動化テストで生成されたスクリーンショットは、
+Unreal (Session) Frontend ツールを使って見ることができます。スクリーンショットの履歴を維持して、ビルド間で明らかなレンダリング エラーを 
+特定することができます。
 
-例として、次のコマンドライン パラメータ、**EmptyGame -Game** で **EmptyGameEditor** を開始します。この時に、スタンドアローン型のゲームがあれば機能します。
+![](ScreenshotComparisonBrowser.png)
+[REGION:caption] エピック独自の自動化テストプロジェクトからのスクリーンショットのテスト [/REGION]
 
-$ Unreal Frontend アプリをロードする：
+## スクリーンショットのキャプチャー方法
 
-これは外部アプリケーションで、「UE4/Engine/Binaries/Win64」に格納されています。
+スクリーンショット テストを作成するにはいくつかの方法があります。最も簡単なのは、Screenshot Functional アクタを使用するか、既存の Functional Test (機能テスト) 中にスクリーンショットを撮ることです。
 
-$ [Session Frontend] タブからセッションを選択する：
+#### Functional Test アクタ設定
 
-下記で示すように、開始したばかりのローカルゲームは、「Unnamed Session」と名付けられます。
+**Functional Screenshot Test** アクタでは、カメラを使ってスクリーンショットをキャプチャするため、既存のポスト プロセスやカメラの設定と多くの設定を共有しています。
+以下の設定は、必要なスクリーンショットをキャプチャするために使う Functional Screenshot Test に固有のものです。
 
-$ テストの実行：
-他のテストの選択を全て解除して、 **Performance Capture** テストを選択します。
-実行ボタンをクリックして、テストを実行します。AutomationTest マップ内のさまざまな位置からスクリーンショットを撮る自動化テストが開始します。
+![](FT_ScreenshotOptions.png)
 
-[REGION:fullwidth]
-![Automation](CaptureScreenShots.png)
+[REGION:simpletable]
+| 設定 | 説明 |
+| --- | --- |
+| **Resolution** | スクリーンショットの望ましい解像度です。何も指定しなければ、 [Automation Settings] のプラットフォームのデフォルト解像度が使用されます。 |
+| **Delay** | スクリーンショットを撮るまでの遅延です。  |
+| **Disable Noisy Rendering Features** | アンチ エイリアシング、 モーション ブラー、 スクリーン スペースの反射、自動露光 (明暗順応)、および コンタクト シャドウを無効にします。こうした機能は、最終的にレンダリングされるイメージでよく見ると多くのノイズを生じる原因になるからです。 |
+| **Visualize Buffer** | デフォルトの最終的なライティング シーン画像を除くバッファのスクリーンショットを撮ることができます。これはエラーが生じているかの判断が難しい特定の GBuffer のテストをビルドする場合に便利です。 |
+| **Tolerance** | 許容範囲のクイック デフォルトです。デフォルトでは、Low を使います。Temporal Anti-Aliasing によってすべてのピクセルの色には一定のばらつきがあるからです。 [INCLUDE:#tolerance] |
+| **Tolerance Amount** | 各チャンネルと輝度のレベルで、基本的に同じ色になる領域を制御することができます。一般的にこの機能は必要です。最近のレンダリング技術はエイリアシングを隠すために絶えずノイズを生じがちだからです。[INCLUDE:#toleranceamt] |
+| **Maximum Local Error** | 許容できる色の変化を考慮したら、ローカルで許容可能なエラーを制御する必要があります。トライアングルのエッジでピクセルがどのように色付けされるかに応じて、許容レベルから外れるピクセルが数パーセントあるかもしれません。Maximum Global Error とは異なり、 Maximum Local Error は、画像の小さなサブセットに焦点をあてることで機能します。こうしたチャンクをローカル エラーと比較して、グローバル エラーでは無視される重要な変更のホットスポットをローカルで探します。 |
+| **Maximum Global Error** | 許容できる色の変化を把握したら、全体で許容可能なエラーを制御する必要があります。トライアングルのエッジでピクセルがどのように色付けされるかに応じて、許容レベルから外れるピクセルが数パーセントあるかもしれません。 |
+| **Ignore Anti-Aliasing** | 有効な場合、ピクセルが少しシフトするなど何が起こったかについて隣接するピクセルを探します。 |
+| **Ignore Colors** | 有効な場合、シーンのルミナンスだけがスクリーン ショットのテストで比較されます。 |
 [/REGION]
 
-## スクリーンショットの表示
 
-スクリーンショットは、キャプチャされるとテストを要求した「UnrealFrontend」へ送信されます。その後、新規のスクリーンショットを受け取った時に、UI が自動的に更新されます。
-
-$ Session Frontend の *Window* メニューから **[Screen Comparison]** を選択する：
-
-画像の受け取り時に更新される UI を表示します。
-
-$ UI ナビゲーション :
-
-スクリーンショットは、画像の生成時に使用されたチェンジリスト番号に基づいたキャプチャ順に表示されます。最新のスクリーンは左に表示され、所定の位置にロックされます。スクロールバーを使用して、 
-それぞれの表示の履歴をスクロールすることができます。
-
-$ UI フィルタリング :
-
-上部のフィルタバーを使用して、スクリーンショット名 / プラットフォームタイプでフィルタリングすることができます。
-[REGION:fullwidth]
-![Automation](ScreenShotComparison.png)
+[COMMENT:none]
+-
+[INCLUDE:#tolerance]
+[EXCERPT:toleranceamt]
+[REGION:simpletable]
+| --- | --- |
+| **RGBA Channels** | RGBA チャンネルの個々の値を設定します。 |
+| **Min Brightness** | 受け入れる輝度の最小許容差 |
+| **Max Brightness** | 受け入れる輝度の最大許容差 |
 [/REGION]
+[/EXCERPT:toleranceamt]
+
+[EXCERPT:Tolerance]
+* Zero
+* Low
+* Medium
+* High
+* Custom 
+[/EXCERPT:Tolerance]
+
+-
+[/COMMENT]
+
+#### エディタの環境設定
+
+**Editor Preferences (エディタの環境設定)** で、比較のためにキャプチャしたすべてのスクリーン ショットのデフォルト解像度を、配置したすべての Functional Screenshot Test アクタに対して設定することができます。これは、以下の手順で設定することができます。
+**[Edit** > **Editor Preferences** > **Automation** > **Screenshots]** の順に選択します。
+
+[REGION:lightbox]
+[![](EditorPreferences_ScreenshotRes.png)(w:700)](EditorPreferences_ScreenshotRes.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
 
 [REGION:note]
-* スクリーンショットは、 「Engine\Programs\UnrealFrontend\Saved\Automation\AutomationTest」ディレクトリに格納されて、ビューアーから取り除きたい場合は、手動で削除しなくてはいけません。 
+個々の Functional Screenshot Test アクタで設定されているスクリーン ショットの解像度はこの値をオーバーライドします。
 [/REGION]
+
+### Functional Screenshot Test アクタ
+
+**Functional Screenshot Test** アクタはレベルに配置可能なコンポーネントで、Unreal Frontend から実行する自動化テストの一部としてスクリーン ショットをキャプチャするために使用することができます。 
+実行可能な 2 種類のスクリーン ショットのテストがあります。シーン ビューをキャプチャする通常のスクリーン ショット、またはゲームのユーザーインターフェース (UI) をキャプチャするために使うスクリーンショットです。 
+
+こうした Functional Screenshot アクタにアクセスするには、**[Modes]** パネルを使って Functional Screenshot アクタをシーンにドラッグします。**[Testing]** カテゴリの下に、Functional Screenshot Test と Functional UIScreenshot Test  
+があります。
+
+![](ModesPanel.png)
+
+[REGION:imagetable]
+| ![](ScreenshotUI.png)(w:500) | ![](screenshotTest.png)(w:500) |
+| ---- | ---- |
+| Functional Screenshot Test | Functional UI Screenshot Test |
+[/REGION]
+
+
+### 他の Functional Test の一部としてスクリーン ショットを撮る
+
+スタンドアローンのスクリーン ショットを撮る以外に、 [機能テスト](Programming/Automation/FunctionalTesting) 中にスクリーン ショットを撮ることもできます。 
+これにより、スクリプティングされている他のアクション中にスクリーン ショットの比較を利用することができます。 
+
+![](ScreenshotWFunctTest.png)(w:850)
+[REGION:caption] 他の Functional Test 中にスクリーン ショットをキャプチャするために使うブループリントの例 [/REGION]
+
+スクリーン ショットをキャプチャするときに適用する [スクリーン ショットの設定](#FunctionalTestアクタ設定) をカスタマイズすることができることを覚えておいてください。ゲームプレイまたはレンダリング機能を比較のためにキャプチャする場合に、デフォルトの許容値に設定できる 
+2 種類の便利なブループリント ノードがあります。
+
+![](GetScreenshotDefaulOptions.png)(w:400)
+
+ゲームプレイの **Default Screenshot Options** ノードとレンダリングは、 Screenshot Test アクタのデフォルトの **Tolerance** レベルを設定するのに便利です。ゲームプレイの違いをキャプチャする場合、**Gameplay** ノードを使うと、
+必ずしも必要ではないショットとバッファのノイズを無効化するのに便利です。レンダリング機能を明示的にテストする場合、**Rendering** ノードを代わりに使用します。
+そうしないと、Functional Screenshot Test アクタのデフォルト設定がレベルに配置された各インスタンスに対して使用されます。
+
+
+
+## スクリーンショットのブラウザ
+
+Screenshot Comparison ブラウザには、スクリーン ショットの比較内容が表示されます。新しいものを入れるか、スクリーン ショットの比較に失敗したら、このビューを
+操作します。このブラウザでエラーを検討し、適切な決定を下します。機能の変更が必要だった場合にスクリーンショットを更新したり、問題があると思ったらゲームの 
+バグ リポートを入力するなどがあります。
+
+Screenshot Comparison ブラウザを利用するには、まず Unreal (Session) Frontend を開く必要があります。これを行うには、 **[Window** > **Developer Tools** > **Session Frontend]** の順に進みます。
+
+![](ScreenshotBrowserTab.png)(w:1000)
+[REGION:caption]
+自動化テストのためのエピックの社内テスト プロジェクトの Screenshot Comparison ブラウザ
+[/REGION]
+
+スクリーンショットをキャプチャしたら、 [**Saved** > **Automation** > **Comparisons**] フォルダにあるプロジェクトのフォルダに保存されます。必要に応じてテキスト ボックスを使って保存場所を
+入力することができます。
+
+![](ComparisonSaveLoc.png)(w:1000)
+
+
+いくつかのテストを実行すると、比較のための独自の画像ができます。これを使うとソース コントロールに接続したときに画像に対して行えるいくつかの選択肢があります。
+何らかのソース コントロールに接続していなければ、こうしたダイアログ オプションは無効になります。
+
+[REGION:imagetable]
+| ![](AddNew.png)(h:150) | ![](ReplaceAlternative.png)(h:150) |
+| --- | --- |
+| 新規追加 | 置換 / 代替として追加 |
+[/REGION]
+
+[REGION:simpletable]
+| アクション | 説明 |
+| ------ | ----------- |
+| **Add** | スクリーンショットを 「ground truth (基準となる)」 フォルダに追加し、それをソース コントロールの保留中の変更リストに追加します。 |
+| **Replace** | 基準となるデータ (ground truth data) のすべての例を削除し、新しい基準データとして最新のスクリーンショットで置換します。 |
+| **Add As Alternative** | 2 つの画像が両方とも正しいこともあります。ハードウェアやドライバーの小さな違いや、ハードウェアがサポートする拡張機能が原因となることもあります。Platform_RHI_ShaderModel に基づき、スクリーンショットを集めるため、さらに調整が必要になることがあります。ここで **[Add As Alternative (代替として追加)]** が役立ちます。もうひとつの基準となる画像のバージョンを追加し、画像を比較する際にシステムがメタデータに基づきマッチ度が最も高い基準となるデータを選びます。同一デバイスからのスクリーンショットの場合は、このオプションはグレイアウトされます。 |
+[/REGION]
+
+[REGION:tip]
+一連のテストを新たに実行する前に必ず **[Delete All Reports]** を使うようにしてください。このツールは時間経過に伴い個々のレポートを蓄積するため、このアプリケーションで前回の実行からのレポートを自動的にクリーンアップする
+適切な場所がありません。[Delete All Reports] によって、次のテストを実行する前に確実にクリーンなスレートで開始できるようにします。
+[/REGION]
+
+
+### Ground Truth スクリーンショット
+
+スクリーンショットの **Ground Truth** バージョンは正しいことがわかっている基準となるバージョンです。スクリーンショットの比較では、後で撮るスクリーンショットと比較するために、Ground Truth スクリーンショットを比較対象として
+使います。最新のスクリーンショットとマッチしなければ、テストは不合格になります。
+
+スクリーンショットの自動化テストを初めて実行すると、 Message Log と Screenshot Browser の警告で、新たに撮ったスクリーンショットを Ground Truth 画像として追加する必要がある旨、表示されます。 
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](MessageLog_AddNew.png)(h:250)](MessageLog_AddNew.png) [/REGION] [REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION] | [REGION:lightbox] [![](Warning_AddNew.png)(h:250)](Warning_AddNew.png) [/REGION] [REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION] |
+| --- | --- |
+| メッセージ ログの警告 | スクリーンショット ブラウザの警告 | 
+[/REGION]
+
+[Screenshot Browser] タブで **[Add New]** ボタンをクリックして、変更リストを作成して Ground Truth 画像をサブミットします。 
+
+![](ScreenshotAddNew.png)(w:1000)
+
+[REGION:note]
+**[Add New]** ボタンがグレイアウトされていたら、ソース コントロールに接続して有効にしてください。
+[/REGION]
+
+
+## スクリーンショットの比較ビュー
+
+Screenshot Comparison ブラウザから、任意の画像をクリックするとウィンドウが開きます。ここで ground truth とキャプチャされる画像との間でブレンドすることができます。これで、他のものと比べたすべての相違点を
+確認しやすくなります。
+
+![](ComparisonImages.png)
+
+以下の 3 つの画像を左から右の順に説明します。
+
+* **Ground Truth** は正しいことがわかっている画像です。 
+* **Difference** は比較スライダーで使用する 2 つの画像間の違いです。  
+* **Incoming** は自動化テスト実行後にキャプチャされた最新スクリーンショットです。 
+
+[REGION:lightbox]
+[![](OpenComparisonSlider.png)(w:600)](OpenComparisonSlider.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+3 種類の画像のいずれかをクリックして、比較スライダー ウィンドウを開きます。この画面では、Ground Truth と Incoming のキャプチャされたスクリーンショットとの間でスライダーをドラッグして比較することができます。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Ground Truth](GroundTruth.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![New Screenshot](Comparison.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+この例では、正しい基準となる設定された Ground Truth 画像と Incoming スクリーンショットをキャプチャする自動化テストの最新の実行との間で目立った違いがあります。
+
+
+## スクリーンショットのワークフロー
+
+1. まず、スクリーンショットを撮るために使用する方法を選びます。 
+	* [Screenshot Functional Test アクタ](#FunctionalScreenshotTestアクタ)
+
+	* [他の機能テストの一部としてスクリーンショットを撮る](#他のFunctionalTestの一部としてスクリーンショットを撮る)
+
+1. テストをローカルで実行するか、ビルド ファームで実行する場合、最初のスクリーンショットを承認する必要があることを知らせる警告が送られます。  
+	[REGION:lightbox] 
+
+	[![](MessageLogWarning.png)(w:700)](MessageLogWarning.png)
+	[/REGION] 
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+	Screenshot ブラウザでは、**[Add New]** をクリックして Ground Truth 画像を追加します。
+
+
+	[REGION:lightbox] 
+	[![](ScreenshotAddNew.png)(w:700)](ScreenshotAddNew.png)
+	[/REGION] 
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+	[REGION:note]
+	他のプラットフォームでは、ビルド ファームが最初のスクリーンショットを処理し、こうしたプラットフォームで撮られたスクリーンショットをリモートで承認することができます。これは、automation report の上部に表示される Screenshot Browser で
+	ネットワーク パスを指定することで行います。
+	[/REGION]
+
+1. 次に Screenshot Comparison テストを実行すると、スクリーンショットは合格または不合格になります。Screenshot ブラウザを使ってスクリーンショット テストを選択して違いがあるかを比較します。
+ 
+ 	[REGION:lightbox] 
+	[![](PassFail.png)(w:700)](PassFail.png)
+	[/REGION] 
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+	テストに不合格になったら、 [Screenshot Browser] タブに比較のために自動的に表示されて、Ground Truth 画像を **[Replace (置換)]** または **[Add as alternative (代替として追加)]** を選ぶことができます。
+
+	[REGION:lightbox] 
+	[![](passFail1.png)(w:700)](passFail1.png)
+	[/REGION] 
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+	[REGION:note]
+	[ソース コントロール](Engine/UI/SourceControl) を使用している場合、Screenshot ブラウザはそれらを保留中の変更リストに追加して、テスト完了後に画像をチェックインできるようにします。
+	[/REGION]
 

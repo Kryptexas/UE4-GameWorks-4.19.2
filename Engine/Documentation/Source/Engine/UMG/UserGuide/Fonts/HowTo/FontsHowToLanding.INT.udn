@@ -20,7 +20,8 @@ The Following guides walk you through topics designed to help you create and use
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Beginner")]
 
 
-<!--- For future addition of tutorials in these skill levels ---
+[COMMENT:none]
+- For future addition of tutorials in these skill levels ---
 
 ## Doing More with Materials
 
@@ -30,4 +31,5 @@ The Following guides walk you through topics designed to help you create and use
 
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Advanced")]
 
---->
+-
+[/COMMENT]

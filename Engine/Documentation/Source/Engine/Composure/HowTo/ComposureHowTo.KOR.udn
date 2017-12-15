@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3728507
+Availability:Docs
 Crumbs: %ROOT%
-Title:Composure How - To
-Description: How To Guides for using the various aspect of Composure
+Title:컴포셔 안내서
+Description: Composure, 컴포셔의 다양한 기능 사용 안내서입니다.
 Type: how-to
 Version: 4.17
 Parent: Engine\Composure
@@ -33,5 +33,4 @@ ADD Advanced Topic List
 [REGION:note]
 The Advanced Topic List should link to all advanced How-To guides using fancy links.
 [/REGION]
-
 

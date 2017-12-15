@@ -1,28 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:디스트럭터블 액터 소개
 Crumbs: %ROOT%, Engine
 Description:Destructible Actor, 디스트럭터블 액터에 대한 기본 지식입니다.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Destructibles/Intro:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Destructibles/Intro:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Destructibles/Intro:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		Engine/Physics/Destructibles/Intro
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![Physics](Engine/Physics/physics_landing_banner.png)

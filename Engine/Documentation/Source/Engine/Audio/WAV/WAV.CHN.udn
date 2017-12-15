@@ -50,14 +50,9 @@ Description:将音频文件导入到虚幻引擎4的基本要求。
 
 ## 概述
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](WAV_TitleIcon.png)(w:200 convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	但虚幻引擎 4 的音频系统提供了制作游戏中音效的工具及功能，使得音效能呈现出想要的感觉。这一切要从您的音频源文件开始。无论是单声道文件还是立体声文件，都可以快速地将它们导入到虚幻引擎4中，从而是您的作品更加生动。以下提供了针对您的音频内容的基本要求以及快速导入指南。
-	[/PARAM]
-[/OBJECT]
+![](WAV_TitleIcon.png)(w:200 convert:false) 
+
+但虚幻引擎 4 的音频系统提供了制作游戏中音效的工具及功能，使得音效能呈现出想要的感觉。这一切要从您的音频源文件开始。无论是单声道文件还是立体声文件，都可以快速地将它们导入到虚幻引擎4中，从而是您的作品更加生动。以下提供了针对您的音频内容的基本要求以及快速导入指南。
 
 
 ## 导入
@@ -90,7 +85,8 @@ Description:将音频文件导入到虚幻引擎4的基本要求。
 
 [/EXCERPT:multiChannelExtensionTable]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:raw]
 |                   | 扩展名| 4.0 | 5.1 | 6.1 | 7.1 |  
@@ -105,7 +101,8 @@ Description:将音频文件导入到虚幻引擎4的基本要求。
 | **BackRight（右后方）**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
 [/REGION]
 
--->
+
+[/COMMENT]
 
 
 调整压缩设置，以便在所有平台上保持相似的质量。当测试完很多音效后，我们的音乐制作人员确定了 XMA 质量40 等同于ogg vorbis 质量 0.15。

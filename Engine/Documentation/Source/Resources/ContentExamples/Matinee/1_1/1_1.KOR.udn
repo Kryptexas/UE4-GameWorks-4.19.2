@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:1.1 - 마티네 액터
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,7 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 1.1: Matinee Actor
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/1_1:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 Matinee Actor (마티네 액터)는 자체적으로 많은 프로퍼티를 갖고 있습니다.
 

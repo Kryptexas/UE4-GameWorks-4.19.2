@@ -1,0 +1,102 @@
+﻿INTSourceChangelist:3749327
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title:Steam VR 용 스틴딩 카메라 구성
+Description:서서 하는 SteamVR 체험을 위한 UE4 카메라 구성 방법입니다.
+Type: how-to
+Skilllevel:Beginner
+Version:4.17
+Parent:Platforms/SteamVR
+Order: 2
+tags:Basics
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+
+![](Platforms\VR\ContentSetup\VR_Standing_Experiance.png)
+
+Steam VR 을 사용하는 언리얼 엔진 4 (UE4) 탑재 VR 체험 개발을 시작할 때 가장 먼저 고려해야 할 것 중 하나는, 서서 하는 체험인지 앉아서 하는 체험인지 결정하는 것입니다. 여기서는 서서 하는 Steam VR 체험용 UE4 프로젝트의 VR 카메라 구성 방법을 살펴보겠습니다.
+
+## 단계
+
+서서 하는 Steam VR 체험을 위한 Pawn (폰) 구성 방법 안내입니다.
+
+1. 폰 블루프린트를 새로 만들거나 연 뒤 **뷰포트** 탭의 **컴포넌트** 섹션으로 갑니다. 거기서 다음 두 컴포넌트를 다음과 같은 이름으로 추가하고, VRCamera 가 VRCameraRoot 자식인지 확인합니다:
+
+    [REGION:simpletable]
+	|컴포넌트 이름| 값 |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
+
+	![](HT_SteamVR_Camera_Setup_00.png)
+
+    [region:note]
+    어떤 VR HMD 를 사용하든 에픽에서 추천하는 VR 카메라 구성 방식은 이렇습니다. 그래야 실제 카메라를 움직일 필요 없이 카메라 위치에 오프셋을 적용할 수 있습니다.
+    [/region]
+
+1. **이벤트 그래프** 에서 폰 블루프린트를 열고 **Event Begin Play** 노드를 끌어놓아 Executable Actions (실행가능 액션) 리스트를 띄웁니다. 여기서 **Set Tracking Origin** (트래킹 원점) 노드를 검색하고 클릭하여 이벤트 그래프에 추가합니다.
+
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_09.png)(w:555)](HT_Rift_Camera_Setup_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. Set Tracking Origin 노드에는 **Floor Level** (바닥 높이)와 **Eye Level** (눈 높이) 두 가지 옵션이 있습니다. 서서 하는 체험의 경우 Set Tracking Origin 노드의 **Origin** (원점)을 **Floor Level** (바닥 높이) 기본값으로 놔둬야 할 것입니다.
+    
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_10.png)(w:555)](HT_Rift_Camera_Setup_10.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. 콘텐츠 브라우저에서 폰 블루프린트를 끌어 레벨에 놓고, 레벨의 0,0,0 에 배치되었는지 확인합니다.
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_06.png)(w:555)](HT_Rift_Camera_Setup_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. 레벨에 배치된 폰 블루프린트를 선택하고 **디테일** 패널에서 **Pawn** 세팅 아래 **Auto Possess Player** (플레이어 자동 빙의) 옵션을 **Disabled** 에서 **Player 0** 로 설정합니다.
+
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_07.png)(w:355)](HT_Rift_Camera_Setup_07.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+## 최종 결과
+
+**메인 툴바** 의 **플레이 모드** 를 **VR 프리뷰** 로 변경하고 **플레이** 버튼을 누릅니다. HTC Vive HMD 를 쓰고 레벨을 확인하면, 다음 비디오와 같은 것이 보일 것입니다:
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    sO87nTNTATY
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 프로젝트 다운로드
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**SteamVR Standing VR Camera Example Project**](https://epicgames.box.com/s/8n6rtur0q01jrmgbdacog986tuzfx7js)
+

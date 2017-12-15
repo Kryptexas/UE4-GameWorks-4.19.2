@@ -23,7 +23,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 基本的なレベルのライトを追加したので、次は小さなアパートの浴室に **Point Light** を追加します。 
 
@@ -70,7 +70,7 @@ Version:4.9
 浴室に **Point Lights** を追加したので、 **次のステップ** では小さなアパートに **Spot Light** を追加します。 
 
 
-%Steps%
+
 
 
 

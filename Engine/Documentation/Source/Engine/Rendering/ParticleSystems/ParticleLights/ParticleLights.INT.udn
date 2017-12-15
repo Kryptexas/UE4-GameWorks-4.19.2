@@ -88,10 +88,12 @@ Remember: the **Light** module can only be used on CPU particles, so none of the
 
 
 
-<!--
+[COMMENT:none]
+
 ## Related
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef005]
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef007]
--->
+
+[/COMMENT]

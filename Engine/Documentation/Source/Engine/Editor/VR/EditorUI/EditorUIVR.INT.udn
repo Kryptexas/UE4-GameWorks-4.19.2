@@ -5,11 +5,11 @@ Availability: public
 parent: Engine/Editor/VR
 type: reference
 order: 5
-tags: VR
-version: 4.15
+version: 4.17
 skilllevel: intermediate
 topic-image:editorui_topic.png
 prereq:Engine/Editor/VR/ActivateVRMode
+tags:VR
 
 
 [TOC(start:1 end:4)]
@@ -24,40 +24,30 @@ The VR Editor enables you to summon and dock a number of different panels and wi
 | ![](window_content.png)(w:225) | ![](window_details.png)(w:225) | ![](window_modes.png)(w:225) | ![](window_outliner.png)(w:225) |
 | --- | --- | --- | --- |
 | Content Browser | Details Panel | Modes Panel | Outliner Panel | 
-|![](window_tutorials.png)(w:225) | ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
-|Tutorials | Asset Panel | Color Picker | World Settings |
-|![](window_Landscape.png)(w:225) | ![](window_Foliage.png)(w:225) | | |
-|Landscape | Foliage|   ||||
+| ![](window_Landscape.png)(w:225)| ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
+| Landscape| Asset Panel | Color Picker | World Settings |
+| ![](window_Foliage.png)(w:225) | ![](window_Sequancer.png)(w:225)| | |
+| Foliage| Sequencer| | | 
 [/REGION]
 
 ## Opening a Window in VR Mode
 
+
+
 To open a window:
 
-1. Aim one controller at the other to open the **Quick Select** menu.
+1. On the Interactor Hand, press the Modifier button to bring up the Radial Menu. You can also do this by pushing in a direction on the touch pad.
 
-	![](quickmenu_1.png)(w:480)
+	![](Engine\Editor\VR\Controls\Menu_Button.png)
 
-1. Aim the free controller at one of the options in the Interface section and squeeze the **Trigger** to open that window.
+1. Then use the track-pad to select the window you want to open and open the window by pressing down on the track-pad.
 
 	![](quickmenu_2.png)(w:480)
 
 
-## Docking
-
-Windows are docked to one of the controllers when opened. 
-
-![](window_move_grip.png)(w:480)
-
-Moving a window that is docked to a controller will undock it, leaving it free floating in the world
-
-![](window_scale_up.png)(w:480)
-
-Moving a free-floating window back to the controller will dock it.
-
 ## Interacting with Windows in VR Mode
 
-There are a number of different ways you can interact with panels and windows in the VR Editor. Each window has a black bar along the bottom edge called the grip that can be used to "grab" the window and manipulate it. 
+There are a number of different ways you can interact with panels and windows in VR Mode. Each window has a black bar along the bottom edge called the grip that can be used to "grab" the window and manipulate it. 
 
 ![](window_grip.png)(w:480)
 
@@ -88,20 +78,11 @@ There are a number of different ways you can interact with panels and windows in
 
 **To close a window:**
 
-1. Aim the controller at the Close button that is on the top righthand side of the window.
+1. Aim the controller at the Close button that is on the bottom righthand side of the window.
 
 	![](window_close.png)(w:480)
 
 1. Squeeze the Trigger to close the window.
 
-**To show / hide key windows - Content Browser, Details Panel, Modes Panel, and Scene Outliner:** 
-
-1. With windows open, press down once on the **Track Pad** to hide key windows.
-
-	![](window_show.png)(w:480) ![](window_hide.png)(w:480)
-
-1. With windows hidden, press down once on the **Track Pad** to show key windows.
-
-	![](window_hide.png)(w:480) ![](window_show.png)(w:480)
 
 [/EXCERPT:main]

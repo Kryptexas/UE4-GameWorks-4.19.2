@@ -8,21 +8,16 @@ Version:4.9
 ![](SimplygonLogo.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")
-	[/PARAM]
-[/OBJECT]
+## Essentials
 
-<!--
+[REGION:buttonlist]
+
+		* [](Engine/UI/Tools/Simplygon/Compiling "%Engine/UI/Tools/Simplygon/Compiling:description%")
+	
+[/REGION]
+
+[COMMENT:none]
+
 [EXCERPT:License]
 [REGION:warning]
 Simplygon はアンリアル エンジンと合わせて配布されていますが、この機能を使用するためにライセンシーの皆様はまず Donya Labs ([](http://simplygon.com/)) からライセンスを取得する必要があります。ライセンスの取得については、 Donya Labs へお問い合わせください。 
@@ -31,4 +26,5 @@ Simplygon はアンリアル エンジンと合わせて配布されています
 [/PUBLISH:Licensee]
 [/REGION]
 [/EXCERPT:License]
--->
+
+[/COMMENT]

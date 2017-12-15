@@ -54,35 +54,23 @@ order:11
 [INCLUDE:Shared/Glossary/M/#Glossary_Matinee]
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		要点知识
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 要点知识
+
+[REGION:buttonlist]
+
 		* [使用 Matinee 工具](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
 		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
 		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
 		* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
 		* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		相关链接
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 相关链接
+
+[REGION:buttonlist]
+
 		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

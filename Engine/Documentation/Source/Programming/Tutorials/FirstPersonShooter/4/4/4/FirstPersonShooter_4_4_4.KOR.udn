@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.4.4 - Jump Start -> Jump Loop 트랜지션 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 Jump Start 에서 Jump Loop 로의 트랜지션을 구성해 보겠습니다.
 
@@ -40,4 +40,3 @@ Version: 4.15
 
 	![](TimeRemaining.png)
 
-%Steps%

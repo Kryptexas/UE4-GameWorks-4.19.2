@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3750353
 Availability: Public
 Title:색 선택하기
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:메시 페인트 모드에서 색을 선택하는 법입니다.
 Version: 4.9
-
+parent:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+type:how-to
+order:1
+skilllevel:Beginner
+topic-image:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/ColorpickerCropped.png
 
 [EXCERPT:Intro]
 메시 페인트 툴은 한 쌍의 색을 가지고 작업을 합니다. 사용자는 _칠할 색_ 과 _지울 색_ 을 선택한 다음 언제고 맞바꿀 수 있습니다. 색 선택은 표준 [색 선택기 창](Engine/UI/ColorPicker) 을 통해 이루어집니다.

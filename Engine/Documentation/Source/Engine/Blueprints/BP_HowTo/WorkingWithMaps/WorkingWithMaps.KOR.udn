@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3489715
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:맵 작업
 Description:블루프린트에서 Map, 맵 작업 방법을 배워봅니다.
@@ -33,19 +33,9 @@ _이 튜토리얼을 통해 언리얼 엔진 4 (UE4) 의 Map (맵) 작업 경험
 * 블루프린트 맵에 들어있는 아이템 질의 및 표시 방법.
 * 블루프린트 맵에 대한 기본적인 연산 수행 방법.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine/Blueprints/BP_HowTo/WorkingWithMaps/1 "%Engine/Blueprints/BP_HowTo/WorkingWithMaps/1:title%")

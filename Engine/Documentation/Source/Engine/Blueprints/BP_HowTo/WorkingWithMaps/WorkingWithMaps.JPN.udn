@@ -33,19 +33,9 @@ Blueprint Map は [](Engine/Blueprints/UserGuide/Arrays) に次いで人気が�
 * Blueprint Map に含まれているアイテムのクエリおよび表示方法
 * Blueprint Map の基本的な操作方法
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine/Blueprints/BP_HowTo/WorkingWithMaps/1 "%Engine/Blueprints/BP_HowTo/WorkingWithMaps/1:title%")

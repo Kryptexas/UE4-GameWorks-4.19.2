@@ -17,15 +17,9 @@ For more information on importing files as [Sound Waves](Engine/Audio/WAV) or mo
 
 ## Ambient Sound Actor
 
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](ambientActors.png)
-	[/PARAM]
-	[PARAM:description]
-	
-	[/PARAM]
-[/OBJECT]
+[REGION:raw]
+![](ambientActors.png)
+[/REGION]
 
 The Ambient Sound Actor (icons pictured at left) can be used for many purposes such as ambient looping sounds as well as non-looping sounds. 
 Generally, the Ambient Sound Actor conforms to the real world where the closer you are to a sound, the louder it will appear. By comparison, a sound that is normally loud, may appear soft if it is further away. 

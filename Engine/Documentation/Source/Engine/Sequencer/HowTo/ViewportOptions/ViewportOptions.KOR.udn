@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:시네마틱 뷰포트 활성화
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 시네마틱 실시간 미리보기에 사용할 수 있는 전문 뷰포트가 몇 개 있습니다.
 여기서는 그 뷰포트를 어디서 찾아 켜는지와, 뷰포트 재생 콘트롤 및 뷰포트 옵션 메뉴를 켜는 법을 안내해 드리겠습니다.

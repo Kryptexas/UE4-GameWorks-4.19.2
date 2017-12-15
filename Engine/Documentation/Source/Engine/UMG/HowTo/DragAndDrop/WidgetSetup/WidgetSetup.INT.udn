@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step, we determine when the Left Mouse Button is pressed and store the location where it was pressed in screen space. 
 We also use the **DetectDragIfPressed** to determine if the player is dragging with a specified key. 
@@ -82,5 +82,5 @@ We also use the **DetectDragIfPressed** to determine if the player is dragging w
 
 With the ability to detect if the player is dragging in place, next we will finish off what happens when the drag is detected. 
 
-%Steps%
+
 

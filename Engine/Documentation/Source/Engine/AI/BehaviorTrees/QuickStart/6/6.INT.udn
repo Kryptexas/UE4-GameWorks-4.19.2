@@ -3,24 +3,12 @@ Title: 6. Setup the AI Controller Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 6. Setup the AI Controller Blueprint
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:6
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/7 "%Engine/AI/BehaviorTrees/QuickStart/7:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -58,9 +46,4 @@ Below are the steps for creating the first part of the **Event Graph**. Step _7.
 
 In the next step we'll continuing editing this graph and setup the initial Blackboard values for our AI Controller.
 
-%Steps%
-
-
-
-
-
+[NAV]

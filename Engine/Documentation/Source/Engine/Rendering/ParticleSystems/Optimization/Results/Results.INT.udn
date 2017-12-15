@@ -70,18 +70,12 @@ Refer to the [Particle System Level of Detail (LOD)](Engine/Rendering/ParticleSy
 
 It is important to keep in mind when creating LODs, there are memory costs associated with unshared modules.  Sharing as many modules across LODs as possible reduces memory footprint. Only create unique module settings for the attributes you wish to modify.
 
+![detailModes.png](detailModes.png)(convert:false)
 
+[INCLUDE:#lodfloat]
 
-[OBJECT:topiclistnotitlealt]
-	[PARAM:icon]
-		![detailModes.png](detailModes.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:#lodfloat]
-	[/PARAM]
-[/OBJECT]
+[COMMENT:none]
 
-<!--
 [EXCERPT:LODFloat]
 The preview modes in Cascade and the editors perspective view behave in different ways. In order to get proper viewing in Cascade, make certain to set the **View** -> **Detail Mode** to **High**.
 
@@ -91,7 +85,8 @@ Enabling the editor preview grants the ability to fly through the scene and see 
 
 It is important to measure the scene and get a realistic idea of just how many units are needed to see effects in the proper state.  In the case of ambient particle systems, it is possible to emit 0.00 particles and reduce tick time when the particle systems might not be visible.  Measuring distance can be done by holding down the middle mouse button and dragging in any orthographic view (front, side, top.)
 [/EXCERPT:LODFloat]
--->
+
+[/COMMENT]
 
 ### LOD Distance Check Time
 
@@ -251,7 +246,8 @@ Enabling LODs in particle systems allows for lower particle emissions when a sys
 Check your effects for expensive evaluation costs which can be lowered such as collisions, non-fixed bounds, and spawn per unit counts which are too high.  Setting bounds to a fixed state can increase performance significantly and should be used whenever possible.
 
 
-<!-- Old, UE3
+[COMMENT:none]
+ Old, UE3
 ## Non Directional Lighting Costs - Game Thread
 
 Non Directional lighting adds depth and realism to particle effects by doing a trace within the world to determine lighting information around emitters spawned into the scene.  Non Directional Lighting comes at a Game Thread evaluation cost.  Non directional lighting is often used for weapon effects, impact effects, character effects, ambient fog effects, and Binked cinematic effects .
@@ -266,4 +262,5 @@ Another option for matching particle color to a light environment would be to ut
 
 
 __It is recommended to use Non Directional Lighting in as many cases as performance allows, it can be helpful to setup your effects with a Particle Parameter in mind should you be required to use this method due to performance restrictions.__
--->
+
+[/COMMENT]

@@ -2,46 +2,7 @@
 Title:放置Actor
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:在关卡编辑器内向地图中添加Actor实例。
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:actorplacement_topic.png
 
 [TOC(start:2)]
 

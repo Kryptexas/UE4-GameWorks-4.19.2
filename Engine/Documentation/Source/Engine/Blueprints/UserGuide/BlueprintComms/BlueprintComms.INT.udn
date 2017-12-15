@@ -8,46 +8,7 @@ related:Engine/Blueprints/UserGuide/Variables
 related:Engine/Blueprints/UserGuide/Functions
 version: 4.9
 tags:Blueprints
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/BlueprintComms:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/BlueprintComms:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/BlueprintComms:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/BlueprintComms:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/direct_comm_topic.png
 
 
 [TOC(start:2 end:2)]

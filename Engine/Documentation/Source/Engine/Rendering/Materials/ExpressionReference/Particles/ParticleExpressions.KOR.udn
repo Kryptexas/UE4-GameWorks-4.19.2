@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Particle 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -174,13 +174,15 @@ SphericalParticleOpacity (구체형 파티클 불투명도)는 프로시저럴 �
 [INCLUDE:#SPO]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SPO]
 [REGION:lightbox]
 [![](SPO_Network.png)(w:305)](SPO_Network.png)
 [/REGION]
 [/EXCERPT:SPO]
--->
+
+[/COMMENT]
 
 
 [EXCERPT:ParticleSubUV]

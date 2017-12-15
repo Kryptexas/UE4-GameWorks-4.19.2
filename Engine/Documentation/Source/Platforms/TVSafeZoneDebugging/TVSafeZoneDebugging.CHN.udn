@@ -134,7 +134,8 @@ UE4 有两种不同类型的电视安全区，称为标题安全区（Title Safe
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SZ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -163,9 +164,11 @@ UE4 有两种不同类型的电视安全区，称为标题安全区（Title Safe
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SZA]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -194,4 +197,5 @@ UE4 有两种不同类型的电视安全区，称为标题安全区（Title Safe
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZA]
--->
+
+[/COMMENT]

@@ -2,7 +2,7 @@ Availability: Public
 Title:Using Custom Events and Structs
 Crumbs:%ROOT%
 Description:Shows how you can use the Event Track to call Custom Events with Custom Structs for use in Blueprint. 
-Version: 4.15
+Version: 4.18
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
@@ -12,16 +12,14 @@ Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
 type:how-to
 
-The **Event Track** can be used to call [Custom Events](Engine/Blueprints/UserGuide/Events/Custom), which fire off [Blueprint Scripts](Engine/Blueprints) inside of [Level Blueprints](Engine/Blueprints/UserGuide/Types/LevelBlueprint). 
+The **Event Track** can be used to call [Custom Events](Engine/Blueprints/UserGuide/Events/Custom) that can execute [Blueprint Scripts](Engine/Blueprints) inside of multiple Blueprints. 
 When the Custom Event is called, any script attached to it will also be executed and can be used for any number of scenarios based on your needs. 
-When using the Event Track and calling a Custom Event, you can also pass your own Custom [Struct](Engine/Blueprints/UserGuide/Variables/Structs), which can be used to update the variables contained therein. 
-This can be useful in situations where you want to update other variables during the playback of a level sequence. 
+When using the Event Track and calling a Custom Event, you can also pass through your own Custom [Structs,](Engine/Blueprints/UserGuide/Variables/Structs) which can be used to update the variables contained therein. 
+This can be useful in situations where you want to update other variables during the playback of a Level Sequence. 
 
-In this example, we will use the Event Track to call a Custom Event with a Custom Struct that is used to move an object in the level when the sequence plays. 
+In this example, we use the Event Track to call an Event with a Custom Struct that is used to move an object in the **Level Blueprint** and turn off/on a Point Light in another Blueprint. 
 
  ![](EndResultImage.png)
-
-In the following how-to guide, when we press a key, the level sequence plays, and our event to move the cube upwards is executed each time. 
 
 ## Steps
 
@@ -29,19 +27,19 @@ In the following how-to guide, when we press a key, the level sequence plays, an
 For this how-to guide, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
 [/REGION]
 
-1.	From the **Content Browser** under the **Content/StarterContent/Shapes** folder, drag any mesh into the level. 
+1.	From the **Content Browser** under the **Content/StarterContent/Shapes** folder, drag the **Shape_Cube** mesh into the Level. 
 
 	![](EventTrack1.png)
 
-	Position the mesh anywhere inside of the level. 
+	Position the mesh anywhere inside of the Level. 
 
-1.	In the **Details** panel for your mesh, set the mesh to **Movable**. 
+1.	In the **Details** panel for the mesh, set it to **Movable**. 
 
 	![](EventTrack1b.png)
 
 	This will enable us to move the mesh during gameplay.
 
-1.	Click the **Add New** button. Then, under **Blueprints**, select the **Structure** option. 
+1.	Click the **Add New** button in the **Content Browser** then, under **Blueprints**, select the **Structure** option. 
 
 	![](EventTrack2.png)
 
@@ -53,7 +51,7 @@ For this how-to guide, we are using the **Blueprint Third Person Template** proj
 	The naming of your variables is important here because these names will need to be used when you want to reference them later. 
 	[/REGION]
 
-1.	Add a new **Level Sequence** from the **Cinematics** button called **Master** to the level, then inside **Sequencer**, add an **Event Track**. 
+1.	Add a new **Level Sequence** called **Master** to the Level, then inside **Sequencer**, add an **Event Track**. 
 
 	![](EventTrack4.png)
 
@@ -61,13 +59,13 @@ For this how-to guide, we are using the **Blueprint Third Person Template** proj
 
 	![](EventTrack5.png)
 
-	When we get to this keyframe in our sequence, we are going to move our mesh up by 100 units along the Z axis. 
+	When we get to this keyframe in our sequence, we are going to move our mesh up by 100 units along the Z-axis. 
 
 1.	Move the timeline to frame **10** and press the **]** key to end the sequence at frame 10. 
 
 	![](EventTrack6.png)
 
-1.	Select the mesh that you added (along with the Level Sequence in the level), and then click the **Blueprints** button from the toolbar, ultimately selecting **Open Level Blueprint**. 
+1.	Select the mesh that you added in the Level (along with the Level Sequence), then click the **Blueprints** button from the toolbar and select **Open Level Blueprint**. 
 
 	![](EventTrack7.png)
 
@@ -115,17 +113,60 @@ For this how-to guide, we are using the **Blueprint Third Person Template** proj
 
 	![](EventTrack14.png)
 
-1.	Click the **Play** button from the Main Toolbar to enter Play in Editor (PIE) mode. 
+	If you play in the Editor, each time you press the **1** key, the cube will move up along the Z-axis.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		wlLcUr8BXvY
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+	We are using the **Level Blueprint** to execute our **Custom Event**, but there may be examples when you are using and want to effect a different Blueprint or multiple Blueprints. 
+
+1.	From the **Content Browser** under **Content/StarterContent/Blueprints**, drag the **Bluperint_CeilingLight** Blueprint into the Level. 
+
+	![](EventTrack15.png)
+
+1.	In the **Details** panel for the **Master** Level Sequence, expand the additional options under **General** and add the **Blueprint_CeilingLight** as an **Additional Event Reciever**. 
+
+	![](EventTrack16.png)
+
+1.	Open the **Blueprint_CeilingLight** Blueprint and add the following script. 
+
+	![](EventTrack17.png)
+
+	* Create the Custom Event called **LiftCube** that corresponeds to the **Event** in **Sequencer**. 
+	* Use a **Flip Flop** node to **Set Intesnity** of the **Point Light** to **0** (off) or **5000** (on). 
+
+	This will toggle between turning the light off or on whenever the Master Level Sequence is played.
+	
+	[REGION:warning]
+	Notice that although we are not using the Custom Struct **MoveCube** in this Blueprint, in order for the Event to get called, you will still need to add it. 
+	[/REGION] 
+
+1.	Play in the Editor. 
 
 
 ## End Result
 
-When playing your game in the editor, each time you press the **1** key, the cube will move along the **Z** axis. 
+When playing in the Editor, the cube will move up along the Z-axis whenever you press the **1** key while the light toggles between on/off states. 
 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	wlLcUr8BXvY
+	Ftm9I_TEXYE
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -141,9 +182,11 @@ When playing your game in the editor, each time you press the **1** key, the cub
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, we are not assigning a camera to view our cinematic from but instead are using Sequencer and Blueprint to perform scripted sequences. 
+In this example, we are calling an Event in the **Level Blueprint** as well as inside a [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) from **Sequencer**. 
+We are not assigning a camera to view our cinematic from but instead are using Sequencer and Blueprint to perform scripted sequences. 
 In your projects, an Event Track with a Custom Event and Custom Struct can be used to update player information during a cutscene (such as the player 
-receiving a health increase, new weapon, or other gameplay related effects of your choosing). 
+receiving a health increase, new weapon, or other gameplay related effects of your choosing) during your defined points within your cinematic sequences. 
+
 
 
 

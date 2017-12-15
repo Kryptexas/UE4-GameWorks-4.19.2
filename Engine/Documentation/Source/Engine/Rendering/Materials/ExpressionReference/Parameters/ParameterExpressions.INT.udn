@@ -252,7 +252,8 @@ The **TextureSampleParameterMovie** expression is identical to the TextureSample
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorParamDefaultItem]
 [REGION:prop_sublist]
 	* **R**
@@ -274,5 +275,6 @@ The **TextureSampleParameterMovie** expression is identical to the TextureSample
 [EXCERPT:GroupDefinition]Provides a way to organize parameter names into groups, or categories, within a MaterialInstanceConstant. All parameters within a material that have the same Group property name will be listed underneath that category in the instance.[/EXCERPT:GroupDefinition]
 
 [EXCERPT:ParameterNameDefinition]Specifies the name used to identify the parameter in instance of the material and through code.[/EXCERPT:ParameterNameDefinition]
--->
+
+[/COMMENT]
 

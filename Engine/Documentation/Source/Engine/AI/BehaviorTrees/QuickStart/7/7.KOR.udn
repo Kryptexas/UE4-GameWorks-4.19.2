@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 7. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:7 단계. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/8 "%Engine/AI/BehaviorTrees/QuickStart/8:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -75,8 +63,4 @@ version: 4.9
 
 다음 단계에서는 이 그래프 편집을 계속하여 AI 콘트롤러가 원하는 비헤이비어 트리를 실행하도록 만드는 부분을 그래프에 추가하도록 하겠습니다.
 
-%Steps%
-
-
-
-
+[NAV]

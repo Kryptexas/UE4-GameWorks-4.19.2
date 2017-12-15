@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:7 - 직접 해보기
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -23,7 +23,7 @@ checkpoint: editorqs
 [/VAR]
 
 
-%Steps%
+
 
 이 가이드에서 배운 내용을 토대로 다음과 같은 작업을 직접 해보세요:
 
@@ -60,5 +60,5 @@ checkpoint: editorqs
 
 * 라이팅 관련: [라이팅 퀵스타트 가이드](Engine/Rendering/LightingAndShadows/QuickStart)
 
-%Steps%
+
 

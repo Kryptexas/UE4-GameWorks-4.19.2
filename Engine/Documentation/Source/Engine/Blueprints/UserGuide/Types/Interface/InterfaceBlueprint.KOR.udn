@@ -1,52 +1,15 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 인터페이스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:블루프린트 사이의 인터페이스를 정의하기 위한 함수를 선언하는 블루프린트입니다.
-related: Engine\Blueprints\UserGuide\BlueprintCommsUsage
-related: Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo
-related: Engine\Blueprints\UserGuide\EventDispatcher
-related: Engine\Blueprints\UserGuide\BlueprintComms
+related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related: Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+related: Engine/Blueprints/UserGuide/EventDispatcher
+related: Engine/Blueprints/UserGuide/BlueprintComms
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/blueprint_interface.png
 
 [TOC (start:2)]
 
@@ -72,7 +35,7 @@ tags:Blueprints
 `OnTakeWeaponFire` (무기 발사 피격시) 함수가 들어있는 블루프린트 인터페이스를 만들고,
 차량과 나무 둘 다에서 그 블루프린트 인터페이스를 구현해 주면, 그 차량과 나무 어느 것을 총으로 쏘든 
 같은 유형으로 취급해서 `OnTakeWeaponFire` 함수만 호출해 주면 됩니다.
-블루프린트 인터페이스 구현 방법은 [](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) 문서를 참고하세요.
+블루프린트 인터페이스 구현 방법은 [](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) 문서를 참고하세요.
 
 ## 블루프린트 인터페이스 생성
 
@@ -100,7 +63,7 @@ tags:Blueprints
 
 함수를 새로 추가하려면:
 
-1. **내 블루프린트** 탭에서 새 함수를 만듭니다. ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png) 함수 목록 제목줄 아래 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 누르면 됩니다.
+1. **내 블루프린트** 탭에서 새 함수를 만듭니다. ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png) 함수 목록 제목줄 아래 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) **추가 버튼** 을 누르면 됩니다.
 
 1. **내 블루프린트** 패널에서, 새 함수의 이름을 입력합니다.
 

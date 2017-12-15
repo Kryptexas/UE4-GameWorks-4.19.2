@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3606403
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:BuildGraph の定義済みタスク
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description:これはプロシージャルに生成されるマークダウン ページです。
@@ -38,7 +37,7 @@ parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
 | Name      | String    | Required | 実行するコマンドレット名                                                                           |
 | Project   | File Spec | Optional | エディタで実行するプロジェクト                                                                       |
 | Arguments | String    | Optional | コマンドレットに渡す引数                                                                 |
-| EditorExe | File Name | Optional | 使用するエディタの実行ファイル。現在のプラットフォームに対してデフォルトで development UE4Editor の実行ファイルになります。
+| EditorExe | File Name | Optional | 使用するエディタの実行ファイル。現在のプラットフォームに対してデフォルトで development UE4Editor の実行ファイルになります。 |
 | If        | Condition | Optional | このタスクを実行するか否かです。この条件式が、 false になると無視されます。                        |
 
 ### Compile
@@ -166,10 +165,10 @@ C# のプロジェクト ファイルやその依存関係をコンパイルし�
 |                  |           |          |                                                                                                                                                                  |
 | ---------------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Change           | Int32     | Required | バージョン ファイルに設定するチェンジリスト                                                                                                                       |
-| CompatibleChange | Int32     | Optional | | バージョン ファイルに設定するエンジン互換性のチェンジリスト                                                                                                     |
-| Branch           | String    | Required | | ブランチの文字列                                                                                                                                                |
-| Build            | String    | Optional | | ビルド バージョンの文字列                                                                                                                                         |
-| Licensee         | Boolean   | IS_LICENSEE_VERSION フラグを true に設定するか否か。                                                                                                              |
+| CompatibleChange | Int32     | Optional | バージョン ファイルに設定するエンジン互換性のチェンジリスト                                                                                                     |
+| Branch           | String    | Required | ブランチの文字列                                                                                                                                                |
+| Build            | String    | Optional | ビルド バージョンの文字列                                                                                                                                         |
+| Licensee         | Boolean   | Optional | IS_LICENSEE_VERSION フラグを true に設定するか否か。                                                                                                              |
 | Promoted         | Boolean   | Optional | ENGINE_IS_PROMOTED_BUILD フラグを true に設定するか否か。                                                                                                         |
 | SkipHeader       | Boolean   | Optional | 設定されると Version.h は更新せず、データ ファイルだけを更新します (例、 Build.version、 Metadata.cs).エディタは build.version からランタイムにビルドのチェンジリストを読み込むことができます。 |
 | SkipWrite        | Boolean   | Optional | 設定されると、実際にはファイルに書き込まず、更新されるバージョン ファイルを戻します。ローカルのビルドに役立ちます。                                        |

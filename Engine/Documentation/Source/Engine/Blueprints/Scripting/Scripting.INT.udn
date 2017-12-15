@@ -6,45 +6,9 @@ version: 4.12
 parent:Engine/Blueprints
 tags:Blueprints
 type:landing
+topic-image:Engine/Blueprints/UserGuide/using_interface_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Scripting:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Scripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Scripting:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Scripting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Scripting:title%](BasicScripting.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Scripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Scripting:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Scripting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 Blueprints provide a visual approach to a scripting language. As such, the system shares many of the nuances of a standard written scripting language, such as data typed variables, arrays, structs, etc. 
 Execution flow also works as it does in a typical scripting language, although Blueprints require explicit linear execution for each node. Each of the pages below go into more detail about 

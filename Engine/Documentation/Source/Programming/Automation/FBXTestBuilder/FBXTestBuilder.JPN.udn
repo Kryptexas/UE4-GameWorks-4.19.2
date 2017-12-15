@@ -1,0 +1,286 @@
+﻿INTSourceChangelist:3670348
+Availability:Docs
+Crumbs: %ROOT%
+Title:FBX Test Builder
+Description:FBX Automation Test Builder を使うと、自動化テストの Session Frontend と合わせて使用する FBX ファイルのテストを作成することができます。
+Type:How-To
+SkillLevel:Advanced
+Version:4.17
+Parent:Programming/Automation
+Related:Programming/Automation
+Related:Programming/Automation/ScreenShotComparison
+Related:Programming/Automation/UserGuide
+Order:
+Tags:Programming
+Topic-Image:FBXTestBuilder_Topic.png
+Social-Image:FBXTestBuilder.png
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+[自動化システム](Programming/Automation) の一部である FBX Test Builder はプラグインで、個々の FBX ファイルについて独自のテストを作成することができます。FBX Test Builder はひとつの FBX ファイルの Test Plan (テスト計画) を作成します。 
+この計画を使って、期待される結果をインポート、再インポート、または期待される結果に対して比較することができます。作成されたテスト計画は、JSON ファイルとして保存され、その拡張子がない以外は
+テストされている FBX ファイルと同じ名前を共有します。
+
+![](FBXTestBuilder.png)
+
+FBX Test Builder を使うと、FBX ファイルで選択された操作を可能にし、期待される結果に対してチェックし、
+テストの合否を決めるテスト計画を作成することができます。
+
+
+## プラグインを有効にする
+
+FBX 自動化テストのビルドを開始する前に、まず **FBXAutomationTestBuilder** を有効にする必要があります。これを行うには、**[Edit** > **Plugins** > **Testing]** の順に選択します。
+
+[REGION:lightbox]
+[![](EnableFBXTestBuilderPlugin.png)(w:600)](EnableFBXTestBuilderPlugin.png)
+[/REGION]
+[REGION:caption] クリックして画像をフルサイズで表示 [/REGION]
+
+プラグインを有効にした後、アンリアル エンジンを再起動してからアクセスする必要があります。
+
+[REGION:lightbox]
+[![](Restart.png)(w:600)](Restart.png)
+[/REGION]
+[REGION:caption] クリックして画像をフルサイズで表示 [/REGION]
+
+FBX Test Builder にアクセスするには、ファイル メニューを使って **[Window** > **Automation Tools** > **FBX Test Builder]** の順にアクセスします。
+
+[REGION:lightbox]
+[![](OpenFBXTestBuilder.png)(w:250)](OpenFBXTestBuilder.png)
+[/REGION]
+[REGION:caption] クリックして画像をフルサイズで表示 [/REGION]
+
+
+## Test Plan をビルドする
+
+FBX Test Builder を使う場合、選択した **Action (アクション)** (またはオペレーション) を使用します。このアクションを行い、一連の **Expected Results** が、当該 FBX ファイルに対する 
+合否を決定します。この一連のアクションと結果は、 **Test Plan (テスト計画)** と呼ばれます。 
+
+### Actions
+
+各テスト計画について、5 つの主要なアクションがあります。各アクションには、テストを正確に行うために使う基準があります。こうしたアクションと基準の概要を 
+以下に示します。
+
+![](Actions.png)(w:550)
+
+[REGION:simpletable]
+| アクション | ステップ |
+| --- | --- |
+| **Import** | [INCLUDE:#import] |
+| **Reimport** | [INCLUDE:#reimport] |
+| **Add LOD (Level of Detail)** | [INCLUDE:#addlod] |
+| **Reimport LOD (Level of Detail)** | [INCLUDE:#reimportlod] |
+| **Import Reload** | [INCLUDE:#importreload] |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#importreload]
+[EXCERPT:import]
+* FBX ファイルをインポートします。
+* 期待される結果を検証します。
+[/EXCERPT:import]
+
+[EXCERPT:reimport]
+* これはインポートしたアセットが削除されない Import Test Plan の後に実行しなければなりません。
+* FBX ファイルを再インポートします。
+* 期待される結果を検証します。
+[/EXCERPT:reimport]
+
+[EXCERPT:addLOD]
+* これはインポートしたアセットが削除されない Import Test Plan の後に実行しなければなりません。
+* FBX ファイル名は **_lod00** で終わらなければなりません。
+* **_lod0X** (この場合、**X** は **0** より大きくなります) で終わる同じ名前を持つ FBX ファイルがなくてはなりません。
+* LOD を追加します。
+* 期待される結果を検証します。
+[/EXCERPT:addLOD]
+
+[EXCERPT:reimportLOD]
+* 以前、インポートした LOD (Level of Detail) を、**Import** または **Add LOD** アクションのいずれかを使って再インポートします。
+[/EXCERPT:reimportLOD]
+
+[EXCERPT:importreload]
+* FBX ファイルをインポートします。
+* パッケージを保存します。
+* 作成した UObject をメモリからアンロードします。
+* 保存したパッケージを再ロードします。
+* 期待される結果を検証します。
+[/EXCERPT:importreload]
+
+-
+[/COMMENT]
+
+
+### 期待される結果
+
+各テスト計画について、**Expected Results** のリストを評価して、テストの合否を決定します。
+
+![](ExpectedResult.png)(w:550)
+
+[REGION:simpletable]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Expected Presets Type** || チェックを入れるべき事前定義されたデータ [INCLUDE:#expectedpresettype] |
+| **Expected Presets Data Integer** || 指定した FBX ファイルについてチェックを入れるべき期待される整数値を入力します。 |
+| **Expected Presets Data Float** || 指定した FBX ファイルについてチェックを入れるべき期待される float 値を入力します。 |
+| **Expected Presets Data Double** || 指定した FBX ファイルについてチェックを入れるべき期待される double 値を入力します。  |
+| **Expected Presets Data String** || 指定した FBX ファイルについてチェックを入れるべき期待される文字列の値を入力します。 |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#expectedpresettype]
+[EXCERPT:expectedpresettype]
+| チェックの種類 | 説明 | 必要なデータ型 |
+| --- | --- | --- |
+| **Error Number** | データにはエラー数 [int0] を含みます . | Integer | 
+| **Warning Number** | データには警告数 [int0] を含みます。 | Integer |
+| **Created Static Mesh Number** | データには、作成したスタティックメッシュの数 [int0] を含みます。 | Integer |
+| **Created Skeletal Mesh Number** | データには作成したスケルタルメッシュの数 [int0] を含みます。 | Integer |
+| **Materials Created Number** | データには、ターゲットのコンテンツ フォルダにある作成したマテリアルの数 [int0] を含みます。 | Integer |
+| **Material Slot Imported Name** | データは、スロット インデックス[int0] と、期待されるオリジナルのインポートされた Material Slot Name [string0] になります。 | Integer and String |
+| **Vertex Number** | データは、すべての LOD の頂点数の合計 [int0] になります。 | Integer |
+| **LOD Number** | データは、 LOD の期待される数 [int0.] になります。 [int0.]  | Integer |
+| **Vertex Number LOD** | データは LOD インデックス [int0] と LOD の合計頂点数 [int1] になります。 | Two Integers |
+| **Mesh Materials Number** | データには、メッシュ毎にインデックス付けされているマテリアルの数 [int0] を含みます。 | Integer |
+| **Mesh LOD Section Number** | データは LOD インデックス [int0] で、メッシュに対して期待されるセクション数 [int1] です。 | Two Integers |
+| **Mesh LOD Section Vertex Number** | データは LOD インデックス [int0]、セクション インデックス [int1]、および期待される頂点数 [int2] になります。 | Three Integers |
+| **Mesh LOD Section Triangle Number** | データは LOD インデックス [int0]、セクション インデックス [int1]、および期待されるトライアングル数 [int2] になります。 | TInteger 3 つ |
+| **Mesh LOD Section Material Name** | データは LOD インデックス [int0]、セクション インデックス [int1]、および期待されるマテリアルの名前 [string0] になります。 | Integer と String |
+| **Mesh LOD Section Material Index** | データは LOD インデックス [int0]、セクション インデックス [int1]、および期待されるメッシュのマテリアルのマテリアル インデックス [int2] になります。 |Integer 3 つ |
+| **Mesh LOD Section Material Imported Name** | データは LOD インデックス [int0]、セクション インデックス [int1]、およびオリジナルのインポートされたマテリアル スロット名 [string0] になります。 | Integer 2 つと String |
+| **LOD UV Channel Number** | データは指定された LOD に対する LOD インデックス [int0] と UV チャンネル数 [int1] になります。 | Two Integers |
+| **Bone Number** | データには作成されたボーン数 [int0] を含みます。 | Integer |
+| **Bone Position** | データには、ボーン インデックス [int0] とポジションの XYZ [float0, float1, and float2] を含みます。オプションで許容値 [float3] を渡すこともできます。 | Integer と Float 4 つ |
+| **Animation Frame Number** | データにはフレーム数 [int0] が含まれます。 | Integer |
+| **Animation Length** | データにはアニメーションの長さ [float0] が含まれます。 | Float |
+[/EXCERPT:expectedpresettype]
+
+-
+[/COMMENT]
+
+
+#### Expected Result を設定する
+
+Expected Result を設定するために、6 種類のマテリアルとテクスチャを含むボックス メッシュを持つサンプル FBX をテストケースとして使用します。 
+
+![](BoxFBX1.png)(w:750)
+
+1. **Add** (+) ボタンをクリックして、Expected Result を追加します。次に、チェックに使用する **Expected Preset Type** を選択します。 
+
+	![](ER_AddExpectedResult.png)
+
+1. テストしたい Expected Presets Type に対応する **Expected Presets Data** type を選択します。この例では、**Mesh Materials Number** type を選択して、インポート時に含まれる
+ FBX の 6 つのマテリアルをチェックします。
+
+	![](ER_SelectExpectedPresetType.png)
+
+1. **Mesh Materials Number** プリセット タイプでは、インポートされているマテリアル数をチェックする整数値のみが期待されます (プリセットのツールチップまたはリファレンス上のテーブルを使ってどのデータが必要かを見ます)。**Expected Presets Data Integer** を一回クリックして、 
+配列に期待される結果のチェックを追加します。 
+	![](ER_AddDataTypeInteger.png)
+
+
+1. 配列の要素 0 について、FBX を使ってインポートされたマテリアル数を入力します。この例では、6 つのマテリアルが期待されます。
+
+	![](ER_IntegerValue.png)
+
+1. 必要な [インポート オプション](#インポートオプション) をセットアップし、選択した Expected Preset Type が必要とするもののすべてが正確にインポートされるようにします。例えば、Box FBX では、 
+FBX からマテリアルとテクスチャをインポートする必要があるため、**[Import Materials (マテリアルをインポート)]** と **[Import Textures (テクスチャをインポート)]** のオプションを有効にします。 
+
+	![](ER_ImportMaterials.png)
+	1. **[Save JSON]** ボタンをクリックすると、Test Plan が [Session Frontend Automation] タブに追加されます。このタブの **Engine/Import/FBX/[NameOfTheFBX]** に Test Plan があります。 
+
+
+	[REGION:imagetable]
+	| ![](ER_SaveJSON.png) | [REGION:lightbox] [![](ER_AutomationFBXTest.png)(w:700)](ER_AutomationFBXTest.png) [/REGION] [REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION] |
+	| --- | --- |
+	| FBX Test Editor | Session Frontend Automation タブ|
+	[/REGION]
+	1. テスト実行後、オペレーション システムが指定した LOD(0) の **Mesh Materials Number** (6) が、インポートしたアセットと一致するかをテストします。	
+
+
+	[REGION:lightbox]
+	[![](ER_Successful.png)(w:700)](ER_Successful.png)
+	[/REGION]	
+	[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+	テストに不合格になったら、[Automation] タブでそのテストを選択して、**[Automation Test Results]** パネルでその理由を確認します。
+
+	[REGION:lightbox]
+	[![](ER_Failure.png)(w:700)](ER_Failure.png)
+	[/REGION]
+	[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+	[REGION:note]
+	Message Log もポップアップして、 [Session Frontend ] ウィンドウが開いているか否かに関係なく、テストの合否と不合格の理由を示します。 
+	[/REGION]
+
+	### インポートオプション
+
+
+
+Expected Results Test Plan をセットアップ後、テストしたいアクションについて、インポート、再インポートが正しく設定されていることも確認します。例えば、決まった数のマテリアルをインポートする FBX をテストする場合、 
+**[Import Materials]** を必ず有効にします。こうしたオプションは、コンテンツ ブラウザ経由でエディタにアセットをインポートするときに利用可能なものと同じオプションです。
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](ImportOptions.png)(h:400)](ImportOptions.png) [/REGION] [REGION:caption] Click image for full view. [/REGION] | [REGION:lightbox] [![](Engine/Content/FBX/ImportOptions/StaticMeshImportOptions.png)(h:400)](Engine/Content/FBX/ImportOptions/StaticMeshImportOptions.png) [/REGION] [REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION] |
+| ---- | ---- |
+| FBX Test Builder のインポート オプション | 標準の FBX インポート オプション ウィンドウ|
+[/REGION]
+
+[REGION:note]
+詳細は、 [FBX インポート オプション](Engine/Content/FBX/ImportOptions) のページをご覧ください。
+[/REGION]
+
+
+## テスト計画作成のワークフロー
+
+以下の手順に従って、FBX テストのためのテスト計画を作成します。 
+
+1. テストする FBX を以下の場所にコピーします。 
+
+		[UE4Root]/Engine/Content/FBXEditorAutomation
+
+1. このフォルダに入れられた FBX は、自動的に **[Select an FBX file]** ドロップダウン リストに表示されます。
+
+	![](TestPlan_SelectFBX.png)(w:1000)
+	1. **[Select a Test Plane]** ドロップダウンを使って **[Create new plan] ** を選択するか、既に存在しているものを選択して編集します。
+
+
+	![](TestPlan_CreateNewPlan.png)(w:1000)
+
+1. 以下のセクションに入力します。
+
+	**General:** 
+
+	![](TestPlan_General.png)
+	* **Test Plan Name** - このテスト計画に名前を付けて、テスト計画リストから選択して使用できるようにします。
+
+	* **Action** - FBX ファイル上で実行する操作の種類を選択します。例えば、インポート、再インポート、LOD を追加、LOD を再インポート、またはインポートの再ロードがあります。 
+	* **LOD Index** - 再インポートの LOD を使う場合、ここで再インポートする LOD インデックスを入力します。
+	* **Delete Folder Assets** - テスト計画の終わりにインポートしたアセットを削除するかどうかです。	
+
+	**Expected Results:**
+	![](TestPlan_ExpectedResult.png)
+
+		* [Expected Presets Type](#expectedresults) を設定し、テストを完了するために必要なデータ型を入力します。
+
+
+	**Import Options:**
+	![](TestPlan_ImportOptions.png)
+
+
+	* テストのために特定の FBX のインポートを成功させるために必要な [インポート オプション](#インポートオプション) を設定します。 
+
+1. **[Save JSON]** ボタンをクリックしてテスト計画を保存し、自動化テスト中にこの FBX ファイルに対して実行する利用可能なテストに追加します。 
+
+	![](TestPlan_SaveJSON.png)(w:1000)
+
+

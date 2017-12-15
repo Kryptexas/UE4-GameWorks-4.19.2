@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%
-Title: Overview Shader In Plugins
-Description: Going over creating shaders in Plugins.
+Title: 플러그인 내 셰이더 개요
+Description: 플러그인에 셰이더를 만드는 법입니다.
 Type: Overview
 SkillLevel: Advanced
 Version: 4.17
@@ -13,26 +13,26 @@ tags:Rendering
 [TOC(start:1 end:3)]
 
 [region:warning]
-Please note that this document **is not** a guide on how to write HLSL code or GPU efficient shaders but merely to show you how to create a new shader using the Plugin system.
+이 글은 HLSL 코드나 GPU 효율적인 셰이더 작성 방법이 아닌 플러그인 시스템을 사용하여 새로운 셰이더를 만드는 법을 알려드리기 위한 글이라는 점 참고해 주시기 바랍니다.
 [/region]
 
-Adding new shaders for use in Unreal Engine 4 (UE4) can now be achieved via the Plugin system. Creating a shader via the Plugin system allows you to quickly and easily share what you have created with the one you want. In the following document, we will take a high-level look at what needs to done to create shaders in Plugins in UE4.
+언리얼 엔진 4 (UE4) 에서 사용할 셰이더 코드를 새로 추가하는 작업이 이제 플러그인 시스템을 통해서도 가능해졌습니다. 플러그인 시스템을 통해 셰이더를 만들면 기존의 것을 원하는 대로 쉽고 빠르게 공유할 수 있습니다. 여기서는 UE4 의 플러그인으로 셰이더를 생성하는 데 필요한 작업을 하이 레벨에서 살펴보도록 하겠습니다.
 
 [region:note]
-For additional help, you can directly look at **//Engine/Plugins/Compositing/LensDistortion's** Plugin.
+추가적인 도움말은, **//Engine/Plugins/Compositing/LensDistortion** 플러그인을 직접 살펴보시기 바랍니다.
 [/region]
 
-## Plugin Creation Tips
+## 플러그인 제작 팁
 
-When creating a new Plugin, you should be aware of the following things:
+새 플러그인을 만들 때 유의해야 할 점은 다음과 같습니다:
 
-* Use the Plugin Wizard to quickly create all of the needed files and folders for your Plugin.
+* 플러그인 마법사를 사용하면 플러그인에 필요한 모든 파일과 폴더를 빠르게 만들 수 있습니다.
 
-* Right now, it is not possible to make drastic changes, like adding a new shader model, to the Material Editor via Plugins.
+* 현재 플러그인을 통해 머티리얼에 셰이더 모델을 추가하거나 하는 등의 큰 변화는 가능하지 않습니다.
 
-* Make sure you add all of your files and folder in the required location and then regenerate your Visual Studio solution files.
+* 모든 파일과 폴더가 필수 위치에 추가되었는지 확인한 후 Visual Studio 솔루션 파일을 재생성하세요.
 
-* In your ProjectName.uplugin, make sure that the module's LoadingPhase to PostConfigInit (only for the modules that will have shader implementations) like in the following example: 
+* ProjectName.uplugin 에서 (셰이더 구현을 가질 모듈에 대해서만) 모듈의 LoadingPhase 가 PostConfigInit 인지 확인하세요. 다음 예제와 같습니다:
 
         {
             "FileVersion" : 3,
@@ -60,22 +60,23 @@ When creating a new Plugin, you should be aware of the following things:
             ]
         }
 
-<!--
-In the following section, we will take a look at how you create a new Plugin that has shader support in it. 
+[COMMENT:none]
 
-1. First, make a copy of the **//Engine/Plugins/Developer/BlankPlugin** and rename it to **FooPlugin**.
+다음에는 셰이더가 지원되는 플러그인을 새로 만드는 법을 살펴보겠습니다.
 
-1. Inside the FooPlugin folder, create a new folder called **Shaders** and inside that folder create a new folder called **Private**.
+1. 먼저 **//Engine/Plugins/Developer/BlankPlugin** 사본을 만들고 이름을 **FooPlugin** 으로 변경합니다.
+
+1. FooPlugin 폴더에서 **Shaders** 라는 폴더를 새로 만들고, 그 폴더 안에 **Private** 이라는 폴더를 새로 만듭니다.
 
     [region:note]
-    Note that the  **"/Plugin/Foo/?** is going to map to your Plugins **Foo Shaders/** directory and not the Engine/Shaders directory.
+    **"/Plugin/Foo/?** 가 Engine/Shaders 디렉토리가 아닌 플러그인 **Foo Shaders/** 디렉토리에 매핑될 것입니다.
     [/region]
 
-1. Inside of the newly created Private folder, create a new file called **MyShader.usf**.
+1. 새로 생성된 Private 폴더에서 새 파일을 만들어 **MyShader.usf** 라 합니다.
 
-1. Once that is completed, re-run the **GenerateProjectFiles.bat** file to regenerate the projects files to include our new shader file.
+1. 완료되었으면 **GenerateProjectFiles.bat** 파일을 다시 실행, 새로운 셰이더 파일을 포함시켜 프로젝트 파일을 재생성하도록 합니다.
 
-1. In **.../BlankPlugin/BlankPlugin.uplugin**, change the module's LoadingPhase to PostConfigInit (only for the modules that will have shader implementations) like in the following example.
+1. **.../BlankPlugin/BlankPlugin.uplugin** 에서 (셰이더 구현을 가질 모듈에 대해서만) 모듈의 LoadingPhase 를 PostConfigInit 로 변경합니다. 다음 예제와 같습니다.
 
         {
             "FileVersion" : 3,
@@ -102,29 +103,30 @@ In the following section, we will take a look at how you create a new Plugin tha
                 }
             ]
         }
--->
-## Render Thread
 
-As opposed to game-side API, the RHI render commands are (and should be) enqueued by a dedicated thread: the rendering thread. The rendering thread is a slave thread of the game thread because the latter enqueue FIFO (first in, first out) commands through the ENQUEUE_RENDER_COMMAND to the former. The rendering thread can be 0 or one frame behind the game thread. As a matter of CPU performance, the synchronization between them must be avoided at all cost in production runtime. To make sure your plugin's C++ function is called by the right thread, you can add multiple asserts such as check (IsInGameThread()); or check (IsInRenderingThread()); for improved threading robustness.
+[/COMMENT]
+## 렌더 스레드
 
-## Unreal Shader Files
+게임 측 API 와는 반대로, RHI 렌더 명령은 전용 스레드인 렌더링 스레드로 큐 등록(enque)을 (해야 )합니다. 렌더링 스레드는 게임 스레드의 슬레이브 스레드인데, 게임 스레드는 렌더링 스레드에 대해 ENQUEUE_RENDER_COMMAND 를 통해 FIFO (먼저 입력된 것을 먼저 출력하는) 명령으로 큐 등록하기 때문입니다. 렌더링 스레드는 게임 스레드보다 0-1 프레임 뒤쳐질 수 있습니다. CPU 퍼포먼스 측면에서, 그 둘 사이 동기화는 프로덕션 런타임에선 어떻게든 피해야 할 것입니다. 플러그인의 C++ 함수가 올바른 스레드에 호출되는지 확인하기 위해서는, check (IsInGameThread()); 또는 스레드 안정성이 향상된 check (IsInRenderingThread()); 와 같은 어서트를 여럿 추가하면 됩니다.
 
-There are two different shader file types that you need to be aware of when developing new shaders for use in UE4. Each file has a different purpose which you will find listed below:
+## 언리얼 셰이더 파일
 
-* **Unreal Shader Headers (.USH)**
-    * Only included by other USH or USF files
+UE4 에서 사용할 셰이더를 새로 개발할 때는 알아둬야 할 셰이더 파일 유형이 두 가지 있습니다. 각각 용도가 다른데, 다음과 같습니다:
 
-* **Unreal Shader Format (.USF)**
-    * Should be private data only
-        * No backward compatibility is guaranteed in Private directories
-    * Should contain shader entry points
+* **언리얼 셰이더 헤더 (.USH)**
+    * 다른 USH 또는 USF 파일에서만 포함됩니다.
+
+* **언리얼 셰이더 포맷 (.USF)**
+    * 프라이빗 데이터 전용입니다.
+        * 프라이빗 디렉토리에 하위 호환성이 보장되지 않습니다.
+    * 셰이더 엔트리 포인트가 있어야 합니다.
 
 
-## Shader File Preprocessing and Virtual File Path
+## 셰이더 파일 전처리 및 가상 파일 경로
 
-USF shader files, based on HLSL language, is Unreal Engine shader file format that contains the multi platform shader code. To achieve this multi platform support, the engine's shader compiler has added an extra platform-independent source file preprocessing pass before the platform-specific shader compiler (FXC, HLSLCC for GLSL cross compilation, etc.). As a result, all #define and #if are resolved at this very first preprocessing. Of course, each platform has built-in #define to know at shader preprocessing the targeted platform, such as VULKAN_PROFILE.
+USF 셰이더 파일은 HLSL 언어에 기반한 것으로, 멀티 플랫폼 셰이더 코드가 들어있는 언리얼 엔진 셰이더 파일 포맷입니다. 멀티 플랫폼 지원을 위해, 엔진의 셰이더 컴파일러에는 (FXC, GLSL 크로스 컴파일용 HLSLCC 등의) 플랫폼 전용 셰이더 컴파일러 앞에 별도의 플랫폼 독립적 소스 파일 전처리 패스가 추가되어 있습니다. 그 결과 모든 #define 과 #if 를 이 처음 전처리 단계에서 분석(resolve)합니다. 물론, 각 플랫폼에는 (VULKAN_PROFILE 과 같은) 내장 #define 이 있어 셰이더 전처리 타겟 플랫폼을 알 수 있습니다.
 
-As same as C/C++ files, you can include usf files with #include "HelloWorld.usf," that would include the file named HelloWorld.usf stored in the same directory as the USF file you have the #include written in. To avoid multiple includes of the same file, you can add the #pragma once pre processing directive at the top of your file. For instance:
+C/C++ 파일과 동일하게, #include "HelloWorld.usf" 로 usf 파일을 포함시킬 수 있는데, 그러면 #include 를 작성한 USF 파일과 같은 디렉토리에 저장된 HelloWorld.usf 파일을 포함시킵니다. 같은 파일을 여러 번 포함시키는 것을 피하기 위해서는, 파일 상단에 #pragma once 전처리 지시자를 사용하면 됩니다. 예:
 
 * FooCommon.usf 
         // File shared across all Plugin's shaders
@@ -149,16 +151,16 @@ As same as C/C++ files, you can include usf files with #include "HelloWorld.usf,
         #include "FooBar.usf"
 
         // ...
-You can also do this from a Plugin or project module's shader to include a USF file by doing either of the following:
+이와 같은 작업을 플러그인이나 프로젝트 모듈의 셰이더에서 하여 USF 파일을 포함시킬 수 있는데, 방법은 다음 둘 중 하나입니다:
 
-* In the engine with #include `/Engine/<FilePath>`, where `<FilePath>` is a file path relative to `//Engine/Shaders/` directory;
+* 엔진에서 #include `/Engine/<FilePath>` 를 사용하며, `<FilePath>` 는 `//Engine/Shaders/` 디렉토리 기준 경로입니다.
 
-* Or another plugin with #include `/Plugin/<PluginName>/<PluginFilePath>`, where `<PluginName>` is the name of an **activated** Plugin, and `<PluginFilePath>` is a file path relative to the Plugin's `Shaders/` directory. It is the responsibility of the developer to add a dependency to the correct Plugin in the .uplugin.
+* 또는 다른 플러그인에서 #include `/Plugin/<PluginName>/<PluginFilePath>` 를 사용하며, `<PluginName>` 은 **활성화된** 플러그인 이름, `<PluginFilePath>` 는 플러그인의 `Shaders/` 디렉토리 기준 파일 경로입니다. .uplugin 의 올바른 플러그인에 대한 종속성을 추가하는 것은 개발자 책임입니다.
 
 
-## First Global Shader
+## 첫 글로벌 셰이더
 
-Global shaders inherit from the FGlobalShader in the following manner:
+글로벌 셰이더가 FGlobalShader 에서 상속받는 방식은 다음과 같습니다:
 
 
 	class FLensDistortionUVGenerationShader : public FGlobalShader
@@ -250,36 +252,36 @@ Global shaders inherit from the FGlobalShader in the following manner:
 
 ### Engine/Public/Platform.usf
 
-To have your shader compiling on all UE4 platforms, you are required to include /Engine/Public/Platform.usf in all your shader files (directly or indirectly).
+셰이더가 모든 UE4 플랫폼에서 컴파일되도록 하기 위해서는, 모든 셰이더 파일에 (직간접적으로) /Engine/Public/Platform.usf 파일을 포함시켜야 합니다.
 
-## Shader Development Tips
+## 셰이더 개발 팁
 
-You can customize locally using ConsoleVariables.ini to change some settings in the renderer to accelerate iteration process when writing shaders. For example, the following Console Variables will help you get detailed debug information about what your shader is doing:
+로컬에서 ConsoleVariables.ini 를 사용하여 렌더러의 세팅을 변경하여 셰이더 작성 시 이터레이션 프로세스를 가속시키는 등의 커스터마이징이 가능합니다. 예를 들어 현재 셰이더가 하는 작업 관련 자세한 디버그 정보를 구하는 데 도움이 되는 콘솔 변수는 다음과 같습니다:
 
-* **r.ShaderDevelopmentMode = 1** To get detailed logs on shader compiles and the opportunity to retry on errors.
+* **r.ShaderDevelopmentMode = 1** 셰이더 컴파일 시 자세한 로그를 구하여 오류 발생 시 재시도할 기회를 노릴 수 있습니다.
 
-* **r.DumpShaderDebugInfo = 1** To dump preprocessed shaders in the Saved folder. 
+* **r.DumpShaderDebugInfo = 1** 전처리 셰이더를 Saved 폴더에 덤핑합니다.
 
     [region:warning]
-    Warning: leaving this on for a while will fill your hard drive with many small files and folders so make sure to disable it when you are done.
+    경고: 이 옵션을 켠 채로 놔두면 하드 디스크가 작은 파일과 폴더로 가득차므로, 완료 후 끄도록 하세요.
     [/region]
     
 
 
-## Troubleshooting 
+## 문제해결
 
-If you are having issues getting your shader to compile or show up in the UE4 editor, try the following:
+셰이더를 컴파일하여 UE4 에디터에 나타나도록 하는 과정에서 문제가 생긴 경우, 다음과 같은 방법을 시도해 보세요:
 
-* If you get the error **Can't compile:** `/Plugin/<MyPluginName>/<MyFile>` **not found.** Make sure to check your Plugin's module's LoadingPhase is set to PostConfigInit, and that there are no typo's in the Plugin's Shaders/ directory name.
+* **Can't compile:** `/Plugin/<MyPluginName>/<MyFile>` **not found.** 오류가 나는 경우, 플러그인 모듈의 LoadingPhase 가 PostConfigInit 로 설정되었는지, 플러그인 Shaders/ 디렉토리 이름에 오타는 없는지 확인하세요.
 
-* If you get the error **Can't #include** `"/Plugin/<ParentPluginName>/<MyFile>":` Make sure to check that the parent Plugin is activated and also check your Plugin dependency as this error means you are missing a Plugin dependency in your .uplugin or .uproject.
+* **Can't #include** `"/Plugin/<ParentPluginName>/<MyFile>":` 오류가 나는 경우, 부모 플러그인이 활성화되었는지, 그리고 플러그인 종속성도 확인하세요. .uplugin 또는 .uproject 에 플러그인 종속성이 없다는 뜻이기 때문입니다.
 
 
-## Existing Renderer Convention
+## 기존 렌더러 작명규칙
 
-In the renderer, we tend to have a convention on naming shader classes and shader entry point, especially with a shader domain suffix as shown in the following table:
+렌더러에서, 셰이더 클래스 및 셰이더 엔트리 포인트 이름을 짓는 데 일정한 규칙이 있었는데, 특히 셰이더 도메인 접미사 관련해서 다음 표와 같습니다:
 
-|Shader Domain  | Suffix |
+|셰이더 도메인 | 접미사 |
 |-------------- |--------|
 |**Vertex Shader**  |VS|
 |**Hull Shader **   |HS|
@@ -288,19 +290,20 @@ In the renderer, we tend to have a convention on naming shader classes and shade
 |**Pixel Shader  ** |PS|
 |**Compute Shader **|CS|
 
-For example, in a C++ file, the call to **FLensDistortionUVGenerationVS** has VS at the end signaling that it is a Vertex Shader. Inside of a USF file the **void MainVS(...)** ends with a VS signaling that it is going to use the Vertex Shader. When dealing with Struct's in HLSL, the struct name should start with **F** like FBasePassInterpolators for example.
+예를 들어, C++ 파일에서, **FLensDistortionUVGenerationVS** 호출 끝에 붙은 VS 는 버텍스 셰이더의 약자입니다. USF 파일 네 **void MainVS(...)** 끝에 붙은 VS 는 버텍스 셰이더를 사용할 것임을 나타냅니다. HLSL 구조체 관련해서도, FBasePassInterpolators 처럼 구조체 이름이 **F** 로 시작합니다.
 
 [region:note]
-To read more about coding standards in UE4 check out the [UE4 Coding Standards document](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/) for more information. 
+UE4 코딩 표준 관련 자세한 내용은 [](Programming/Development/CodingStandard) 문서를 참고하세요.
 [/region]
 
-## Additional Links
+## 부가 링크
 
-The following links contain more information about developing Global Shaders inside UE4.
+UE4 안에서 글로벌 셰이더를 개발하는 데 관련된 상세 정보 링크입니다.
 
 *  [FGlobalShader Base Class](https://docs.unrealengine.com/latest/INT/API/Runtime/ShaderCore/FGlobalShader/index.html)
 *  [Debugging the Shader Compiling Process](https://www.unrealengine.com/en-US/blog/debugging-the-shader-compiling-process)
 *  [Adding Global Sjaders to UE4](https://rcaloca.blogspot.com/2017/05/adding-global-shaders-to-ue4.html)
+
 
 
 

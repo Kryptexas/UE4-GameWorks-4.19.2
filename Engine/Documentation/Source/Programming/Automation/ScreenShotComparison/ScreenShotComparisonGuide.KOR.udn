@@ -1,56 +1,266 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
-Title:스크린샷 비교 사용 안내서
-Crumbs: %ROOT%, Programming, Programming/Automation
-Description:스크린샷을 찍고 비교하는 데 있어서의 개발자 안내서입니다.
-Version: 4.9
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 스크린샷 비교 툴
+Description: 언리얼 엔진 4 의 자동화 시스템을 통한 스크린샷 비교 방법 개요입니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Programming/Automation
+related: Engine/Deployment/UnrealFrontend
+Order:
+Tags:Programming
+Topic-image:ScreenshotComparison_Topic.png
+Social-image:ScreenshotComparisonBrowser.png
 
-스크린샷 브라우저 툴은 QA 작업시 스크린 샷을 빠르게 찍고 비교할 수 있는 툴입니다. 자동화 테스트 도중 스크린샷을 찍은 다음 언리얼 프론트엔드 툴에서 볼 수 있습니다.
-스크린샷의 히스토리가 유지되어, QA 가 최신 스크린샷을 히스토리와 비교하여 최신 빌드에 눈에 띄는 렌더링 오류가 있는지 알아낼 수 있습니다.
 
-## 스크린샷 찍기
+[TOC(start:2 end:2)]
 
-$ 독립형 게임 인스턴스를 시작합니다 :
+Screenshot Comparison (스크린샷 비교) 브라우저는 QA(품질 보증) 팀이 에디터에서 캡처한 스크린샷을 빠르게 비교할 수 있도록 해주는 툴입니다. 자동화 테스트에서 생성된 
+스크린샷을 언리얼 (세션) 프론트엔드 툴에서 스크린샷 히스토리를 유지하며 확인하여 빌드 버전 변화에서 명백히 발생한 렌더링 오류를 찾아낼 수 
+있습니다.
 
-예를 들어, **EmptyGameEditor** 를 다음 명령줄 파라미터로 시작합니다: **EmptyGame -Game**. 그러나 어떤 독립형 게임도 작동할 것입니다.
+![](ScreenshotComparisonBrowser.png)
+[REGION:caption] 에픽 자체 자동화 테스트 프로젝트에서 생성된 스크린샷 테스트입니다. [/REGION]
 
-$ 언리얼 프론트엔드 앱을 로드합니다 :
+## 스크린샷 캡처 방식
 
-이는 외부 앱으로, UE4/Engine/Binaries/Win64 아래에서 찾을 수 있습니다:
+스크린샷 테스트 구성 방식은 몇 가지 있으나, 가장 쉬운 방법은 Screenshot Functional Actor (스크린샷 펑셔널 액터)를 사용하거나, 기존 Functional Test(펑셔널 테스트) 도중 스크린샷을 찍는 것입니다.
 
-$ 세션 프론트엔드 탭에서 세션을 선택합니다 :
+#### 펑셔널 테스트 액터 세팅
 
-아래에서 보듯이, 방금 시작한 로컬 게임의 이름은 Unnamed Session 이 됩니다.
+**Functional Screenshot Test** (펑셔널 스크린샷 테스트) 액터는 카메라를 사용하여 스크린샷을 캡처하기에, 기존 포스트 프로세스 및 카메라 세팅 다수를 공유합니다.
+원하는 스크린샷을 캡처하는 데 사용되는 펑셔널 스크린샷 테스트용 세팅은 아래와 같습니다.
 
-$ 테스트를 돌립니다 :
-다른 모든 테스트 선택을 해제하고, **Performance Capture** 테스트를 선택합니다.
-실행 버튼을 클릭하여 테스트를 돌립니다. AutomationTest 맵 여러 위치에서 스크린샷을 찍는 자동화 테스트가 시작됩니다.
+![](FT_ScreenshotOptions.png)
 
-[REGION:fullwidth]
-![Automation](CaptureScreenShots.png)
+[REGION:simpletable]
+| 세팅 | 설명 |
+| --- | --- |
+| **Resolution** | 해상도 - 원하는 스크린샷 해상도입니다. 지정하지 않으면 자동화 세팅의 플랫폼 구성 기본 해상도를 사용합니다. |
+| **Delay** | 딜레이 - 스크린샷을 다시 찍을 때까지의 간격입니다. |
+| **Disable Noisy Rendering Features** | 노이지 렌더링 피처 비활성화 - 안티 앨리어싱, 모션 블러, 스크린 스페이스 리플렉션, 눈 순응 (자동 노출), 컨택트 섀도우 기능을 끕니다. 최종 이미지에 노이즈가 많이 껴서 변화를 딱 잡아내기 어렵게 만드는 기능이기 때문입니다. |
+| **Visualize Buffer** | 버퍼 시각화 - 기본 최종 라이팅 씬 이미지 이외에 버퍼 스크린샷을 찍을 수 있습니다. 특정 GBuffer 에 오류가 생겼는지 알아내기 힘든 경우의 테스트를 만들고자 할 때 좋습니다. |
+| **Tolerance** | 허용치 - 허용치에 대한 간략 기본값입니다. 기본적으로 Low 가 사용되는데, 템포럴 안티 앨리어싱으로 인해 모든 픽셀마다 고정적 가변치가 약간 있기 때문입니다. [INCLUDE:#tolerance] |
+| **Tolerance Amount** | 허용량 - 각 채널과 밝기 레벨에 대해, 컬러가 기본적으로 같게 하고자 하는 구역을 제어할 수 있습니다. 일반적으로, 최신 렌더링 기법에서는 앨리어싱 제거를 위해 지속적으로 노이즈를 들이고 있기에 필수입니다. [INCLUDE:#toleranceamt] |
+| **Maximum Local Error** | 최대 로컬 오차 - 컬러 허용치 변화량을 감안한 후에는 국지적으로 허용할 수 있는 오차량을 조절할 필요가 있습니다. 트라이앵글 에지에 픽셀 색을 입히는 방식에 따라 일정량의 픽셀이 허용 수준에서 벗어날 수가 있습니다. Maximum Global Error (최대 글로벌 오차)와 달리 Maximum Local Error (최대 로컬 오차)는 이미지 하위 서브셋에 포커스를 잡는 식으로 작동합니다. 이러한 청크 단위를 로컬 오차와 비교하여, 그렇게 하지 않았으면 글로벌 오차에 묻히고 말았을 중요한 변동 핫 스팟 지역을 찾아냅니다. |
+| **Maximum Global Error** | 최대 글로벌 오차 - 컬러 허용치 번화량을 감안한 후에는 허용할 수 있는 오차 총량을 조절할 필요가 있습니다. 트라이앵글 에지에 픽셀 색을 입히는 방식에 따라 일정량의 픽셀이 허용 수준에서 벗어날 수가 있습니다. |
+| **Ignore Anti-Aliasing** | 안티 앨리어싱 무시 - 켜면, 인접 픽셀에 약간의 시프트와 같은 작업이 일어났을 것으로 간주하고 예상 픽셀 검사 대상으로 삼습니다. |
+| **Ignore Colors** | 컬러 무시 - 켜면, 스크린샷 테스트에 씬의 휘도만 비교합니다. |
 [/REGION]
 
-## 스크린샷 확인
 
-찍히는 스크린샷은 테스트를 요청한 언리얼 프론트엔드 앱으로 전송됩니다. 그러다가 스크린 샷을 새로 받으면 UI 가 자동으로 업데이트됩니다.
-
-$ 세션 프론트엔드의 *창* 메뉴에서 **Screen Comparison** 를 선택 :
-
-이미지를 받으면서 업데이트되는 UI 가 표시됩니다.
-
-$ UI 내비게이션 :
-
-스크린 샷은 이미지 생성에 사용된 changelist 번호에 따라 캡처 순서대로 표시됩니다. 최근의 화면이 왼쪽에 표시되어 고정됩니다.
-스크롤 바를 사용하여 각 뷰의 히스토리를 둘러볼 수 있습니다.
-
-$ UI 필터링 :
-
-상단의 필터 바를 사용하여 스크린 샷 이름 및/또는 플랫폼 유형별로 필터를 적용할 수 있습니다.
-[REGION:fullwidth]
-![Automation](ScreenShotComparison.png)
+[COMMENT:none]
+-
+[INCLUDE:#tolerance]
+[EXCERPT:toleranceamt]
+[REGION:simpletable]
+| --- | --- |
+| **RGBA Channels** | RGBA 채널 - RGBA 어느 한 채널에 대한 값을 별도로 설정합니다. |
+| **Min Brightness** | 최소 밝기 - 최소 밝기 허용치입니다. |
+| **Max Brightness** | 최대 밝기 - 최대 밝기 허용치입니다. |
 [/REGION]
+[/EXCERPT:toleranceamt]
+
+[EXCERPT:Tolerance]
+* Zero
+* Low
+* Medium
+* High
+* Custom 
+[/EXCERPT:Tolerance]
+
+-
+[/COMMENT]
+
+#### 에디터 개인설정
+
+**Editor Preferences** (에디터 개인설정)에서, 배치된 펑셔널 스크린샷 테스트 액터 전부에 대해 비교용으로 캡처할 모든 스크린샷의 기본 해상도를 설정할 수 있습니다. 
+**편집** > **에디터 개인설정** > **Automation** (자동화) > **Screenshots** (스크린샷)에서 찾을 수 있습니다.
+
+[REGION:lightbox]
+[![](EditorPreferences_ScreenshotRes.png)(w:700)](EditorPreferences_ScreenshotRes.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
 
 [REGION:note]
-* 스크린 샷은 Engine\Programs\UnrealFrontend\Saved\Automation\AutomationTest 디렉토리에 저장되며, 뷰어에서 제거하려면 수동으로 삭제해 줘야 합니다.
+개별 펑셔널 스크린샷 테스트 액터에 스크린샷 해상도를 설정하면 이 값을 덮어씁니다.
 [/REGION]
 
+### 펑셔널 스크린샷 테스트 액터
+
+**Functional Screenshot Test** (펑셔널 스크린샷 테스트) 액터는 레벨에 배치하여 스크린샷을 캡처한 뒤 언리얼 프론트엔드에서 돌리는 자동화 테스트에서 사용할 수 있도록 해줍니다.
+돌릴 수 있는 스크린샷 테스트는 두 종류가 있는데, 하나는 씬 뷰를 캡처하는 일반 스크린샷이고, 다른 하나는 게임의 유저 인터페이스(UI)를 캡처하는 데 사용되는 것입니다.
+
+펑셔널 스크린샷 액터에 접근하려면, **모드** 패널에서 찾아 씬에 끌어 놓으면 됩니다. 펑셔널 스크린샷 테스트 및 Functional UIScreenshot Test(펑셔널 UI 스크린샷 테스트)는 
+**Testing** (테스팅) 카테고리 아래에서 찾을 수 있습니다.
+
+![](ModesPanel.png)
+
+[REGION:imagetable]
+| ![](ScreenshotUI.png)(w:500) | ![](screenshotTest.png)(w:500) |
+| ---- | ---- |
+| 펑셔널 스크린샷 테스트 | 펑셔널 UI 스크린샷 테스트 |
+[/REGION]
+
+
+### 다른 펑셔널 테스트의 일부로 스크린샷 찍기
+
+독립적으로 스크린샷을 찍는 것 말고도, [펑셔널 테스트](Programming/Automation/FunctionalTesting) 도중 스크린샷을 찍어 다른 스크립트 작동 도중 
+스크린샷 비교를 활용할 수도 있습니다.
+
+![](ScreenshotWFunctTest.png)(w:850)
+[REGION:caption] 다른 펑셔널 테스트 도중 스크린샷을 캡처하는 데 사용된 블루프린트 예제입니다. [/REGION]
+
+한 가지 염두에 둘 것은, 스크린샷 캡처에 적용되는 [스크린샷 세팅](#펑셔널테스트액터세팅) 커스터마이징이 가능하다는 것입니다. 게임플레이 또는 렌더링 기능 비교용으로 캡처를 
+할 때 기본 허용치 세팅을 고려하는 데 사용할 수 있는 유용한 블루프린트 노드가 둘 있습니다.
+
+![](GetScreenshotDefaulOptions.png)(w:400)
+
+**Default Screenshot Options** (기본 스크린샷 옵션) 노드는 게임플레이와 렌더링 용으로 스크린샷 테스트 액터의 기본 **Tolerance** (허용치) 수준을 설정하는 데 좋습니다. 게임플레이 사이의 차이를 캡처할 때, **Gameplay** 노드는 
+샷과 버퍼에서 불필요한 노이즈를 끄는 데 사용할 수 있습니다. 구체적으로 렌더링 기능을 테스트할 때는, **Rendering** 노드를 사용해야 하는데, 그렇지 않으면 
+펑셔널 스크린샷 테스트 액터의 기본 세팅을 레벨에 배치된 각 인스턴스에 사용할 것이기 때문입니다.
+
+
+
+## 스크린샷 브라우저
+
+Screenshot Comparison (스크린샷 비교) 브라우저에는 모든 비교 스크린샷이 채워지며, 새로운 스크린샷을 들여오거나 스크린샷 비교가 실패하면, 이 뷰에서 처리할 수 있습니다.
+이 브라우저에서 실패를 검토하여 올바른 결정을 내릴 수 있으며, 어떠한 피처 변화로 인해 스크린샷의 변화가 생겼는지 확인하거나, 문제가 의심되는 경우 
+게임 버그 리포트를 작성할 수 있습니다.
+
+스크린샷 비교 브라우저에 접근하려면, 먼저 언리얼 (세션) 프론트엔드를 열어야 합니다. 에디터 안에서 **창** > **개발자 툴** > **세션 프론트엔드** 를 통해 열 수 있습니다.
+
+![](ScreenshotBrowserTab.png)(w:1000)
+[REGION:caption]
+에픽 내부 테스트 프로젝트의 자동화 테스트에 스크린샷 비교 브라우저를 사용한 모습입니다. 
+[/REGION]
+
+스크린샷을 캡처하면 프로젝트의 폴더 중 **Saved** > **Automation** > **Comparisons** 에 저장됩니다. 필요한 경우 글상자를 통해 저장 위치를 입력할 수 
+있습니다.
+
+![](ComparisonSaveLoc.png)(w:1000)
+
+
+다수의 테스트를 돌린 후에는, 비교용 이미지가 채워질 것입니다. 소스 콘트롤에 연결된 상태라면 이 이미지를 가지고 할 수 있는 여러가지 작업이 있습니다.
+소스 콘트롤을 사용하지 않는다면 이 대화창 옵션은 나오지 않습니다.
+
+[REGION:imagetable]
+| ![](AddNew.png)(h:150) | ![](ReplaceAlternative.png)(h:150) |
+| --- | --- |
+| 신규 추가 | 대안으로 대체/추가 |
+[/REGION]
+
+[REGION:simpletable]
+| 동작 | 설명 |
+| ------ | ----------- |
+| **Add** | 추가 - 스크린샷을 실측 기반 (ground truch) 폴더에 추가하고 소스 콘트롤에 대기 체인지 리스트로 추가합니다. |
+| **Replace** | 대체 - 실측 기반 데이터 모든 예제를 삭제하고 최신 스크린샷으로 대체한 뒤 새로운 실측 기반 데이터로 삼습니다. |
+| **Add As Alternative** | 대안으로 추가 - 가끔 두 이미지 다 옳을 수가 있습니다. 하드웨어 또는 드라이버 상의 작은 차이로 인해서든가, 아니면 하드워에가 지원하는 익스텐션 때문이든가 할 수도 있습니다. Platform_RHI_ShaderModel 기반 스크린샷만 담기에, 추가적인 보정 작업이 필요할 수 있습니다. 그럴 때 **Add As Alternative** (대안으로 추가) 기능이 쓰입니다. 이미지에 대한 실측 기반 버전을 또 하나 추가하고, 이미지를 비교할 때 시스템에서는 항상 메타데이터를 기반으로 가장 근접하게 일치하는 실측 기반 스크린샷을 고릅니다. 스크린샷이 동일한 디바이스에서 온 것일 경우 이 옵션은 회색으로 비활성화됩니다. |
+[/REGION]
+
+[REGION:tip]
+항상 **Delete All Reports** (모든 리포트 삭제) 후 새로운 테스트 세트를 돌리세요. 툴에서는 시간별로 개별 리포트를 쌓기 때문에, 기존에 어플리케이션을 실행했을 때 만들어진 리포트를 정리할 시점을 자동으로 잡기가 애매합니다. 
+직접 삭제를 해 줘야 다음 번 테스트를 깨끗한 기반 위에서 돌릴 수 있습니다.
+[/REGION]
+
+
+### 실측 기반 스크린샷
+
+스크린샷 **Ground Truth** (실측 기반) 버전은 옳다고 알고 있는 버전입니다. 스크린샷 비교를 할 때, 나중에 찍은 스크린샷과 이 스크린샷을 비교합니다. 
+최신 스크린샷이 여기에 일치하지 않으면, 테스트가 실패합니다.
+
+스크린샷 자동화 테스트를 처음 돌릴 때, 메시지 로그 창과 스크린샷 브라우저에 경고가 떠서 새로 찍은 스크린샷을 Ground Truth (실측 기반) 이미지로 추가해야 한다고 알려줍니다.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](MessageLog_AddNew.png)(h:250)](MessageLog_AddNew.png) [/REGION] [REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION] | [REGION:lightbox] [![](Warning_AddNew.png)(h:250)](Warning_AddNew.png) [/REGION] [REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION] |
+| --- | --- |
+| 메시지 로그 경고 | 스크린샷 브라우저 경고 | 
+[/REGION]
+
+스크린샷 브라우저 탭에서, **Add New** (신규 추가) 버튼을 클릭하여 실측 기반 이미지를 제출할 체인지 리스트를 생성합니다.
+
+![](ScreenshotAddNew.png)(w:1000)
+
+[REGION:note]
+**신규 추가** 버튼이 회색으로 비활성화된 경우, 소스 콘트롤에 접속되었는지 확인하세요.
+[/REGION]
+
+
+## 스크린샷 비교 뷰
+
+스크린샷 비교 브라우저에서, 이미지 중 하나를 클릭하면 창이 열려 실측 기반 이미지와 선택한 이미지를 겹쳐 보여줍니다. 서로 비교하며 
+차이를 확인하기가 쉬워집니다.
+
+![](ComparisonImages.png)
+
+위 세 장의 이미지는 (좌우 순으로) 다음과 같습니다:
+
+* **Ground Truth** (실측 기반) 이미지는 옳다고 알고 있는 이미지입니다. 
+* **Difference** (차이)는 두 이미지 사이 차이로, 비교 슬라이더에 사용됩니다.
+* **Incoming** (입력) 이미지는 자동화 테스트를 돌린 이후 최근의 캡처 스크린샷입니다.
+
+[REGION:lightbox]
+[![](OpenComparisonSlider.png)(w:600)](OpenComparisonSlider.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+세 이미지 중 하나를 클릭하면 비교 슬라이더 창이 열립니다. 이 화면의 슬라이더를 끌어보면 실측 기반 이미지와 입력 캡처 이미지를 비교해 볼 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![실측 기반](GroundTruth.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![신규 스크린샷](Comparison.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+이 예제에서, 옳은 것으로 알고있는 실측 기반 이미지와 최근에 돌린 자동화 테스트에서 캡처한 입력 스크린샷 사이에 눈에 띄는 차이가 있습니다.
+
+
+## 스크린샷 작업방식
+
+1. 우선 스크린샷을 찍는 데 사용하고자 하는 방식을 고릅니다:
+	
+	* 스크린샷 펑셔널 테스트 액터
+	* 다른 펑셔널 테스트의 일부로 스크린샷 찍기
+
+1. 테스트를 로컬에서 돌리거나 빌드 팜에서 돌릴 때, 첫 스크린샷을 확인해야 한다고 알리는 경고창이 뜹니다.
+	
+	[REGION:lightbox] 
+	[![](MessageLogWarning.png)(w:700)](MessageLogWarning.png)
+	[/REGION] 
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+	
+	스크린샷 브라우저에서, **신규 추가** 를 클릭하여 실측 기반 이미지로 추가합니다.
+
+	[REGION:lightbox] 
+	[![](ScreenshotAddNew.png)(w:700)](ScreenshotAddNew.png)
+	[/REGION] 
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+	[REGION:note]
+	다른 플랫폼의 경우, 스크린샷 브라우저에서 네트워크 경로를 지정해 주는 것으로 빌드 팜에서 찍은 초기 스크린샷을 처리하고 해당 플랫폼에서 찍은 스크린샷을 원격에서 확인할 수 있습니다.
+	그 화면은 자동화 리포트 상단에 나타납니다.
+	[/REGION]
+
+1. 다음 번 스크린샷 비교 테스트를 돌릴 때, 스크린샷이 성공 또는 실패합니다. 스크린샷 브라우저를 사용하여 스크린샷 테스트를 선택하고 차이를 비교해 봅니다.
+ 
+ 	[REGION:lightbox] 
+	[![](PassFail.png)(w:700)](PassFail.png)
+	[/REGION] 
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+	실패한 것의 경우, 스크린샷 브라우저 탭에 비교할 수 있도록 자동 표시되어 **Replace** (대체) 또는 실측 기반 이미지에 **Add as alternative** (대안으로 추가)할 수 있습니다.
+
+	[REGION:lightbox] 
+	[![](passFail1.png)(w:700)](passFail1.png)
+	[/REGION] 
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+	[REGION:note]
+	[소스 콘트롤](Engine/UI/SourceControl) 사용 시, 스크린샷 브라우저는 이미지를 자동으로 대기 체인지 리스트에 추가하여 테스트 완료 후 체크인시킬 수 있습니다.
+	[/REGION]
+
+	

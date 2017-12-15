@@ -23,35 +23,27 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		文档
-	[/PARAM]
-	[PARAM:links]
+
+## 文档
+
+[REGION:buttonlist]
+
 	* [](Platforms\VR)
 		* [](Platforms\VR\CheatSheet)
 		* [](Platforms\Oculus\BestPractices)
 	* [Oculus 文档](https://developer.oculus.com/documentation/)
 		* [用户指南](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
 		* [开发者指南](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 [REGION:buttonlist]
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		可尝试的内容
-	[/PARAM]
-	[PARAM:links]
+## 可尝试的内容
+
+[REGION:buttonlist]
+
 		[REGION:imagetable]
 		| ![](store_CouchKnights_screenshot_3.png)(w:420) | ![](VehicleTemplate.png)(w:420) |
 		| ------------ | ---------------- |
@@ -59,10 +51,10 @@ SkillLevel:Intermediate
 		| ![](store_RealisticRendering_screenshot_3.png)(w:420) | ![](store_MobileTemple_screenshot_4.png)(w:420) |
 		| 建筑[REGION:caption] 禁用 Matinee 漫游，步行前进。[/REGION] | 简单庙宇场景 |
 		[/REGION]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 
 
-%Steps%
+

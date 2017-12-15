@@ -4,26 +4,14 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this final section, we will update our Character Blueprint to change how controller rotation is handled as well as fix some minor issues before testing. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:4
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AimOffset\03_ImplementingAimOffset)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Creating an Aim Offset - Home ](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this final section, we will update our Character Blueprint to change how controller rotation is handled as well as fix some minor issues before testing. 
 
@@ -63,69 +51,19 @@ In this final section, we will update our Character Blueprint to change how cont
 ## End Result
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-CEIeNE9lKxI
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	CEIeNE9lKxI
+	[/PARAMLITERAL]
 [/OBJECT]
 
 When you play in the editor, the character will now aim while stationary and will react to mouse movement, pointing in the direction of your mouse. There are some restrictions in place that prevent the character from turning and facing backward while the mouse is behind them as well and while the character is jogging, moving the mouse also turns the character's torso in the direction you are pointing. 
 
 You can take this a few steps further by allowing the character to aim in a direction and play a shooting animation in that direction and (or) allow the character to play a shooting animation while moving in a direction or crouching by [layering animations](Engine\Animation\AnimHowTo\AdditiveAnimations) over the existing animations. Or, you can take a look at [Skeletal Mesh Sockets](Engine\Content\Types\SkeletalMeshes\Sockets) for examples on how to attach a weapon to the character's hands now that they can aim. 
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

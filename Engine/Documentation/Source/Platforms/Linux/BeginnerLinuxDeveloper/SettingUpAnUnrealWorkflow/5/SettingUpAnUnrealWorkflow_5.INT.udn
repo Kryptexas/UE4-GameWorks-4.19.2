@@ -24,7 +24,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 One way of increasing productivity is to write custom shell scripts that you can run from the terminal. If you know how to write shell scripts in Linux, try writing one 
 that automates the process of setting up and building UE4.
@@ -47,4 +47,3 @@ If you're looking to quickly get started making projects with UE4, check-out the
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
 
-%Steps%

@@ -19,16 +19,10 @@ SkillLevel: Advanced
 
 要开始，请遵循以下步骤。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## Steps
+
+[REGION:buttonlist]
+
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:description%")
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:description%")
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:description%")
@@ -38,6 +32,6 @@ SkillLevel: Advanced
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:description%")
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:description%")
 	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone\:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

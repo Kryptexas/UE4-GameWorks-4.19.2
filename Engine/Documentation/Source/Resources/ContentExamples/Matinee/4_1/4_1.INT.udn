@@ -5,25 +5,6 @@ Description:An overview of the Matinee example level, example 4.1: Curve Editor
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/4_1:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/4_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/4_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/4_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 Earlier we (Key Types) we learned about the presets but Curves can be edited. On every Track there is a little grey box with zigzag line. Clicking it (yellow) will display the Track in the Curve editor window.
 

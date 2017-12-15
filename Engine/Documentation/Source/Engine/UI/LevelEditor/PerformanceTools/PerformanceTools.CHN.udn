@@ -22,10 +22,12 @@ Description: 提供了快速访问常用工具和操作的命令集。
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Data]
 * **FPS:** 显示了每秒钟的帧数及当前时间间隔(每帧之间的时间)。
 * **Mem（内存）:** 显示引擎当前占用的内存量。
 * **Objs（对象）:** 显示场景中当前的对象数量。
 [/EXCERPT:Data]
--->
+
+[/COMMENT]

@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将设置跳跃循环到跳跃结束的转换。
 
@@ -40,4 +40,4 @@ Version:4.11
 
 	![](IsNotFalling.png)
 
-%Steps%
+

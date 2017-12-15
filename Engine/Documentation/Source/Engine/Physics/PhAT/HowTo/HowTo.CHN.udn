@@ -136,7 +136,8 @@ Version:4.9
 |[INCLUDE:#ImgColOff]| [INCLUDE:#ColOff] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:ImgColOn]
 [REGION:lightbox]
@@ -169,7 +170,8 @@ Version:4.9
 
 [/EXCERPT:ColOff]
 
--->
+
+[/COMMENT]
 
 
 ### 焊接

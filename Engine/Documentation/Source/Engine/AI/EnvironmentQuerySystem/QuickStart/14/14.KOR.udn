@@ -1,26 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title: 14. 다음 단계
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: EQS 퀵스타트 완료후의 일에 대한 제안입니다.
 version: 4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:14
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/EnvironmentQuerySystem/QuickStart/13 "%Engine/AI/EnvironmentQuerySystem/QuickStart/13:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이제 인바이언먼트 쿼리 시스템의 기본에 익숙해졌으니, 그를 토대로 향상시켜볼 수 있는 여러가지 아이디어에 대해 다뤄보겠습니다.
 
@@ -33,24 +22,14 @@ version: 4.9
 	* 보너스 - 플레이어의 지난 번 알려진 위치를 저장한 뒤, 인바이언먼트 쿼리 시스템에서 그 위치를 사용하여 숨을 지점을 더욱 똑똑하게 찾도록 합니다.
 	* 더블 보너스 - AI 가 플레이어의 전방 시야 원호에 걸리지 않고 플레이어 뒤로 다가갈 수 있도록 해보세요.
 * 블루프린트에서 자체적으로 제너레이터를 생성할 수 있다는 것 아셨나요? AI 가 숨을 지점을 찾는 데 더 나은 방법이 있을 수도 있습니다.
-* [REGION:raw]' (작은 따옴표) 키는 게임플레이 디버깅 툴의 호스트를 켭니다. **에디터 개인설정** %arrow% **Gameplay Debugger** 에서 찾을 수 있는 모든 옵션을 확인하세요.[/REGION]
+* [REGION:raw]' (작은 따옴표) 키는 게임플레이 디버깅 툴의 호스트를 켭니다. **에디터 개인설정** > **Gameplay Debugger** 에서 찾을 수 있는 모든 옵션을 확인하세요.[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
-	* [](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
-	[/PARAM]
-[/OBJECT]
+## AI
+	
+* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
+* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
+* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
+* [Behavior Trees](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
 
 
-%Steps%
-
-[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+[NAV]

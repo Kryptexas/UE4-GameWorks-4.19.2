@@ -18,7 +18,8 @@ tags:Materials
 ![](materials_howto.png)
 
 プロジェクトにおけるマテリアルの作成および使用に役立つ幅広いトピックを 1 つずつ説明しします。
-<!--
+[COMMENT:none]
+
 人間の皮膚の適切なセットアップからレイヤー マテリアルの使用方法のヒントまで、こうした操作ガイドは UE4 のマテリアル エディタについて詳しく知りたい方にとって必読です。
 
 ## プロジェクトの新規作成
@@ -48,7 +49,8 @@ tags:Materials
 
 以下はマテリアルに関する幅広いトピックを扱う操作ガイドです。 
 各トピックの概要を読んで内容を理解したら、クリックしてガイドを始めましょう。
--->
+
+[/COMMENT]
 
 ## はじめよう
 
@@ -62,7 +64,8 @@ tags:Materials
 
 [DIR(output:"fancy" parent:"Engine/Rendering/Materials/HowTo" skill_level:"Advanced")]
 
-<!--
+[COMMENT:none]
+
 |操作ガイド... | 説明 |
 | ------- | ------------ |
 | **[メイン マテリアル ノードを使用する](Engine\Rendering\Materials\HowTo\Main_Material_Node)** | メイン マテリアル ノードのセットアップは、マテリアルを機能させるための鍵となります。この操作ガイドではその方法を説明します。 |
@@ -85,4 +88,5 @@ tags:Materials
 | **[色付きの透過シャドウ](Engine/Rendering/Materials/HowTo/ColoredTransluscentShadows)** |色付きのシャドウをワールドにキャストしているように見えるシャドウを作るには、色付きの透過シャドウ (Colored Translucent Shadows) を使用します。この操作ガイドでは色付きの透過シャドウを使用してマテリアルを作成する方法について説明します。|
 | **[サブサーフェス プロファイルをマテリアルで使用する](Engine/Rendering/Materials/HowTo/Subsurface_Profile)** |リアルに見える人間の皮膚をレンダリングする機能は、最近のビデオ ゲーム エンジンでは必須です。この操作ガイドではサブサーフェス プロファイルがどのようなものであるか、各自の作業でどのように使用できるかについて説明します。 |
 | **[Using Subsurface Scattering in your Materials](Engine/Rendering/Materials/HowTo/Subsurface_Scattering)** |サブサーフェス スキャタリングは透過 / 半透過のサーフェスを通過しながら光を散乱するライティング現象を表す用語です。この操作ガイドではマテリアルでサブサーフェス スキャタリングを使用する方法について知っておくべき内容を説明します。 |
--->
+
+[/COMMENT]

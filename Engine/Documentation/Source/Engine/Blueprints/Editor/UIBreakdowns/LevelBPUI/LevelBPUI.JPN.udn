@@ -45,7 +45,8 @@ Level ブループリントの編集時は、以下のセクションがブル�
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
@@ -62,7 +63,8 @@ Level ブループリントの編集時は、以下のセクションがブル�
 * [パレット](Engine/Blueprints/Editor\UIComponents\Palette)
 * [ビューポート](Engine/Blueprints/Editor\UIComponents\Viewport)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 
 

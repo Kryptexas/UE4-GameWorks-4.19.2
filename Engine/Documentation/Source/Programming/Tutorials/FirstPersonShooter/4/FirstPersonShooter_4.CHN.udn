@@ -25,16 +25,10 @@ _上图是该部分完成后的效果。_
 * 为动画添加转换状态
 * 将动画蓝图和角色蓝图关联起来
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming/Tutorials/FirstPersonShooter/4/1 "%Programming/Tutorials/FirstPersonShooter/4/1:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/2 "%Programming/Tutorials/FirstPersonShooter/4/2:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/3 "%Programming/Tutorials/FirstPersonShooter/4/3:description%")
@@ -46,5 +40,5 @@ _上图是该部分完成后的效果。_
 		* [](Programming/Tutorials/FirstPersonShooter/4/4/5 "%Programming/Tutorials/FirstPersonShooter/4/4/5:description%")
 		* [](Programming/Tutorials/FirstPersonShooter/4/4/6 "%Programming/Tutorials/FirstPersonShooter/4/4/6:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/5 "%Programming/Tutorials/FirstPersonShooter/4/5:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

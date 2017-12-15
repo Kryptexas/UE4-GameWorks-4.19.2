@@ -223,7 +223,8 @@ The following member functions are implemented for our custom emitter instance:
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::AdjustComponentRotation()`[/REGION] | The `AdjustComponentRotation()` function will alter the components `LocalToWorld` to account for the emitter instance rotation. [INCLUDE:#AdjustComponentRotation] |
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::RestoreComponentRotation()`[/REGION] | The `RestoreComponentRotation()` function will remove the emitter instance rotation from the components LocalToWorld. [INCLUDE:#RestoreComponentRotation] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Constructor]
 [REGION:transparenttable]
 | --- | --- |
@@ -378,7 +379,8 @@ The following member functions are implemented for our custom emitter instance:
 	   Component->SetTransformedToWorld();
 	}
 [/EXCERPT:RestoreComponentRotation]
--->
+
+[/COMMENT]
 
 ### Results
 

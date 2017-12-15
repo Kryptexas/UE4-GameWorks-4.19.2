@@ -48,7 +48,8 @@ Checkpoint:AndroidQS
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [REGION:note]
@@ -219,7 +220,8 @@ Checkpoint:AndroidQS
 	[/region]
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 ## 最终结果
 在完成了这些所需的 Android SDK 的安装后，就可以在 UE4 中为 Android 设备工作了。

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717113
 Availability: Licensee
 Title:언리얼 엔진 4용 P4V 셋업하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
@@ -31,17 +31,23 @@ version: 4.9
 
 	![install_plugin_warning.jpg](install_plugin_warning.jpg)(w:362 h:155)
 
-1. _Perforce Client Configuration_ 페이지에서 다음 정보를 입력하십시오:
+1. **Perforce Client Configuration** (퍼포스 클라이언트 환경설정) 페이지에서, 아래 정보를 입력하고 **다음 >** 버튼을 눌러 계속합니다:
 
-	* **Server Port** - `p4-licensee-proxy.epicgames.net:1667` (US 및 동아시아 VPN을 통해 사용가능) 또는 `p4-licensee-proxy-asia.epicgames.net:1667` (동아시아 VPN을 통해 연결된 경우에 일차적)
-	* **Username** - 원본 UDN 환영 이메일에 제공된, 보통 귀하의 팀명
+	* **Server Port** - _ssl:p4-licensee.epicgames.com:1667_
+		
+		[REGION:tip]
+			위 주소를 입력하면 계신 지역 위치에 따라 속도가 가장 빠른 지역 프록시 서버로 자동 회송될 것입니다. 어떤 이유로든 특정 지역 프록시에 연결할 필요가 있는 경우, 아래 주소를 사용하면 됩니다:
+			* **미국 동부 (버지니아)**: _ssl:p4-licensee-east.us.epicgames.com:1667_
+			* **미국 서부 (오레건)**: _ssl:p4-licensee-west.us.epicgames.com:1667_
+			* **아시아 북동부 (토쿄)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1667_
+			* **유럽 중부 (프랑크푸르트)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
+		[/REGION]
+
+	* **Username** - 에픽게임즈가 제공한 퍼포스 사용자명입니다.
 	[REGION:note]
 	UDN 로그인 정보와는 다릅니다.
 	[/REGION]
 
-	![install_client_config.jpg](install_client_config.jpg)(w:514 h:392)
-
-	**다음 >** 버튼을 눌러 계속합니다.
 1. 설치를 시작할 준비가 됐습니다. **시작** 버튼을 눌러 시작합니다.
 
 	![install_complete.jpg](install_complete.jpg)(w:514 h:392)

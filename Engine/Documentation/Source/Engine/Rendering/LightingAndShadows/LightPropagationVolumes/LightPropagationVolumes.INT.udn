@@ -4,46 +4,7 @@ Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:System for dynamically generating global illumination.
 Version: 4.9
 SkillLevel: Advanced
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](lpv_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightPropagationVolumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](lpv_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightPropagationVolumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:lpv_topic.png
 
 [REGION:todo]
 Light Propagation Volumes are a feature in development and not ready for production.
@@ -85,7 +46,9 @@ and make sure it has a proper priority):
 
 The tooltips (hover over with the mouse) give you more details on the settings.
 
-<!-- add setting descriptions -->
+[COMMENT:none]
+ add setting descriptions 
+[/COMMENT]
 
 Having those settings in a volume allows them to be soft blendable depending on the camera position (e.g. 
 less GI bounce in an indoor environment or under some trees).
@@ -179,7 +142,8 @@ Properties of the current LPV implementation:
 * Secondary occlusion through geometry voxelization which has some performance cost but quite better quality (not currently implemented).
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VisualizeSlider]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:id]
@@ -215,7 +179,8 @@ Properties of the current LPV implementation:
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
--->
+
+[/COMMENT]
 
 
 

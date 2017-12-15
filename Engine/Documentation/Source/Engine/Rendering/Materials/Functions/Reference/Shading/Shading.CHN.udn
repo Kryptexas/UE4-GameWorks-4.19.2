@@ -49,7 +49,8 @@ Version:4.9
 
 
 ![FuzzyShadingGrass（草地模糊明暗处理）](FuzzyShadingGrass_Demo.png)
-<!---
+[COMMENT:none]
+-
 ### TextureDefinedSpecularShape（纹理定义的高光形状）
 
 此函数允许您指定一个纹理，以用作对象的高光形状。此函数目前正在开发中，尚未完成。
@@ -65,4 +66,5 @@ Version:4.9
 
 ![TextureDefinedSpecularShape（纹理定义的高光形状）](TextureDefinedSpecularShape.png)
 
---->
+-
+[/COMMENT]

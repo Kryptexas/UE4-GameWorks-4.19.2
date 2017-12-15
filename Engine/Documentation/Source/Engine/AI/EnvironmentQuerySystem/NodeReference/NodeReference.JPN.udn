@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:2994308
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Environment Query System ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:Environment Query System エディタで利用できる各種ノードの詳細と説明
 version:4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [toc]
 
@@ -178,7 +140,8 @@ Querier の周囲にアイテムのグリッドを生成します。
 | **Scoring Factor** || このテストがすべてのテストに対して適用するウェイトです。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:dotLine]
 Rotation の Mode 設定:
 
@@ -193,7 +156,8 @@ Two Points の Mode 設定:
 | Line From | このコンテキストの位置をベクターの最初のポイントとして使用し、回転を定義します。 |
 | Line To | このコンテキストの位置をベクターのエンド ポイントとして使用して、回転を定義します。 |
 [/EXCERPT:dotLine]
--->
+
+[/COMMENT]
  
 ### Gameplay Tags
 
@@ -237,14 +201,16 @@ Two Points の Mode 設定:
 | **Scoring Factor** || このテストがすべてのテストに対して適用するウェイトです。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:path1]
 | --- | --- | :--- |
 | **Path Exist** || コンテキストまでの (からの) パスが存在するかどうか |
 | **Path Cost** || コンテキストまでの (からの) パスの負荷 |
 | **Path Length** || コンテキストまでの (からの) 長さ |
 [/EXCERPT:path1]
--->
+
+[/COMMENT]
 
 
 ### Random

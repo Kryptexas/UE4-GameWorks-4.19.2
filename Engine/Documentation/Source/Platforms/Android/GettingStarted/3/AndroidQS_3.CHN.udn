@@ -26,7 +26,7 @@ Skilllevel:Intermediate
 接下来我们将要创建一个新项目用来测试安卓的部署。
 这个项目是一个基于 Blueprint Third Person 模板的蓝图项目。
 
-%Steps%
+
 
 
 1. 从 **虚幻项目浏览器** 中，根据以下步骤创建一个蓝图项目。
@@ -45,4 +45,4 @@ Skilllevel:Intermediate
 
 
 
-%Steps%
+

@@ -1,34 +1,39 @@
-﻿INTSourceChangelist:3456880
-Availability:Public
-Title:모션 콘트롤러 컴포넌트 셋업
-Crumbs:%ROOT%, Platforms
-Description:VR 상호작용을 위한 모션 콘트롤러 구성 방법에 대한 정보입니다.
-Navigation:platform
-Version:4.9
-Skilllevel:Intermediate
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 모션 콘트롤러 컴포넌트 셋업
+Description: VR 상호작용을 위한 모션 콘트롤러 구성 방법에 대한 정보입니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
 parent:Platforms/VR
-type:overview
+Order: 2
+Tags: VR
 
 [TOC(start:2)]
 
-션 콘트롤러를 폰 / 캐릭터에 컴포넌트로 추가, 어느 쪽 손을 나타낼지 설정할 수 있습니다.
-다음 문서에서는 가상 현실 프로젝트가 모션 콘트롤러를 활용할 수 있도록 구성하는 법에 대해 다뤄보도록 하겠습니다.
+어떤 VR 플랫폼을 대상으로 개발중이든, Motion Controller (모션 컨트롤러) 지원을 추가하면 키보드와 마우스 또는 컨트롤러로는 낼 수 없는 수준의 몰입감과 상호작용성을 더할 수 있습니다. 여기서는 모션 컨트롤러를 지원하는 VR 플랫폼에 지원을 추가하는 법을 살펴보겠습니다.
 
-[region:tip]
-더욱 깊게 들어가기 전, VR 헤드셋과 모션 콘트롤러가 PC 에 꽂혀 있는지, 그 드라이버는 설치되어 있는지 확인해 주시기 바랍니다.
-[VR 문서](Platforms/VR) 에서 다양한 VR 헤드셋을 UE4 에서 작동시키는 법에 대한 정보를 찾아보실 수 있습니다.
-[/region]
+## 지원 플랫폼
+
+컴포넌트 탭에서 찾을 수 있는 Motion Controller 컴포넌트는 다음 VR 컴포넌트에서 작동합니다.
+
+* Oculus VR
+* Steam VR
+* Gear VR
+* Playstation VR
+
+개발중인 대상 플랫폼이 위에 나열되지 않은 경우, 그 플랫폼 문서를 통해 모션 컨트롤러 사용 관련 설정을 확인하시기 바랍니다.
 
 ## 모션 콘트롤러 구성
 
-VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 모션 콘트롤러 컴포넌트를 추가해 주고 환경설정해 주면 됩니다.
-이 섹션에서는 모션 콘트롤러를 프로젝트에 쓸 수 있도록 만드는 빠른 방법에 대해 다뤄보겠습니다.
+여기서는 모션 컨트롤러의 작동에 필요한 컴포넌트 추가 및 구성 방법을 살펴보겠습니다.
 
 [region:note]
-참고로 이 구성은 UE4 프로젝트의 아무 폰에도 적용 가능합니다.
+이 안내서는 개발 대상으로 삼고 있는 VR 머리 장착 디스플레이(HMD) 에 작동하는 폰 구성을 마쳤다 가정하고 작성된 것입니다. 그 구성법 관련 정보는 개발 대상 VR HMD 의 [시작하기 안내](Platforms/VR) 를 참고하시기 바랍니다.
 [/region]
 
-1. 콘텐츠 브라우저에서 Player Pawn 블루프린트를 엽니다.
+1. 먼저 **콘텐츠 브라우저** 에서 **Player Pawn** 블루프린트를 찾아 엽니다.
 
     [REGION:lightbox]
     [![](Open_VR_Pawn.png)(w:427)](Open_VR_Pawn.png)
@@ -38,76 +43,78 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
     클릭하면 원본 이미지를 확인합니다.
     [/REGION]
 
-1. 블루프린트가 열렸으면, **컴포넌트** 섹션의 **뷰포트** 탭으로 가 **컴포넌트 추가** 버튼을 눌러 이 블루프린트에 추가할 수 있는 컴포넌트를 펼칩니다.
+1. **컴포넌트** 섹션의 **컴포넌트 추가** 버튼을 눌러 이 블루프린트에 추가할 수 있는 컴포넌트를 펼칩니다.
 
     [REGION:lightbox]
-    [![](Find_Components.png)(w:418)](Find_Components.png)
+    [![](Find_Components.png)(w:435)](Find_Components.png)
     [/REGION]
 
     [REGION:caption]
     클릭하면 원본 이미지를 확인합니다.
     [/REGION]
 
-1. 표시되는 목록에서 **Motion** 을 검색어로 하여 Motion Controller 를 검색합니다.
-    모션 콘트롤러 컴포넌트를 찾았으면, 클릭하여 컴포넌트 목록에 추가합니다.
+1. 검색창에 **Motion** 을 입력하고 **Motion Controller** 컴포넌트를 클릭하여 컴포넌트 리스트에 추가하고, 이름을 **MC_Left** 라 짓습니다.
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    kcyHnfpmWbU
-    [/PARAMLITERAL]
-    [/OBJECT]
+	![](Add_MC_Component.png)
 
-1. 모션 콘트롤러가 추가되었으면, 클릭해서 선택한 다음 **디테일** 패널의 **Motion Controller** 섹션 아래 **Hand** 가 **Left** 로 설정되어 있는지 확인합니다.
+1. 새로 추가된 모션 컨트롤러 컴포넌트를 선택하고 **디테일** 패널의 **Motion Controller** 섹션 아래 **Hand** 가 **Left** 로 설정되어 있는지 확인합니다.
 
     [REGION:lightbox]
-    [![](Setting_Up_Components.png)(w:418)](Setting_Up_Components.png)
+    [![](Setting_Up_Components.png)(w:787)](Setting_Up_Components.png)
     [/REGION]
 
     [REGION:caption]
     클릭하면 원본 이미지를 확인합니다.
     [/REGION]
 
-1. 모션 콘트롤러에 월드 내 시각적 표현을 부여하려면, **컴포넌트 패널** 의 **Motion Controller Component** 를 선택하고 **컴포넌트 추가** 버튼을 클릭한 뒤 **Static Mesh Component** 를 추가합니다.
-    Static Mesh Component 를 끌어 Motion Controller 위에 놓아 부모로 설정하고, 
-    새 컴포넌트의 디테일 패널에서 Static Mesh 프로퍼티에 스태틱 메시 애셋을 할당합니다.
+1. 다음, **컴포넌트 패널** 에서 **Motion Controller Component** 를 선택하고 **컴포넌트 추가** 버튼을 누른 뒤 **Static Mesh Component** 를 검색해서 추가, **SM_Left** 라 합니다. 
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    x4vjDqnHQnk
-    [/PARAMLITERAL]
-    [/OBJECT]
+	![](Add_SM_To_MC.png)
 
-    [region:tip]
-    프로젝트에 현재 스태틱 메시 애셋이 없다면, 별도의 메시를 하나 임포트하거나, 툴바의 마켓플레이스 버튼을 클릭한 뒤 프로젝트에 사용할 애셋을 다운로드하세요.
-    또 선택한 스태틱 메시가 너무 크거나 작으면, 디테일 패널의 트랜스폼 섹션 내 스케일 부분을 사용해서 원하는 대로 조절하면 됩니다.
-    [/region]
+	[region:note]
+	Static Mesh Component 가 Motion Controller Component 의 자식인지 확인하세요. 그렇지 않으면 스태틱 메시가 모션 컨트롤러 이동을 따르지 않을 것입니다.
+	[/region]
 
-1. 루트를 부모로 하는 모션 콘트롤러 컴포넌트를 또하나 추가하고, **오른손** 으로 설정합니다. 새로운 모션 콘트롤러 컴포넌트를 부모로 하여 스태틱 메시 컴포넌트를 하나 추가한 뒤, 거기에 오른손 메시를 적용합니다.
+1. 이제 Static Mesh Component 의 디테일 패널에서 **Static Mesh** 섹션 아래 모션 컨트롤러 외양을 나타내는 스태틱 메시를 입력합니다. 이 예제에서는 단순한 박스를 사용하고 있지만, 아무 스태틱 메시나 사용해도 됩니다.
 
     [REGION:lightbox]
-    [![](Finshed_MC_Setup.png)(w:418)](Finshed_MC_Setup.png)
+    [![](SM_MC_Static_Mesh.png)(w:787)](SM_MC_Static_Mesh.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. 이제, 전체 Left hand 모션 컨트롤러 구성을 복제하여 **Left** 라는 단어를 **Right** 로 대체합니다. Motion Controller Component 로 가 **Hand** 를 Left 에서 Right 로 바꿔 이 모션 컨트롤러가 사용되는 손도 바꿔줘야 합니다.
+
+    [REGION:lightbox]
+    [![](Finshed_MC_Setup.png)(w:787)](Finshed_MC_Setup.png)
     [/REGION]
 
     [REGION:caption]
     클릭하면 원본 이미지를 확인합니다.
     [/REGION]
 
-    [region:note]
-    위 그림에서 두 개의 원뿔 모양 메시가 서로 떨어져 있어 둘이라는 것을 보여줍니다.
-    프로젝트에서 이렇게 구성할 때 두 스태틱 메시 컴포넌트 모두 0,0,0 에 놔두어 서로 위에 겹치도록 합니다.
-    [/region]
+1. Pawn 블루프린트를 컴파일 및 저장하고, 테스트 레벨에 배치한 뒤 프로젝트를 실행합니다. HMD 를 쓰고 모션 컨트롤러를 집어들어 다음 비디오와 같은 작업을 할 수 있을 것입니다.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		CD6-Mje1y6g
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
 
 ## 모션 콘트롤러 작업
 
@@ -119,11 +126,11 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
 
 ![](Working_With_MC.png)
 
-사용가능한 모션 콘트롤러 입력 옵션을 살펴보면, 값이 어떤 제어를 하는지 알 수 있도록 이름 옆에 대문자로 **L** 또는 **R** 이 붙어있습니다.
-이는 각각 **Left** 왼쪽 또는 **Right** 오른쪽 모션 콘트롤러를 뜻합니다.
+왼쪽 / 오른쪽 모션 컨트롤러 입력이 별도로 나위어 있다는 점에 주의하세요. 입력 노드 이름 옆 대문자 **L** 과 **R** 이 어느 쪽 모션 컨트롤러인지를 나타냅니다.
 
 ![](MC_Left_Right.png)
 
+[COMMENT:none]
 
 ## 모션 콘트롤러 사용
 
@@ -166,7 +173,7 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
     [region:note]
@@ -175,7 +182,7 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
         [![](Add_Objects_Setup_Alt.png)(w:367)](Add_Objects_Setup_Alt.png)
         [/REGION]
         [REGION:caption]
-        Click for full image.
+        클릭하면 이미지 원본을 확인합니다.
         [/REGION]    
     [/region]
 
@@ -190,7 +197,7 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
     [region:note]
@@ -212,6 +219,8 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
         VXUowSUKT9I
         [/PARAMLITERAL]
     [/OBJECT]
+
+[/COMMENT]
 
 ## 교육 자료
 

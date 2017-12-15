@@ -43,10 +43,20 @@ C++ クラスはブループリント クラスの基底として使用できま
 
 ## アンリアル エンジンの API リファレンス
 
-%API:role%
-%API/Runtime/Core:role%
-%API/Runtime/CoreUObject:role%
-%API/Runtime/Engine:role%
+[OBJECT:Role]
+	[PARAM:icon]
+	![](%ROOT%/ue4_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Unreal Engine C++ API Reference
+	[/PARAM]
+	[PARAM:description]
+	API programming reference for Unreal Engine C++ source code
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://api.unrealengine.com/cpp
+	[/PARAMLITERAL]
+[/OBJECT]
 
 ## システムガイド
 

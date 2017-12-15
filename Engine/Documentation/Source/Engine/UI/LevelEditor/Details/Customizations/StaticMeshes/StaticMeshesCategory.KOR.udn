@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 스태틱 메시 카테고리
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
@@ -23,7 +23,8 @@ Version: 4.9
 | ------- | ----------- |
 | ![](button_blocking_volume.png) | _스태틱 메시_ 에서 콜리전으로 사용할 _블로킹 볼륨_ 을 생성하되, 다음 메소드 중 하나를 사용합니다: [INCLUDE:#BlockingVolume] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlockingVolume]
 [REGION:simpletable]
 | 메소드 | 설명 |
@@ -41,4 +42,5 @@ $ NormalTolerance : 거부 한계치입니다. 블로킹 볼륨 큐브를 어느
 중복을 없애는 효과도 있습니다.
 [/REGION]
 [/EXCERPT:BlockingVolume]
--->
+
+[/COMMENT]

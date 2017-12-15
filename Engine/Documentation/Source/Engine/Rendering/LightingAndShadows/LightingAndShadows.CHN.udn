@@ -68,7 +68,9 @@ type:landing
 %Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
-<!--%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%-->
+[COMMENT:none]
+%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%
+[/COMMENT]
 [/REGION]
 
 
@@ -93,7 +95,9 @@ type:landing
 %Engine/Rendering/LightingAndShadows/LitTranslucency:Topic%
 %Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:Topic%
 %Engine/Rendering/LightingAndShadows/IESLightProfiles:Topic%
-<!--%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:Topic%-->
+[COMMENT:none]
+%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:Topic%
+[/COMMENT]
 [/REGION]
 
 

@@ -20,21 +20,15 @@ topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
 Google のマニュアルに Daydream の使用方法に関する詳細な説明があります。[Google Daydream Unreal 公式サイト](https://developers.google.com/vr/unreal/) のヘルプをご覧ください。
 [/region]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Platforms/GoogleVR/QuickStart/1 "%Platforms/GoogleVR/QuickStart/1:description%")
 	* [](Platforms/GoogleVR/QuickStart/2 "%Platforms/GoogleVR/QuickStart/2:description%")
 	* [](Platforms/GoogleVR/QuickStart/3 "%Platforms/GoogleVR/QuickStart/3:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

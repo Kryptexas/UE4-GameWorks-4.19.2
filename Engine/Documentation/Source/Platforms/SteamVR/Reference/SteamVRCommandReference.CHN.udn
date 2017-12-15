@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:3622881
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:SteamVR 命令参考
+Description:SteamVR 可使用的诸多命令。
+Type:reference
+Skilllevel:Intermidate
+Version:4.17
+Parent:Platforms/SteamVR
+Order:2
+tags:VR
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+
+以下部分包含诸多 INI 和控制台命令，可用于调整 UE4 和 SteamVR 相互互动的方式。 
+
+## SteamVR VR Mirror 模式
+
+VR 镜像（VR Mirror）是视口窗口的名称，这个视口能使非 VR 用户看到 VR 用户看到的景象。使用 SteamVR 时，可使用几种方式修改 VR 镜像的显示方式。以下命令可用来修改 VR 镜像模式的显示方式，以及 VR 镜像所显示出的效果。
+
+[REGION:note]
+按下重音符 **`** 键打开 UE4 控制台，然后输入 **VR.MirrorMode** 和以下数字，即可输入命令。
+[/REGION]
+
+
+|命令|描述|图像|
+|-----------|-------------------|----------------|
+|VR.SpectatorScreenMode 0| 禁用 VR 镜像|N/A|
+|VR.SpectatorScreenMode 1| 不带变形的单眼显示。|[REGION:lightbox][![](SteamVRCR_00.png)(w:160)](SteamVRCR_00.png)[/REGION]|
+|VR.SpectatorScreenMode 2| 不带光学变形的双眼立体显示。|[REGION:lightbox][![](SteamVRCR_01.png)(w:160)](SteamVRCR_01.png)[/REGION]|
+| **VR.SpectatorScreenMode 3** | 以填充画面的裁剪矩形单眼显示。|[REGION:lightbox][![](SteamVRCR_02.png)(w:160)](SteamVRCR_02.png)[/REGION]|
+|VR.SpectatorScreenMode 4| 立体单眼显示。|[REGION:lightbox][![](SteamVRCR_03.png)(w:160)](SteamVRCR_03.png)[/REGION]|
+| **VR.SpectatorScreenMode 7** | 以裁剪矩形单眼显示，可选择显示另一个纹理。|[REGION:lightbox][![](SteamVRCR_04.png)(w:160)](SteamVRCR_04.png)[/REGION]|

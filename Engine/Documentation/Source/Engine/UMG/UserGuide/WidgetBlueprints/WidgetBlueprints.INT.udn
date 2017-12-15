@@ -44,7 +44,7 @@ In order to start working with Unreal Motion Graphics, you will first need to cr
 By default, the **Widget Blueprint Editor** opens up on the **Designer** tab when a **Widget Blueprint** is opened. The Designer tab is the visual representation of the layout and will give you an idea of how the screen will appear in-game.  
 
 [REGION:lightbox]
-	[![](WidgetBlueprintNumbers.png)(w:840 h:480)](WidgetBlueprintNumbers.png)
+	[![](WidgetBlueprintNumbers.png)(w:840)](WidgetBlueprintNumbers.png)
 [/REGION]
 
 _Click for full view._

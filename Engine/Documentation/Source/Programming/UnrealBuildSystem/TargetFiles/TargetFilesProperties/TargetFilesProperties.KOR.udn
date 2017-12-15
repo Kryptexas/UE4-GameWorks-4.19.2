@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3606403
+﻿INTSourceChangelist:3735956
 Availability: NoPublish
 Title: 빌드 환경설정 페이지
 Crumbs:
 Description: 자동 생성되는 마크다운 페이지입니다.
-Version: 4.18
+Version: 4.19
 
 ### 읽기 전용 프로퍼티
 
@@ -58,8 +58,6 @@ $ bCompilePhysX (Boolean): PhysX 지원 포함 여부입니다.
 $ bCompileAPEX (Boolean): PhysX APEX 지원 포함 여부입니다.
 
 $ bCompileNvCloth (Boolean): NvCloth 포함 여부입니다.
-
-$ bCompileBox2D (Boolean): Box2D 지원 포함 여부입니다.
 
 $ bCompileICU (Boolean): Core 의 ICU 유니코드/i18n 지원 여부입니다.
 
@@ -128,6 +126,8 @@ $ bForceCompileDevelopmentAutomationTests (Boolean): 개발 자동화 테스트 
 $ bForceCompilePerformanceAutomationTests (Boolean): 퍼포먼스 자동화 테스트 컴파일 여부입니다.
 
 $ bEventDrivenLoader (Boolean): true 면 쿠킹된 빌드에 이벤트 주도 로더가 사용됩니다. @todoio 비동기 로딩 리팩터 이후 런타임 솔루션으로 대체시켜 줘야 합니다.
+
+$ bUseXGEController (Boolean): XGE 컨트롤러 워커와 모듈을 엔진 빌드에 포함시킬지 여부입니다. XGE 인터셉션 인터페이스를 사용하는 분산 셰이더 컴파일에 필수입니다.
 
 $ bEnforceIWYU (Boolean): "include what you use" 규칙을 적용합니다. 모노리식 헤더(Engine.h, UnrealEd.h ...)가 사용되면 경고를 내며, 소스 파일이 일치하는 헤더를 먼저 포함하는지 검사합니다.
 

@@ -3,39 +3,37 @@ Crumbs: %ROOT%, Platforms
 Title: Interact with the SteamVR Chaperone System 
 Description: Interact with the various components of the SteamVR Chaperone system.
 Type: how-to
-Skilllevel: Intermidate
+Skilllevel:Intermediate
 Version: 4.17
 Parent: Platforms/SteamVR
 Order: 2
 tags: VR
 topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+prereq:Platforms\SteamVR\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+prereq:Platforms\SteamVR\HowTo\Chaperone
+
+![](SVRChapInteraction_Hero_Image.png)
 
 The SteamVR Chaperone system is used to display the boundaries of the Virtual Reality (VR) interaction area. As a tracked device approaches the boundaries, the SteamVR Runtime automatically provides visual cues notifying the user of this. In the following How - To we will take a look at two different ways to display the VR interaction area to the user. 
 
-[REGION:note]
-The following How - To is going to make use of the Standing VR Pawn with added Motion Controller and Chaperone support. If you are not sure how to set this up, the following two How - To's will help you out.
-* [Set Up Standing Cameras for SteamVR](Platforms\SteamVR\HowTo\StandingCamera)
-* [Set Up Motion Controllers](Platforms\VR\MotionController)
-* [Set Up the Chaperone System](Platforms\SteamVR\HowTo\Chaperone)
-[/REGION]
-
 [REGION:tip]
-For the Chaperone system to work, you will need to make sure you have set up Room Scale VR using the SteamVR tools. For more information on how to do this, please see the official [HTC Vive](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) Setup pages.
+For the Chaperone system to work, you will need to make sure you have set up **Room Scale** VR using the SteamVR tools. For more information on how to do this, please see the official [HTC Vive](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) Setup pages.
 [/REGION]
 
 [REGION:warning]
 It is **NOT** possible nor advisable to disable the Chaperone system from inside UE4. You can, however, adjust how UE4 will react to the user getting close to the boundaries.  
 [/REGION]
 
-## Display the Corners of the SteamVR Interaction Area
+## Steps
 
-In this part of the How - To we will take a look at spawning static meshes at the four corners of the VR interaction area.
+Below you will find instructions on spawning static meshes at the four corners of the VR interaction area as well as drawing a series of lines that are the exact size and shape of the VR interaction.
 
 [region:note]
-You can download the Lighthouse Basestation Static Mesh and Texture used in this How - To from the following link. [Lighthouse Basestation Static Mesh & Texture](https://epicgames.box.com/s/3n6yilg2is2f7nq8ju27z0wbxhkvyms1)
+You can download the Lighthouse Basestation Static Mesh and Texture used in this How-To from the following link. [Lighthouse Basestation Static Mesh & Texture](https://epicgames.box.com/s/3n6yilg2is2f7nq8ju27z0wbxhkvyms1)
 [/region]
 
-1. First, open up your Player Pawn Blueprint and add a new **Static Mesh Component** variable called **baseStationArray** . Since this variable will be used to store the Static Mesh we want to spawn at the four corners of the VR Interaction area when creating the baseStationArray variable, make sure that the **Variable Type** is set to **Array**.
+1. First, open up your Player Pawn Blueprint and add a new **Static Mesh Component** variable called **baseStationArray**. Since this variable will be used to store the Static Mesh we want to spawn at the four corners of the VR Interaction area when creating the baseStationArray variable, make sure that the **Variable Type** is set to **Array**.
 
     ![](SVRChapInteraction_00.png)
 
@@ -49,6 +47,7 @@ You can download the Lighthouse Basestation Static Mesh and Texture used in this
     Click for full image.
     [/REGION]
 
+    [REGION:simpletable]
     |Node Name| Value |
     |--------|------------|
     |**Motion Controller (R) Trigger**|N/A|
@@ -60,8 +59,9 @@ You can download the Lighthouse Basestation Static Mesh and Texture used in this
     |**Destroy Component**|N/A|
     |**Array Add **|N/A|
     |**IsValid**|N/A|
+    [/REGION]
 
-1. Next, we need to setup a way to get information about the SteamVR interaction area that the user setup. To accomplish inside your Pawn Blueprint connect the **SteamVRChaperone** variable output to the input on the **Get Bounds** node as this will allow us to interact with points that make up the SteamVR Chaperone bounds.
+1. Next, we need to set up a way to get information about the SteamVR interaction area that the user sets up. To accomplish this inside your Pawn Blueprint connect the **SteamVRChaperone** variable output to the input on the **Get Bounds** node as this will allow us to interact with points that make up the SteamVR Chaperone bounds.
 
     [REGION:lightbox]
     [![](SVRChapInteraction_02.png)(w:500)](SVRChapInteraction_02.png)
@@ -75,17 +75,11 @@ You can download the Lighthouse Basestation Static Mesh and Texture used in this
 
     [INCLUDE:Platforms\SteamVR\HowTo\ChaperoneInteraction\#SteamVRC1]
 
-1. With the ability to display a Static Mesh at the four corners of the VR interaction area, next we will setup some Blueprint logic that will check and see if we have a valid Static Mesh to remove and if we do, remove it. To accomplish this in your Pawn Blueprint make sure your Event Graph setup matches the following image. 
+1. With the ability to display a Static Mesh at the four corners of the VR interaction area, next we will set up some Blueprint logic that will check and see if we have a valid Static Mesh to remove and if we do, remove it. To accomplish this in your Pawn Blueprint make sure your Event Graph setup matches the following image. 
 
     [INCLUDE:Platforms\SteamVR\HowTo\ChaperoneInteraction\#SteamVRC2]
 
-With the ability to display the corners of the VR interaction area using a Static Mesh, in the next part of this How - To we will take a look at how to use the **Minimum Area Rectangle** node to draw a series of lines that are the exact size and shape of the VR interaction.
-
-## Display the Entire SteamVR Interaction Area
-
-In this part of the How - To we will take a look at drawing a box that is the exact size and shape of the VR interaction area.
-
-1. First over in the **Variables** section create a new **Vector** variable called, **SampleSurface**, that will be used to store the surface normals of the VR interaction area. 
+1. Over in the **Variables** section create a new **Vector** variable called, **SampleSurface**, that will be used to store the surface normals of the VR interaction area. 
 
     ![](SVRChapInteraction_05.png)
 
@@ -99,6 +93,7 @@ In this part of the How - To we will take a look at drawing a box that is the ex
     Click for full image.
     [/REGION]
 
+    [REGION:simpletable]
     |Node Name| Value |
     |--------|------------|
     |**Motion Controller (R) Trigger**|N/A|
@@ -108,12 +103,13 @@ In this part of the How - To we will take a look at drawing a box that is the ex
     |**SampleSurface**|N/A|
     |**MinimumAreaRectangle**|N/A|
     |**DrawDebugBox**|N/A|
+    [/REGION]
 
 1. With the needed nodes now added to the Event Graph, next, we need to connect them so that when the Motion Controller(R) Trigger is pressed we can sample the position of the vertices that make up the VR interaction area and then draw a box around them. Setting up the nodes to match the following image will allow you to achieve this in your Blueprint.
 
     [INCLUDE:Platforms\SteamVR\HowTo\ChaperoneInteraction\#SteamVRC3]
 
-## End Results
+## End Result
 
 With everything now hooked up launch the level using the VR Preview button and put on your HTC Vive HMD and pick up your Motion Controller. Now when you squeeze the trigger on the right-hand Motion Controller the bounds of the SteamVR interaction area will be displayed like in the following video. 
 
@@ -139,10 +135,12 @@ With everything now hooked up launch the level using the VR Preview button and p
 
 Below you will find a link to where you can download the UE4 project that was used to create this example.
 
-* [**SteamVR Chaperon Interaction Example Project**](https://epicgames.box.com/s/q0j0i9agz94z0fh8jjz3tspipdbrs2ud)
+* [**SteamVR Chaperone Interaction Example Project**](https://epicgames.box.com/s/q0j0i9agz94z0fh8jjz3tspipdbrs2ud)
 
 
-<!--
+
+[COMMENT:none]
+
 [EXCERPT:SteamVRC1]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -249,9 +247,11 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SteamVRC1]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:SteamVRC2]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -412,9 +412,11 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SteamVRC2]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:SteamVRC3]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -547,4 +549,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SteamVRC3]
--->
+
+[/COMMENT]

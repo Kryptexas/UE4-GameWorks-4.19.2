@@ -76,7 +76,8 @@ Topic-image:Erosion_Topic.png
 | **Noise Mode** | 确定是否应用 noise 提升或降低（或执行两项操作）高度图。[INCLUDE:#noise] |
 | **Noise Scale** | 使用的 noise 过滤器尺寸。Noise 过滤器与位置和比例有关，如不改变 **Noise Scale**，同一 noise 过滤器将多次应用到相同位置。| 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:noise]
 |选项 | 描述 |
@@ -86,7 +87,8 @@ Topic-image:Erosion_Topic.png
 | **Lower** | 此项只应用降低高度图的侵蚀效果。|
 [/EXCERPT:noise]
 
---->
+-
+[/COMMENT]
 
 
 

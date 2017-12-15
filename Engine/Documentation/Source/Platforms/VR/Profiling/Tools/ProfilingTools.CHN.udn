@@ -22,6 +22,10 @@ related:Platforms/VR/Profiling/Considerations
 
 ## Oculus PerfHud
 
+[Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]
+[COMMENT:none]
+
+[EXCERPT:OculusPerfHud]
 Oculus PerfHud 可在游戏中显示（编辑器版本和打包版本中均可）。此工具可确认实际的 CPU 和 GPU 时间（不含应用程序执行的节流）。Oculus 的 [文档](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/) 中总览了各个画面以及各数值的含义。
 
 总体而言，您需要查看 **Application Render Timing** 画面的图表和数值。Oculus 合成器查看到这些图表和数值后，便会生成 CPU 和 GPU 时间，绘制和 GPU 时间更为精确。
@@ -41,6 +45,9 @@ N 为：
 |	4	| 显示 OVR 合成器的渲染时间 |
 |	5	| 显示 SDK & HMD 版本信息 |
 
+[/EXCERPT:OculusPerfHud]
+
+[/COMMENT]
 ## SteamVR Frame Timing 工具
 
 通过 SteamVR Frame Timing 可了解到 VR 项目在 UE4 编辑器和打包版本中的执行情况。此工具可确认实际的 CPU 和 GPU 时间（不含应用程序执行的节流）。[Valve 开发者社区]( https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) 页面包含工具的打开方法以及所有数值的含义。请注意：使用 SteamVR Frame Timing 工具无需在 UE4 中执行额外操作。所有工具功能和使用均从 SteamVR 应用程序中进行。

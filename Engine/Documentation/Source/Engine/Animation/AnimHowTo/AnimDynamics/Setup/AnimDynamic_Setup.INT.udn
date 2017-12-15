@@ -1,28 +1,16 @@
 Availability:Public
 Title:1 - Required Setup
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:In this step we will set up the character we will use to apply dynamic animations to. 
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order: 1
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AnimDynamics How-to](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Before we get started with applying dynamic animations to our character we need to set up the character we wish to use. 
 The template characters do not have any dynamic bones we can use so we will retarget animations from the template character over to an Infinity Blade character who has bones that we can influence with AnimDynamics. 
@@ -146,7 +134,4 @@ Notice the limited movement of the harness and furnace around the characters nec
 
 In the next step we will use the AnimDynamics node to animate the harness and furnace so it reacts to character movement. 
 
-%Steps%
-
-
-
+[NAV]

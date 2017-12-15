@@ -8,24 +8,20 @@ Navigation:platform
 Version: 4.9
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		HTML5必备知识
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## HTML5必备知识
+
+[REGION:buttonlist]
+
 	* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
-<!--
+[COMMENT:none]
+
 	[PUBLISH:Docs]
 	* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
 	[/PUBLISH:Docs]
--->
-	[/PARAM]
-[/OBJECT]
+
+[/COMMENT]
+	
+[/REGION]
 
 	
 

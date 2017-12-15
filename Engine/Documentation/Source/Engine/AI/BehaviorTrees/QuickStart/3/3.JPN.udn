@@ -1,28 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:3.基本アセットの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 3. 基本アセットの作成
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
+[NAV]
 
 開始するには、**コンテンツ ブラウザ** で次の4つのアセットを作成する必要があります。すなわち、AI Controller ブループリント、 Character ブループリント、Behavior Tree アセット、 Black Board アセットの 4 つです。
 
@@ -40,13 +27,13 @@ version:4.9
 
 	この **ブループリント** に "Follower_AI_CON" という名前を付けます。
 
-1. **[New (新規)]** -> **[Blueprint (ブループリント)]** -> **[Character (キャラクター)]**
+1. **[New (新規)]** -> **[Blueprint (ブループリント)]** -> **[Character (キャラクター)]** の順に選択します。
 
 	![](charBP.png)
 
 	この **ブループリント** に "AI_Character" という名前を付けます。
 
-1. **[New (新規)]** -> **[Artificial Intelligence]** -> **[Behavior Tree (ビヘイビアツリー)]**
+1. **[New (新規)]** -> **[Artificial Intelligence]** -> **[Behavior Tree (ビヘイビアツリー)]** の順に選択します。
 
 	[REGION:raw]
 	![](newBT.png)
@@ -54,7 +41,7 @@ version:4.9
 
 	この **ビヘイビアツリー** に「FollowerBT」という名前を付けます。
 
-1. **[New (新規)]** -> **[Artificial Intelligence]** -> **[Blackboard]**
+1. **[New (新規)]** -> **[Artificial Intelligence]** -> **[Blackboard]** の順に選択します。
 	[REGION:raw]
 
 	![](newBB.png)
@@ -62,8 +49,7 @@ version:4.9
 
 	この **Blackboard** に 「FollowerBlackboard」という名前を付けます。
 
-
-%Steps%
+[NAV]
 
 
 

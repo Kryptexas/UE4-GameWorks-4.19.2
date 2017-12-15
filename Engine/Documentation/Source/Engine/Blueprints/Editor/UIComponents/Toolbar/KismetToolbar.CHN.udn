@@ -41,7 +41,8 @@ version:4.9
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:#debugobject]			| 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompileSuccessful]
 编译成功。点击按钮编译编辑中的蓝图。编译过程的输出显示在消息日志的蓝图日志中。该按钮在调试中不可用。
 [/EXCERPT:CompileSuccessful]
@@ -124,4 +125,5 @@ version:4.9
 
 $ Name :显示编辑中蓝图的名称。关卡蓝图不显示。
 $ Parent :显示蓝图的父类。关卡蓝图不显示。
--->
+
+[/COMMENT]

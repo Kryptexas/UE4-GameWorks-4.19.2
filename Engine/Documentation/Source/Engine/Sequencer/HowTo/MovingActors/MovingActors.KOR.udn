@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Moving Actors with Sequencer
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Illustrates the different ways you can move Actors in your levels with Sequencer.
+Version: 4.18
+SkillLevel: Beginner
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine\Sequencer\HowTo\MultipleTransforms
+tags:Sequencer
+type:how-to
+
+When creating your cinematic, you may want to move objects around in your scene (for example, moving a camera which you are shooting from, opening a door, moving a car down the street). 
+Using the **Transform** track of an Actor added to Sequencer, you can keyframe a starting position, scrub the timeline forward then move the Actor to a new position and keyframe it to have that Actor move between keyframes over time. 
+
+In this example, we move a box around in the scene using the **Transform** track. 
+
+![](MovingActors_06.png)
+
+## Steps
+
+[REGION:note]
+For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+[/REGION]
+
+1.	Inside your project, from the **Modes** panel under **Basic**, drag the **Cube** asset into the level. 
+
+	![](MovingActors_01.png)
+
+1.	From the main toolbar, click the **Cinematics** button then select **Add Level Sequence**. 
+
+	![](MovingActors_02.png)
+
+1.	In the **Save Asset As** window, choose a save name and location then click the **Save** button. 
+
+	![](MovingActors_02b.png)
+
+1.	Inside the level select the cube, then inside **Sequencer**, click the **Track** button and under **Actor To Sequencer** select **Add Cube**. 
+
+	![](MovingActors_03.png)
+
+	This will add the cube to and enable us to control through the Sequencer Editor. 
+
+1.	On the **Transform** track for the cube, click the **+** symbol to add a key at frame **0**. 
+
+	![](MovingActors_04.png)
+
+	This will add a keyframe for the current transform of the cube to Sequencer. 
+
+1.	Scrub the timeline marker forward to frame **100**, then move the cube in the level along the **Y** axis forward and add a key for it by clicking the **+** symbol.
+
+	![](MovingActors_05.png)
+
+	After adding the keyframe at frame 100, you will see a dotted line inside the viewport indicating the movement path of the cube. 
+
+	![](MovingActors_06.png)
+
+	[REGION:tip]
+	Instead of clicking the **+** symbol on the **Transform** track, you can also press the **S** key with an Actor selected. 
+	[/REGION]
+
+1.	Click the **Preview Play** button in the viewport or inside Sequencer.
+
+	![](PreviewPlayButton.png)
+
+## End Result
+
+When we play the sequence, the cube will move along the specified keyframe path. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+z8OFi2bE5q4
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+This method of generating movement for an Actor is perfect for situations where you have an object that you want to move at a specified start/end location that will not change. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

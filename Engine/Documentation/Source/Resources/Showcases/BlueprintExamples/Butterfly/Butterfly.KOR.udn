@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:나비
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -67,7 +67,8 @@ _Attracter Location_ 이라는 벡터 변수는 _Editable_ (편집가능) 변수
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:ButterflyCL]
 _컴포넌트 리스트_ 는 나비를 다음과 같은 식으로 조립합니다 (들여쓰기는 부모관계를 나타냅니다):
@@ -102,4 +103,5 @@ _이벤트 그래프_ 가 하는 일은 다음과 같습니다:
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

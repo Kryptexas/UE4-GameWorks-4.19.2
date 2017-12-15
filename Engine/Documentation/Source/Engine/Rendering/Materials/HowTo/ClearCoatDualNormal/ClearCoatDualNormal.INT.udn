@@ -15,10 +15,10 @@ Before we get started with this How - To, let's take a quick look at what adding
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:700 h:700)
+	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:700)
 	[/PARAM]
 	[PARAM:after]
-	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:700 h:700)
+	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:700)
 	[/PARAM]
 [/OBJECT]
 
@@ -67,7 +67,7 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	|Scalar Parameter| Clear Coat Roughness|0.1225|
 
 	[REGION:lightbox]
-	[![](Dual_CC_Base_Nodes_Setup.png)(w:200 h:250)](Dual_CC_Base_Nodes_Setup.png)
+	[![](Dual_CC_Base_Nodes_Setup.png)(w:200)](Dual_CC_Base_Nodes_Setup.png)
 	[/REGION]
 
 1. To setup, the **Roughness** section of the Material add the following Material Expression nodes to the Material Graph and give them the following values and name. Once the Material Expression nodes have been added, connect them so that they match the image below.
@@ -117,7 +117,7 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 1. With all of the individual sections of the Material now setup, connect the outputs to the Main Material node so that your Material setup matches the following image.
 	
 	[REGION:lightbox]
-	[![](Dual_CC_Final_Setup.png)(w:500 h:350)](Dual_CC_Final_Setup.png)
+	[![](Dual_CC_Final_Setup.png)(w:500)](Dual_CC_Final_Setup.png)
 	[/REGION]
 
 1. Finally, once all the various sections of the Material have been connected to the appropriate places on the Main Material node, press the **Apply** button to compile the Material and then close the Material Editor. 

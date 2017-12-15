@@ -75,19 +75,19 @@ _蓝图_ 并不固定包含脚本行为。例如，关卡中的灯柱为不可�
 
 还可将 _图表_ 的段合并到嵌套 _图表_ 中进行整理。 
 
-[OBJECT:TopicButtonList]
-[PARAM:links]
+[REGION:buttonlist]
 * [](Engine/Blueprints/UserGuide/Functions "%Engine/Blueprints/UserGuide/Functions:description%")
 * [](Engine/Blueprints/UserGuide/Functions/FunctionCalls "%Engine/Blueprints/UserGuide/Functions/FunctionCalls:description%")
 * [](Engine/Blueprints/BP_HowTo/MakingFunctions "%Engine/Blueprints/BP_HowTo/MakingFunctions:description%")
 * [](Engine/Blueprints/UserGuide/Macros "%Engine/Blueprints/UserGuide/Macros:description%")
 * [](Engine/Blueprints/BP_HowTo/MakingMacros "%Engine/Blueprints/BP_HowTo/MakingMacros:description%")
 * [](Engine/Blueprints/BP_HowTo/CollapsingGraphs "%Engine/Blueprints/BP_HowTo/CollapsingGraphs:description%")
-[/PARAM]
-[/OBJECT]
+[/REGION]
 
 
-<!--
+[COMMENT:none]
+
 	纯数据蓝图
 	子蓝图
--->
+
+[/COMMENT]

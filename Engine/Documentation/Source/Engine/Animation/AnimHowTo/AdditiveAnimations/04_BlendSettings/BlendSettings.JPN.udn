@@ -1,29 +1,16 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:4 - ブレンド設定を確定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:ブレンドしたアニメーションをレイヤー化し、どのボーンからブレンドを開始するかの方法を定義します。 
 version:4.14
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:4
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[レイヤー アニメーション ホーム](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 ブレンドしたアニメーションをレイヤー化し、どのボーンからブレンドを開始するかについて定義します。 
 
@@ -95,7 +82,7 @@ WxYiLbnbQ_A
 Anim Montage で作成し、割り当てた **UpperBody** スロットを、他の Anim Montage にも割り当てることができます。 
 AnimGraph には Slot ノードが割り当てられているため、このスロットが割り当てられている Anim Montage を再生するたびに、定義した設定で再生されます。 
  
-%Steps%
+[NAV]
 
 
 

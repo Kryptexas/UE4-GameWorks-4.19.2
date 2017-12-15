@@ -154,9 +154,11 @@ IdzHGD7iWdg
 	[REGION:note]
 	リージョンが **Region Selection** ツールで選択されており、なおかつ、 **[Use Region as Mask (領域をマスクとして使用)]** が有効になっている場合は、ペーストされたデータが、マスクされたリージョンに応じて適用されます。  
 	[/REGION]
-<!----
+[COMMENT:none]
+--
     ![pastemask_region.jpg](pastemask_region.jpg)(w:667 h:363) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667 h:363)
----->
+--
+[/COMMENT]
 
 
 
@@ -201,7 +203,8 @@ IdzHGD7iWdg
     ![export_layerfile.jpg](export_layerfile.jpg)(w:625 h:436)
 
 
-<!--
+[COMMENT:none]
+
 ##ギズモのリスト
 
 ![gizmolist.jpg](gizmolist.jpg)(w:267 h:60)
@@ -216,6 +219,7 @@ Gizmo List によって、保存されているギズモが表示されるため
 | ![gizmolist_remove.jpg](gizmolist_remove.jpg)| リストで現在選択されているギズモを削除します。 |
 | ![gizmolist_goto.jpg](gizmolist_pin.jpg)| ギズモの位置、サイズ、回転を、リストで現在選択されているギズモのものにセットします。 |
 
--->
+
+[/COMMENT]
 
 [INCLUDE:Engine/Landscape#landscape002]

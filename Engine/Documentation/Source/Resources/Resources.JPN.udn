@@ -87,7 +87,8 @@ resources
 %Resources/SampleGames:topic%
 
 [/REGION]
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 [REGION:features fourth]
 [OBJECT:Role]
@@ -103,7 +104,8 @@ resources
 [/OBJECT]
 [/REGION]
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 ## コミュニティ サンプル ドキュメント
 

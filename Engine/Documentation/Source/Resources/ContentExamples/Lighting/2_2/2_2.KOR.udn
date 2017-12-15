@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2.2 - 스테이셔너리 라이트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -30,7 +30,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -76,6 +76,7 @@ Version: 4.9
 라이트 겹침은 뷰포트의 뷰 모드 메뉴 중 스테이셔너리 라이트 겹침 모드에서 시각화시켜 볼 수도 있습니다. 이 뷰 모드는 스테이셔너리 라이트 겹치는 갯수가 늘어남에 따라 초록에서 빨강으로 변해갑니다. 5 개 이상이 겹치면 씬이 빨갛게 변해 문제있는 라이트가 있음을 나타냅니다. 아래 그림에서는 다섯번째 문제있는 겹친 라이트의 반경이 빨갛게 표시되고 있습니다.
 
 ![](StationaryLightOverlap.png)(w:680)
+
 
 
 

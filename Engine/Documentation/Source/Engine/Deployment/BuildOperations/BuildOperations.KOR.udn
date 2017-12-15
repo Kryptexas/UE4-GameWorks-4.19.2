@@ -1,0 +1,225 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Crumbs: %ROOT%
+Title: Build Operations: Cook, Package, Deploy, & Run
+Description: An overview of the available Build Operations (cook, package, run, and deploy) that can be for Unreal Engine 4 projects.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Deployment
+Order:1
+Tags:Nintendo Switch
+Topic-image:BuildOps_Topic.png
+
+[TOC(start:2 end:3)]
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+
+
+
+As part of the packaging process, the [Automation Tool](Programming/Automation) (sometimes abbreviated as UAT for Unreal Automation Tool) is used to work through a set of utility scripts for manipulating Unreal Engine 4 (UE4) projects. For the packaging process, the Automation Tool uses a particular command called **BuildCookRun**. These build operations cook content for a platform, package it up into the platforms own file format, deploys it to the device, and automatically runs the project (where applicable). This process enables you to deploy content to a given platform at any point during development for testing, debugging, and even full distribution of a project.
+
+
+As part of the **BuildCookRun** command in UAT, the following stages outline the different stages of the packaging pipeline:
+
+* **Build:** This stage compiles the executeables for the selected platform.
+* **Cook:** This stage cooks content by executing the Editor in a special mode.
+* **Stage:** This stage copies the executables and content to a staging area; a standalone directory outside of the development directory.
+* **Archive:** This stage creates platform-specific application bundles, such as APK files on Android or PKG files on PlayStation 4.
+* **Deploy:** This stage deploys the build to a target device.
+* **Run:** This stage starts the packaged project on the target platform.
+
+
+
+## Packaging Methods
+
+Becasuse you can deploy content in several different ways to a target platform for testing, debugging, or in preparation to release a produce, the following ways can be employeed to test your packages: 
+
+* You can use [Launch On](#launchon) to quickly test a part of your currently loaded level for testing and debugging.
+* You can use the [Project Launcher](#projectlauncher) to use a default profile or create a custom one to perform actions like profiling or debugging for your project's latest build.
+* Or you can take an already packaged game and deploy it to a platform, such as a console or mobile device.
+
+Use the following sections to learn more about these packaging methods and how you can package your games using them.
+
+
+### File Menu 
+
+The **File** menu can be used to select a platform to package your project for. When you package a project using this option, it will save the packaged project to a folder that you select but will not deploy it to the device.
+
+![](FilePackageMenu.png)
+
+From this menu under **Package Project**, you can perform the following actions:
+
+* Build a project for a selected **Platform**
+* Choose a Build Configuration; **Development** or **Shipping**
+* Access the Packaging Settings and Support Platforms located in the **Project Settings**
+
+
+### Launch On
+
+Using the **Launch** button in the main toolbar enables you to quickly test your project with a single click by building and deploying the currently loaded level for testing. 
+
+![](LaunchToolbar.png)
+
+Use the drop-down arrow next to the **Launch** button to select from the list of available devices to deploy a build to.
+
+![](ToolbarLaunchButtonMenu.png)
+
+When clicked, the launch process automatically Cooks the necessary content, build code, and launch on the selected platform. The build is a quick way to test functionality during active development without the need to compile and run the entirety of the project every time you need to test something.
+
+
+#### Platform Selection
+
+If you do not see the platform you want to deploy to or it is grayed out in this menu, here are some things you can check:
+
+* Make sure that you have the correct SDK installed for that platform (if required) and that it is supported by the Engine version you are currently using. Often, this can be checked in the platform's **UEBuild.cs** file located in **Engine/Source/Programmings/UnrealBuiltTools/Platforms**. For example, if you needed to see which SDK is supported for Android, you could look in the **UEBuildAndroid.cs** file.
+* Be sure that any Visual Studio extensions or necessary files are installed.
+* Some platforms (like console) require external tools to connect the device. Make sure this is working properly, and the device is detected.
+* Use the **Device Manager** in UE4 to "claim" any devices as needed, which ensures it can only be used for your local machine. 
+
+
+
+### Project Launcher
+
+The [Project Launcher](Engine/Deployment/Releasing) affords you the ability to deploy for different platforms all from one location and even from a single launch profile. 
+
+
+Each platform that is deployed to has its own default launch profile (listed in the main window). You can also choose to create a custom one that enables you to build a project in a specific way with many advanced settings. These include being able to apply command line arguments, test downloadable content (DLC) and patching releases, and much more.
+
+
+
+![](Engine\Deployment\ProjectLauncher\ProjectLauncher.png)
+
+[REGION:note]
+For additional information, see the [Project Launcher](Engine/Deployment/ProjectLauncher) reference page.
+[/REGION]
+
+
+#### Custom Launch Profile
+
+From the Project Launcher, you can create a **Custom Launch Profile** that can be used on all platforms or even just the ones you specify. These profiles enable you to build your content in specific ways by setting how it is cooked, packaged, and deployed using the available build operations. 
+
+To add your own Custom Launch Profile, click the **plus** (**+**) sign on the right side of the window.
+
+![](AddCustomProfile.png)(w:950)
+
+After doing so, the custom launch profile is immediately open. Be sure to give it a **Name** and **Description** so that you can quickly identify it later.
+
+![](CustomLaunchProfile.png)(w:950)
+
+
+
+### Command Line
+
+The [Automation Tool](Programming/Automation) enables you to cook and package your game using command line, and since all build operations are performed by UAT, it can be run directly on the command line with **RunUAT.bat** file when provided with valid arguments. 
+
+A basic cook can be performed using the following command line arguments following either the **UE4Editor.exe** or **UE4Editor-cmd.exe** files:
+
+	UE4Editor.exe [GameName or .uproject] -run=cook -targetplatform=[Platform] -cookonthefly -iterate -map=[Map Name]
+
+The commandlet must be specified via **-run=cook** and a platform to cook for must be specified. It will generate the cooked data for the platform that is specified and saves it to the following location:
+
+	[UE4 Project]/Saved/Sandboxes/Cooked-[Platform]
+
+Authoring your command line arguments by hand can be quite involved and has more potential for accidently errors. Because of this, it is recommended to use a [Custom Launch Profile](#customlaunchprofile) to accurately generate a command line for your build. Any parameters entered automatically generate via command line in the **Output Log** window. Any text that follows **BuildCookRun** onwards can be directly passed as your command line arguments using **RunUAT.bat**.
+
+The following is an example of the generated output from the Project Launcher and the equivalent command line that would need to be manually authored to use for **RunUAT.bat**:
+
+* **Project Launcher Log Window**
+
+		Automation.ParseCommandLine: Parsing command line: -ScriptsForProject=MyProject.uproject BuildCookRun -project=MyProject.uproject -clientconfig=Development
+
+* **Manually Authored**
+
+		[UE4Root]/Engine/Build/BatchFiles/RunUAT.bat BuildCookRun -project=MyProject.uproject -clientconfig=Development
+
+[REGION:note]
+For additional information, see the [Content Cooking](Engine/Deployment/Cooking) page.
+[/REGION]
+
+
+## Content Cooking
+
+In Unreal Engine, content is stored in particular formats that are supported (png for textures data or WAV for audio) for a platform. However, this content may not be in a format that can be used by the platform you are developing for. The process of **Cooking** converts assets used by the Engine into ones that can be read on the platforms being deployed to. In some cases, the cooked content is converted to a proprietary format (like with console) that can only be read by by that platform.
+
+Cooking content for different platforms can be done by using [Command Line](#commandline) or by using the [Project Launcher](#projectlauncher), and its in-Editor interface. For some platforms, all content must be cooked before it can be used on the device for it to work correctly. You may need to check with the platform you are developing for if this is the case. 
+
+There are two ways to cook content for your projects; **by the book** and **on the fly**.
+
+![](ContentCooking.png)
+
+
+
+### Cook by the book
+
+Cook **by the book** performs the entirety of the cook process ahead of time allowing for the build to deploy the cooked assets all at once rather than as needed while playing the level (if you were using a cook server). This option is useful for developers who are not iterating on individual assets or for those who want the game to perform at full-speed without waiting for a server to deliver the necessary cooked content. Typically, performance testing and playtests will want to use this method. 
+
+When performing a cook by the book, there is no extra setup required for the build. Use the Project Launcher to [create a Custom Launch Profile](#customlaunchprofile) and in the **Cook** section, use the drop-down selection to choose **by the book**.
+
+![](CookByTheBookSettings.png)(w:950)
+
+If you have any game-specific command lines to add, you can expand the **Advanced Settings** and add the arguments to the **Additional Cooker Options**.
+
+![](AdditionalCookerOptions.png)(w:950)
+
+An example would be:
+
+	-nomcp
+
+
+[REGION:note]
+For additional information about this cook method and its available settings, refer to the [Project Launcher](Engine/Deployment/ProjectLauncher#bythebook) reference page.
+[/REGION]
+
+
+### Cook on the fly
+
+![](CookOnTheFlySettings.png)(w:950)
+
+When you choose to cook content **on the fly** (COTF), it will delay cooking it until after the game has been deployed to the platform. Only the executeable and some other basic files are installed, which use network communication with a **Cook Server** to make requests on-demand as the content is needed. COTF allows for faster iteration for developers who will be making changes to content regularly or those who will only be exploring sections of the game.
+
+To cook on the fly, you will first need to start a Cook Server on a machine which has the full project available to it. This can be either your local machine or a remote server which performs the cook. The Cook Server can be run by starting the Editor in command line mode using the following arguments with the **UE4Editor-cmd.exe**:
+
+		UE4Editor-cmd.exe [FullAbsolutePathToProject.uproject]-run=cook -targetplatform=Windows -cookonthefly
+
+On the developer's local machine, access a [Custom Launch Profile](#customlaunchprofile) from the Project Launcher and in the **Deploy** Section, set the method to **File Server**. Optionally, you can use the **Default Deploy Platform** to select a single platform or use the toggles to enable multiple platforms to build and deploy to.
+
+![](Deploy_01.png)(w:950)
+
+For the executable to know where to load content from, it needs to be made aware of the IP address of the machine that is running the Cook Server. To do this, you will need to pass the following command line argument on the client's command line (where x.x.x.x represents your host's IPs):
+
+	-filehostip=123.456.78.90
+
+The argument can be specified in your custom launch profile under the **Launch** section in the **Additional Command Line Parameters** text box. If the IP address is left unspecified, the build will load from existing local files and not attempt to connect to the Cook Server. 
+
+
+![](FileHostIP.png)(w:950)
+
+
+[REGION:note]
+For additional information about this cook method and its available settings, refer to the [Project Launcher](Engine/Deployment/ProjectLauncher#onthefly) reference page.
+[/REGION]
+
+
+
+## Deploying a Build
+
+To deploy a build from the Project Launcher, you must have a project that cooked and packaged. There are a couple of ways you can deploy this type of build to a platform. In your [Custom Launch Profile](#customlaunchprofile) under the **Deploy** section, set the way you want to deploy the build. 
+
+![](DeployBuildTypes.png)(w:950)
+
+[EXCERPT:deployingABuild]
+* **File Server** will cook and deploy the content at runtime as it is needed to the device.
+* **Copy to Device** will copy the entire cooked build to the device.
+* **Do Not Deploy** will not deploy the build to any device once the cook and package complete.
+* **Copy Repository** will copy a build from a specified file location to deploy to any device.
+[/EXCERPT:deployingABuild]
+
+
+[REGION:note]
+For additional information about this deployment methods and their available settings, refer to the [Project Launcher](Engine/Deployment/ProjectLauncher#deploy) reference page.
+[/REGION]
+

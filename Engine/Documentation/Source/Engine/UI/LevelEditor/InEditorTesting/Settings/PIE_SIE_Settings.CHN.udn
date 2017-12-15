@@ -32,7 +32,8 @@ Version:4.9
 | 显示鼠标控制标签（Show Mouse Control Label） |%doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
 | 鼠标控制标签位置（Mouse Control Label Position） |%doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GameGetsMouseControl]
 %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% 
 [/EXCERPT]
@@ -45,7 +46,8 @@ Version:4.9
 %doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 (#PlayInNewWindow)
 ## 在新窗口中游戏
@@ -58,7 +60,8 @@ Version:4.9
 | 新窗口位置（像素）（New Window Position (in pixels)） | [INCLUDE:#NewWindowPosition] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NewWindowSize]
 设置浮动的“在编辑器中游戏”（Play in Editor）窗口的宽度和高度（像素）：
 * %doxygen:ULevelEditorPlaySettings::NewWindowWidth% 
@@ -72,7 +75,8 @@ Version:4.9
 * %doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 (#PlayInStandaloneGame)
 ## 在独立游戏中游戏
@@ -85,7 +89,8 @@ Version:4.9
 | 独立窗口大小（像素）（Standalone Window Size (in pixels)） | [INCLUDE:#StandaloneWindowSize] |
 | 用户端命令行选项（Client Command Line Options） | [INCLUDE:#ClientCommandLineOptions]| 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:StandaloneWindowSize]
 设置独立游戏窗口的宽度和高度（像素）：
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
@@ -98,7 +103,8 @@ Version:4.9
 * %doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## 多玩家选项
 
@@ -114,7 +120,8 @@ Version:4.9
 | 将第一个游戏手柄连接到第二个用户端（Route 1st Gamepad to 2nd Client）| [INCLUDE:#RouteGamepadToSecondWindow]|
 | 使用单个进程（Use Single Process） |[INCLUDE:#RunUnderOneProcess] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PlayNumberOfClients]
 %doxygen:ULevelEditorPlaySettings::PlayNumberOfClients% 
 [/EXCERPT:PlayNumberOfClients]
@@ -138,6 +145,7 @@ Version:4.9
 %doxygen:ULevelEditorPlaySettings::RunUnderOneProcess% 
 [/EXCERPT:RunUnderOneProcess]
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:NetworkPIESettings]

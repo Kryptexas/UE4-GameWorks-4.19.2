@@ -48,7 +48,7 @@ Want to build your levels while in VR?  Unreal's **VR Editor** has been improved
 
 Sequencer been updated with new Live Recording improvements as shown at [Siggraph Real-Time Live! 2016](https://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph).
 
-![image alt text](image_1.jpg)(h:674 w:929 convert:false)
+![image alt text](image_1.jpg)(w:929 convert:false)
 
 The Sequence Recorder allows you to capture live gameplay, including all animation, audio and effects into a standalone asset that you can edit using Sequencer!  New features in this release:
 
@@ -64,7 +64,7 @@ The Sequence Recorder allows you to capture live gameplay, including all animati
 
 When a point or spot light is not moving, we can store off the shadow map for that light and reuse it next frame.  This is now done automatically and makes shadow casting movable point and spot lights much more affordable in games where the environment is often not moving.
 
-![image alt text](image_2.jpg)(h:541 w:929 convert:false)
+![image alt text](image_2.jpg)(w:929 convert:false)
 
 The above image shows 33 dynamic shadow-casting point lights, with very minimal overhead:
 
@@ -96,15 +96,15 @@ Limitations
 
 We’ve added a new Voronoi noise option available for the Noise material node. Voronoi noise, also sometimes called Worley or Cellular noise, is can be useful for procedural material creation. 
 
-![image alt text](image_3.jpg)(h:333 w:624 convert:false)
+![image alt text](image_3.jpg)(w:624 convert:false)
 
 Voronoi noise can be used to generate patterns for familiar physical materials such as marble, as seen on the statue below.
 
-![image alt text](image_4.jpg)(h:377 w:624 convert:false)
+![image alt text](image_4.jpg)(w:624 convert:false)
 
 This example uses a Voronoi noise with a technique called ‘gradient mapping’ to achieve a marble look.
 
-![image alt text](image_5.jpg)(h:233 w:929 convert:false)
+![image alt text](image_5.jpg)(w:929 convert:false)
 
 From Left to Right:
 
@@ -138,15 +138,15 @@ Above shows a simple heightfield painter made entirely in Blueprint, by accumula
 
 The new Blueprint function **Draw Material to Render Target** draws a quad filling the destination render target with the **Emissive Color** input in the material.
 
-![image alt text](image_8.jpg)(h:149 w:661 convert:false)
+![image alt text](image_8.jpg)(w:661 convert:false)
 
 Upon starting the game, **Begin Play** is called and the render target is filled with blue.  You can then right-click on the render target and save it as a static Texture which can be compressed.  
 
-![image alt text](image_9.jpg)(h:164 w:500 convert:false)
+![image alt text](image_9.jpg)(w:500 convert:false)
 
 For more advanced drawing to a render target, use **Begin Draw Canvas to Render Target **and **End Draw Canvas to Render Target**.  These allow multiple draws to a subset of the render target efficiently, as well as font drawing methods through the Canvas object.
 
-![image alt text](image_10.jpg)(h:517 w:896 convert:false)
+![image alt text](image_10.jpg)(w:896 convert:false)
 
 Being able to render off-screen from blueprint enables a ton of rendering features to be implemented quickly without a graphics programmer.  It's also very easy to tank the GPU by doing a lot of pixel shader work with many passes to large render targets.  These draw calls show up after typing 'ProfileGPU' in the debug console (under the WorldTick event)
 
@@ -180,7 +180,7 @@ We allow importing Alembic caches in different ways:
 
 New functionality has been added to setup the scene used to preview Static and Skeletal meshes. 
 
-![image alt text](image_12.jpg)(h:232 w:929 convert:false)
+![image alt text](image_12.jpg)(w:929 convert:false)
 
 A new Preview Scene Settings panel has been added to the Static Mesh and Skeletal Mesh editors.  Here, you can setup multiple profiles (scenes) to preview your meshes, and the profiles allow for changing:
 
@@ -190,7 +190,7 @@ A new Preview Scene Settings panel has been added to the Static Mesh and Skeleta
 
 * Post processing settings (identical to post process volume)
 
-![image alt text](image_13.jpg)(h:494 w:766 convert:false)
+![image alt text](image_13.jpg)(w:766 convert:false)
 
 We’ve also added some showcase functionality:
 
@@ -204,11 +204,11 @@ We’ve also added some showcase functionality:
 
 The new Mesh Decals feature lets you efficiently splat materials on top of your static meshes, effectively allowing you to smoothly layer different materials on top of one another.  You can think of it as a second mesh that sits above the underlying geometry’s profile with it’s own topology and materials. 
 
-![image alt text](image_14.jpg)(h:326 w:428 convert:false)
+![image alt text](image_14.jpg)(w:428 convert:false)
 
 The above pillars are each created as base mesh overlayed with a single detailed break mesh, as shown in the wireframe below. The left pillar is using a mesh decal to allow smoothly blended color, normals and roughness. The right-most pillar is a masked material, just for comparison.  
 
-![image alt text](image_15.jpg)(h:220 w:165 convert:false)![image alt text](image_16.jpg)(h:220 w:169 convert:false)
+![image alt text](image_15.jpg)(w:165 convert:false)![image alt text](image_16.jpg)(w:169 convert:false)
 
 Unlike deferred decals there is no projection involved, so a typical decal mesh which is tightly coupled to the underlying surface may need to include a surface offset in the material.  Also, be careful if you have LODs where the mesh decal geometry would interpenetrate the LOD mesh.
 
@@ -254,7 +254,7 @@ Custom Post-Process materials now can be used on Mobile devices!  Here is a "TV 
 
 Lighting channels now work in the mobile renderer!  These allows you to selectively influence objects with specific lights.  Great for cinematics of advanced lighting rigs.
 
-![image alt text](image_21.jpg)(h:224 w:793 convert:false)
+![image alt text](image_21.jpg)(w:793 convert:false)
 
 * Multiple directional lights are supported in different channels.
 
@@ -268,7 +268,7 @@ Lighting channels now work in the mobile renderer!  These allows you to selectiv
 
 Mac Metal now has initial Shader Model 5 support enabled by default. This exposes all the available features of Metal on Mac OS X 10.11.6 that are applicable to Unreal Engine 4. 
 
-![image alt text](image_22.jpg)(h:521 w:925 convert:false)
+![image alt text](image_22.jpg)(w:925 convert:false)
 
 * Implements the RHI thread & parallel translation features to parallelise render command dispatch.
 
@@ -348,7 +348,7 @@ To easily prototype your project it is now possible to play your game in VR from
 
 The VR Editor’s transform gizmo has been improved with better usability and new features!
 
-![image alt text](image_30.jpg)(h:442 w:466 convert:false)
+![image alt text](image_30.jpg)(w:466 convert:false)
 
 Translating and rotating objects feels much more natural, and you can now uniformly scale objects or translate them along a single 2D plane in VR.  We’ll continue to make improvements to VR gizmos in future releases.
 
@@ -356,13 +356,13 @@ Translating and rotating objects feels much more natural, and you can now unifor
 
 Using the Quick Menu, you can now add a flashlight to your controller, to light up dark parts of your scene or see how light interacts with different Materials.
 
-![image alt text](image_31.jpg)(h:333 w:466 convert:false)
+![image alt text](image_31.jpg)(w:466 convert:false)
 
 ## New: Screenshots from VR Editor
 
 You can now take screenshots right from VR!
 
-![image alt text](image_32.jpg)(h:392 w:604 convert:false)
+![image alt text](image_32.jpg)(w:604 convert:false)
 
 ## New: Automatic Entry to VR Editing Mode
 
@@ -374,21 +374,21 @@ You can now enter and leave VR editing mode when the VR editor is enabled withou
 
 There is a setting under VR in the Experimental section of Editor Settings that will allow you to turn off auto-entry if you prefer.
 
-![image alt text](image_34.jpg)(h:84 w:384 convert:false)
+![image alt text](image_34.jpg)(w:384 convert:false)
 
 ## New: Sequencer Import/Export
 
 Sequencer can now import and export CMX EDL files for interchange with non-linear editing packages. 
 
 [REGION:raw]
-![image alt text](image_35.jpg)(h:529 w:869 convert:false)
+![image alt text](image_35.jpg)(w:869 convert:false)
 [/REGION]
 
 The above shot shows a sequence that was exported to Adobe Premiere Pro.  Each shot in a sequence will be written to a separate movie file which is referenced by the EDL file.  Any sequencing changes made in Premiere can then be imported back into UE4’s Sequencer!
 
 Sequencer’s ability to export HDR data in OpenEXR files has been expanded to give the user a choice of the color gamut used to encode the HDR data. 
 
-![image alt text](image_36.jpg)(h:220 w:492 convert:false)
+![image alt text](image_36.jpg)(w:492 convert:false)
 
 Finally, Sequencer now supports importing FBX animation directly to an object or track. You can also export animated tracks to FBX!
 
@@ -397,7 +397,7 @@ Finally, Sequencer now supports importing FBX animation directly to an object or
 When rendering out your movie sequence, you can now configure a "Burn-in" for the exported images.  This is very useful in dailies for identifying and tracking shots.
 
 [REGION:raw]
-![image alt text](image_37.jpg)(h:458 w:865 convert:false)
+![image alt text](image_37.jpg)(w:865 convert:false)
 [/REGION]
 
 ## New: Media Framework Overhaul
@@ -468,7 +468,7 @@ Media Framework API has been completely overhauled, with many new features!  Med
 
 In every release, we update the engine to support the latest SDK releases from platform partners.  Also in this release, you can remote compile iOS/tvOS projects from Windows in the binary version of UE4!
 
-![image alt text](image_39.jpg)(h:377 w:888 convert:false)
+![image alt text](image_39.jpg)(w:888 convert:false)
 
 * iOs/tvOS: Code projects are now supported in the Windows version of the binary version of UE4 with the Unreal Engine Launcher. (You do need a Mac somewhere to remote compile on)
 
@@ -500,7 +500,7 @@ In every release, we update the engine to support the latest SDK releases from p
 
 Hardware tessellation on landscape is now much faster!  Landscape will now only render hardware tessellation on the highest level-of-detail (LOD), fading out as the landscape approaches the second LOD. Subsequent LODs will no longer have tessellation enabled. This significantly improves performance of enabling tessellation for displacement or extra detail up close to the camera. 
 
-![image alt text](image_40.jpg)(h:429 w:593 convert:false)
+![image alt text](image_40.jpg)(w:593 convert:false)
 
 In the visualization above, the highest the LOD (white) is rendered with tessellation enabled, while the other LODs (colors) are rendered without tessellation.
 
@@ -518,11 +518,11 @@ Currently you create a Pose Asset from an Anim Sequence using Content Browser co
 
 Poses are driven by normal animation curves. As long as they exist in the animation you can see the curve. In Persona, in order to preview a pose from a curve, you need to set the current Preview Pose Asset. 
 
-![image alt text](image_42.jpg)(h:152 w:348 convert:false)
+![image alt text](image_42.jpg)(w:348 convert:false)
 
 In the AnimGraph, you can use a Pose Blender Node (or Pose By Name) to output the pose based on the incoming curves. 
 
-![image alt text](image_43.jpg)(h:146 w:422 convert:false)
+![image alt text](image_43.jpg)(w:422 convert:false)
 
 To support this system, we have improved how we handle scale with additive blending. In the future we would like to support curves on other assets (e.g. Sound Waves) that can be used to drive Pose Assets and Morph Targets.
 
@@ -550,7 +550,7 @@ This allows you to see a representation of the pose being generated at any point
 
 Scene Captures have been improved to be more useful with the new ‘Blueprint Drawing to Render Targets’ feature!
 
-![image alt text](image_46.jpg)(h:173 w:929 convert:false)
+![image alt text](image_46.jpg)(w:929 convert:false)
 
 * Orthographic projections are now supported.
 
@@ -562,7 +562,7 @@ Scene Captures have been improved to be more useful with the new ‘Blueprint Dr
 
 * Added ‘Hidden Actors’ and ‘Show Only Actors’ arrays which can be used to easily control what is rendered into a scene capture.
 
-![image alt text](image_47.jpg)(h:312 w:364 convert:false)
+![image alt text](image_47.jpg)(w:364 convert:false)
 
 Game specific effects like fog of war can be implemented by rendering meshes as visibility shapes into an orthographic scene capture, and then doing image processing with Draw Material To Render Target.
 
@@ -570,7 +570,7 @@ Game specific effects like fog of war can be implemented by rendering meshes as 
 
 There’s a new "Pixel Normal Offset" refraction mode which uses the vertex normal as a reference, and computes the refraction offset from how different the per-pixel normal is from the vertex normal.  This is non-physical but allows refraction to be used on flat water surfaces.
 
-![image alt text](image_48.jpg)(h:153 w:929 convert:false)
+![image alt text](image_48.jpg)(w:929 convert:false)
 
 Left: simple scene with no refraction
 
@@ -578,13 +578,13 @@ Center: default refraction method which causes an undesired constant offset for 
 
 Right: Pixel Normal Offset refraction method which distorts based on the normalmap difference
 
-![image alt text](image_49.jpg)(h:78 w:344 convert:false)
+![image alt text](image_49.jpg)(w:344 convert:false)
 
 ## New: Texture Coordinates from Line Traces
 
 We have added a project setting to support texture coordinate (UV) info from line traces. 
 
-![image alt text](image_50.jpg)(h:330 w:297 convert:false)
+![image alt text](image_50.jpg)(w:297 convert:false)
 
 The option is under Project Settings -> Physics -> Optimizations. When this is enabled, you can use the ‘Find Collision UV’ function to take a Hit Result and find the UV info for any UV channel at the point of impact. Enabling this feature does use extra memory, as a copy of UV information must be stored in CPU memory.
 
@@ -594,7 +594,7 @@ The option is under Project Settings -> Physics -> Optimizations. When this is e
 
 Now it's possible to set Spline Component points in the Blueprint Editor using the standard spline visualizer editing features.  New instances of the Blueprint will be created with these defaults, although these too can be overridden on a per-instance level once placed.
 
-![image alt text](image_51.jpg)(h:445 w:929 convert:false)
+![image alt text](image_51.jpg)(w:929 convert:false)
 
 The "Reset to Default" context action on the spline visualizer will set an instance back to the Blueprint default.  Any changes made to the Blueprint default will be propagated to any instance whose spline points have not been subsequently edited.
 
@@ -606,7 +606,7 @@ The "Reset to Default" context action on the spline visualizer will set an insta
 
 Before there was no way to precisely place spline points and assign scale, roll or tangents to them.  Now these properties are exposed in the Details panel for selected spline points:
 
-![image alt text](image_53.jpg)(h:190 w:449 convert:false)
+![image alt text](image_53.jpg)(w:449 convert:false)
 
 **New spline point properties**
 
@@ -614,11 +614,11 @@ Spline points can now be defined with distinct arrive and leave tangents, and an
 
 In the spline visualizer, in the Spline Component details, there is an option in the context menu to allow the arrive and leave tangents to be edited separately instead of locked:
 
-![image alt text](image_54.jpg)(h:220 w:190 convert:false)
+![image alt text](image_54.jpg)(w:190 convert:false)
 
 As a consequence of being able to set arbitrary input keys per point, there is now also a way to specify the input key of the Loop Position for closed splines:
 
-![image alt text](image_55.jpg)(h:192 w:454 convert:false)
+![image alt text](image_55.jpg)(w:454 convert:false)
 
 If input keys or a loop position are not specified, they will default to starting at 0.0 and incrementing by 1.0 for each point, as before.
 
@@ -626,23 +626,23 @@ If input keys or a loop position are not specified, they will default to startin
 
 Sometimes it's desirable to build splines procedurally in a Blueprint construction script.  Previously every operation on a spline point would cause the spline to be rebuilt, but now - for optimization purposes - it's possible to specify whether the spline should be rebuilt following a spline point operation.  There's also an explicit Update Spline node.
 
-![image alt text](image_56.jpg)(h:413 w:918 convert:false)
+![image alt text](image_56.jpg)(w:918 convert:false)
 
 **Input Spline Points to Construction Script**
 
 Sometimes it's useful to be able to hand edit a spline with the spline visualizer, and then refine them with a Blueprint construction script.  An example might be a Blueprint which locks all edited points to the surface of a sphere, like this:
 
-![image alt text](image_57.jpg)(h:456 w:929 convert:false)
+![image alt text](image_57.jpg)(w:929 convert:false)
 
 This is now achievable by checking the "Input Spline Points to Construction Script" property:
 
-![image alt text](image_58.jpg)(h:196 w:452 convert:false)
+![image alt text](image_58.jpg)(w:452 convert:false)
 
 ## New: Sub Animation Blueprints
 
 You can now share animation logic by using a ‘Sub Anim Instance’ node within your Animation Blueprint to reference another Sub Animation Blueprint. This also allows you to break up large Animation Blueprints into separate assets, for example into ‘locomotion’ and ‘physics’ parts. 
 
-![image alt text](image_59.jpg)(h:149 w:644 convert:false)
+![image alt text](image_59.jpg)(w:644 convert:false)
 
 Member variables of the Sub Blueprint can be exposed as input pins on the node. The Sub Animation Blueprint must use the same Skeleton as the outer Animation Blueprint.
 
@@ -650,7 +650,7 @@ Member variables of the Sub Blueprint can be exposed as input pins on the node. 
 
 We removed the Skeleton Curve tab from Persona, and moved that functionality into the improved Animation Curves tab. Here you can now rename and delete curves, as well as previewing curve data. 
 
-![image alt text](image_60.jpg)(h:381 w:622 convert:false)
+![image alt text](image_60.jpg)(w:622 convert:false)
 
 You can see all curves that belong to current skeleton or currently active curves from preview asset. And you could also filter by specific type of curves if you only want to see active curves. Please note that we named default curve to be called "Attribute", so any animation curves will be by default attribute curves. 
 
@@ -660,7 +660,7 @@ If you want to modify the curve value, you can either turn off Auto check box op
 
 You can now use Paper2D Sprites as Brush inputs for UMG and Slate Widgets.  In addition to allowing users to reference UI art that may have been developed as a sprite sheet, it permits users to more efficiently render widgets on platforms where the draw call count budget is tight.  Sprites that are part of the same texture atlas can be batched together in Slate, provided they all share the same layer when rendered.
 
-![image alt text](image_61.jpg)(h:257 w:460 convert:false)![image alt text](image_62.jpg)(h:258 w:460 convert:false)
+![image alt text](image_61.jpg)(w:460 convert:false)![image alt text](image_62.jpg)(w:460 convert:false)
 
 ## New: Optimized Instanced Stereo Rendering for VR
 
@@ -670,7 +670,7 @@ There have been a number of improvements to instanced stereo rendering, includin
 
 Projects can now enable calculating morph targets on the GPU on Shader Model 5 level hardware. This frees the CPU from performing those calculations:
 
-![image alt text](image_63.jpg)(h:194 w:520 convert:false)
+![image alt text](image_63.jpg)(w:520 convert:false)
 
 ## New: Optimized Landscape Shader Memory
 
@@ -690,7 +690,7 @@ The Project Launcher is now able to package and launch your project onto multipl
 
 You can then launch Automated Tests on all the devices and see the results in the Session Frontend.
 
-![image alt text](image_64.jpg)(h:542 w:838 convert:false)
+![image alt text](image_64.jpg)(w:838 convert:false)
 
 ## New: OpenGL ES 3.1 on Android
 
@@ -698,13 +698,13 @@ While UE4 has long supported many OpenGL ES 3.0 and 3.1 features on Android, you
 
 You can choose to package bothe ES 2.0 and ES 3.1 shaders for the same project, and the device will chooses the best shader platform based on the device’s capabilities. 
 
-![image alt text](image_65.jpg)(h:220 w:582 convert:false)
+![image alt text](image_65.jpg)(w:582 convert:false)
 
 ## New: Mobile Packaging Wizard 
 
 We have added a Mobile Packaging Wizard to help support packaging for mobile where a minimal app without any content is uploaded to an App Store and the rest of the content is downloaded from the Cloud.
 
-![image alt text](image_66.jpg)(h:484 w:800 convert:false)
+![image alt text](image_66.jpg)(w:800 convert:false)
 
 * This type of packaging is common with larger games that have regular DLC updates
 
@@ -716,7 +716,7 @@ We have added a Mobile Packaging Wizard to help support packaging for mobile whe
 
 Materials have an option to use full precision (default: medium precision) in pixel shader when used on Mobile devices. For example this helps in cases when material uses world coordinates in computations.
 
-![image alt text](image_67.jpg)(h:92 w:260 convert:false)
+![image alt text](image_67.jpg)(w:260 convert:false)
 
 ## New: Binary Shader Caching for Android
 
@@ -760,9 +760,9 @@ To allow you to pass in the numeric/gender values needed for plural/gender form 
 
 The ability to set these value types in Blueprints has been exposed using wildcard pins on the "Format Text" node:
 
-![image alt text](image_68.jpg)(h:166 w:564 convert:false)
+![image alt text](image_68.jpg)(w:564 convert:false)
 
-![image alt text](image_69.jpg)(h:168 w:820 convert:false)
+![image alt text](image_69.jpg)(w:820 convert:false)
 
 You can also pre-compile your format pattern if you’re going to be re-using it for multiple calls to FText::Format(...). Simply create and store a FTextFormat instance and pass it as the pattern to FText::Format(...).
 
@@ -784,7 +784,7 @@ Most of the work is handled by the low level reflection information we have for 
 
 BuildGraph scripts can be used to create custom sequences of UE4 build commands for build automation. Graphs are declared using an XML script using syntax similar to MSBuild, ANT or NAnt, and consist of a network of dependent *nodes* made up of *tasks*. 
 
-![image alt text](image_70.jpg)(h:382 w:677 convert:false)
+![image alt text](image_70.jpg)(w:677 convert:false)
 
 Some example BuildGraph scripts are stored under Engine/Build/Graph/Examples/…
 

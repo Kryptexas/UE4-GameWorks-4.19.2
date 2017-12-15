@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Lightmass Portals
+Description: Help increase the quality of baked interior lighting.  
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:LMP_TopicImage.png
+Social-image:LMP_TopicImage.png
+
+![](LMPortal_On.png)
+
+[TOC(start:2 end:2)]
+
+When using a Skylight or HDR image to light your Unreal Engine 4 (UE4) levels, you may run into issues with Lightmass not understanding where the light in the scene should be coming from. To help Lightmass better understand where the light should be coming from you can place Lightmass Portals Actors around the areas that are critical to lighting. In the following document, we will take a look at setting up and using Lightmass Portals in your UE4 projects.
+
+## How It Works 
+
+From a high-level Lightmass Portals work in the following manner:
+
+* Lightmass Portals are most useful when a scene is lit using a [Skylight](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight/), HDR image or a Static Mesh that is set to [Use Emissive for Static Lighting](Engine/Rendering/Materials/HowTo/EmissiveGlow/#usingemissivematerialstolighttheworld) checked. 
+
+    [REGION:lightbox]
+    [![](LMP_SkylightSetup.png)(w:500)](LMP_SkylightSetup.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+* Lightmass Portals are placed and in the level and scaled to fit any open areas that are important to the final lighting.
+
+    ![](LMPortals.png)(w:800)
+
+* When Lightmass is building the light, the Lightmass Portals tell Lightmass that more light rays should come from this area yielding higher quality light and shadows.  
+
+    [OBJECT:ComparisonSlider]
+        [PARAM:before]
+        ![Without Portals](LMPortal_Results_00.png)
+        [/PARAM]
+        [PARAM:after]
+        ![With Portals](LMPortal_Results_01.png)
+        [/PARAM]
+    [/OBJECT]
+
+## Steps 
+
+To use Lightmass Portals in your UE4 projects, you will need to do the following.
+
+1. From the **Modes** panel search for **Lightmass Portal** and when located drag the Lightmass Portal Actor into your level to place it.
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_01.png)(w:500)](LMPortal_Step_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Using the **Move**, **Rotate** and **Scale** tools position and scale the Lightmass Portal to be about the same size or slightly smaller than the opening or area you want Lightmass to focus more rays towards.
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_02.png)(w:500)](LMPortal_Step_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Over on the **Main Toolbar**, click on the small white triangle next to **Build** and from the displayed change the **Lighting Quality** to **Production**.
+
+    ![](LMPortal_Step_03.png)
+
+1. When that has all been completed, press the **Build** button to start the Lightmass lighting build.
+
+    ![](LMPortal_Step_04.png)
+
+## End Result
+
+Once your Lightmass build has completed, you will have something similar to the following image.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Without Portals](LMPortal_Off.png)(w:1000)
+    [/PARAM]
+    [PARAM:after]
+    ![With Portals](LMPortal_On.png)
+    [/PARAM]
+[/OBJECT]
+
+If you take a close look at the **Without Portals** image, you will notice that there is a lot of noise in the image, especially in the darker areas when compared to the **With Portals** image. 
+
+## Known Issues / Limitations
+
+* Lightmass Portals work by forcing Lightmass to send rays toward the portal. Because of this, you should only use Lightmass Portals on small levels and only for lighting that is critical to the scene. Failing to do this and adding too many Lightmass Portals can drastically increase your Lightmass build times.
+
+* Only use Lightmass Portals on very small levels as Lightmass Portals are not occluded by anything. Using them in big open world type levels will result in longer than needed light baking times.
+
+* Lightmass Portals should only be used when needed as they will increase the time it takes Lightmass to calculate the lighting for the scene.
+
+* If using Static Meshes for Emissive light caster's make sure that you place a Lightmass Portal around the area on the Static Meshes light is supposed to be emitted from.
+
+
+
+
+
+
+
+
+

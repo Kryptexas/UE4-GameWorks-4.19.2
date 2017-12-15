@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388780
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Character
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
@@ -19,40 +19,24 @@ Character は、ワールド内で歩行、走行、ジャンプ、飛行、水�
 Pawn とは異なり、Character にはスケルトンを使用する高度なアニメーションを有効にするための `SkeletalMeshComponent` が含まれています。Character から派生したクラスへ他のスケルタルメッシュを追加できますが、
 これが Character に関連付けられているメインのスケルタルメッシュになります。スケルタルメッシュに関する詳細は以下を参照してください。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		スケルタルメッシュのトピック
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links] 
-		* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
-		* [](Engine/Animation "%Engine/Animation:description%") 
-	[/PARAM]
-[/OBJECT]
+## スケルタルメッシュのトピック
+
+[REGION:buttonlist]
+* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+* [](Engine/Animation "%Engine/Animation:description%") 
+[/REGION]
 
 
 
 ### CapsuleComponent
 `CapsuleComponent` は移動コリジョンに使用します。`CharacterMovementComponent` の複雑なジオメトリを計算するために、Character クラスの Collision コンポーネントは垂直方向のカプセルであると仮定します。コリジョンに関する詳細については以下を参照してください。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Capsule コンポーネントのトピック
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links] 
-		* [](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
-		* [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:description%")
-	[/PARAM]
-[/OBJECT]
+## Capsule コンポーネントのトピック
+
+[REGION:buttonlist]
+* [](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
+* [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:description%")
+[/REGION]
 
 ### CharacterMovementComponent
 `CharacterMovementComponent` では、アバターは剛体物理を使用せずに、歩行、走行、ジャンプ、飛行、落下、水泳で移動することができます。 
@@ -61,7 +45,6 @@ Pawn とは異なり、Character にはスケルトンを使用する高度な�
 影響を及ぼすことができるようにします。`CharacterMovementComponent` はアニメーションに由来するルートモーション パラメータを含み、
 ワールド空間で既に変換されて物理的な使用の準備が整っています。 
 
----
 
 
 

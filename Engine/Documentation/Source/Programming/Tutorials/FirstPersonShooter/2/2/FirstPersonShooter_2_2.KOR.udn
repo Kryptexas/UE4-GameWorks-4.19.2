@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.2 - 축 매핑 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 일반적으로 Axis Mappings (축 매핑)을 통해 키보드, 마우스, 콘트롤러 입력을 "친근한 이름" 으로 매핑시킨 뒤 나중에 (이동 등의) 게임 동작에 바인딩할 수 있습니다. 
 축 매핑은 지속적으로 폴링되어, 부드러운 전환 및 게임 동작이 가능합니다. (콘트롤러 조이스틱같은) 하드웨어 축은 (1 - 눌림, 0 - 안눌림 식의) 구분되는 입력이 아닌 입력의 정도를 제공해 줍니다. 
@@ -83,4 +83,3 @@ Version: 4.15
 
 1.	MoveLeft 와 MoveRight 축 매핑을 완료했으니, **프로젝트 세팅** 메뉴를 닫습니다.
 
-%Steps%

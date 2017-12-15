@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Vector Field 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -121,7 +121,8 @@ Vector Field Scale Over Life (수명에 걸친 벡터 필드 스케일)은 이�
 
 
 
-<!---------Vector Field Includes--------
+[COMMENT:none]
+-------Vector Field Includes--------
 [EXCERPT:LocalTranslateNote]
 [REGION:note]
 	수치를 통해 로컬 벡터 필드의 트랜슬레이션을 변화시킬 수는 있지만, 미리보기 패널에서 (이미터 리스트에 Local Vector Field (로컬 벡터 필드) 모듈을 선택하면 사용할 수 있는) 위젯을 통해 하는 것이 훨씬 직관적입니다.
@@ -132,4 +133,5 @@ Vector Field Scale Over Life (수명에 걸친 벡터 필드 스케일)은 이�
 
 
 
---------End Vector Field Includes----------->
+--------End Vector Field Includes---------
+[/COMMENT]

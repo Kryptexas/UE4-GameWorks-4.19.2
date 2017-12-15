@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:3721448
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Title:Google Daydream VR 용 모션 컨트롤러 구성
+Description: 구글 데이드림 VR 모션 컨트롤러를 언리얼 엔진에서 사용할 수 있도록 구성하는 법입니다.
+Type:how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/GoogleVR
+Order:2
+Tags:Basics
+Tags:VR
+topic-image:Platforms\GoogleVR\HowTo\HT_GoogleVR_Camera_Setup_Topic_Image.png
+prereq:Platforms\GoogleVR\QuickStart
+prereq:Platforms\GoogleVR\HowTo\CameraSetup
+
+Google Daydream (구글 데이드림) 모션 컨트롤러가 있으면 완전히 새로운 방식으로 언리얼 엔진 프로젝트와의 상호작용이 가능합니다. 사용자가 현실에서 물건을 집어들 때와 마찬가지로 오브젝트를 집어들어 상호작용할 수 있는 것이지요. 여기서는 언리얼 엔진 프로젝트에서 구글 데이드림 모션 컨트롤러를 사용할 수 있도록 구성하는 방법을 살펴보겠습니다.
+
+[region:note]
+이 안내서는 [](Platforms\GoogleVR\HowTo\CameraSetup) 에서 만든 폰을 활용합니다. 아직 해보지 못한 분들은 먼저 따라해보실 것을 강력 추천합니다.
+[/region]
+
+[region:note]
+모션 컨트롤러는 구글 데이드림 SDK 를 지원하는 디바이스하고만 작동합니다.
+[/region]
+
+## 단계
+
+아래에서는 플레이어 폰이 구글 데이드림 모션 컨트롤러를 사용하도록 하는 기능을 추가하는 방법 관련 정보를 찾을 수 있습니다.
+
+1. 먼저, 모션 컨트롤러 지원을 추가하고자 하는 플레이어 폰, 이 예제에서는 **GoogleVR_Pawn_MotionController** 를 열고, **컴포넌트** 탭에서 **컴포넌트 추가** 버튼을 누른 뒤 **GoogleVRMotionController** 를 검색합니다.
+
+    ![](HTGoogleVR_MC_00.png)
+
+1. 새로 추가된 **GoogleVRMotionController** 를 끌어 기존 **VRCameraRoot** 에 놓아 **VRCamera** 처럼 자식 컴포넌트가 되도록 합니다.
+
+    ![](HTGoogleVR_MC_01.png)
+
+    [region:note]
+    기본으로, GoogleVR Motion Controller Component 의 **위치** 는 폰을 추가할 때 (0, 0, 0) 으로 설정되었을 것입니다. 어떤 이유로든 그렇지 않은 경우, 위치가 (0, 0, 0) 인지 확인하세요.
+    [/region]
+
+1. 블루프린트를 컴파일 및 저장한 뒤 콘텐츠 브라우저에서 **GoogleVR_Pawn_MotionController** 폰을 끌어 레벨에 놓습니다.
+
+    [REGION:lightbox]
+    [![](HTGoogleVR_MC_03.png)(w:660)](HTGoogleVR_MC_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. 새로 추가된 플레이어 폰을 선택하고 **디테일** 패널에서, **Auto Possess Player** (플레이어 자동 빙의)를 **Player 0** 으로 하여 레벨이 실행되면 이 폰을 사용하도록 합니다.
+
+    ![](HTGoogleVR_MC_02.png)
+
+1. 마지막으로 **실행** 버튼을 눌러 구글 데이드림 활성화된 스마트폰에 이 레벨을 디플로이하고 실행합니다.
+
+    ![](Platforms\GearVR\HowTo\MotionController\HTGearVR_MC_04.png)
+
+## 최종 결과
+
+프로젝트가 실행되면, 구글 VR 헤드셋에 폰을 넣고 구글 VR 데이드림 모션 컨트롤를 집어듭니다. 이제 현실에서 모션 컨트롤러를 움직이면, 다음 비디오에서처럼 그 동작이 언리얼 엔진 프로젝트에 복제되는 것이 보일 것입니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    7728npwW1fQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+[region:note]
+구글 VR 모션 컨트롤러 위치가 잘못되어 보이는 경우, 모션 컨트롤러를 앞으로 내민 뒤 **홈** 버튼을 누르고 있으면 모션 컨트롤러 위치 영점을 재조정합니다.
+[/region]
+
+## 언리얼 엔진 프로젝트 다운로드
+
+이 예제를 만드는 데 사용된 언리얼 엔진 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**GoogleVR Motion Controller Example Project**](https://epicgames.box.com/s/ya3fk0zs57ur49npm21ligcgxcve1g6j)
+
+

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title: Keeping or Restoring Changes Made by Sequencer
 Description: Describes how to keep any changes made through Sequencer when it has completed or restore changes back to their original state.
@@ -10,6 +10,7 @@ Order: 1
 Tags: Sequencer
 Tags: how-to
 topic-image:WhenFinishedTopicImage.png
+type:how-to
 
 When working in Sequencer, you may make changes to the properties of your Actors that you want to persist after the cinematic finishes. For example, you might create a cinematic where a player unlocks and opens a door, and the door remains in the open state afterward. In a film production environment, however, you may want animated values in a shot to return to their pre-animated state so they don't bleed into the next shot. With the **When Finished** property, you can determine on a per-track basis whether tracks should return to their pre-animated state or keep changes when the sequence finishes.
 

@@ -43,7 +43,8 @@ When you open your Font Face Asset, you have access to the settings for **Hintin
 | **Layout Method** | This selects the method to use when laying out the font. Try changing this if you notice clipping or height issues with your font. [INCLUDE:#layoutmethod] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:hinting]
 [REGION:simpletable]
 | Selection | Description  |
@@ -74,7 +75,8 @@ When you open your Font Face Asset, you have access to the settings for **Hintin
 [/REGION] 
 [/EXCERPT:layoutmethod]
 
---->
+-
+[/COMMENT]
 
 ## Upgrading Font Assets to 4.15 and Later
 

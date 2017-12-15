@@ -288,7 +288,9 @@ This parameter set represents the following **Targets** (or parameter sets):
 * **Max Distance** is the maximum distance any point on the cloth can move from its animated position. 
 * **Backstop Distance** is the offset used from any point on the cloth to limit movement within the Max Distance. 
 * **Backstop Radius** uses a sphere radius that when intersected with the Max Distance will prevent any painted point on the cloth from moving into that region. 
-<!--- http://wiki.fitnect.hu/index.php/PhysX_setup --->
+[COMMENT:none]
+- http://wiki.fitnect.hu/index.php/PhysX_setup -
+[/COMMENT]
 
 You can have multiples of each of these **Targets** but only one of each can be assigned at a time. This makes it possible to test different configurations very quickly in a non-destructive way.
 
@@ -311,7 +313,8 @@ For additional information about masks, see the [Mask Properties](Engine/Physics
 [/REGION]
 
 
-<!--- SAVE FOR 4.18 Release Update ------- 
+[COMMENT:none]
+- SAVE FOR 4.18 Release Update ------- 
 
 ### Levels of Detail (LOD)
 
@@ -371,7 +374,8 @@ If you were to repaint your LOD0 mesh but don't want to have to re-paint all you
 [/OBJECT]
 [/EXCERPT:lod0]
 
-----  SAVE FOR 4.18 Release Update --->
+----  SAVE FOR 4.18 Release Update -
+[/COMMENT]
 
 
 [EXCERPT:lod1]
@@ -405,7 +409,8 @@ When you choose this method, your APEX cloth asset will be converted to the in-E
 like Max Distance and Backstop.
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:oldworkflow]
 [REGION:lightbox]
@@ -427,7 +432,8 @@ _Click image for full size view._
 [/REGION]
 [/EXCERPT:clickimage]
 
---->
+-
+[/COMMENT]
 
 
 

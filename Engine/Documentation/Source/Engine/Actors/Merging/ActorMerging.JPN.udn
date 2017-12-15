@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs: %ROOT%
 Title:アクタのマージ
@@ -20,11 +20,13 @@ Tags:HLOD
 
 **[Merge Actors]** ツールを使用すると、複数のスタティックメッシュをひとつの新しいアクタに結合することができます。複数マテリアルも、新しい UV レイアウトを使い一連のカスタム テクスチャと共にひとつのマテリアルにベイクすることができます。 
 使用されるオリジナルのスタティックメッシュは、新しくマージされたアセットに完全に置き換えることもできます。
-<!---
+[COMMENT:none]
+-
 [REGION:warning]
 この Merge Actor 機能は 4.12 以降、公式にサポートされるようになりました。4.8 から 4.11 では、エディタ設定の [Experimental] タブからアクティベートしなければなりません。4.12 よりも前のバージョンのエンジンを使用している場合、この機能は実験的なものとみなされ、公式にはサポートされていません。
 [/REGION]
---->
+-
+[/COMMENT]
 [REGION:raw]
 ![](MergingActors.png)(w:950)
 [/REGION]
@@ -57,6 +59,7 @@ Tags:HLOD
 
 	これで、マージしたアクタを独自のアセットとして **コンテンツ ブラウザ** から開くことができます。
 
+
 ## Merge Actors ツールのオプション
 
 [Merge Actors] ウィンドウの上部には、ビューポートで選択したすべてのスタティックメッシュのリストがあります。最終的なマージに、どのメッシュを含めるかをここでチェックすることができます。 
@@ -65,7 +68,7 @@ Tags:HLOD
 ひとつ以下のメッシュを選択すると、マージするにはメッシュ コンポーネントの数が不足している旨を示す黄色の警告がウィンドウ下部付近に表示されます。
 [/REGION]
 
-###Mesh コンポーネント リスト
+### Mesh コンポーネント リスト
 
 **Mesh コンポーネント リスト** には、マージ時に使用される選択したアクタがあります。 
 
@@ -95,7 +98,8 @@ Tags:HLOD
 |**Target Light Map Resolution**||新しいライトマップ UV の解像度を指定します。この解像度がレイアウト内の各アイランド間で計算される距離を制御します。解像度が高ければ、各アイランド間の間隔が狭くなります。|
 [/REGION]
 
-<!--- LOD Selection Type Excerpts ---
+[COMMENT:none]
+- LOD Selection Type Excerpts ---
 
 [EXCERPT:lodselectiontype]
 [REGION:raw]
@@ -107,7 +111,8 @@ Tags:HLOD
 [/REGION]
 [/EXCERPT:lodselectiontype]
 
---- LOD Selection Type Excerpts --->
+--- LOD Selection Type Excerpts -
+[/COMMENT]
 
 
 ### マテリアルの設定
@@ -148,7 +153,8 @@ Tags:HLOD
 [/REGION]
 
 
-<!-- Material Settings Excerpts ----
+[COMMENT:none]
+ Material Settings Excerpts ----
 
 
 [EXCERPT:texturesizing]
@@ -181,7 +187,8 @@ Tags:HLOD
 [/REGION]
 [/EXCERPT:blendmode]
 
---- /End Material Setting Excerpts -->
+--- /End Material Setting Excerpts 
+[/COMMENT]
 
 
 ###ランドスケープのカリング設定

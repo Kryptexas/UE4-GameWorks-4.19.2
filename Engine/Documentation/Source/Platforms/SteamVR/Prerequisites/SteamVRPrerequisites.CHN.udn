@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:3721376
+Availability:Public
+Crumbs: %ROOT%
+Title:SteamVR 使用先决条件
+Description:如何设置 SteamVR 兼容 UE4。
+Type:Reference
+Version:4.17
+Parent:Platforms/SteamVR
+Order:1
+Tags:SteamVR
+Tags:Platform
+tags:Getting Started
+topic-image:PreRecProfiling_Topic_Image.png
+
+
+此页面讲述如何使 UE4 项目兼容 SteamVR。 
+
+## 安装 SteamVR 
+
+无论使用的是何种头戴显示器，开发使用 SteamVR 的 VR 项目时都需要下载并安装 Steam，才能访问 SteamVR。以下部分将说明下载安装 SteamVR 的方法。
+
+1. 首先需要从 [Steam 站点](http://store.steampowered.com/) 下载并安装 [Steam 客户端](http://store.steampowered.com/)。
+
+1. Steam 安装完成后，用以下两种方式运行 SteamVR：
+
+	* 按下 Steam 客户端顶部的 Start SteamVR 按钮。
+
+		![](SteamVRPreRec_00.png)
+
+	* 前往 **Library** > **Tools**，搜索并点击 **SteamVR [beta]** 选项。
+
+		![](SteamVRPreRec_01.png)
+
+请注意，查看 UE4 项目时必须同时运行 SteamVR 工具。可以最小化 SteamVR 工具窗口，但不要将其关闭。 
+
+## SteamVR 故障排除
+
+如果运行 SteamVR 或识别头戴显示器时遇到问题，可在 SteamVR 和 HTC Vive 支持页面中寻找解决方法。
+
+[**SteamVR Support**](https://support.steampowered.com/kb_article.php?ref=8566-SDZC-9326)
+[**HTC Vive Support**](https://www.vive.com/us/support/)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

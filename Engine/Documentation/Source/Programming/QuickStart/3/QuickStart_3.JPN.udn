@@ -22,7 +22,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名を「FloatingActor.cpp」と「FloatingActor.h」にして、「QuickStart」プロジェクトに保存します。
 
@@ -178,4 +178,4 @@ Version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

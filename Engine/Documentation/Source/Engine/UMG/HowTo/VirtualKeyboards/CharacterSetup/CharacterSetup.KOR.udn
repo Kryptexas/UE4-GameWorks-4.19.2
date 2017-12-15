@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 캐릭터 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -22,7 +22,7 @@ Order: 1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 여기서는 프로젝트를 준비하고 플레이어 캐릭터에 **Widget Interaction** 컴포넌트를 추가하여 플레이어 캐릭터가 3D 위젯 상호작용이 가능하도록 만들 것입니다.
 
@@ -60,6 +60,6 @@ Order: 1
 
 프로젝트 준비가 완료되어 캐릭터가 월드의 위젯과 상호작용할 수 있게 되었습니다. 다음에는 상호작용형 위젯을 구성해 보도록 하겠습니다.
 
-%Steps%
+
 
 

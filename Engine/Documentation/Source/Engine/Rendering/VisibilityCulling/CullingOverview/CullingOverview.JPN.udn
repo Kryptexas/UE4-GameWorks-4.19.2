@@ -144,7 +144,8 @@ _画像をクリックしてフルサイズで表示_
 | **3**  | **Camera View Frustum:** ニア クリップ面とファー クリップ面の間の領域です。このビューにあるものはすべてレンダリング対象と見なされます。 |
 | **4**  | **Far Clip Plane:** カメラから最も遠いレンダリング ポイントです。ビューをクリップする設定距離ではなく、シーン深度によって調節されます。 |
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:CameraView1]
 [REGION:lightbox]
 [![](CameraView.png)(w:600)](CameraView.png)
@@ -156,7 +157,8 @@ _画像をクリックしてフルサイズで表示_
 [![](FrustumView.png)(w:600)](FrustumView.png)
 [/REGION]
 [/EXCERPT:SceneView1]
---->
+-
+[/COMMENT]
 
 ### カメラの視野角
 視錐台は **視野角** (FOV) で調整します。値が高いと表示角度が広くなり、値が低いと表示角度が制限されます。
@@ -202,7 +204,8 @@ _画像をクリックしてフルサイズで表示_
 _画像をクリックしてフルサイズで表示_
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:OccluderVsOccludee1]
 [REGION:lightbox]
 [![](OccluderVsOccludee.png)(w:450)](OccluderVsOccludee.png)
@@ -214,9 +217,11 @@ _画像をクリックしてフルサイズで表示_
 [![](OccluderVsOccludeeCameraView.png)(w:450)](OccluderVsOccludeeCameraView.png)
 [/REGION]
 [/EXCERPT:OccluderVsOccludeeCV]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 ### ビジビリティ カリング
 
 以下のタイプのカリングは、シーンのアクタの現在の可視ステートの判断に使用します。
@@ -229,7 +234,8 @@ _画像をクリックしてフルサイズで表示_
 
 
 本ページの [バッファの可視化](Engine/UI/LevelEditor/Viewports/ViewModes#buffervisualization) で詳細をご確認ください。
---->
+-
+[/COMMENT]
 
 ## ビジビリティ カリング メソッド
 
@@ -279,7 +285,8 @@ _画像をクリックしてフルサイズで表示_
 [/OBJECT]
 
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | [INCLUDE:#Units1500] | [INCLUDE:#Units1000] | [INCLUDE:#Units500] |
 | --- | --- | --- |
@@ -289,12 +296,14 @@ _画像をクリックしてフルサイズで表示_
 上の動画での現象を図説しやすいように、この画像はトップダウン ビューを表示し、**Camera** アクタか **Cube** アクタの中央までの距離を示します。 
 トップダウン ビューのすぐ下の画像は、カメラのビューです。
 
---->
+-
+[/COMMENT]
 
 **Desired Max Draw Distance** が 1000、**Min Draw Distance** が 500 に設定されているので、
 キューブ アクタはカメラがアクラのバウンディング ボックスの中央からこの範囲内を移動した時だけみえるようになります。カメラがこのスペース外に移動すると、アクタはレンダリング対象外となります。 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Units1500]
 [REGION:lightbox]
 [![](1500units.png)(w:300)](1500Units.png)
@@ -312,7 +321,8 @@ _画像をクリックしてフルサイズで表示_
 [![](500units.png)(w:300)](500Units.png)
 [/REGION]
 [/EXCERPT:Units500]
--->
+
+[/COMMENT]
 
 
 ### Cull Distance Volume
@@ -351,7 +361,8 @@ Cull Distance Volumes は、対応する距離の境界のサイズに基づい�
 本ページの [ベスト プラクティスのためのカリング方法](Engine\Rendering\VisibilityCulling\CullingBestPractices) をご覧ください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Camera1]
 [REGION:lightbox]
 [![](Camera1.png)(w:215)](Camera1.png)
@@ -375,13 +386,16 @@ Cull Distance Volumes は、対応する距離の境界のサイズに基づい�
 [![](Camera4.png)(w:215)](Camera4.png)
 [/REGION]
 [/EXCERPT:Camera4]
--->
+
+[/COMMENT]
 
 [TOC(start:2 end:2)]
 
 ### Precomputed Visibility Volume
 
-<!---![](PrecomputedVisibilityVolume.png)(w:500)--->
+[COMMENT:none]
+-![](PrecomputedVisibilityVolume.png)(w:500)-
+[/COMMENT]
 
 Precomputed Visibility Volumes は、静的ライティング ビルドの後にサーフェイスに置かれるビジビリティ セルを使います。これらのビジビリティ セルは、カメラ ビューを使ってアクタの可視ステートを変更します。
 カリング メソッドは、可視ステートを確認するためのハードウェア オクルージョン クエリを発行できないモバイル デバイス上にビジビリティ カリングを行う際に便利です。 

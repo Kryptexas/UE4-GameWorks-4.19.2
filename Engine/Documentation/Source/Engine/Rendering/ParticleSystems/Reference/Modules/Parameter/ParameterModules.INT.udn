@@ -21,7 +21,8 @@ The **Dynamic** module is used to pass four scalar values to the material(s) use
 
 
 
-<!-------------Dynamic Includes----------------
+[COMMENT:none]
+-----------Dynamic Includes----------------
 #### Includes
 
 [EXCERPT:DynamicParams]
@@ -50,7 +51,8 @@ The **Dynamic** module is used to pass four scalar values to the material(s) use
 [/REGION]
 [/EXCERPT:ValueMethod]
 
--------------Dynamic Includes--------------->
+-------------Dynamic Includes-------------
+[/COMMENT]
 
 
 ## Dynamic (Seed)

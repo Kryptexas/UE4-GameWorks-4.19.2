@@ -4,23 +4,12 @@ Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Ideas for further exploration!
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:5
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Programming\QuickStart\4 "%Programming\QuickStart\4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Programming Quick Start Home](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Using what you have learned, try to do the following:
 
@@ -33,4 +22,4 @@ As for the specifics covered in this tutorial:
 * For more information on Actors, see the [Actor](API:AActor) manual page.
 * For further tutorials, see the [%Programming/Tutorials:title%](Programming/Tutorials) page.
 
-%Steps%
+[NAV]

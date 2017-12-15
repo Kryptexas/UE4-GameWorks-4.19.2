@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.5 - キャラクターのジャンプを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 一般的にアクション マッピングでは、個別のイベントに対する入力を扱います。キーボード、マウス、およびコントローラーの入力を「フレンドリー ネーム」にマッピングします。この「フレンドリー ネーム」は後でゲームの動作 (移動など) にバインドすることができます。 
 最終的な効果としては、キー、マウスボタン、またはキーパッドボタンを押す (または解放する) と、特定のゲーム動作が直接トリガーされます。
@@ -228,4 +228,3 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-%Steps%

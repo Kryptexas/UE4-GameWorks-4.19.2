@@ -1,34 +1,22 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1 - 照準ポーズを作成する
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo
 Description:デフォルトのプレイ可能なキャラクターを更新し、Aim Offset に必要な全ポーズを作成します。 
 version:4.14
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:1
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AimOffset を作成する ホーム](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このステップではデフォルトのプレイ可能なキャラクターを更新し、Aim Offset に必要な全ポーズを作成します。 
 
-[INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup#intro]
+[INCLUDE:Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup#intro]
 
 ## ステップ
 
@@ -96,6 +84,7 @@ tags:Aim Offset
 
 1.	**Aim_Space_Hip** アセットを毎回 **複製** し、以下の表に基づき残りの各ポーズを作成します。
 	| Anim Name | Start At Keyframe | Remove Frames 1 | Remove Frames 2 |
+
 	| ------- | ------ | ------ | ------ |
 	| **Aim_Left_Center** | 30 | 0 - 30 | 1 - 57 |
 	| **Aim_Left_Up** | 40 | 0 - 40 | 1 - 48 |
@@ -137,4 +126,4 @@ tags:Aim Offset
 
 各ポーズを作成したので、次のステップで Aim Offsetを作成します。 
 
-%Steps%
+[NAV]

@@ -93,7 +93,9 @@ The system is very flexible and can be customized to fit your needs. Perhaps you
 
 ## Setting Up Retargeting
 
-<!---Establishing animation retargeting on your --->
+[COMMENT:none]
+-Establishing animation retargeting on your -
+[/COMMENT]
 
 As mentioned above under _How Retargeting Works_, the first thing you will want to do is set up the **Bone Translation Retargeting** mode for the Bones within the Skeleton.
 
@@ -134,12 +136,14 @@ Please see the [](Engine\Animation\Persona\BasePoseManager) page for more inform
 [/REGION]
 
 
-<!----
+[COMMENT:none]
+--
 
 If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result. The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations. But what happens if you need special animations just for the variants?
 
 Consider if we needed a special set of animations for our tall character, such as a different idle animation. An animator could take that Skeletal Mesh, create the necessary animation, then import it using the same Skeleton asset as before, but there is now a problem. Since the original proportions of the Skeleton asset were based off the Base Character's proportions, the animation will be distorted.
 
---->
+-
+[/COMMENT]
 
 

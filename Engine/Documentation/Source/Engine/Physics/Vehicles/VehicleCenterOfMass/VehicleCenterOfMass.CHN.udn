@@ -38,7 +38,8 @@ Also, when you consider where to place the Center of Mass, it is worth noting th
 | Center of Mass: X: 0, Y: 0, Z: 0 | Center of Mass: X: -25, Y: 0, Z: -10 |
 [/REGION]
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:originalCoM]
 [OBJECT:EmbeddedVideo]
@@ -67,7 +68,8 @@ Also, when you consider where to place the Center of Mass, it is worth noting th
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:adjustedCoM]
---->
+-
+[/COMMENT]
 
 ## Debugging Center of Mass
 

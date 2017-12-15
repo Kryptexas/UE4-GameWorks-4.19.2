@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:지오메트리 브러시 액터
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -96,7 +96,8 @@ topic-image:Brushes_topic.png
 |![](BSP_Sphere.png)|빌더 브러시를 구체 모양으로 변경합니다. 나중에 브러시 옵션 패널에서 수정할 수 있으며, 그 옵션은 다음과 같습니다:[INCLUDE:#SphereBuilder]|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BoxBuilder]
 [REGION:simpletable]
 |박스 빌더 세팅||
@@ -189,7 +190,8 @@ topic-image:Brushes_topic.png
 [/REGION]
 [/EXCERPT:SphereBuilder]
 
---->
+-
+[/COMMENT]
 
 
 ## 브러시 수정하기

@@ -23,7 +23,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 ご利用のデバイスは Apple Developer アカウントに既に関連付けられていますか？[この手順はスキップできます。](Platforms/iOS/QuickStart/5)
@@ -78,13 +78,15 @@ SkillLevel:Intermediate
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

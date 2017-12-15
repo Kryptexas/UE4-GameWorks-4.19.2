@@ -123,9 +123,12 @@ version:4.9
 |[INCLUDE:#post3]|[INCLUDE:#post4]|
 [/REGION]
 
-<!-- 每项设置在以下的 CVAR 部分中均有提及。 -->
+[COMMENT:none]
+ 每项设置在以下的 CVAR 部分中均有提及。 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:post1]
 	r.MotionBlurQuality=0
 	r.BlurGBuffer=0
@@ -190,7 +193,8 @@ version:4.9
 	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post4]
 
--->
+
+[/COMMENT]
 
 
 ## 阴影 - sg.ShadowQuality
@@ -214,9 +218,12 @@ version:4.9
 |[INCLUDE:#shadow3]|[INCLUDE:#shadow4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:shadow1]
 	r.LightFunctionQuality=0
 	r.ShadowQuality=0
@@ -256,7 +263,8 @@ version:4.9
 	r.Shadow.DistanceScale=1.0
 	r.Shadow.CSM.TransitionScale=1.0
 [/EXCERPT:shadow4]
--->
+
+[/COMMENT]
 
 
 ## 纹理 - sg.TextureQuality
@@ -275,9 +283,12 @@ version:4.9
 |[INCLUDE:#texture3]|[INCLUDE:#texture4]|
 [/REGION]
 
-<!-- 每项设置在以下的 CVAR 部分中均有提及。 -->
+[COMMENT:none]
+ 每项设置在以下的 CVAR 部分中均有提及。 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:texture1]
 	r.Streaming.MipBias=2.5
 	r.MaxAnisotropy=0
@@ -302,7 +313,8 @@ version:4.9
 	r.Streaming.PoolSize=1000
 [/EXCERPT:texture4]
 
--->
+
+[/COMMENT]
 
 [REGION:note]
 此功能的效果主要取决于游戏和硬件。如纹理数量不多、全分辨率 mip map 加载和使用时未耗尽虚幻引擎 4 为纹理分配的内存池，高低设置之间（在各向异性设置变更之外）并无实际视觉差异。
@@ -323,9 +335,12 @@ version:4.9
 |[INCLUDE:#effects3]|[INCLUDE:#effects4]|
 [/REGION]
 
-<!-- 每项设置在以下的 CVAR 部分中均有提及。 -->
+[COMMENT:none]
+ 每项设置在以下的 CVAR 部分中均有提及。 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:effects1]
 	r.TranslucencyLightingVolumeDim=24
@@ -367,7 +382,8 @@ version:4.9
 	r.MaterialQualityLevel=1
 [/EXCERPT:effects4]
 
--->
+
+[/COMMENT]
 
 ## 细节模式
 

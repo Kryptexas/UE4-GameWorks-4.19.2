@@ -6,46 +6,8 @@ Version: 4.12
 SkillLevel:Intermediate
 parent:Engine
 order:11
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/foliage_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Foliage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Foliage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Foliage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/foliage_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Foliage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Foliage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Foliage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Foliage/foliage_topic.png
+topic-icon:%ROOT%/foliage_icon.png
 
 [REGION:header_img]
 ![Foliage Tool](Foliage_Banner.png)(w:900)
@@ -81,7 +43,7 @@ The Mesh List is the area in which Static Meshes that are to be used as foliage 
 To add a Static Mesh to the Mesh List, you must drag the Static Mesh from the **Content Browser** into the area that says **Drop Foliage Here**.
 
 [REGION:lightbox]
-[![](Foliage_TextBar.png)(w:400 h:250)](Foliage_TextBar.png)
+[![](Foliage_TextBar.png)(w:400)](Foliage_TextBar.png)
 [/REGION]
 
 [REGION:tip]
@@ -91,13 +53,13 @@ The yellow Foliage Type will only be displayed when you are trying to add the co
 To adjust the properties of a Static Mesh that is used as foliage, select the Static Mesh in the Mesh List and then press the small **Magnifying Glass** icon in the lower right-hand corner of the foliage tool. This will expose the selected Static Meshes details. 
 
 [REGION:lightbox]
-[![](Expose_Instanc_Options.png)(w:190 h:350)](Expose_Instanc_Options.png)
+[![](Expose_Instanc_Options.png)(w:190)](Expose_Instanc_Options.png)
 [/REGION]
 
 Once pressed, you should see something that looks similar to the image below.
 
 [REGION:lightbox]
-[![](Foliage_Mesh_Options.png)(w:190 h:350)](Foliage_Mesh_Options.png)
+[![](Foliage_Mesh_Options.png)(w:190)](Foliage_Mesh_Options.png)
 [/REGION]
 
 
@@ -111,7 +73,7 @@ You can also select Foliage Meshes by clicking on them in the Mesh list.
 This will put an orange highlight around them and then, in the options panel below, you can adjust various properties. 
 
 [REGION:lightbox]
-[![](Foliage_Selected_Meshes.png)(w:190 h:350)](Foliage_Selected_Meshes.png)
+[![](Foliage_Selected_Meshes.png)(w:190)](Foliage_Selected_Meshes.png)
 [/REGION]
 
 ## Brush Settings
@@ -131,29 +93,35 @@ The checkmark boxes you see with the names **Landscape**, **Static Meshes**, **B
 Checking a box will indicate that a Foliage mesh should be added should you use the tool on that Actor type.
 Unchecking a box will indicate that a foliage mesh should not be added to that Actor type.
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:PaintDensity]
 The target density at which you will add instances when using **Left Mouse** button.
 * This is a value from 0 to 1 where 1 paints mesh instances at the maximum density listed in the Mesh Properties for each mesh (see below).
 * If the density of meshes in the brush is already greater than this, no meshes will be added.
 [/EXCERPT:PaintDensity]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:EraseDensity]
 The target density you would like to achieve when you erase instances using **Ctrl+Shift+click**.
 * This is a value from 0 to 1 where 0 represents no meshes and 1 represents the maximum density listed in the Mesh Properties for each mesh (see below). If there are fewer meshes than this desired erase density, no more meshes will be erased. 
 * This allows you to thin out meshes already painted without completely removing all instances.
 [/EXCERPT:EraseDensity]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:Filter]
 The kinds of objects you want to place instances on. 
 * Note that the foliage sphere brush will disappear when it is not over an object that matches the filter type. 
 * Also note that you can only paint on objects that are in the active streaming level.
 [/EXCERPT:Filter]
---->
+-
+[/COMMENT]
 
 [REGION:note]
 Tablet pressure sensitivity is also supported. The pen pressure will modulate the number of foliage mesh instances added or removed after all other parameters are considered.
@@ -196,7 +164,7 @@ Each Static mesh in the Mesh List has a number of properties that control how in
 The properties are accessible by selecting the Static Mesh or Static Meshes you want in the Mesh List and then adjusting the properties displayed below.
 
 [REGION:lightbox]
-[![](Foliage_PaintSettings.png)(w:190 h:350)](Foliage_PaintSettings.png)
+[![](Foliage_PaintSettings.png)(w:190)](Foliage_PaintSettings.png)
 [/REGION]
 
 Here is a high-level description of what each section is used for:
@@ -216,7 +184,7 @@ The Reapply tool allows you to selectively change certain parameters for Foliage
 When you paint over Foliage meshes with the Reapply tool active, the Foliage meshes that are selected in the Mesh List will be updated to reflect the changes made in the Reapply tool.
 
 [REGION:lightbox]
-[![](Foliage_Reapply.png)(w:190 h:350)](Foliage_Reapply.png)
+[![](Foliage_Reapply.png)(w:190)](Foliage_Reapply.png)
 [/REGION]
 
 
@@ -236,7 +204,7 @@ When the Select tool is active, you can select individual instances of foliage m
 You can select multiple Foliage meshes at a time by holding down the **Ctrl** button while clicking on Foliage meshes in the level.
 
 [REGION:lightbox]
-[![](Foliage_SelectInstance.png)(w:600 h:400)](Foliage_SelectInstance.png)
+[![](Foliage_SelectInstance.png)(w:600)](Foliage_SelectInstance.png)
 [/REGION]
 
 Once instances have been selected you can perform the following actions on them.
@@ -275,7 +243,7 @@ The more mouse button clicks you make, the more Foliage will be added.
 To remove Foliage, hold down the **Shift** key and use the **Left Mouse** button to click on the Static Mesh you want to remove Foliage from.
 
 [REGION:lightbox]
-[![](Foliage_Fill.png)(w:600 h:400)](Foliage_Fill.png)
+[![](Foliage_Fill.png)(w:600)](Foliage_Fill.png)
 [/REGION]
 
 [region:tip]
@@ -325,13 +293,13 @@ In Order to use the Foliage Painting mode, your level must contain either a Land
 1. Right-click in the Content Browser. Under the **Create Advanced Asset** section, expand the **Miscellaneous** section and select the **Foliage Type** option.
 
 	[REGION:lightbox]
-	[![](Foliage_Scalability_00.png)(w:300 h:350)](Foliage_Scalability_00.png)
+	[![](Foliage_Scalability_00.png)(w:300)](Foliage_Scalability_00.png)
 	[/REGION]
 
 1. Input a name for the Foliage Type (for this example we are using **FT_Box**) and double-click on the FT_Box Foliage Type to open it.  
 
 	[REGION:lightbox]
-	[![](Foliage_Scalability_01.png)(w:405 h:223)](Foliage_Scalability_01.png)
+	[![](Foliage_Scalability_01.png)(w:405)](Foliage_Scalability_01.png)
 	[/REGION]
 
 1. Once FT_Box is opened, expand the **Mesh** and **Scalability** sections.
@@ -443,13 +411,13 @@ In Order to use the Foliage Painting mode, your level must contain either a Land
 1. In the **Modes** panel, select the **Foliage Tool**. Select and drag the FT_Box Foliage Type from the Content Browser to the area that says **Drop Foliage Here**.
 
 	[REGION:lightbox]
-	[![](Foliage_Scalability_05.png)(w:250 h:350)](Foliage_Scalability_05.png)
+	[![](Foliage_Scalability_05.png)(w:250)](Foliage_Scalability_05.png)
 	[/REGION]
 
 1. Select the FT_Box Foliage Type you placed in the Foliage Type list to select it. In the viewport, hold down the **Left Mouse Button** to begin painting the FT_Bo Foliage Type meshes onto a surface. 
 
 	[REGION:lightbox]
-	[![](Foliage_Scalability_06.png)(w:592 h:398)](Foliage_Scalability_06.png)
+	[![](Foliage_Scalability_06.png)(w:592)](Foliage_Scalability_06.png)
 	[/REGION]
 
 1. On the **Toolbar**, click on the **Play** button to launch the level. Navigate to a location where Foliage has been added.
@@ -470,7 +438,8 @@ Below, the density of the Foliage changes as the foliage.DensityScale setting is
 [INCLUDE:Engine\Foliage\#FS]
 [/REGION]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:FS]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -499,7 +468,8 @@ Below, the density of the Foliage changes as the foliage.DensityScale setting is
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FS]
--->
+
+[/COMMENT]
 
 
 

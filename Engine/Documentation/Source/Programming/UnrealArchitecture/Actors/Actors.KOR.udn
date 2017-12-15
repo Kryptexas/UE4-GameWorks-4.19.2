@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 액터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
@@ -8,9 +8,11 @@ version: 4.11
 [TOC (start:2 end:3)]
 
 
-<!-- Actor (액터)란 월드에 배치 또는 [스폰](Programming\UnrealArchitecture\Actors\Spawning) 되는 오브젝트에 대한 바탕이 되는 오브젝트입니다. 액터를 한마디로 설명해 보자면, "틱(tick)이 적용되는 컴포넌트 모음" 입니다. 실제로 액터는 
+[COMMENT:none]
+ Actor (액터)란 월드에 배치 또는 [스폰](Programming\UnrealArchitecture\Actors\Spawning) 되는 오브젝트에 대한 바탕이 되는 오브젝트입니다. 액터를 한마디로 설명해 보자면, "틱(tick)이 적용되는 컴포넌트 모음" 입니다. 실제로 액터는 
  여러가지 작업이 가능합니다. Actor.h 에서 포함된 변수와 함수 전부를 살펴볼 수 있습니다.
--->
+
+[/COMMENT]
 
 [EXCERPT:Actors]
 [INCLUDE:Shared/Glossary/A#glossary_actor] 참고로 액터는 트랜스폼 (위치, 회전, 스케일) 데이터를 직접 저장하지 않으며, 액터의 루트 컴포넌트에 트랜스폼 데이터가 존재하는 경우, 그 데이터를 사용합니다.
@@ -50,7 +52,8 @@ $ UPrimitiveComponent 프리미티브 컴포넌트 : 일정한 형태의 (메시
 | ------------------| -----------|
 | ![](GoldPickupExampleActor.png)(w:400) | [INCLUDE:#goldhierarchy] | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GoldHierarchy]
 * **Root - SceneComponent**: 액터의 월드 내 기반 위치 설정을 위한 기본 씬 컴포넌트입니다.
 	* **StaticMeshComponent**: 금괴를 나타내는 메시입니다.
@@ -60,7 +63,8 @@ $ UPrimitiveComponent 프리미티브 컴포넌트 : 일정한 형태의 (메시
 [/EXCERPT:GoldHierarchy]
 
 자세한 정보는 [](Programming/UnrealArchitecture/Actors/Components) 문서를 참고하세요.
--->
+
+[/COMMENT]
 
 ## 틱
 

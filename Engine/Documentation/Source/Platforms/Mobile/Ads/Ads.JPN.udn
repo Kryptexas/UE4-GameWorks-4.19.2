@@ -91,8 +91,10 @@ Unreal Match 3 のサンプル ゲームを例に取りましょう。Widget ブ
 ノードに関する詳細は、[バナーを非表示にする](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/HideAdBanner/index.html) を参照してください。
 
 [/EXCERPT:Usage]
-<!--
+[COMMENT:none]
+
 
 ![image alt text](image_1.png)
 
--->
+
+[/COMMENT]

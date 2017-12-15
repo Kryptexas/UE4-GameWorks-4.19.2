@@ -481,7 +481,8 @@ Sequencer 提供了一个新的变换键/截面（Transform Keys/Sections）工�
 |                                          |                              |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlendspacePreview]
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -498,7 +499,8 @@ Sequencer 提供了一个新的变换键/截面（Transform Keys/Sections）工�
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:BlendspacePreview]
--->
+
+[/COMMENT]
 
 * **多种更改样本属性的方式** - 除了拖放样本，我们添加的上下文菜单和选值框还可以用来更改样本值或动画序列。
 * **按住 Shift（锁定）预览混合空间** - 您可以通过从不同的角度、按不同的缩放比例等方式来预览网格。我们添加了锁定预览值的功能；您可以通过按住 **Shift** 键来改变预览值。

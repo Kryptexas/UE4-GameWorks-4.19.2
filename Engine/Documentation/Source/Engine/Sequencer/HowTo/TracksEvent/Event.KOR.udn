@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3439709
+﻿INTSourceChangelist:3774504
 Availability: Public
 Title:커스텀 이벤트 및 커스텀 구조체
 Crumbs:%ROOT%
 Description:이벤트 트랙을 사용하여 블루프린트에서 사용할 커스텀 구조체를 가진 커스텀 이벤트 호출 방법을 보여드립니다.
-Version: 4.15
+Version: 4.18
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
@@ -13,16 +13,14 @@ Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
 type:how-to
 
-**Event Track** (이벤트 트랙)은 [**레벨 블루프린트**](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 안에서 [**커스텀 이벤트**](Engine/Blueprints/UserGuide/Events/Custom) 호출 및 [**블루프린트 스크립트**](Engine/Blueprints) 를 발동시키는 데 사용될 수 있습니다.
+**Event Track** (이벤트 트랙)을 사용하면 다수의 블루프린트 안에서 [블루프린트 스크립트](Engine/Blueprints) 를 실행할 수 있는 [커스텀 이벤트](Engine/Blueprints/UserGuide/Events/Custom) 호출이 가능합니다.
 커스텀 이벤트가 호출되면, 거기에 붙은 스크립트 역시도 실행되며, 필요에 따라 어떤 경우의 수만큼도 사용 가능합니다.
 이벤트 트랙을 사용하여 커스텀 이벤트를 호출할 때, 별도의 커스텀 [구조체](Engine/Blueprints/UserGuide/Variables/Structs) 를 같이 전달할 수 있는데, 이를 통해 그 안에 포함된 변수를 업데이트할 수 있습니다.
 레벨 시퀀스 재생 도중 다른 변수를 업데이트하고자 하는 상황에 유용하게 쓰일 수 있습니다.
 
-이 예제에서는 이벤트 트랙을 사용하여 시퀀스 재생 시 레벨에서 오브젝트를 이동시키는 데 사용되는 커스텀 구조체 포함 커스텀 이벤트를 호출합니다.
+이 예제에서는 이벤트 트랙을 사용하여 레벨 블루프린트에서 오브젝트를 이동시키고 다른 블루프린트의 포인트 라이트를 켜고 끕니다.
 
  ![](EndResultImage.png)
-
-위 예제에서 키를 누르면 레벨 시퀀스가 재생되고 이벤트가 한 번 실행될 때마다 큐브가 위로 이동합니다.
 
 ## 단계
 
@@ -30,7 +28,7 @@ type:how-to
 여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
 [/REGION]
 
-1.	**콘텐츠 브라우저** 에서 **Content/StarterContent/Shapes** 폴더 아래 메시를 끌어 레벨에 놓습니다.
+1.	**콘텐츠 브라우저** 에서 **Content/StarterContent/Shapes** 폴더 아래 **Shape_Cube** 메시를 끌어 레벨에 놓습니다.
 
 	![](EventTrack1.png)
 
@@ -42,7 +40,7 @@ type:how-to
 
 	그러면 게임플레이 도중 메시를 움직일 수 있습니다.
 
-1.	**신규 추가** 버튼을 클릭하고, **블루프린트** 아래 **구조체** 옵션을 선택합니다.
+1.	**콘텐츠 브라우저** 에서 **신규 추가** 버튼을 클릭하고, **블루프린트** 아래 **구조체** 옵션을 선택합니다.
 
 	![](EventTrack2.png)
 
@@ -54,7 +52,7 @@ type:how-to
 	여기서 변수 이름이 중요한데, 나중에 이 이름을 사용하여 레퍼런스를 지정할 것이기 때문입니다.
 	[/REGION]
 
-1.	**시네마틱** 버튼에서 **Master** 라는 **레벨 시퀀스** 를 새로 추가한 뒤, **시퀀서** 안에서 **이벤트 트랙** 을 추가합니다.
+1.	레벨에 **Master** 라는 **레벨 시퀀스** 를 새로 추가한 뒤, **시퀀서** 안에서 **이벤트 트랙** 을 추가합니다.
 
 	![](EventTrack4.png)
 
@@ -116,17 +114,60 @@ type:how-to
 
 	![](EventTrack14.png)
 
-1.	메인 툴바의 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
+	에디터에서 플레이하고 **1** 키를 누를 때마다 큐브가 Z 축으로 올라갑니다.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		wlLcUr8BXvY
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+	**레벨 블루프린트** 를 사용하여 **커스텀 이벤트** 를 실행하고 있으나, 실제 사용할 때는 다른 블루프린트 또는 다수의 블루프린트에 영향을 주고 싶을 때가 있을 수 있습니다.
+
+1.	**콘텐츠 브라우저** 에서 **Content/StarterContent/Blueprints** 아래 **Bluperint_CeilingLight** 블루프린트를 끌어 레벨에 놓습니다.
+
+	![](EventTrack15.png)
+
+1.	**마스터** 레벨 시퀀스의 **디테일** 패널에서 부가 옵션을 펼치고 **General** (일반) 아래 **Blueprint_CeilingLight** 를 **Additional Event Reciever** 로 추가합니다. 
+
+	![](EventTrack16.png)
+
+1.	**Blueprint_CeilingLight** 블루프린트를 열고 다음 스크립트를 추가합니다.
+
+	![](EventTrack17.png)
+
+	* 커스텀 이벤트를 만들어 **LiftCube** 라 합니다. **시퀀서** 의 **이벤트** 에 해당합니다.
+	* **Flip Flop** 노드를 사용하여 **Point Light** 의 **Set Intesnity** (강도 설정)을 **0** (꺼짐) 또는 **5000** (켜짐) 으로 합니다.
+
+	그러면 마스터 레벨 시퀀스를 재생할 때마다 라이트가 꺼졌다 켜졌다 하게 됩니다.
+	
+	[REGION:warning]
+	이 블루프린트에서 커스텀 구조체 **MoveCube** 를 사용하고 있지는 않지만, 이벤트가 호출되도록 하기 위해서는 여전히 추가해 줘야 합니다.
+	[/REGION] 
+
+1.	에디터에서 플레이합니다.
 
 
 ## 최종 결과
 
-에디터에서 플레이하면, **1** 키를 누를 때마다 큐브가 **Z** 축으로 올라갈 것입니다.
+에디터에서 플레이하면, **1** 키를 누를 때마다 큐브가 Z 축으로 올라가고 불이 꺼졌다 켜졌다 합니다.
 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	wlLcUr8BXvY
+	Ftm9I_TEXYE
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -142,9 +183,10 @@ type:how-to
 	[/PARAMLITERAL]
 [/OBJECT]
 
-이 예제에서는 시네마틱을 확인할 카메라를 할당하지 않은 대신 시퀀서와 블루프린트를 사용하여 스크립트 시퀀스를 수행하고 있습니다.
+이 예제에서는, **레벨 블루프린트** 와 **시퀀서** 의 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 안에서 이벤트를 호출하고 있습니다.
+시네마틱을 확인할 카메라를 할당하지 않은 대신 시퀀서와 블루프린트를 사용하여 스크립트 시퀀스를 수행하고 있습니다.
 프로젝트에서는 커스텀 이벤트 및 커스텀 구조체와 함께 이벤트 트랙을 사용하여 컷씬 도중 (플레이어가 생명령 증가, 새 무기, 기타 게임플레이 관련 효과 등) 
-플레이어 정보를 업데이트할 수 있습니다.
+시네마틱 시퀀스 내 정의된 지점에서 플레이어 정보를 업데이트할 수 있습니다.
 
 
 

@@ -6,46 +6,7 @@ Description:使用雾来渲染世界的气氛和设置环境的氛围。
 parent:Engine/Rendering
 order:6
 type:landing
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects:title%](Engine/Actors/FogEffects/fog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects:title%](Engine/Actors/FogEffects/fog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:fog_topic.png
 
 [REGION:banner]
 ![Fog Effects](fog_landing_banner.png)

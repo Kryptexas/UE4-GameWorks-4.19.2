@@ -1,7 +1,7 @@
 ﻿Availability:Public
 Title:Light 関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:マテリアルをソースにしてライティングを投影する
+Description:マテリアルをソースにしたライティングの投影
 Version:4.9
 
 [VAR:Topic]

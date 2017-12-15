@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -10,42 +10,11 @@ Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
 Related: Engine/Physics/PhysicalMaterials/Reference
 Version: 4.9
+topic-image:physics_compact.png
 
 [REGION:banner]
 ![](Physics_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Physics:title%](physics_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Physics:title%](physics_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Physics:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 **Physics** 맵에는 언리얼 엔진 4 에서의 피직스 사용법에 대한 여러가지 예제를 찾아볼 수 있습니다. 이 맵에는 스태틱 메시에서 피직스 액터를 생성하여 플레이어 상호작용에 반응하기, 스켈레탈 메시에 피직스 애셋을 적용하여 물리에 반응하기, 포스, 임펄스, 모터, 피지컬 컨스트레인트에 대한 여러가지 예제가 표시되어 있으며, 레벨 디자인이나 게임플레이 시나리오 작업 보조를 위한 세부사항이 포함되어 있습니다.

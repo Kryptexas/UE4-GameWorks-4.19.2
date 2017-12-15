@@ -43,7 +43,8 @@ Topic-image:bloom_Topic.png
 | **#1/#2/#3/#4/#5 Size** || スクリーン幅をパーセンテージで表したサイズです。ある数字でクランプされます。より大きな数値が必要な場合、代わりに次の低解像度のブラーを使用します。 [INCLUDE:#Size] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
@@ -70,7 +71,8 @@ Topic-image:bloom_Topic.png
 | #1 | #2 | #3 | #4 | #5 |
 [/REGION]
 [/EXCERPT:Size]
--->
+
+[/COMMENT]
 
 ## ブルームの畳みこみ (Bloom Convolution)
 
@@ -139,7 +141,8 @@ _既存の_ ブルームはパフォーマンスでは圧倒的に有利です�
 	[/OBJECT]
 * ブルームの畳み込みの詳細プロパティによる微調整でカーネル イメージを変更するだけで、折り畳みのビヘイビアを大幅に変更することができます。
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:cbtextureproperties]
 [REGION:simpletable]
@@ -158,7 +161,8 @@ _既存の_ ブルームはパフォーマンスでは圧倒的に有利です�
 * [Never Stream]:**Enabled**
 [/EXCERPT:cbtexturepropertieslist]
 
------>
+---
+[/COMMENT]
 
 ## ブルームの汚れマスク (Bloom Dirt Mask)
 
@@ -201,7 +205,8 @@ _既存の_ ブルームはパフォーマンスでは圧倒的に有利です�
 	* 色収差 (カラー フリンジ) をテクスチャに使用すると、汚れマスクの見た目を改善しやすくなります。
 
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:dirtmasktextureproperty]
 [REGION:simpletable]
@@ -227,7 +232,8 @@ _既存の_ ブルームはパフォーマンスでは圧倒的に有利です�
 [REGION:caption] ビークル ゲームでの汚れマスク テクスチャの使用例[/REGION]
 [/EXCERPT:dirtmaskexample]
 
------>
+---
+[/COMMENT]
 
 
 ## トレーニング ストリーム

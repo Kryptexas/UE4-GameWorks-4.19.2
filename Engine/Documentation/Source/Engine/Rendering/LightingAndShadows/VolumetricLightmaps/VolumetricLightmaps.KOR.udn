@@ -1,0 +1,338 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 볼류메트릭 라이트맵
+Description: 다이내믹 오브젝트와 빌드되지 않은 씬 프리뷰의 글로벌 일루미네이션에 사용되는 볼류메트릭 라이팅 샘플입니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:VLM_Topic.png
+Social-image:LitMoveableCharacterVLM.png
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+[REGION:note]
+Volumetric Lightmap (볼류메트릭 라이트맵)은 앞으로 [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache) (간접광 캐시)와 Volume Lighting Sample (볼륨 라이팅 샘플)을 대체합니다.
+
+간접광 캐시는 **월드 세팅** > **Lightmass Settings** (라이트매스 세팅)에서 **Volume Lighting Method** (볼륨 라이팅 메소드)를 **VLM Sparse Volume Lighting Samples** 로 설정하는 것으로 다시 켤 수 있습니다.
+[/REGION]
+
+
+
+
+라이트매스는 스태틱 메시의 간접광에 대해 [표면 라이트맵](Engine/Content/Types/StaticMeshes/LightmapUnwrapping) 을 생성합니다. 하지만 (캐릭터같은) 다이내믹 오브젝트는 간접광도 받을 방법이 필요합니다. 이는 빌드 시간에 **Volumetric Lightmap** (볼류메트릭 라이트맵)이라는 곳에 모든 점의 미리계산 라이팅을 저장한 뒤 런타임에 다이내믹 오브젝트의 간접광에 대한 라이팅 보간에 사용하는 방식으로 이루어집니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](LitMoveableCharacterILC.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](LitMoveableCharacterVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]  [/REGION]
+[REGION:caption]
+볼류메트릭 라이트맵으로 렌더링된 다이내믹 오브젝트는 간접광 캐시로 렌더링했을 때보다 훨씬 정확하게 렌더링됩니다.
+[/REGION]
+
+
+
+
+## 작동 방식
+
+일반적인 수준에서, 볼류메트릭 라이트맵 시스템의 작동 방식은 다음과 같습니다:
+
+* 라이트매스가 레벨 전반에 걸쳐 라이팅 샘플을 배치하면 라이팅 빌드 도중 그에 대한 간접광을 계산합니다.
+* 다이내믹 오브젝트를 렌더링할 때가 오면, 볼류메트릭 라이트맵을 셰이딩 대상 각 픽셀에 보간, 미리계산 간접광을 만듭니다.
+* 빌드된 라이팅이 없는 (즉 오브젝트가 새 것이거나 너무 멀리 이동한) 경우, 라이팅을 리빌드할 때까지 **스태틱** 오브젝트에 대한 볼류메트릭 라이트맵에서 각 픽셀까지 라이팅 보간합니다.
+
+
+Lightmass Importance Volume (라이트매스 임포턴스 볼륨)을 배치하면, Volumetric Lightmap (볼류메트릭 라이트맵)은 4x4x4 셀로 이루어진 브릭(라이팅 샘플)을 만듭니다. 라이트매스를 실행하면, 이 셀을 전체 라이트매스 임포턴스 볼륨에 걸쳐 배치한 뒤 씬의 스태틱 지오메트리 주변에는 더욱 많은 셀을 사용하여 더 좋은 간접광 결과를 캡처합니다.
+
+![](CubeVLM1.png)(w:500)
+
+각 점들( 또는 구체들)은 볼류메트릭 라이트맵 라이팅 샘플로, Third Order Spherical Harmonic (3차 구면 조화 함수)를 사용하여 모든 방향에서 들어오는 빛을 저장합니다.
+
+![](VolumeLightmap.png)(w:375)
+
+오브젝트 근처에, 아무 브릭 안에 있는 스태틱 지오메트리는 더 많은 셀을 사용하며, 여기서 간접광 변화가 가장 심합니다. 이 데이터 구조체를 통해 공간 내 임의 지점으로의 간접광 보간을 GPU 에서 할 수 있습니다.
+
+[REGION:raw] ![](VLMDensity.png)(w:1200) [/REGION]
+[REGION:caption]
+(왼쪽에서 오른쪽 순) 볼륨 내 스태틱 메시가 하나 배치된 라이트매스 임포턴스 볼륨입니다. 스태틱 지오메트리 주변 셀은 밀도가 높습니다; 4x4x4 셀 배치를 보여주는 브릭 한쪽 면에 대한 예제 표현입니다; 같은 셀의 예제 표현인데 라이팅 빌드 도중 스태틱 지오메트리가 있을 때 밀도가 높아집니다.
+[/REGION]
+
+### 볼류메트릭 라이트맵 시각화 켜기
+
+**볼류메트릭 라이트맵** 뷰모드를 사용하여 레벨 뷰포트에서 라이팅 샘플을 시각화시키는 방법은 **표시** > **시각화** > **볼류메트릭 라이트맵** 을 클릭하면 됩니다.
+
+[REGION:imagetable]
+| [INCLUDE:#enableviewmode] | [INCLUDE:#visualize] |
+| --- | --- |
+| 볼류메트릭 라이트맵 뷰모드 켜기 | 볼류메트릭 라이트맵 라이팅 샘플 시각화 |
+| _이미지를 클릭하면 원본을 확인합니다._ | _이미지를 클릭하면 원본을 확인합니다._ |
+[/REGION]
+
+라이팅 빌드 이후 볼류메트릭 라이트맵을 시각화시켜 보면, 영향받은 라이트매스 임포턴스 볼륨 내 셀을 기반으로 스태틱 지오메트리 주변에 라이팅 샘플 밀도가 모인 것을 볼 수 있습니다.
+스태틱 지오메트리에서 멀리 떨어진 라이팅 샘플은 밀도가 낮은데, 근처에 지오메트리가 없기 때문입니다.
+
+
+[COMMENT:none]
+--
+
+[EXCERPT:enableviewmode]
+[REGION:lightbox]
+[![](ViewModeVLM.png)(h:500)](ViewModeVLM.png)
+[/REGION]
+[/EXCERPT:enableviewmode]
+
+
+[EXCERPT:visualize]
+[REGION:lightbox]
+[![](Visualize.png)(h:500)](Visualize.png)
+[/REGION]
+[/EXCERPT:visualize]
+
+-
+[/COMMENT]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Lighting Samples | (Old Method)](ILC_Placement.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method) ](VLM_Placement.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+
+[간접광 캐시](Engine/Rendering/LightingAndShadows/IndirectLightingCache) 는 스태틱 지오메트리 표면 위에만 라이팅 샘플을 배치했습니다. 
+볼류메트릭 라이트맵은 간접광 변화가 가장 심한 스태틱 지오메트리 주변에 샘플 밀도를 높여 디테일을 더합니다.
+
+
+
+[COMMENT:none]
+----
+
+라이트매스 임포턴스 볼륨을 배치하면, 볼류메트릭 라이트맵은 그 부분 전체를 라이팅 샘플 4x4x4 브릭으로 커버합니다. 이 브릭은 간접광 변화가 가장 심한 스태틱 지오메트리 주변에 
+더욱 높은 밀도로 배치됩니다. 이 데이터 구조 덕에 공간 내 임의 지점에 대한 간접광 보간을 GPU 에서 효율적으로 할 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Lighting Samples | (Old Method)](ILC_Placement.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method) ](VLM_Placement.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+
+위 각 점은 라이팅 샘플로, 3차 구면 조화 함수를 사용하여 모든 방향에서 들어오는 빛을 저장합니다.
+
+![](VolumeLightmap.png)(w:375)
+
+**볼류메트릭 라이트맵** 뷰모드를 사용하여 레벨 뷰포트에서 라이팅 샘플을 시각화시키는 방법은 **표시** > **시각화** > **볼류메트릭 라이트맵** 을 사용하면 됩니다.
+
+[REGION:imagetable]
+| [INCLUDE:#enableviewmode] | [INCLUDE:#visualize] |
+| --- | --- |
+| 볼류메트릭 라이트맵 뷰 모드 켜기 | 볼류메트릭 라이트맵 라이팅 샘플 시각화 |
+[/REGION]
+
+볼류메트릭 라이트맵을 시각화시켜 보면, 지오메트리 주변에 있는 밀도와 라이트매스 임포턴스 볼륨 안에 있지만 근처에 지오메트리가 없는 영역을 비교해 볼 수 있습니다.
+
+
+
+
+
+
+
+
+--
+[/COMMENT]
+
+
+
+
+
+
+
+
+
+
+### 빌드되지 않은 라이팅 미리보기
+
+볼류메트릭 라이트맵은 라이팅이 빌드되지 않은 오브젝트를 미리볼 수 있게 해줍니다. 기존에 라이팅을 빌드한 스태틱 메시를 움직이면, 
+다음 번 라이팅을 빌드할 때까지 자동으로 볼류메트릭 라이트맵으로 전환합니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](UnbuildILC.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](UnbuiltVLM.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]
+ 
+[/REGION]
+[REGION:caption]
+복사한 가운데 기둥은 라이팅을 다시 빌드할 때까지 볼류메트릭 라이트맵의 라이팅을 받습니다.
+[/REGION]
+
+
+### 무버블 오브젝트의 프리컴퓨티드 라이팅
+
+[간접광 캐시](Engine/Rendering/LightingAndShadows/IndirectLightingCache) 는 라이팅 샘플간의 보간이 전체 컴포넌트에 한 번만 일어나는 것과 달리, 볼류메트릭 라이트맵은 각 픽셀별로 보간하여 세밀한 디테일을 낼 수 있습니다. 그 안정적인 디테일 배분 덕에 빛샘 현상이 적습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache  | (Old Method)](MovableCharacterILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap  | (New Method)](MovableCharacterVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+볼류메트릭 라이트맵의 높은 디테일 덕에 캐릭터가 배경과 더 잘 어울립니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](MovableObjectILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](MovableObjectVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+스태틱 지오메트리에 삽입된 무버블 오브젝트의 경우, 간접광 캐시에 비해 더 잘 어울리는 스태틱 오브젝트 라이팅이 나옵니다.
+
+
+
+
+[COMMENT:none]
+- [INCLUDE:Engine/Rendering/LightingAndShadows/VolumetricLightmaps#Volumetricfog] --
+[/COMMENT]
+
+### 볼류메트릭 포그의 프리컴퓨티드 라이팅
+
+[EXCERPT:volumetricfog]
+
+볼류메트릭 라이트맵은 각 포그 복셀마다 공간 내 그 위치에 프리컴퓨티드 라이팅을 보간하여 볼류메트릭 포그에도 스태틱 라이팅 적용을 지원합니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Spot Light with | No Indirect Light Bounce](SpotLightNoBounce.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Spot Light with | Indirect Light Bounce](SpotLightIndirectBounce.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+스테이셔너리 라이트는 그 간접광을 라이트맵에 저장하므로, 이제 포그에 영향을 줍니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light with Emissive Color](SkylightEmissiveFogColor.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light Volumetric Lightmap](SkylightVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+스카이 라이트 섀도잉도 제대로 되어, 실내 영역의 포그가 과해지지 않습니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache: | Static and Emissive for Static Lighting | (Old Method) ](ILCStaticLighting.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap: | Static and Emissive for Static Lighting | (New Method) ](VLMStaticLighting.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+스태틱 라이트에 대한 스태틱 및 이미시브가 별도 비용 없이 포그에 영향을 줍니다. 모두 볼류메트릭 라이트맵에 병합되기 때문입니다.
+
+[/EXCERPT:volumetricfog]
+
+
+## 세팅
+
+볼류메트릭 라이트맵 세팅은 **월드 세팅** 의 **Lightmass Settings** (라이트매스 세팅) 아래에서 접근할 수 있습니다.
+
+![](VLMSettings.png)
+
+[REGION:raw]
+| 세팅 | %spacer% | 설명 |
+| --------| -------- | ----------- |
+| **Volumetric Lighting Method** || 볼류메트릭 라이팅 메소드 - 라이트매스 임포턴스 볼륨 내 모든 위치에 프리컴퓨티드 라이팅을 제공하는 데 사용되는 기법입니다.  [INCLUDE:#vlmethod] |
+| **Volumetric Lightmap Detail Cell Size** || 볼류메트릭 라이트맵 디테일 셀 크기 - (지오메트리 주변에 사용되는) 최고 밀도 볼류메트릭 라이트맵 복셀의 월드 스페이스 유닛 단위 크기입니다. 이 세팅은 빌드 시간과 메모리에 큰 영향을 주므로, 사용에 주의를 기울여야 합니다. |
+| **Volumetric Lightmap Maximum Brick Memory Mb** || 볼류메트릭 라이트맵 최대 브릭 메모리 Mb - 볼류메트릭 라이트맵 브릭 데이터에 사용할 최대 메모리 양입니다. 이 한계치를 만족할 때까지 지오메트리에서 가장 멀리 있는 브릭을 시작으로 고밀도 브릭을 버립니다. 메모리를 너무 심하게 줄이면(trim) 해상도가 일정치 않아지므로, 그 대신 **Volumetric Lightmap Detail Cell Size** 를 높이는 것이 좋습니다. |
+[/REGION]
+
+[COMMENT:none]
+--
+[INCLUDE:#vlmethod]
+[EXCERPT:VLMethod]
+| --- | --- | --- |
+| **VLM Volumetric Lightmap** || 볼류메트릭 라이트맵 - 라이팅 샘플은 전체 라이트매스 임포턴스 볼륨을 커버하는 고급 그리드로 계산합니다. 볼류메트릭 라이트맵은 GPU 픽셀 단위 효율적으로 계산되어 다이내믹 오브젝트와 볼류메트릭 포그에 정확한 간접광을 낼 수 있습니다. 임포턴스 볼륨 밖 위치에서는 (주소를 클램핑시킨) 볼류메트릭 라이트맵 경계 텍셀을 재사용합니다. 모바일에서의 보간은, 각 오브젝트 경계 중심에서 CPU 를 통해 합니다. |
+| **VLM Sparse Volume Lighting Samples** || 성긴 볼륨 라이팅 샘플 - 볼류메트릭 라이팅 샘플 배치를 스태틱 표면 위에는 중간 밀도로, 그 외 라이트매스 임포턴스 볼륨에는 낮은 밀도로 합니다. 임포턴스 볼륨 밖 위치에는 간접광이 없습니다. 이 메소드는 CPU 보간이 필요합니다. 즉 간접광 캐시를 사용하여 각 다이내믹 오브젝트에 대한 결과를 보간하므로, 렌더링 스레드 부하가 추가로 걸립니다. 볼류메트릭 포그는 이 메소드로는 프리컴퓨티드 라이팅에 영향받지 않습니다. |
+| | %spacer2% | |
+[/EXCERPT:VLMethod]
+
+-
+[/COMMENT]
+
+
+## 퍼포먼스
+
+볼류메트릭 라이트맵의 퍼포먼스와 메모리 사용량을 고려할 때 유념해야 하는 사항이 몇 가지 있습니다.
+
+* 삼인칭 캐릭터의 볼류메트릭 라이트맵은 Playstation 4 에서 GPU 시간 비용이 .02ms 입니다. 모든 간접광 캐시 렌더링 스레드 비용은 제거됩니다.
+* 에픽의 파라곤 맵 모놀리스에서, 메모리 사용량이 간접광 캐시일 때 5Mb 던 것이 볼류메트릭 라이트맵의 **Detail Cell Size** (디테일 셀 크기) 기본값일 때 30Mb 로 늘어납니다. 메모리 사용량은 
+에디터에서 **Stat Memory** 명령의 **Volumetric Lightmap Memory** 부분에서 확인할 수 있습니다.
+
+	[REGION:lightbox]
+	[![](StatMemory.png)(w:700)](StatMemory.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+
+### 볼류메트릭 라이트맵 vs 간접광 캐시
+
+간접광 캐시와 볼류메트릭 라이트맵 비교 상세 내역입니다:
+
+[REGION:simpletable]
+| **프리컴퓨티드 라이트 볼륨/간접광 캐시** | **볼류메트릭 라이트맵** |
+| --- | --- |
+| 보간 CPU 비용 비쌉니다. | 보간이 GPU 에서 효율적입니다. |
+| 오브젝트 단위 보간이며, 인스턴스드 컴포넌트도 마찬가지입니다. | 픽셀 단위 보간입니다. |
+| 볼류메트릭 포그에 영향줄 수 없습니다. | 볼류메트릭 포그에 잘 통합니다. |
+| 스태틱 표면에만 고밀도 배치되어 저밀도 샘플에서 누수가 일어납니다. | 스태틱 표면 전반에 걸쳐 고밀도 배치됩니다. |
+| 라이트매스 임포턴스 볼륨 밖 샘플은 검정입니다. | 경계 복셀을 늘여 라이트매스 임포턴스 볼륨 밖 영역을 커버합니다. |
+| 레벨 스트리밍을 지원합니다. | 현재 레벨 스트리밍을 지원하지 않습니다. |
+[/REGION]
+
+
+
+## 추가 참고사항
+
+* 큰 레벨에서 **Volumetric Lightmap Detail Cell Size** (볼류메트릭 라이트맵 디테일 셀 크기)를 줄여 정확도를 높이려면, **Volumetric Lightmap Maximum Brick Memory Mb** (볼류메트릭 라이트맵 최대 브릭 메모리 Mb)도 높여야 합니다. 그렇지 않으면 디테일 셀이 컬링되어 다이내믹 오브젝트의 간접광 정확도가 떨어집니다.
+
+
+## 문제해결
+
+* **Detail Cell Size** (디테일 셀 크기)를 낮춰 샘플 수를 높였더니, 샘플 밀도가 해당 스태틱 지오메트리 근처보다 낮습니다.
+	* **Maximum Brick Memory** 가 너무 낮거나 형역의 모든 라이팅이 거의 같으면 디테일 브릭이 컬링될 수 있습니다.
+* 근처 스태틱 메시에는 없는데 캐릭터에는 벽을 통과한 빛샘 현상이 있습니다.
+	* 현재 빛샘에 대한 유일한 해법은 **Detail Cell Size** 를 감소(시켜 메모리를 추가로 확보)하거나 벽을 두껍게 하는 방법밖에 없습니다.

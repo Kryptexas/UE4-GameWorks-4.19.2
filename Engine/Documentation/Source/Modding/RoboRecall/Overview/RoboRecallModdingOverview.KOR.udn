@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3337070
+﻿INTSourceChangelist:3782314
 Availability: Epic
 Title:로보 리콜 모드 제작 개요
 Crumbs:%ROOT%
@@ -16,7 +16,9 @@ social-image:RoboRecall_Overview_Social.png
 
 [Overview Text Here]
 
-<!-- Note the primary paths to creating mods, why the primary mod paths exist, how stacking works, and finally, it's UE4, you can also just do whatever -->
+[COMMENT:none]
+ Note the primary paths to creating mods, why the primary mod paths exist, how stacking works, and finally, it's UE4, you can also just do whatever 
+[/COMMENT]
 
 ## 무기
 

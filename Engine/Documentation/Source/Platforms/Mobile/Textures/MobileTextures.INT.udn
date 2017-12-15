@@ -17,7 +17,9 @@ when creating textures:
 
 * A maximum size of 2048 in either dimension. This is the largest size allowed by the PVR compressor.
 * Dimensions must both be a power of 2 (i.e. 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, or 2048).
-* You should use square textures whenever possible as they make more efficient use of memory. <!-- Non-square textures are padded out to be square. (?)  -->
+* You should use square textures whenever possible as they make more efficient use of memory. [COMMENT:none]
+ Non-square textures are padded out to be square. (?)  
+[/COMMENT]
 
 In addition, texture settings need to be set up properly to work on mobile platforms:
 

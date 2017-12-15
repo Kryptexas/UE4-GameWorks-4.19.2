@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4. 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -19,7 +19,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 지금까지 배운 것을 토대로, 다음 작업을 해 보세요:
 
@@ -36,4 +36,4 @@ version:4.9
 * 다른 튜토리얼은 [](Programming/Tutorials) 문서를 참고하세요.
 
 
-%Steps%
+

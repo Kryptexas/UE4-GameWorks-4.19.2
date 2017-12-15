@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 1.5 - 디폴트 게임 모드 설정
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 새로 변경된 게임 모드를 블루프린트로 확장시키는 데 성공했으니, 이번 단계에서는 프로젝트가 `FPSProjectGameMode` 를 기본 게임 모드로 사용하도록 설정해 줘야 합니다.
 
@@ -42,53 +42,46 @@ Version: 4.15
 
 1.	Esc 키를 치거나 레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    완성된 섹션 코드
-    [/PARAM]
-    [PARAM:content]
-		**FPSProjectGameMode.h**
-			// Fill out your copyright notice in the Description page of Project Settings.
-			
-			#pragma once
-			
-			#include "GameFramework/GameModeBase.h"
-			#include "FPSProjectGameMode.generated.h"
-			
-			/**
-			 * 
-			 */
-			UCLASS()
-			class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
-			{
-				GENERATED_BODY()
+## 완성 코드
 
-				virtual void StartPlay() override;
-			};
+**FPSProjectGameMode.h**
 
-		**FPSProjectGameMode.cpp**
-			// Fill out your copyright notice in the Description page of Project Settings.
+	// Fill out your copyright notice in the Description page of Project Settings.
 			
-			#include "FPSProject.h"
-			#include "FPSProjectGameMode.h"
+	#pragma once
 			
-			void AFPSProjectGameMode::StartPlay()
-			{
-				Super::StartPlay();
+	#include "GameFramework/GameModeBase.h"
+	#include "FPSProjectGameMode.generated.h"
 			
-				if (GEngine)
-				{
-					// Display a debug message for five seconds. 
-					// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
-				}
-			}
+	/**
+		* 
+		*/
+	UCLASS()
+	class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
+	{
+		GENERATED_BODY()
 
-    [/PARAM]
-[/OBJECT]
+		virtual void StartPlay() override;
+	};
+
+**FPSProjectGameMode.cpp**
+
+	// Fill out your copyright notice in the Description page of Project Settings.
+			
+	#include "FPSProject.h"
+	#include "FPSProjectGameMode.h"
+			
+	void AFPSProjectGameMode::StartPlay()
+	{
+		Super::StartPlay();
+			
+		if (GEngine)
+		{
+			// Display a debug message for five seconds. 
+			// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
+		}
+	}
 
 축하합니다! 지금까지 배운 내용은 다음과 같습니다:
 
@@ -100,4 +93,3 @@ Version: 4.15
 
 이제 다음 섹션에서부터 캐릭터 구현 방법을 배울 준비가 되셨습니다.
 
-%Steps%

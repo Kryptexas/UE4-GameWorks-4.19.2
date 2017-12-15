@@ -6,40 +6,7 @@ parent:Platforms/Mobile
 order:1
 type:how-to
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/InAppPurchases:title%](Platforms/Mobile/InAppPurchases/iap_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/InAppPurchases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/InAppPurchases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/InAppPurchases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/InAppPurchases:title%](Platforms/Mobile/InAppPurchases/iap_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/InAppPurchases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/InAppPurchases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/InAppPurchases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:iap_topic.png
 
 In-app purchases enable you to offer additional content and features to players. This can be used as a means of monetizing a free-to-play game or providing additional paid content for your game.
 

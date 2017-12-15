@@ -6,40 +6,7 @@ parent:Platforms/Mobile
 order:3
 type:how-to
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:ads_topic.png
 
 In-game advertisements enable you to display ads to players of your game on mobile platforms. This provides a means of monetizing your game while allowing it to remain completely free to the player.
 
@@ -90,8 +57,4 @@ The example below is from the Unreal Match 3 sample game, which hides the ad ban
 See the [Hide Ad Banner](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/HideAdBanner/index.html) reference for more information on the node.
 
 [/EXCERPT:Usage]
-<!--
 
-![image alt text](image_1.png)
-
--->

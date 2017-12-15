@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Crumbs: %ROOT%
+Title:3 - TV 블루프린트 구성 - 컴포넌트
+Description:TV 블루프린트와 그 컴포넌트를 구성합니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:3
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+예전 단계에서, 비디오 재생에 사용할 미디어 콘텐츠를 구성하고 머티리얼을 만들었습니다. 
+다음 몇 단계에서는 (언리얼 엔진의 비주얼 노드 기반 스크립팅 시스템인) [](Engine/Blueprints) 사용을 통해 플레이어가 다가가 지정된 비디오 콘텐츠를 켜고 끌 수 있도록 해줄 상호작용형 TV 블루프린트를 만들겠습니다.
+
+## 단계
+
+1. **콘텐츠 브라우저** 안에서 **Blueprints** 라는 폴더를 만듭니다. 그 폴더로 이동한 뒤 우클릭하고 **블루프린트 클래스** 를 새로 만듭니다.
+
+	![](Blueprint_01.png)
+
+1. **부모 클래스 선택** 창에서 **Actor** 를 선택한 뒤 블루프린트 이름을 **TV_Blueprint** 라 합니다.
+
+	![](Blueprint_02.png)
+
+	[부모 클래스](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 를 선택하면 기존 클래스의 프로퍼티나 함수 기능을 상속할 수 있습니다 (지금은 월드에 스폰 또는 배치할 수 있는 범용 액터면 됩니다).
+
+1. **TV_Blueprint** 를 엽니다. 좌상단 **+컴포넌트 추가** 버튼을 클릭하고 **Static Mesh** 를 검색하여 추가합니다. 
+
+	![](Blueprint_03.png)
+
+	[컴포넌트](Programming/UnrealArchitecture/Actors/Components) 란 액터에 붙일 수 있는 서브오브젝트입니다. 
+	이 경우 TV 를 나타낼 **Static Mesh** (스태틱 메시), 플레이어가 TV 를 켜고 끌 수 있는 범위에 있으면 알려줄 **Box Collision** (박스 콜리전) 볼륨, 미디어 플레이어에 연결된 오디오를 재생할 **Media Sound** (미디어 사운드) 컴포넌트가 필요합니다.
+
+1. **스태틱 메시** 이름은 **TV_Mesh** 로 합니다. **디테일** 패널에서 **Static Mesh** 칸을 **SM_TV** 로 설정합니다. 
+
+	![](Blueprint_04.png)
+
+1. **+컴포넌트 추가** 버튼을 클릭하고 **Box Collision** 컴포넌트를 추가합니다. 뷰포트에서 TV 앞에 원하는 대로 크기를 조절합니다.
+
+	![](Blueprint_05.png)
+
+	뷰포트에서 [트랜스폼 툴](GettingStarted/HowTo/ManipulatingActors) 및 위젯을 사용하여 박스를 **이동 (W)**, **회전 (E)**, **스케일 (R)** 조절합니다.
+
+1.	**+컴포넌트 추가** 버튼을 클릭하고 **Media Sound** 컴포넌트를 추가합니다.
+
+	![](Blueprint_06.png)
+
+	**Media Sound** 컴포넌트는 비디오 파일에 연결된 오디오 재생에 필요합니다.
+
+1.	**Media Sound** 컴포넌트에 대한 **디테일** 패널에서, **Media Player** 칸을 **MediaPlayer_01** 로 설정합니다. 
+
+	![](Blueprint_07.png)
+
+	이제 미디어 플레이어를 열면, 이 미디어 사운드 컴포넌트가 같이 열리면서 비디오 재생에 연결된 오디오 재생이 시작됩니다.
+
+		
+
+## 최종 결과
+
+TV 블루프린트의 각 컴포넌트 구성이 완료되었으니, 다음 단계에서는 TV 블루프린트 내에서 커스터마이징하고자 하는 옵션을 몇 가지 정의하겠습니다. 그러면 레벨의 TV 에 연결된 미디어 텍스처와 미디어 사운드가 무엇인지 정의하여 인스턴스 별로 변경할 수 있습니다 (같은 TV 블루프린트로 저마다 다른 콘텐츠를 재생할 수 있는 것입니다).
+
+[NAV]

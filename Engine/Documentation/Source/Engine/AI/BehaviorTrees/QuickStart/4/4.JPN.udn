@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:4.Character ブループリントのセットアップ
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 4.Character ブループリントのセットアップ
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 **キャラクター** が既に入っているプロジェクトを作成したので、人型の **スケルタルメッシュ** とその **Animation** ブループリントをご利用いただけます。このチュートリアルではこうしたものを使用しますが、ご自分のものを使って頂いても構いません。
 
@@ -62,7 +50,7 @@ version:4.9
 	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの「半分の高さ」の 2 倍になるように設定します。_
 
 1. Character Movement コンポーネントを選択した状態のまま、 **Character Movement** カテゴリの **[Max Walk Speed (最高歩行速度)]** プロパティを `400` に変更します。
-	
+
 	![](maxWalk.png)
 
 1. **[Class Defaults]** ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **[Pawn]** カテゴリの **[AIController Class]** プロパティに割り当てます。
@@ -72,9 +60,4 @@ version:4.9
 1. コンパイルおよび保存します。
 
 
-%Steps%
-
-
-
-
-
+[NAV]

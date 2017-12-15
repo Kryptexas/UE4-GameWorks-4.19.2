@@ -1,30 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:마티네 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Matinee
 Description:Matinee, 마티네 에디터를 사용하여 게임내 프로퍼티와 액터에 애니메이션을 주는 방법 안내서입니다.
 Version: 4.9
 SkillLevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Matinee/UserGuide:title%](Engine/Matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		마티네 에디터
-	[/PARAM]
-	[PARAM:description]
-		게임내 프로퍼티와 액터 애니메이션을 위한 마티네 에디터 사용 안내서입니다.
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Matinee/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Matinee_topic.png
 
 [REGION:fullwidth]
 ![](MatineeOverview.png)(w:800)
@@ -274,5 +255,7 @@ bClientSideOnly (클라이언트 전용 옵션)이 _False_ 로 설정된 마티�
 
 **팔레트** 의 **Matinee** (마티네) 아래에서 이 함수 노드들을 찾아볼 수 있습니다.
 
-<!----For more information about Matinee and Blueprints, see *link*.----->
+[COMMENT:none]
+--For more information about Matinee and Blueprints, see *link*.---
+[/COMMENT]
 

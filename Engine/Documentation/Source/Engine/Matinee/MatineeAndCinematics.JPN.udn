@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3255730
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:マチネ & シネマティクス
 Crumbs: %ROOT%, Engine
@@ -17,35 +17,19 @@ topic-image:matinee_topic.png
 [INCLUDE:Shared/Glossary/M/#Glossary_Matinee]
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		基本
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [Using the Matinee Tool](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
-		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
-		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
-		* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
-		* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
-	[/PARAM]
-[/OBJECT]
+## 基本
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		関連リンク
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:buttonlist]
+* [マチネのツールを使用する](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
+* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
+* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
+* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
+[/REGION]
+
+## 関連リンク
+
+[REGION:buttonlist]
+* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")	
+[/REGION]
 

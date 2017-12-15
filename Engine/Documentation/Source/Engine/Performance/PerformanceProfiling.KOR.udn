@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 퍼포먼스와 프로파일링
 Crumbs: %ROOT%, Engine
@@ -8,45 +8,7 @@ version: 4.9
 parent:Engine
 order:17
 tags:Performance and Profiling
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Performance:title%](performance_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Performance:title%](performance_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:performance_topic.png
 
 [REGION:banner]
 ![Performance Profiling](ppe_landing_banner.png)

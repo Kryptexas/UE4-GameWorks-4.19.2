@@ -1,75 +1,63 @@
 Availability:Public
 Title:Automation Technical Guide
-Crumbs: %ROOT%, Programming, Programming/Automation
-Description:Programmer's guide to creating new automation tests.
-Version: 4.9
+Crumbs: %ROOT%
+Description:Programmer's guide to creating engine-level Automation Tests.
+type:overview
+skilllevel:Advanced
+Version: 4.17
+parent:Programming/Automation
+order:1
+tags:Automation
+tags:Testing
 
-Automation tests come in two main flavors: Simple and Complex. Simple Tests are used to describe 
-single atomic tests, while Complex Tests are used to run the same code on a number of inputs. 
+[TOC (start:2 end:3)]
 
-Simple tests are useful for confirming that specific functionality is operating as expected. These are 
-generally unit tests or feature tests. For example, simple tests can be used to test if the current map 
-loads in Play In Editor or whether text wrapping is working properly in Slate.
+## Automation Testing
 
-Complex tests are useful for iterating through a collection of items and perform the same functionality 
-on each item. These are generally content stress tests. For instance, loading all maps or compiling all 
-Blueprints would be good fits for complex automation tests.
+**Automation Testing** is the lowest level of automated testing, and is best suited for low-level tests of the core functionality of the Engine. This system exists outside of the `UObject` ecosystem, so it is not visible to **Blueprints** or the Engine's **Reflection System**. These tests are built in code and can be run from the **Console Command Line**, either in the Editor or with Command-Line Parameters from your operating system. Automation Tests can be broken into two types: Simple and Complex. Both types are implemented as derived classes based on `FAutomationTestBase`.
 
-## Architecture and Execution
+### Creating a New Automation Test
 
-All automation tests derive from the **FAutomationTestBase** class which defines generic functionality for 
-performing a set of commands. The important functions of the FAutomationTestBase class used when setting 
-up a new automation test are:
-
-| Member Functions | Description |
-| ---------------- | ----------- |
-| `GetTests()` | Fills the command list with the parameters to be passed to `RunTest()` one by one. |
-| `RunTest()` | Performs the test logic using the command string passed in. |
-
-The general flow for executing an automation test is:
-
-	/-----------------\       /--------------\       /---------------\
-	|  Automation UI  |       |  GetTests()  |       |   RunTest()   |
-	+-----------------+       +--------------+       +---------------+
-	|                 |       |              |       |               |
-	|         o Start +-------+ o Commands   +---+-->+ o Parameters  +--\
-	|                 |       |              |   |   |               |  |
-	\-----------------/       \--------------/   |   \---------------/  |
-	                                             |                      |
-	                                             \----------------------/
-
-## Directories
-
-The current convention is to put all Automation Tests into the `Private\Tests` directory within the relevant 
-module.  When your test matches one-to-one with a particular class, please name the test file `[ClassFilename]Test.cpp`.
-
-## Creating tests
-
-Each automation test is declared using a special macro. The macro differs depending on whether the test is a 
-simple test or a complex test, but each macro is identical in the parameters it requires:
+Automation Tests are declared by macros, and implemented by overriding virtual functions from the `FAutomationTestBase` class. Simple Tests are declared using the `IMPLEMENT_SIMPLE_AUTOMATION_TEST` macro, while Complex Tests require the `IMPLEMENT_COMPLEX_AUTOMATION_TEST` macro. Both macros feature the same three parameters, in the following order:
 
 | Parameter | Description |
 | --------- | ----------- |
-| `TClass` | The Class Name of the test. |
-| `PrettyName` | A string specifying the hierarchical test name that will appear in the UI. |
-| `TFlags` | An `EAutomationTestFlags` for specifying automation test requirements/behavior (See `AutomationTest.h` for details). |
+| `TClass` | The desired class name of the test. The macro will create a class of this name, e.g. `FPlaceholderTest`, in which your test can be implemented. |
+| `PrettyName` | A string specifying the hierarchical test name that will appear in the UI. For example, "TestGroup.TestSubgroup.Placeholder Test" in our minimal example (below). |
+| `TFlags` | A combination of `EAutomationTestFlags` values, used for specifying Automation Test requirements and behaviors. See the [`EAutomationTestFlags` API Page](API:EAutomationTestFlags) for details. |
+
+Once the new Automation Test class has been declared by one of the two macros, its functionality can be implemented. The following functions must be written:
+
+| Function | Parameter | Description |
+| --- | --- | --- |
+| `RunTest` |  | This function performs the actual test, returning `true` to indicate that the test passed, or `false` to indicate that it failed. |
+|  | `Parameters` | This parameter can be parsed or passed through to other functions as appropriate for the specific Functional Test. |
+| --- | --- | --- |
+| `GetTests` |  | This function must be overridden for Complex Tests only; Simple Tests have an auto-generated version of this function built into their declaration macro. |
+|  | `OutBeautifiedNames` | This array of strings must be populated with the UI-visible `PrettyName` of each individual Test. |
+|  | `OutTestCommands` | This array of strings is expected to be parallel to `OutBeautifiedNames` and must be populated with the `Parameters` to be passed into `RunTest`. |
+
+#### Source File Locations
+
+The current convention is to put all Automation Tests into the `Private\Tests` directory within the relevant module. When an Automation Test matches one-to-one with a particular class, please name the test file `[ClassFilename]Test.cpp`, e.g. a test that applies only to `FText` would be written in `TextTest.cpp`.
+
+#### Minimal Example
+
+The smallest and simplest test possible would be a Simple Test that automatically succeeds (or fails). Building a test like this can be useful as a first step to ensuring that your testing setup is correct before building more meaningful tests.
+
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlaceholderTest, "TestGroup.TestSubgroup.Placeholder Test", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+	bool FPlaceholderTest::RunTest(const FString& Parameters)
+	{
+		// Make the test pass by returning true, or fail by returning false.
+		return true;
+	}
 
 ### Simple Tests
 
-Simple Tests are declared using the `IMPLEMENT_SIMPLE_AUTOMATION_TEST` macro:
-
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags )
-
-These tests define their functionality solely by implementing the `RunTest()` function and the `Parameters` string 
-will always be an empty string.
-
-**Example:**
-
-For example, the declaration of a new simple test for the `SetRes` command functionality might be:
+Simple Tests are used to describe single atomic tests, and are useful as unit or feature tests. For example, simple tests can be used to test if the current map loads in Play In Editor or whether text wrapping is working properly in Slate. The following example tests the functionality of the `SetRes` command:
 
 	IMPLEMENT_SIMPLE_AUTOMATION_TEST( FSetResTest, "Windows.SetResolution", ATF_Game )
-
-Using the SetRes example above, the implementation would be:
 
 	bool FSetResTest::RunTest(const FString& Parameters)
 	{
@@ -90,20 +78,9 @@ Using the SetRes example above, the implementation would be:
 
 ### Complex Tests
 
-These tests use a similar macro to the simple tests declaration macro:
+Complex Tests are used to run the same code on a number of inputs. These are generally content stress tests. For instance, loading all maps or compiling all Blueprints would be good fits for complex automation tests. Note that both the `RunTest` and `GetTests` functions must be overridden. The following example tests the loading all of a project's maps:
 
-	IMPLEMENT_COMPLEX_AUTOMATION_TEST( TClass, PrettyName, TFlags )
-
-To define the functionality for a complex test, you must implement the `GetTests()` function to enumerate the 
-tests to the UI in addition to the `RunTest()` function to define the logic to perform on each iteration.
-
-**Example:**
-
-An example declaration of a complex test for loading all of the maps in a game is shown below:
-
-	IMPLEMENT_COMPLEX_AUTOMATION_TEST( FLoadAllMapsInGameTest, "Maps.LoadAllInGame", ATF_Game )
-
-Using the map loading example, the implementations would be:
+	IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLoadAllMapsInGameTest, "Maps.LoadAllInGame", ATF_Game)
 
 	void FLoadAllMapsInGameTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 	{
@@ -138,30 +115,41 @@ Using the map loading example, the implementations would be:
 		return true;
 	}
 
-## Latent Commands
+[REGION:tip]The `Parameters` argument can be built and parsed in whatever way is needed for a specific testing situation. For Complex Tests, this is the intended way to test several data points using the same code.[/REGION]
 
-Latent Commands allow for sections of an automation test to be run over multiple frames. These are intended to 
-be queued up during RunTest calls.
+### Latent Commands
 
-The first step is declaring a Latent Command with the following syntax:
+**Latent Commands** can be queued up during `RunTest`, causing sections of the code to run across multiple frames. To create a Latent Action, it must be defined via the `DEFINE_LATENT_AUTOMATION_COMMAND` macro. This macro takes one parameter, known as `CommandName`, which defines the class name that will be created for this type of Latent Command. To finish creating the Latent Command, the new class will require a function body for its `Update` function. Here is an example of a simple Latent Command which runs until the **Unit Test Manager** is finished running tests:
 
-	DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecStringLatentCommand, FString, ExecCommand);
+	DEFINE_LATENT_AUTOMATION_COMMAND(FNUTWaitForUnitTests);
 
-	bool FExecStringLatentCommand::Update()
+	bool FNUTWaitForUnitTests::Update()
+	{
+		return GUnitTestManager == NULL || !GUnitTestManager->IsRunningUnitTests();
+	}
 
-The Update call should return true when it is done executing and false if it would like to stop execution of the 
-automation test and try again next frame. Commands execute in order and execution will not continue if a latent 
-command returns false from Update.
+If the Latent Command you wish to create requires an argument, such as a parameter string, the `DEFINE_LATENT_AUTOMATION_COMMAND` macro can be used. This macro takes two additional parameters, known as `ParamType` and `ParamName`, which define the type and name of the parameter to be passed in. In this example, a Latent Command is used to start connecting to a source control provider and then wait until the connection attempt finishes:
 
-The second step is adding the latent command to the queue for execution. This is wrapped in a macro to avoid boiler 
-plate code as follows:
+	DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FConnectLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
-	ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("setres 640x480")));
+	bool FConnectLatentCommand::Update()
+	{
+		// Attempt a login and wait for the result.
+		if(!AsyncHelper.IsDispatched())
+		{
+			if(ISourceControlModule::Get().GetProvider().Login( FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) ) != ECommandResult::Succeeded)
+			{
+				return false;
+			}
+			AsyncHelper.SetDispatched();
+		}
 
-An example would be `FSetResTest` in `EngineAutomationTests.cpp`.  
+		return AsyncHelper.IsDone();
+	}
 
+When the `Update` function returns `true`, the Latent Command is considered complete. A return value of `false` indicates that the Automation Test should stop executing immediately and try again next frame. To use a Latent Command in your test code, invoke the `ADD_LATENT_AUTOMATION_COMMAND` with the constructor of the Latent Command you wish to run. If the Latent Command was established with a parameter, pass in the value that the parameter should take as a constructor argument. In your `RunTest` function, the following code will wait for all Unit Tests to finish, then attempt to connect to a previously-named source control provider:
 
-[REGION:warning]
-In the editor, loading maps happens immediately. In game, loading a map happens on the next frame and therefore 
-[Latent Commands](#LatentCommands) must be used.
-[/REGION]
+	ADD_LATENT_AUTOMATION_COMMAND(FNUTWaitForUnitTests());
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+
+[REGION:note]Activities related to loading or streaming data, or anything else that isn't guaranteed to run in a single frame, are candidates for Latent Command usage. For example, in the Editor, loading a map happens immediately, but in game, loading a map happens on the next frame, so Latent Commands must be used to ensure consistent behavior when an Automation Test needs to load a map.[/REGION]

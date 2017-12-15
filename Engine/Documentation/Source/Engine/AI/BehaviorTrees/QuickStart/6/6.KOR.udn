@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 6. AI 콘트롤러 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:6 단계. AI 콘트롤러 블루프린트 셋업
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:6
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/7 "%Engine/AI/BehaviorTrees/QuickStart/7:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -59,4 +47,4 @@ version: 4.9
 
 다음 단계에서는 이 그래프 편집을 계속하여 AI 콘트롤러의 초기 블랙보드 값을 구성해 주도록 하겠습니다.
 
-%Steps%
+[NAV]

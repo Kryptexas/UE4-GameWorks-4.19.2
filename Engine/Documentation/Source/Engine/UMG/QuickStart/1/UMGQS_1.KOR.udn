@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 필수 프로젝트 구성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -21,7 +21,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 이 튜토리얼에서는 **시작용 콘텐츠** 를 포함시킨 **블루프린트 일인칭** 템플릿을 사용합니다. 새 프로젝트 생성 및 템플릿 사용법을 잘 모르겠는 경우, [](Engine/Basics/Projects/Browser) 문서를 참고하시기 바랍니다.
@@ -136,6 +136,6 @@ tags:UMG UI Designer
 
 다음 단계에서는 HUD 에 Health, Energy, Ammo 변수를 표시하고 게임내에서 작동되도록 구성해 주겠습니다.
 
-%Steps%
+
 
 

@@ -13,7 +13,9 @@ related:Engine/Basics/Projects/Packaging
 related:Platforms/Linux/GettingStarted
 topic-image:LegacyRef_Topic.png
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:3)]
 

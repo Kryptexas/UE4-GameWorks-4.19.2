@@ -1,0 +1,114 @@
+﻿INTSourceChangelist:3753383
+Availability: Public
+Crumbs: %ROOT%
+Title: 라이트매스 포털
+Description: 구워진 내부 라이팅 퀄리티 향상을 돕습니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:LMP_TopicImage.png
+Social-image:LMP_TopicImage.png
+
+![](LMPortal_On.png)
+
+[TOC(start:2 end:2)]
+
+스카이라이트 또는 HDR 이미지를 사용하여 언리얼 엔진 4 (UE4) 레벨에 라이팅을 할 때, 씬의 라이트가 어디에서 오는지 라이트매스가 이해하지 못하는 문제가 생길 수 있습니다. 라이팅이 매우 중요한 영역 주변에 Lightmass Portals Actor (라이트매스 포털 액터)를 배치하면 빛이 오는 방향을 라이트매스에게 이해시키는 데 도움이 됩니다. 여기서는 UE4 프로젝트에서 라이트매스 포털을 구성하여 사용하는 방법을 살펴보겠습니다.
+
+## 작동 방식
+
+일반적인 수준에서 라이트매스 포털 작동 방식은 다음과 같습니다:
+
+* 라이트매스 포털은 [스카이라이트](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight/), HDR 이미지, 또는 [Use Emissive for Static Lighting](Engine/Rendering/Materials/HowTo/EmissiveGlow) (스태틱 라이팅에 이미시브 사용) 옵션이 체크된 스태틱 메시로 라이팅된 씬에 가장 좋습니다.
+
+    [REGION:lightbox]
+    [![](LMP_SkylightSetup.png)(w:500)](LMP_SkylightSetup.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+* 라이트매스 포털을 레벨에 배치한 후 최종 라이팅에 중요한 영역에 맞도록 스케일을 조절합니다.
+
+    ![](LMPortals.png)(w:800)
+
+* 라이트매스가 라이트를 빌드중일 때, 라이트매스 포털은 라이트매스더러 이 영역에서 보다 많은 라이트 광선이 와야 한다고 알려주어 보다 높은 퀄리티의 빛과 그림자를 내도록 합니다.
+
+    [OBJECT:ComparisonSlider]
+        [PARAM:before]
+        ![Without Portals](LMPortal_Results_00.png)
+        [/PARAM]
+        [PARAM:after]
+        ![With Portals](LMPortal_Results_01.png)
+        [/PARAM]
+    [/OBJECT]
+
+## 단계
+
+UE4 프로젝트에서 라이트매스 포털을 사용하는 방법은 다음과 같습니다.
+
+1. **모드** 패널에서 **Lightmass Portal** (라이트매스 포털)을 검색한 후, Lightmass Portal Actor (라이트매스 포털 액터)를 끌어 레벨에 놓아 배치합니다.
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_01.png)(w:500)](LMPortal_Step_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. **이동**, **회전**, **스케일** 툴을 사용하여 라이트매스 포털의 위치와 크기를 라이트매스가 광선을 집중하도록 했으면 하는 영역과 같은 크기 또는 그보다 살짝 작게 설정합니다.
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_02.png)(w:500)](LMPortal_Step_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. **메인 툴바** 에서 **빌드** 옆 작은 흰색 삼각형을 클릭하면 표시되는 **라이팅 퀄리티** 를 **Production** (프로덕션)으로 변경합니다.
+
+    ![](LMPortal_Step_03.png)
+
+1. 그 작업이 모두 끝나면, **빌드** 버튼을 눌러 라이트매스 라이팅 빌드를 시작합니다.
+
+    ![](LMPortal_Step_04.png)
+
+## 최종 결과
+
+라이트매스 빌드가 완료되면, 다음과 비슷한 화면이 나올 것입니다.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![포털 없음](LMPortal_Off.png)(w:1000)
+    [/PARAM]
+    [PARAM:after]
+    ![포털 있음](LMPortal_On.png)
+    [/PARAM]
+[/OBJECT]
+
+**포털 없음** 쪽 이미지를 자세히 살펴보면, 이미지에 노이즈가 많이 낀 것이 보일 것입니다. **포털 있음** 이미지와 비교해 보면 어두운 부분이 특히 그렇습니다.
+
+## 알려진 문제 / 한계
+
+* 라이트매스 포털은 라이트매스가 포털쪽으로 광선을 강제로 보내도록 하는 식으로 작동합니다. 그때문에 작은 레벨이나 씬에 정말 중요한 라이팅에 대해서만 라이트매스 포털을 사용해야 합니다. 그렇지 않고 라이트매스 포털을 너무 많이 추가하면 라이트매스 빌드 시간이 극도로 길어질 수 있습니다.
+
+* 라이트매스 포털은 매우 작은 레벨에만 사용해야 하는데, 어떤 것에도 차폐되지 않기 때문입니다. 커다란 오픈 월드 유형 레벨에 사용하면 라이트를 굽는 시간이 불필요하게 길어질 것입니다.
+
+* 라이트매스 포털은 꼭 필요할 때만 사용해야 합니다. 라이트매스가 씬의 라이팅을 계싼하는 데 걸리는 시간이 늘어나기 때문입니다.
+
+* 이미시브 라이트 캐스터용 스태틱 메시를 사용하는 경우 그 스태틱 메시가 빛을 내뿜을 것으로 기대되는 곳 주변에 라이트매스 포털을 배치하도록 하세요.
+
+
+
+
+
+
+
+

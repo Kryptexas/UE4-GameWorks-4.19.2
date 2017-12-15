@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:기본 Required, Spawn 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -83,8 +83,11 @@ tags:Particles
 
 
 
-<!-- Begin RequiredModule Table Includes -->
-<!--
+[COMMENT:none]
+ Begin RequiredModule Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:ScreenAlign]
 [REGION:simpletable]
 | 플래그 | 설명 |
@@ -148,5 +151,8 @@ tags:Particles
 | _ENM_Cylindrical_ | 노멀은 NormalsSphereCenter 를 관통하여 NormalsCylinderDirection 방향으로 생성됩니다. |
 [/REGION]
 [/EXCERPT:NormalsMode]
--->
-<!-- End RequiredModule Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End RequiredModule Includes 
+[/COMMENT]

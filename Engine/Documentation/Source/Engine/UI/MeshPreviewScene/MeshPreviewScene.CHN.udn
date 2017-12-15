@@ -184,7 +184,8 @@ tags:User Interface
 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:StaticMeshEditor]
 [REGION:lightbox]
 [![](StaticMeshEditor.png)(w:450)](StaticMeshEditor.png)
@@ -196,4 +197,5 @@ tags:User Interface
 [![](SkeletalMeshEditor.png)(w:450)](SkeletalMeshEditor.png)
 [/REGION] 
 [/EXCERPT:SkeletalMeshEditor]
--->
+
+[/COMMENT]

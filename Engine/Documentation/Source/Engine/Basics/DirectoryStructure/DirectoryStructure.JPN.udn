@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ディレクトリ構造
 Crumbs: %ROOT%, Engine
@@ -68,7 +68,8 @@ order:25
 | **Saved** | 設定ファイルやログ ファイルなどエンジンで生成されるファイルを格納します。これらのファイルは削除および再ビルドが可能です。 |
 | **Source** | ゲーム モジュールのオブジェクト クラス ファイルを格納します。 [INCLUDE:#Source] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Source]
 [REGION:simpletable]
 | --- | --- |
@@ -77,7 +78,8 @@ order:25
 | Public | パブリックなゲーム オブジェクト クラスの実装ファイルを格納します (「.cpp」ファイル) |
 [/REGION]
 [/EXCERPT:Source]
--->
+
+[/COMMENT]
 
 ## Solution ディレクトリ
  

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ブループリントでアクタを検索する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
@@ -13,9 +13,11 @@ type:how-to
  
 
 ## クラスのアクタを全て取得する
-<!---
-以下のステップで、**Get All Actors of Class** ノードを使って、ある特定のクラスのシーンにある全てのアクタを検索します。 
---->
+[COMMENT:none]
+-
+以下のステップで、 **Get All Actors of Class** ノードを使って、ある特定のクラスのシーンにある全てのアクタを検索します。 
+-
+[/COMMENT]
 
  _この例では、**Blueprint Third Person テンプレート (with Starter Content)** を使用します。_
 

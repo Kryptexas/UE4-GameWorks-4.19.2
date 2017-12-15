@@ -51,9 +51,11 @@ resources
 为了帮助你快速了解使用UE4以及使用方法，并可以用它来创造内容。我们已经准备了一些内容提供给你下载，试玩以及分析。
 
 [REGION:topics third]
-<!----
+[COMMENT:none]
+--
 %Videos:topic%
----->
+--
+[/COMMENT]
 %Resources/Templates:topic%
 [OBJECT:Topic]
 [PARAM:image]
@@ -90,7 +92,8 @@ resources
 %Resources/SampleGames:topic%
 
 [/REGION]
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 [REGION:features fourth]
 [OBJECT:Role]
@@ -106,7 +109,8 @@ resources
 [/OBJECT]
 [/REGION]
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 ## 社区示范文档
 

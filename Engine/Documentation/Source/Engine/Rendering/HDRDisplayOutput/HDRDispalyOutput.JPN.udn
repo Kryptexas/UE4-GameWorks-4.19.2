@@ -29,14 +29,16 @@ Tags:Rendering
 LDR スクリーンでは HDR の違いを表現できないので、デモ用にシミュレーションした画像です。
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [REGION:fullwidth raw]
 ![](LDR_HDRcomparison.jpg)
 [/REGION]
 [REGION:caption]
 _LDR スクリーンでは HDR の違いを表現できないのでデモ用にシミュレーションした画像です。_
 [/REGION]
---->
+-
+[/COMMENT]
 
 
 現在の実装では、レンダリングされたシーンの処理は、いわゆる **ACES Viewing Transform** がすべて行っています。処理の工程では、シーン基準画像とディスプレイ基準画像が使用されます。
@@ -77,7 +79,8 @@ HDR デバイスおよび必要なカラー範囲出力のオプションの有�
 | `r.HDR.Display.ColorGamut` | 出力ディスプレイの色域です。 [INCLUDE:#colorGamut] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
@@ -99,7 +102,8 @@ HDR デバイスおよび必要なカラー範囲出力のオプションの有�
 | 3 | ACES, D60 |
 | 4 | ACEScg, D60 |
 [/EXCERPT:colorGamut]
---->
+-
+[/COMMENT]
 
 GameUserSettings のブループリントまたは C++ コールを設定したら、クック済みのプロジェクトの実行、コマンドライン引数 `-game mode`、Standalone ゲームモードの使用、 
 あるいは排他的全画面 (**[Alt]** + **[Enter]** またはコマンド `fullscreen` を押します) での Play-in-Editor (PIE) の使用が可能になります。 

@@ -1,0 +1,34 @@
+﻿INTSourceChangelist:3706607
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Title:Steam VR の操作ガイド
+Description:Steam VR およびアンリアル エンジン 4 の段階的な操作ガイド
+Type: landing
+Version:4.17
+Parent:Platforms/SteamVR
+Order:3
+Tags:Platform
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+
+![](Platforms\SteamVR\SteamVRDevelopment_topic.png)
+
+Steam VR およびアンリアル エンジン 4 の使用方法を段階的に説明します。
+
+## 初心者向け
+
+初心者向けガイドでは、UE4 プロジェクトを Rift HMD、Touch Controllers、 Guardian システムで使用できるように設定します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/SteamVR")]
+
+## 中級者向け
+
+中級者向けガイドでは、Chaperone システムの色の調節方法、Touch コントローラーでオブジェクトを拾う方法、および Stereo Layers を使ってユーザーに情報を表示する方法を説明します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"SteamVR" parent:"Platforms/SteamVR")]
+
+## 上級者向け
+
+上級者向けガイドでは、ユーザーが Chaperone システムを起動しているかどうかを探知します。スプラッシュスクリーンの設定とロード方法も説明します。 
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"VR" parent:"Platforms/SteamVR")]
+

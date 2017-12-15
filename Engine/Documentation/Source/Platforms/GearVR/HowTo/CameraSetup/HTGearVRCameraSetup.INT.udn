@@ -5,17 +5,19 @@ Description: Setting up the UE4 camera to work with the Gear VR.
 Type: how-to
 SkillLevel: Beginner
 Version: 4.17
-Parent: Platforms/GearVR/HowTo
+Parent: Platforms/GearVR
 Order: 2
 Tags: Basics
 topic-image:HT_GearVR_Camera_Setup_Topic_Image.png
 prereq: Platforms\GearVR\Prerequisites
 prereq: Platforms\GearVR\QuickStart
 
-No matter if your Gear VR project is a sitting or standing experience, the manner in which the user's camera is set up will be the same. In the following How - To we will go over how up the UE4 camera for use with the Gear VR HMD.
+![](Hero_Image.png)(w:1000)
+
+No matter if your Gear VR project is a sitting or standing experience, the manner in which the user's camera is set up will be the same. In the following How - To we will go over how to set up a UE4 camera for use with the Gear VR HMD.
 
 
-## Project & Basic Camera Setup for a Gear VR Experience 
+## Steps
 
 Below you will find instructions on project setup requirements as well as how to create the needed Pawn Blueprints for Gear VR.
 
@@ -37,7 +39,7 @@ Below you will find instructions on project setup requirements as well as how to
     Click for full image.
     [/REGION]
 
-1. Once the project loads, tight-click in the **Content Browser** and from the displayed menu, go to the **Create Basic Asset** section and select the **Blueprint Class** option.
+1. Once the project loads, right-click in the **Content Browser** and from the displayed menu, go to the **Create Basic Asset** section and select the **Blueprint Class** option.
 
     [REGION:lightbox]
     [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)(w:150)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)
@@ -68,17 +70,10 @@ Below you will find instructions on project setup requirements as well as how to
     No matter what VR HMD you are using, this is the Epic recommend way to set up a VR camera as it allows you to offset the position of the camera without having to move the actual camera.
     [/region]
 
-Now that a basic Blueprint for the VR Player has been created, in the next section, we will go through setting up this Blueprint to be used with Gear VR.
-
-## Camera Setup for Gear VR Experience 
-
-Below you will find instructions on how to setup your camera for a Gear VR experience.
-
-
-1. First, open up the **GearVR_Pawn** Blueprint and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list and search for the **Set Tracking Origin** node, clicking on it to add it to the Event Graph.
+1. Now open up the **GearVR_Pawn** Blueprint and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list and search for the **Set Tracking Origin** node, clicking on it to add it to the Event Graph.
 
     [REGION:lightbox]
-    [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_09.png)(w:555)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_09.png)
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_09.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_09.png)
     [/REGION]
 
     [REGION:caption]
@@ -88,7 +83,7 @@ Below you will find instructions on how to setup your camera for a Gear VR exper
 1. Make sure the **Origin** of the Set Tracking Origin node is set to **Eye Level**.
     
     [REGION:lightbox]
-    [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_10.png)
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)
     [/REGION]
 
     [REGION:caption]
@@ -147,25 +142,27 @@ Below you will find instructions on how to setup your camera for a Gear VR exper
 
     ![](HT_GearVR_Camera_Setup_08.png)
 
-1. Once the UE4 project has deployed, put your Smartphone into your Gear VR HMD and when you move your head around it should look like the following video. 
+## End Result 
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        JdeI2jTS8V8
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Once the UE4 project has deployed, put your Smartphone into your Gear VR HMD and when you move your head around it should look like the following video. 
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    JdeI2jTS8V8
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 
@@ -173,7 +170,8 @@ Below you will find a link to where you can download the UE4 project that was us
 
 * [**Gear VR Camera Example Project**](https://epicgames.box.com/s/wd0o3iakpi5dt8zt8rxm427148ogmx7w)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GearVRCamera]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -241,4 +239,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:GearVRCamera]
--->
+
+[/COMMENT]

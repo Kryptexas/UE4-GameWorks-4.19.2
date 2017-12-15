@@ -76,12 +76,9 @@ tags:Level Streaming
 
 **Blueprint** 流送类型的流送关卡实际上会受到关卡流送体积域、蓝图或 C++ 代码的控制。这些关卡可被动态加载或卸载。 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-	关卡流送体积域
-	[/PARAM]
-	[PARAM:description]
-	通过 **关卡流送体积域** 可轻松控制关卡流送。原理十分简单：流送关卡的加载/卸载请求基于视点是否处于关卡相关的关卡流送体积域中而发出。
+## 关卡流送体积域
+
+通过 **关卡流送体积域** 可轻松控制关卡流送。原理十分简单：流送关卡的加载/卸载请求基于视点是否处于关卡相关的关卡流送体积域中而发出。
 
 具体而言，关卡流送体积域可以两种方式使用：
 
@@ -92,26 +89,17 @@ tags:Level Streaming
 
 
 基于体积域的关卡流送易于使用，不要求脚本编写，是控制关卡流送的理想方式。此外，基于体积域的关卡流送和基于脚本的流送相比更易于维护：加载系统的需求发生变化时，调整体积域的大小即可对关卡加载/卸载行为进行修改。
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/LevelStreaming/StreamingVolumes "%Engine/LevelStreaming/StreamingVolumes:description%")
-	* [](Engine/LevelStreaming/HowTo/StreamWithVolumes "%Engine/LevelStreaming/HowTo/StreamWithVolumes:description%")
-	[/PARAM]
-[/OBJECT]
+
+* [](Engine/LevelStreaming/StreamingVolumes "%Engine/LevelStreaming/StreamingVolumes:description%")
+* [](Engine/LevelStreaming/HowTo/StreamWithVolumes "%Engine/LevelStreaming/HowTo/StreamWithVolumes:description%")
 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-	基于脚本的关卡流送
-	[/PARAM]
-	[PARAM:description]
-	如需设置更复杂的关卡载入和卸载行为（与上例中的门解锁相似），也可设置关卡载入和卸载的蓝图或 C++ 逻辑。关键函数为 **Load Stream Level** 和 **Unload Stream Level**，并指定关卡按命名加载。 
+## 基于脚本的关卡流送
+
+如需设置更复杂的关卡载入和卸载行为（与上例中的门解锁相似），也可设置关卡载入和卸载的蓝图或 C++ 逻辑。关键函数为 **Load Stream Level** 和 **Unload Stream Level**，并指定关卡按命名加载。 
 
 在 **Load Stream Level** 和 **Unload Stream Level** 之外，**Get Streaming Level** 函数可实现更为动态的流送行为。利用它访问实际的关卡流送对象后，即可修改和查询其状态。结合 **Create Instance** 使用此函数，也可创建并流入特定关卡分段的副本。对这些副本应用变形和发送参数，即可创建程序化的世界场景。 
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/LevelStreaming/HowTo/StreamWithBlueprints "%Engine/LevelStreaming/HowTo/StreamWithBlueprints:description%")
-	* [](Engine/LevelStreaming/HowTo/StreamWithC++ "%Engine/LevelStreaming/HowTo/StreamWithC++:description%")
-	[/PARAM]
-[/OBJECT]
+
+* [](Engine/LevelStreaming/HowTo/StreamWithBlueprints "%Engine/LevelStreaming/HowTo/StreamWithBlueprints:description%")
+* [](Engine/LevelStreaming/HowTo/StreamWithC++ "%Engine/LevelStreaming/HowTo/StreamWithC++:description%")

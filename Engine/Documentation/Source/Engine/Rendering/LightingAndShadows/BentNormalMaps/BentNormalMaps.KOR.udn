@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:3678273
+Availability:Public
+Crumbs:%ROOT%
+Title:벤트 노멀 맵
+Description: 언리얼 엔진의 벤트 노멀 맵 개요입니다.
+Type:Overview
+Version:4.17
+Parent:Engine/Rendering/LightingAndShadows
+Order:
+Tags:Rendering
+Tags:Lighting
+Topic-Image:BentNormalTopic.png
+Social-Image:BentNormalSocial.png
+SkillLevel:Advanced
+
+
+[TOC(start:1 end:2)]
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Non Bent Normal](No_BentNormal_00.png)(w:1100)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](BentNormal_00.png)
+    [/PARAM]
+[/OBJECT]
+
+머티리얼에서 벤트(Belt) 노멀을 사용하면 라이팅과 셰이딩 작용을 향상시킬 수 있습니다. 여기서는 언리얼 엔진 프로젝트에 벤트 노멀을 사용하기 위해 필요한 모든 정보를 다루겠습니다.
+
+## 벤트 노멀의 장점
+벤트 노멀을 사용했을 때 얻을 수 있는 장점 몇 가지는 아래와 같습니다.
+
+* 벤트 노멀을 사용했을 때 기대할 수 있는 가장 큰 효과는 라이트 빌드 이후 발생할 수 있는 빛샘 현상 감소입니다.
+* 벤트 노멀은 앰비언트 오클루전(AO)과 함께 사용하여 디퓨즈 간접광을 개선시킬 수 있습니다. 그 원리는 간접광에 노멀 대신 벤트 노멀을 사용하여 디퓨즈 간접광이 글로벌 일루미네이션(GI)과 비슷해 보이도록 만드는 것입니다.
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Diffuse indirect lighting using AO](BentNormalAoLighting.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Diffuse indirect lighting using Bent normal ](BentNormalLighting.png)
+    [/PARAM]
+[/OBJECT]
+
+## 벤트 노멀 생성
+
+최고 퀄리티 벤트 노멀 맵을 구하기 위해서는, 그리고 언리얼 엔진에서 가정하는 벤트 노멀 맵 계산 방식에 일치하도록 하기 위해서는, 다음과 같은 정보에 따라 벤트 노멀 맵을 생성하도록 해야 합니다.
+
+* 벤트 노멀 맵을 생성할 때는 **Cosine Distribution** (코사인 분포)를 사용하세요.
+
+* [Substance Designer 6](https://www.allegorithmic.com/blog/substance-designer-6-unleashed-now-scan-processing-and-new-nodes) 를 사용하여 표준 노멀 맵 또는 AO 맵처럼 벤트 노멀 맵을 생성할 수 있습니다.
+
+* 벤트 노멀을 생성할 때, 캐릭터가 T 포즈인지 확인하세요.
+
+* 벤트 노멀 및 AO 는 같은 **디스턴스** 구성을 사용해야 합니다.
+
+* 벤트 노멀은 노멀 맵과 같은 스페이스에 있어야 합니다. 자세한 정보는 다음 표를 참고하세요:
+    |월드 스페이스 유형| 노멀 맵 유형 | 벤트 노멀 유형|
+    |-----------------|----------------------------|---------------------------|
+    |월드|월드 | 월드|
+    |탄젠트|탄젠트|탄젠트|
+
+## 언리얼 엔진에서 벤트 노멀 사용
+
+머티리얼 안에서 벤트 노멀 맵을 사용하는 것은 일반 노멀 맵 구성 및 사용과 매우 비슷합니다. 머티리얼 그래프에 **Bent Normal** 커스텀 출력 노드를 추가한 뒤 다음 그림처럼 입력에 벤트 노멀 맵을 연결해 주기만 하면 됩니다. 또한, AO 맵이 **Ambient Occlusion** 입력에 연결되었는지도 확인합니다.
+
+[REGION:lightbox]
+[![](BentNormalMaterialSetup.png)(w:349)](BentNormalMaterialSetup.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+## 리플렉션 오클루전
+
+벤트 노멀 맵은 강력하지만 전통적인 방식에서 약간 벗어난 방식으로도 사용되는데, 바로 리플렉션 오클루전 / 스페큘러 오클루전 입니다. 앰비언트 오클루전 (AO) 맵은 디퓨즈 간접광을 차폐하는 반면, 리플렉션 오클루전은 비슷한 개념이기는 하지만, 스페큘러 간접광에 적용됩니다. 리플렉션 오클루전은 가시 원뿔, 즉 벤트 노멀이 축이고 AO 양이 각도인 반구의 차폐되지 않은 부분을 표현하는 원뿔과 스페큘러 로브를 교차시키는 방식으로 작동합니다. 그 결과 스페큘러 라이트의 누수 현상이 크게 감소하며, 스크린 스페이스 리플렉션(SSR) 데이터를 사용할 수 없는 경우엔 특히 더 그렇습니다.
+
+오클루전에 대한 다중 반사광 추정 역시 지원됩니다. 즉 AO 또는 리플렉션 오클루전으로 첫 번째 반사의 그림자 처리를 하는 대신, 다중 반사 효과 추정치를 사용할 수 있다는 뜻입니다. 다중 반사 추정을 통해, 밝은 머티리얼은 명도를 덜 잃게 되고, 유채색 머티리얼은 채도가 높아지게 됩니다.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![AO](ReflectionBNAO.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](ReflectionBN.png)
+    [/PARAM]
+[/OBJECT]
+

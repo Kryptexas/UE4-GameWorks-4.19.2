@@ -24,7 +24,7 @@ type:multi-step
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 在蓝图中进行修改意味着每次创建新 launchpad 时它都将拥有已经在 **蓝图编辑器** 中创建的外观和风格。还可以在关卡中复制 LaunchPad Actor，
@@ -47,4 +47,4 @@ type:multi-step
 
 ---
 
-%Steps%
+

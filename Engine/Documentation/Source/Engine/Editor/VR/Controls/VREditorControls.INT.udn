@@ -1,12 +1,12 @@
 Availability: Public
-Title: VR Editor Controls
+Title: VR Mode Controls
 Description: Learn about the various control schemes and interactions used when creating worlds in VR mode.
 Crumbs:
 parent: Engine/Editor/VR
 type: overview
-order:
+order:1
 tags: VR
-version: 4.15
+version: 4.17
 skilllevel: intermediate
 topic-image:vreditor_controls.png
 prereq:Engine/Editor/VR/ActivateVRMode
@@ -32,25 +32,36 @@ Each Controller emits a beam called the "laser pointer" which is used to determi
 
 | Color | Appearance | Meaning |
 | ----- | ---------- | ------- |
-| Orange |![](standardmode.png)(w:192) | The controller is in the standard interaction mode. This is the default state for the controller. |
-| Green |![](selectionmode.png)(w:192) | The controller is in selection mode, meaning it currently has an Actor selected.  |
-| Yellow |![](movementmode.png)(w:192) | The controller is in movement mode, meaning it is being used to navigate the world. |
+| Red |![](standardmode.png)(w:192) | The controller is in the standard interaction mode. This is the default state for the controller. |
+| Orange |![](selectionmode.png)(w:192) | The controller is in selection mode, meaning it currently has an Actor selected.  |
+| Green |![](movementmode.png)(w:192) | The controller is in movement mode, meaning it is being used to navigate the world. |
+| Blue |![](UImode.png)(w:192) | The controller is in UI interaction mode, meaning it is being used to move the UI around. |
 
 ##UI in VR
 
-The UI in VR Editor mode enables you to work within the Editor without having to leave VR. Use the controls to bring up the Menu system that gives you access to a variety of settings and Editor windows that enables you the 
-full functionality of the desktop Editor in VR. Use the sections below to learn how to call and interact with these systems.
+The UI in VR Mode mode enables you to work within the Editor without having to leave VR. Use the controls to bring up the Menu system which gives you access to a variety of settings and Editor windows.  Use the sections below to learn how to call and interact with these systems.
 
+## Interactor Hand
+
+You can change which hand will have the primary laser attached to it by going to **Editor Preferences** > **General** > **VR Mode**. Then under the **General** section change the **Interactor Hand** to either **Left** or **Right**.
+
+[REGION:lightbox]
+[![](InteractionHand.png)(w:472)](InteractionHand.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
 
 ### Menu Controls
 
-If you want to use the menus available in VR Editing Mode, refer to the following table, where you'll learn about the **Radial** and the **Quick Select** menus. 
+If you want to use the menus available in VR Mode, refer to the following table, where you'll learn about the **Radial** and the **Radial Menu** menus. 
 
 [REGION:raw]
 | Control | Description |
 | ------- | ----------- |
 | ![Modifier Button](radial_menu.png)(convert:false) | Lightly press the Track Pad with your thumb to open the **Radial Menu**. Move your thumb around the Track Pad to highlight the options. Press the Track Pad fully to select the highlighted option. |
-| ![Aim One Controller at the Other Controller](quick_select_menu.png)(convert:false) | Aim one controller at the other controller to access the **Quick Select** Menu. |
+| ![Pressing the Menu Button](Menu_Button.png)(convert:false) | Press the Menu button controller at the other controller to access the **Radial Menu** Menu. |
 [/REGION]
 
 ### Window Controls
@@ -59,18 +70,19 @@ If you want to control the various windows while in VR Editing Mode, refer to th
 
 [REGION:raw]
 | Control | Description |
-| ------- | ----------- |
-| ![Tap Track Pad](show_hide_windows.png)(convert:false) | Tap the Track Pad to show or hide any open windows. |
+| ------- | ----------- |	
 | ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | Aim the controller at the Grip of a window and squeeze the Trigger to grab the window. Move your thumb up or down on the Track Pad to scale the window up or down. |
 [/REGION]
 
 ##Editing in VR
 
-When editing in VR Editor mode you'll need to be able to traverse the world and manipulate the Actors in your scene in an intuitive way. Use the sections below to learn how to interact with the Actors by moving them around, scaling, and rotating them, and 
+When editing in VR Mode mode you'll need to be able to traverse the world and manipulate the Actors in your scene in an intuitive way. Use the sections below to learn how to interact with the Actors by moving them around, scaling, and rotating them, and 
 how to effectively navigate the world all while in VR. 
 
 
-<!--Add introductory text summarizing this section.-->
+[COMMENT:none]
+Add introductory text summarizing this section.
+[/COMMENT]
 
 ### Navigation Controls
 
@@ -85,7 +97,7 @@ the world, rotate the world around you, and scale the world up or down.
 | ![Press Side Buttons + Move Controller](move_world.png)(convert:false) | Press the Side Buttons and move the controller to the world like you are grabbing the world with your hand and pushing or pulling it. |
 | ![Press Side Buttons + Aim Controller + Squeeze Trigger](teleport_world.png)(convert:false) | Press the Side Buttons, aim the controller, and squeeze the Trigger to teleport from your current location to the location the controller is aiming at. |
 | ![Press Side Buttons + Move Controllers Around Each Other](rotate_world.png)(convert:false) | Press the Side Buttons on both controllers and move them around each other to rotate the world around you, as if you are grabbing the world with your hands and then rotating it. |
-| ![Press Side Buttons + Move Controllers Towards or Away From Each Other](scale_world.png)(convert:false) | Press the Side Buttons on both controllers and move them toward or away from each other to scales the world up or down. |
+| ![Press Side Buttons + Move Controllers Towards or Away From Each Other](scale_world.png)(convert:false) | Press the Side Buttons on both controllers and move them toward or away from each other to scale the world up or down. |
 | ![Press Side Buttons + Tap the Tack Pad](Reset_World_Scale.png)(convert:false) | Press the Side Buttons to grab the world and tap the Track Pad to instantly reset the world's scale back to your default Player's Size while editing. |
 
 [/REGION]
@@ -97,8 +109,8 @@ If you want to select Actors in a VR environment, refer to the following table, 
 [REGION:raw]
 | Control |  Description |
 | ------- | ----------- |
-| ![Aim Controller at Actor + Squeeze Trigger](select_actor.png)(convert:false) | Aim the controller at an Actor in the world and squeeze the Trigger to select the Actor. |
-| [REGION:lightbox][![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION] | Aim one controller at an Actor in the world and squeeze the Trigger halfway to select the Actor and enter multi-select mode. While holding the Trigger halfway, aim the other controller at other Actors and squeeze its Trigger to add or remove them from the selection. |
+| ![Aim Controller at Actor + Squeeze Trigger](select_actor.png)(convert:false) | To select a single Actor, aim the Motion Controller at an Actor in the world and then squeeze the Trigger to select it. |
+| [REGION:lightbox][![multi_select_actors.png](multi_select_actors.png)(h:108 convert:false)](multi_select_actors.png)[/REGION] |To select multiple Actors, hold down the Menu button on the Interactor Hand Motion Controller and then aim the Motion Controller at the Actor you want to select. With the Menu button still held down, squeeze the Motion Controller trigger to add or remove Actors from the selection.|
 [/REGION]
 
 ### Transform Controls
@@ -116,7 +128,7 @@ If you want to transform your Actors using the Translate, Rotate, and Scale gizm
 
 ##Painting in VR
 
-When painting in VR Editor mode, you'll have similar options to the desktop Editor to choose from, such as painting for Landscape mode, with the Foliage tool, and Mesh Painting. Use the sections below to learn how to paint
+When painting in VR Mode mode, you'll have similar options to the desktop Editor to choose from, such as painting for Landscape mode, with the Foliage tool, and Mesh Painting. Use the sections below to learn how to paint
 with these different modes using their available tools and options. 
 
 

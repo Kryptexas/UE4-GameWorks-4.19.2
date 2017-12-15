@@ -23,7 +23,8 @@ Here is what we currently require for Android game development in UE4:
  | ---------- | --------------------- |
  |   [INCLUDE:#codecomponents] |  [INCLUDE:#codeenvvar] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPComponents]
 * Android SDK
 * Java Development Kit
@@ -45,13 +46,14 @@ Here is what we currently require for Android game development in UE4:
 [INCLUDE:#bpenvvar]
 * NDKROOT
 [/EXCERPT:CodeEnvVar]
--->
+
+[/COMMENT]
 
 ## Installing Components
 
 There are several methods for getting the components. If you have already installed one of these, look in the corresponding section for additional requirements:
 
-### CodeWorks for Android 1R6
+### CodeWorks for Android 1R6u1
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -81,14 +83,15 @@ There are several methods for getting the components. If you have already instal
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TADPWindowsSetup]
 
-CodeWorks for Android 1R6 (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R6u1 (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6u1, all of your requirements to develop for Android will be met.
 
-The installer for CodeWorks for Android 1R6 is included with Unreal Engine 4 for Windows. It can be found here: 
+The installer for CodeWorks for Android 1R6u1 is included with Unreal Engine 4 for Windows. It can be found here: 
 
-	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R6-windows.exe
+	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R6u1-windows.exe
 
 The important pieces are:
 
@@ -111,7 +114,7 @@ The important pieces are:
 	
 If you use the default installation set, a pretty minimal set of components will be installed. If you customize the install, you can add more items (like profilers, etc). Note that during installation, 
 one or two of the sub-installers may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes. If you never plan to write code, you may want to 
-select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6 is used for debugging an Android game on a device. 
+select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6u1 is used for debugging an Android game on a device. 
 It is not required to compile C++ code.
 
 ![](TADPSetup.png)
@@ -119,11 +122,11 @@ It is not required to compile C++ code.
 [/EXCERPT:TADPWindowsSetup]
 
 [EXCERPT:TADPMacOSSetup]
-CodeWorks for Android 1R6, (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R6u1, (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6u1, all of your requirements to develop for Android will be met.
 
-The installer for CodeWorks for Android 1R6 is included with Unreal Engine 4 for Mac and can be found here: 
+The installer for CodeWorks for Android 1R6u1 is included with Unreal Engine 4 for Mac and can be found here: 
 
-	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R6-osx.dmg
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R6u1-osx.dmg
 
 The important pieces are:
 
@@ -146,13 +149,14 @@ The important pieces are:
 
 If you use the default installation set, a pretty minimal set of components will be installed. 
 If you customize the install, you can add more items (like profilers, etc). Note that during installation, one or two of the sub-installer may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes on some computers. 
-If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6 is used for debugging an Android game on a device so it is not required to compile C++ code.
+If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6u1 is used for debugging an Android game on a device so it is not required to compile C++ code.
 
 ![](TADP_Mac_OS.png)
 
 [/EXCERPT:TADPMacOSSetup]
 
--->
+
+[/COMMENT]
 
 
 ## Environment Variables
@@ -188,13 +192,14 @@ If you never plan to write code, you may want to select **Customize**, and only 
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ENVWindowsSetup]
 
-Unless you installed CodeWorks for Android 1R6 from the provided UE4 installer, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R6u1 from the provided UE4 installer, you will need to verify that some environment variables are set properly. 
 
 [REGION:note]
-Once you have completed the installation (either by setting environment variables in the System Control Panel or by installing CodeWorks for Android 1R6), you will need to restart both the Editor and Launcher 
+Once you have completed the installation (either by setting environment variables in the System Control Panel or by installing CodeWorks for Android 1R6u1), you will need to restart both the Editor and Launcher 
 applications. This is due to how Windows applications store environment variables and then pass the old versions along to applications they start. 
 
 If you continue seeing the message about the Android SDK not being installed properly, it is recommended that you reboot your computer.
@@ -234,10 +239,10 @@ Here are the variables that we depend on, and where they should point:
 [/EXCERPT:ENVWindowsSetup]
 
 [EXCERPT:ENVMacOSSetup]
-Unless you installed CodeWorks for Android 1R6, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R6u1, you will need to verify that some environment variables are set properly. 
 
 [REGION:note]
-Once you have completed the installation (either by editing your .bash_profile file or by installing CodeWorks for Android 1R6), you will need to restart both the Editor and Launcher applications.
+Once you have completed the installation (either by editing your .bash_profile file or by installing CodeWorks for Android 1R6u1), you will need to restart both the Editor and Launcher applications.
 [/REGION]
 
 To set an environment variable you need to edit the **.bash_profile** file in your home directory. 
@@ -267,7 +272,8 @@ Here are the name of the variables that we depend on and where they should point
 
 [/EXCERPT:ENVMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ## Android Tips and Tricks 
 
@@ -301,7 +307,8 @@ Here are the name of the variables that we depend on and where they should point
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ATTWindowsSetup]
 If you do not see your device listed in the **Launch** menu, here are some things to try: 
 - Wait a few seconds and look again, as the background scanning for connected devices can take a short amount of time. 
@@ -339,7 +346,8 @@ If you click on the **Show Log** line in the progress bar and see that the last 
 
 [/EXCERPT:ATTMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ## Android Texture Formats
 Not all Android devices are made the same. In particular, there are 4 different kinds of rendering hardware. They each support different formats of compressed textures. 

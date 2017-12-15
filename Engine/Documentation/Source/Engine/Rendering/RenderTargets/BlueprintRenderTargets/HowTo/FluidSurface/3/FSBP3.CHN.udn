@@ -175,7 +175,8 @@ checkpoint:FSB
 现在蓝图便已设置完成。下一部分我们将了解如何对所有内容进行设置，以便在 UE4 中使用。
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompSurfNorm]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -2003,4 +2004,5 @@ checkpoint:FSB
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ApplySim]
--->
+
+[/COMMENT]

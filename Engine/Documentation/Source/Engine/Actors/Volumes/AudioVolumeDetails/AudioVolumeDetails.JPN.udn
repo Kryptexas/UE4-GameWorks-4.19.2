@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3379420
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:ボリュームの概要
 Crumbs:%ROOT%, Engine, Engine/Actors, Engine/Actors/Volumes
@@ -35,4 +35,6 @@ type:reference
 | **Interior LPF** | プレイヤーがボリュームの外側にいる時の内側のサウンドに適用されるローパスフィルタ乗数 (最大 LPF の適用は 0.1)。 |
 | **Interior LPFTime** | 新規のローパス フィルタ レベルにフェードする秒時間。 |
 
-<!--Ambient Zones に関する情報については、以下を参照してください。[Ambient Zones に関するドキュメント](Engine/Audio/AmbientZones).-->
+[COMMENT:none]
+Ambient Zones に関する情報については、[Ambient Zones のドキュメント](Engine/Audio/AmbientZones) を参照してください。
+[/COMMENT]

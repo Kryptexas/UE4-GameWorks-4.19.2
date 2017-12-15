@@ -5,20 +5,14 @@ Description:How to animate a Skeletal Mesh jumping onto a platform and applying 
 Version: 4.9
 SkillLevel: Intermediate
 
- 
----
+
 In the following steps, we will have a character jump up onto a platform by applying animations and movement to a **Skeletal Mesh**. We will also add background music and sounds using the **Sound Track**. 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add the Matinee Actor and Props
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, a **Skeletal Mesh Actor** and create a platform for the character to jump up on.  
-	[/PARAM]
-[/OBJECT]
+## Add the Matinee Actor and Props
+
+In this step, we will add our **Matinee Actor**, a **Skeletal Mesh Actor** and create a platform for the character to jump up on.  
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -56,15 +50,9 @@ In the following steps, we will have a character jump up onto a platform by appl
 	
 	![](BoxHeightGray.jpg)
 
+## Add Actor to Matinee and Add Tracks
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add Actor to Matinee and Add Tracks
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add the **SK_Mannequin** to the **Matinee** and add the tracks we will be using for the sequence. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will add the **SK_Mannequin** to the **Matinee** and add the tracks we will be using for the sequence. 
 
 1.  Select the **MatineActor** from the World Outliner, then click the **Open Matinee** button. 
 
@@ -86,15 +74,9 @@ In the following steps, we will have a character jump up onto a platform by appl
 
 	![](MHT7_MoveEndMarker.png)
 
+## Adding Movement and Animation
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding Movement and Animation
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will setup the movement and animation for our character which will jump to the top of the box. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will setup the movement and animation for our character which will jump to the top of the box. 
 
 1.  With Matinee open, click on the Movement track then move the **Time Bar** to **3.00** and press **Enter** to add a keyframe. 
 
@@ -172,15 +154,9 @@ In the following steps, we will have a character jump up onto a platform by appl
 
 	_The darker section at the end of the sequence indicates that the animation is set to loop._
 
+## Adding Sounds and Finishing Matinee
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding Sounds and Finishing Matinee
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add sounds using the sound tracks and finish up the sequence. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will add sounds using the sound tracks and finish up the sequence. 
 
 1. Minimize the Matinee window, then in the Content Browser inside the **Game/Audio** folder, click on the **Explosion01** asset. 
 
@@ -233,42 +209,4 @@ In the following steps, we will have a character jump up onto a platform by appl
 	_You should now see that the **SK_Mannequin** Actor will jump to the top of the box, along with an explosion sound effect and music playing._
 
 	_You could apply a **Director Track** with multiple camera angles, FOVs, Post Processing effects, or a Slow-mo track to polish it up and make it your own._
-
-
-
-	
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

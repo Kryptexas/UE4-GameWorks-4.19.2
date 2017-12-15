@@ -12,9 +12,11 @@ This page covers examples on how to find Actors in a level by using the Get All 
  
 
 ## Get All Actors of Class
-<!---
+[COMMENT:none]
+-
 The steps below will show you how you can use the **Get All Actors of Class** node to find all Actors in your scene of a particular Class. 
---->
+-
+[/COMMENT]
 
  _For this example, we are using the **Blueprint Third Person Template with Starter Content**._
 

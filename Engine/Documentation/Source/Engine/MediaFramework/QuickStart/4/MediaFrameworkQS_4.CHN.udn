@@ -1,0 +1,105 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:4 - TV Blueprint Setup - Construction Script
+Description:In this step, we use the Construction Script to set up some parameters that we can change for the TV Blueprint within the editor. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:4
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+With the Components of our TV Blueprint defined, in this step we set up the [Construction Script ](Engine/Blueprints/UserGuide/UserConstructionScript) so we can change the content on our TVs when we place them in our level. 
+
+## Steps
+
+1. Inside the **TV_Blueprint**, click on the **Construction Script** tab below the Main Toolbar. 
+
+	![](Construct_01.png)
+
+1. Right-click in the graph and add a **Create Dynamic Material Instance** node and set the **Parent** to **M_TV_Inst** and connect as shown. 
+
+	![](Construct_02.png)
+
+	To change the Media Texture within the Material applied to our TV, we first need to create a [Dynamic Material Instance](Engine/Rendering/Materials/MaterialInstances) based on that Material and assign it to our TV. 
+
+1.	On the **Return Value** of the **Create Dynamic Material Instance** node, right-click and select **Promote to Variable** and call it **TV_MID**. 
+
+	![](Construct_03.png)
+
+	This will store a reference to the Dynamic Material we created which we can use later in our setup. 
+
+1.	In the **Components** window select the **TV_Mesh**, then in the graph right-click and choose **Set Material (TV_Mesh)**. 
+
+	![](Construct_04.png)
+
+	This will add a reference to the TV and a Set Material node which we can then assign our Dynamic Material to. 
+
+1.	From the **My Blueprint** panel, drag the **TV_MID** variable onto the **Material** pin of the **Set Material** node and connect as shown. 
+
+	![](Construct_05.png)
+
+1.	Drag off the **TV_MID** node and use a **Set Texture Parameter Value** node and connect as shown. 
+
+	![](Construct_06.png)
+
+1.	Set the **Parameter Name** to **TV_Texture** then right-click on **Value** and **Promote to Variable** and call it **Texture for TV**.  
+
+	![](Construct_07.png)
+
+	This will enable us to define what Media Texture we want sample from on a per TV basis as it is now a variable. 
+
+1.	From the **Components** window, drag the **Media Sound** asset into the graph, then off it use **Set Media Player**. 
+
+	![](Construct_08.png)
+
+1.	Right-click on the **Media Player** pin and select **Promote to Variable** and call it **Media Player for Sound** and connect as shown. 
+
+	![](Construct_09.png)
+
+	Similar to the way we set up our texture, this will enable us to define what Media Player to associate the Media Sound with on a per TV basis. 
+
+	Your full graph should look like the following. 
+
+	[REGION:lightbox]
+	[![](Construct_10.png)](Construct_10.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full view. 
+	[/REGION]
+
+1.	In the **My Blueprint** panel, select the **TextureForTV** variable, then set as **Instance Editable** and assign the **MediaPlayer_01_Video** Media Texture. 
+
+	![](Construct_11.png)
+
+	Here we are defining the Default Value to use for our Texture and enabling Instance Editable gives us a way to change this value for each instance of this Blueprint. 
+
+	[REGION:note]
+	In order to set the **Media Texture** Default Value, you may need to click the **Compile** button from the Main Toolbar. 
+	[/REGION]
+
+1.	In the **My Blueprint** panel, select the **MediaPlayerForSound** variable, then set as **Instance Editable** and assign the **MediaPlayer_01** Media Player. 
+
+	![](Construct_12.png)
+
+	Similar to the previous step, we are assigning the Default Value and providing a way for us to change this value on a per-instance basis. 
+
+	[REGION:note]
+	In order to set the **Media Player** Default Value, you may need to click the **Compile** button from the Main Toolbar. 
+	[/REGION]
+
+## End Result
+
+Our TV Blueprint is now set up in a way that enables us to define what Media Sound, Media Texture (and in the next step, what Media Player) assets we want to associate with which TVs we place in our level. 
+By creating variables for those assets and making them Instance Editable, this gives us the flexibility to change the content on any TV we place but reuse the functionality allowing the player to turn the TV on or off. 
+
+[NAV]
+
+
+
+

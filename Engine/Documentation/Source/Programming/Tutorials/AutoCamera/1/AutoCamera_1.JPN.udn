@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.ワールドにカメラを配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** にまだ慣れていない場合は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をご覧いただくとよいでしょう。このドキュメントでは、プロジェクトの作成、プロジェクトへの C++ コードの追加、コードのコンパイル、**アクタ** への **コンポーネント** の追加に慣れている方を対象として想定しています。[/REGION]
 
@@ -51,4 +51,4 @@ version:4.9
 
 ワールドを設定したので、これでカメラビューをコントロールするクラスを作成する準備が整いました。
 
-%Steps%
+

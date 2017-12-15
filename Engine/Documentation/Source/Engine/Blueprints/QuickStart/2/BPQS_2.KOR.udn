@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 발구름판 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -25,7 +25,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 
@@ -68,4 +68,4 @@ tags:Blueprints
 
 ---
 
-%Steps%
+

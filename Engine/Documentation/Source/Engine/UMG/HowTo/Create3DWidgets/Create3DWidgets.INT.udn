@@ -32,20 +32,12 @@ zrYjngjYrEI
 
 _At the end of this guide, you will have a menu that appears inside the 3D game world instead of overlaid on screen._
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
-	* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
+* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
+[/REGION]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup "%Engine\UMG\HowTo\Create3DWidgets\WidgetSetup:title%")

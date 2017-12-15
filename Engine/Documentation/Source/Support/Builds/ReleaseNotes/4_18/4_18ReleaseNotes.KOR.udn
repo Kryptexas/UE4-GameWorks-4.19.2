@@ -1,0 +1,758 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title: 언리얼 엔진 4.18 릴리즈 노트
+Description: 언리얼 엔진 4.18 릴리즈 노트입니다.
+Crumbs:%ROOT%, Engine
+Parent:Support/Builds
+Order:18
+reference-image:image_3.gif
+reference-image:image_4.gif
+reference-image:image_5.gif
+reference-image:image_9.gif
+reference-image:image_10.gif
+
+
+![image alt text](image_21.jpg)(convert:false)
+
+## 새 소식
+
+언리얼 엔진 4.18 에는 **최고 퀄리티 콘텐츠 제작** 툴이 제공됩니다. 플랫폼 지원 역시 확장 개선되어, **어떤 플랫폼 소비자에게도 콘텐츠 전달이** 가능합니다. 보다 효율적이고 신속한 개발 프로세스를 만들기 위한 끊임없는 노력으로, 저희 모든 툴을 지속적으로 업데이트 강화시켜 **전에 없이 빠른 속도로 콘텐츠 생산이** 가능합니다.
+
+볼류메트릭 라이트맵이나 스카이라이트의 다중반사 간접광과 같은 새로운 라이팅 기능으로, 월드에 보다 높은 수준의 현실감과 사실성을 부여할 수 있습니다. 실시간 합성을 가능하게 해주는 새로운 미디어 프레임워크 기능으로 월드에 현실 세계를 그대로 들여올 수도 있습니다. 또는 Apple 의 ARKit 와 Google 의 AR Core 를 사용하면, 현실 세계 위에 가상 세계를 만드는 궁극의 몰입 환경을 만드는 것도 가능합니다.
+
+잠재 고객은 계속해서 진화해 가며 새롭고 다양한 플랫폼에서 콘텐츠를 얻고 있습니다. 언리얼 엔진 4.18 은 모든 주요 플랫폼에서 전에 없던 높은 수준의 충실도와 퍼포먼스로 여러분의 콘텐츠를 전해드릴 수 있습니다. 데스크탑, 콘솔, 모바일, 웹, 모두 언리얼이 커버합니다.
+
+언리얼 엔진 4.18 은 여러분께서 가장 중요한 것에만 집중할 수 있도록 해드립니다. 새로운 *블루프린트에서 찾기* 검색 기능으로 여러 블루프린트에서 무언가를 찾는 데 시간을 낭비할 일이 없을 것입니다. 개선된 클로딩 툴, 새로운 피직스 애셋 에디터, 강화된 머티리얼 에디터 프리뷰 지원과 함께 개발 프로세스 속도를 대폭 향상시켜 개발자 여러분 삶의 질을 높여줄 개선사항이 여럿 추가되었습니다.
+
+에픽에서 제작한 **수백 종의 업데이트** 이외에도, 이번 릴리즈에는 GitHub 의 엄청난 언리얼 엔진 개발자 커뮤니티가 제출한 **98 종의 개선사항이** 포함되어 있습니다. 언리얼 엔진 4.18 에 기여해주신 분들께 감사드립니다:
+
+Akihiro Kayama (kayama-shift), Alan Edwardes (alanedwardes), Alec Kosik (akosik), Andrey Yamashev (ayamashev), Artem (umerov1999), aziot, Cameron Angus (kamrann), Carsten Neumann (cneumann), Cengiz Terzibas (yaakuro), Chris Conway (Koderz), Christopher Reed (christopherreed), Cody C. (Mumbles4), Courtland Idstrom (Frugality), DaveC79, DavidNSilva, getnamo, Grant Peters (ggpeters), Guillaume Buisson (monsieurgustav), Harry Kim (shuaiharry), Ian Huff (IanMatthewHuff), IHappyDayI, Ilya (ill), Isabela Schulze (Ereski), Jason Calvert (jasoncalvert), Jesse Yeh (jesseyeh), John McBroom (jimbomcb), Jørgen P. Tjernø (jorgenpt), Josef Gluyas (Josef-CL), Kalle Hämäläinen (kallehamalainen), karanseqwb, Konstantin Nosov (gildor2), Kostas Nakos (jubanka), lwdingNT, Masanori Shinkawa, Mathias Hübscher (user37337), Matt Hoffman (LordNed), Maurice Laveaux (mlaveaux), Michael Allar (Allar), Michael Kösel (TheCodez), Mikayla Hutchinson (mhutch), minichris, Nick Pearson (Nick-Pearson), Nick Verenik (nverenik), Patrice Vignola (PatriceVignola), projectgheist, Rama (EverNewJoy), Roman Chehowski (RChehowski), Roman Maksymyschyn (miracle7), Sam Hocevar (samhocevar), Scott Freeman (gsfreema), Sébastien Rombauts (SRombauts), Sertaç Ogan (SertacOgan), steelixb, stfx, Triplelexx, Vivid Games - Engine Team (enginevividgames), Vladimir Ivanov (ArCorvus), XueBing (DarkSlot), Yujiang Wang (Luoshuang), yhase7, YuchenMei, Zeblote
+
+## 주요 기능
+
+### 신규: 볼류메트릭 라이트맵
+
+새로운 볼류메트릭 라이트맵은 미리계산 라이팅의 낮은 비용으로 무버블 오브젝트에 높은 퀄리티의 라이팅을 낼 수 있도록 해주는 기능입니다. 캐릭터, 파티클 시스템, 인스턴스드 폴리지, 기타 다이내믹 오브젝트가 환경 바닥에 붙어있는 느낌을 보다 잘 살릴 수 있게 되었습니다.
+
+![image alt text](image_0.jpg)(w:500 convert:false)  ![image alt text](image_1.jpg)(w:500 convert:false)
+
+볼류메트릭 라이트맵은 전체 라이트매스 임포턴스 볼륨을 4x4x4 라이팅 샘플 브릭으로 커버하여 공간 내 모든 지점에 미리계산 라이팅 정보를 저장합니다. 간접광 변화가 가장 심한 스태틱 지오메트리 근처에는 브릭 배치 밀도를 높입니다. 이 데이터 구조를 통해 GPU 상의 공간 내 어느 지점에 대해서도 효율적인 간접광 보간이 가능합니다. 볼류메트릭 라이트맵은 전체 컴포넌트에 대해 한 번이 아닌 각 픽셀에 대해 보간되어 기존 간접광 캐시 방식에 보다 신뢰성 높은 디테일을 낼 수 있으며, 결과적으로 빛샘 현상이 줄어듭니다.
+
+볼류메트릭 라이트맵 사용법 관련 정보 및 자세한 내용은 [볼류메트릭 라이트맵](Engine/Rendering/LightingAndShadows/VolumetricLightmaps) 문서 를 참고하세요.
+
+**볼류메트릭 포그에 미리계산 라이팅**
+
+볼류메트릭 포그는 이제 볼류메트릭 라이트맵을 사용하여 공간 내 포그 위치에 미리계산 라이팅을 보간, 간접광 정보가 라이트맵에 있는 스테이셔너리 라이트가 포그에 영향을 주도록 할 수 있습니다. 스태틱 및 이미시브 라이트는 별다른 비용 없이 포그에 영향을 줄 수 있는데, 모두 볼류메트릭 라이트맵에 병합되어 있기 때문입니다.
+
+![image alt text](image_2.png)(w:1000 convert:false)
+
+이제 스카이라이트 그림자가 제대로 드리워져, 실내 영역의 포그가 과하게 짙어지지 않습니다.
+
+[REGION:asyncgif]
+![image alt text](image_3.gif)(w:1000)
+[/REGION]
+[REGION:caption]
+*1 - 포그에 스카이라이트 그림자 제대로, 2 - 포그의 균등 스카이라이트에 빛샘*
+[/REGION]
+
+**퍼포먼스**
+
+* 삼인칭 캐릭터의 볼류메트릭 라이트맵 비용은 PlayStation 4 에서 GPU 시간 .02ms 입니다. 모든 간접광 캐시 렌더링 스레드 비용은 제거됩니다.
+
+* 파라곤의 모놀리스 맵에서 메모리 사용량은 간접광 캐시일 때 5Mb 에서 DetailCellSize (디테일 셀 크기) 기본 설정의 볼류메트릭 라이트맵일 때 30Mb 로 올라갔습니다. 메모리 사용량은 stat memory 로 확인할 수 있습니다.
+
+**상세 비교**
+
+
+| 볼류메트릭 라이트맵 | 프리컴퓨티드 라이트 볼륨 / 간접광 캐시 |
+| --- | --- |
+| GPU 에서 효율적 보간 | CPU 에서 비효율적 보간 |
+| 픽셀 단위 보간 | 오브젝트 단위 보간, 인스턴스드 컴포넌트에도 |
+| 볼류메트릭 포그에 적용 | 볼류메트릭 포그에 적용 불가 |
+| 모든 스태틱 표면 주변에 고밀도 배치 | 스태틱 표면 상단에만 고밀도 배치, 저밀도 샘플링에 잦은 빛샘 |
+| 임포턴스 볼륨 밖 영역은 테두리 복셀을 늘여 커버 | 임포턴스 볼륨 밖은 검정 |
+| 현재 레벨 스트리밍 미지원 | 레벨 스트리밍 지원 |
+
+### 신규: 스태틱 스카이라이트 방향성 개선
+
+스카이라이트는 라이트매스에 3차 구면 함수로 표현되었는데, 이는 일출이나 일몰의 디테일을 제대로 잡아내지 못했습니다. 이제 기본 해상도가 훨씬 높은 필터링 적용 큐브맵을 사용합니다. 라이트매스는 계단현상 제거를 위해 최종 수집(Final Gather) 광선 크기에 따라 큐브맵의 밉을 적절히 선택합니다. 밝기나 색 다변화가 큰 스카이라이트 큐브맵이 있는 차폐가 심한 씬에서 큰 차이를 확인할 수 있습니다.
+
+[REGION:asyncgif]
+![image alt text](image_4.gif)(w:1000)
+[/REGION]
+[REGION:caption]
+*1 - 새로운 필터 적용 큐브맵 스태틱 스카이라이트, 2 - 원본 스태틱 스카이라이트*
+[/REGION]
+
+틈이 작을 수록, 스카이 라이팅의 방향성도 명확해집니다. 구멍이 충분히 작을 때 벌어지는 핀홀 카메라 효과를 재현해 내는 것도 가능합니다.
+
+[REGION:imagetable]
+| ![image alt text](image_20.jpg)(w:500 convert:false) | ![image alt text](image_19.jpg)(w:500 convert:false)|
+| --- | --- |
+| 스카이라이트 소스 큐브맵 | 결과 스카이 라이팅 |
+[/REGION]
+
+### 신규: 스카이라이트의 간접광 다중 반사
+
+이제 월드 세팅 -> 라이트매스에 새로 생긴 Num Sky Lighting Bounces (스카이 라이팅 반수 횟수) 세팅으로 스태틱 / 스테이셔너리 스카이라이트의 간접광 다중 반사가 지원됩니다. 이 기능을 처음 구현해 주신 포럼 사용자 [Luoshuang](https://forums.unrealengine.com/development-discussion/rendering/112827-lightmass-multi-bounced-sky-lighting) 님께 감사드립니다.
+
+[REGION:asyncgif]
+![image alt text](image_5.gif)(w:1000)
+[/REGION]
+[REGION:caption]
+*1 - 스카이라이트 다중 반사, 2 - 스카이라이트 단일 반사*
+[/REGION]
+
+대부분의 경우 스카이라이트 다중 반사를 확인하기 위해서는 머티리얼에 디퓨즈 값이 높아야 합니다. 예를 들어, 디퓨즈 값 .18 (18% 회색)인 경우, 스카이라이트 반사 두 번째는 라이트가 방출하는 에너지의 .18^3 = .006 밖에 기여하지 못해 매우 미묘합니다. 디퓨즈 값이 .5 정도는 되어야, 스카이라이트 반사 두 번째 기여도가 라이트 방출 에너지의 .125 는 되어 눈에 보입니다.
+
+보너스로 이미시브 메시에서도 다중 반사 효과가 나옵니다:
+
+![image alt text](image_6.png)(w:1000 convert:false)
+
+라이트매스는 라디오시티 솔버를 사용하여 스카이라이트나 이미시브 메시의 다중 반사를 계산합니다. 반사 한 번마다 분산이 가능하지 않은 빌드 시간이 늘어나므로, 조심해서 사용하시기 바랍니다.
+
+### 신규: Apple ARKit iOS 11 지원
+
+언리얼 엔진 4.18 에는 iOS11 에서 Apple 의 ARKit 가 바로 제품 출시가 가능한 수준으로 지원됩니다. iPhone 8 및 iPhone X 를 발표하는 키노트에서 Apple 과 협력해 온 덕분입니다. 
+
+![image alt text](image_22.png)(w:1000 convert:false) 
+
+![image alt text](image_23.jpg)(w:1000 convert:false)
+
+기존 프레임워크 컴포넌트를 적극 활용하여 작업방식을 효율화시키고, 패스스루 카메라의 안정적 처리를 위한 기능을 추가하였으며, 퍼포먼스와 예측도를 향상시켜 재현 충실도를 높였습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	WPjQ-HwgjZ8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+**주:** 언리얼 엔진 4.17 의 ARKit 실험단계 지원 이후 큰 변화가 있었습니다. 4.17 에서 만든 ARKit 프로젝트는 4.18 에서 새로 작업을 해야 할 것입니다. 4.18 변경사항 확인을 위해서는 [업데이트된 ARSample 프로젝트를 다운로드](https://cdn2.unrealengine.com/Unreal+Engine/HostForForums/ARSample_418-2abf8bda292aec0b6c9b419084d9433b0c454317.zip) 하세요.
+
+**시작하기**
+
+이제 시작하기가 엄청 쉬워졌습니다. 이렇게만 하면 됩니다:
+
+1. 프로젝트에 맞는 ARKit 플러그인을 켭니다.
+
+2. 프로젝트 세팅의 bStartInAR 프로퍼티를 켭니다.
+
+3. Pawn 에 CameraComponent 가 추가되었는지 확인합니다.
+
+**알려진 ARKit 이슈**
+
+* 아직 디바이스 회전이 완벽 지원되지 않습니다. 현재는 프로젝트에 지원하는 유일한 오리엔테이션으로 Landscape Right (가로 오른쪽)을 선택해야 합니다.
+
+* 히트 테스트에 노출된 유일한 함수가 HitTestAtScreenPosition_TrackingSpace 뿐입니다. 반환하는 것은 CameraComponent 의 부모 스페이스 결과값입니다. 기본 구성에서라면 Pawn 스페이스입니다. 이것을 월드 스페이스로 전환하려면 현재 그 결과에  부모(, 즉 Pawn)의 월드 트랜스폼을 곱해줘야 합니다.
+
+* HitTestAtScreenPosition_TrackingSpace 함수는 Types 파라미터를 무시하며, 항상 가능한 모든 표면에 대한 히트 테스트를 수행하고, 반환된 결과값은 FAppleARKitHitTestResult 구조체의 Types 칸 검사를 통해 수동 필터링이 가능합니다.
+
+* FAppleARKitHitTestResult 는 Anchor 프로퍼티를 채우지 않으며, 항상 nullptr 입니다.
+
+* 월드 스케일은 현재 기본값으로 간주하며, 변경할 수 없습니다.
+
+### 신규: Google ARCore 개발자 프리뷰 지원
+
+언리얼 엔진 4.18 에는 엔진의 일반 증강 현실 기능을 활용하는 Google ARCore 개발자 프리뷰에 대한 공식 지원이 포함되어 있으며, 향상된 패스스루 카메라 처리를 내세우고 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	CFhS0qU_Uu4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+ARSample 프로젝트가 ARCore 는 물론 ARKit 도 지원하도록 업데이트했습니다. [프로젝트를 다운로드하여](https://cdn2.unrealengine.com/Unreal+Engine/HostForForums/ARSample_418-2abf8bda292aec0b6c9b419084d9433b0c454317.zip) 4.18 변경사항을 확인하시고 바로 ARCore 개발을 시작해 보세요.
+
+### 맥에서 SteamVR 지원
+
+4.18 부로 UE4 는 SteamVR 을 통해 맥에서의 VR 을 공식 지원합니다! PC 에서 사용하던 인터페이스 그대로 맥에서도 사용할 수 있으므로, 프로젝트를 맥으로 이식하여 돌리는 작업이 쉬워졌습니다. 이번 업데이트에는 Metal 2 지원과 다른 여러가지 런타임 최적화가 포함되어 있습니다. SteamVR 최신 버전으로 업데이트하여 직접 체험해 보세요!
+
+![](image_24.png)(w:1000 convert:false)
+
+### 신규: 클로딩 툴
+
+스켈레탈 메시 에디터에서 클로딩을 만들고 설정할 수 있는 툴세트를 완전히 새로 개편했습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	BIBnP5zy2zw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+클로딩 전용 프로퍼티 확장 세트를 편집할 수 있는 클로딩 패널이 생겨 클로딩 컨스트레인트, 셀프 콜리전 버텍스 컬링, 관성 스케일에 대한 보다 세밀한 제어가 가능합니다. 강화된 페인트 툴로는 메시에서 바로 버텍스별 클로딩 파라미터를 칠할 수 있습니다. 새로 생긴 페인트 툴은 브러시, 그레디언트, 스무드, 채우기 툴입니다. 칠한 파라미터는 덮어쓰기 방식이 아닌 한꺼번에 교체하는 방식이라 반복처리에 좋습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	8Lk17AKp8Pw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+클로딩 툴에 콜리전 저작을 위한 피직스 애셋이 통합되었습니다. 클로딩 데이터 오브젝트의 시뮬레이션 메시를 만들고 대체하는 신형 LOD 파이프라인에는, 칠한 파라미터를 새로운 LOD 또는 대체 지오메트리에 매핑시키는 파라미터 매핑 시스템이 포함되어 있어, 높은 디테일의 LOD 파라미터에서 낮은 디테일의 LOD 파라미터를 추정해낼 수 있습니다! 스켈레탈 메시 에디터에서 변환시킬 메시 섹션에 우클릭만 해도 클로딩 데이터를 생성할 수 있어 훨씬 쉬워졌습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Mv-koIdkNbE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+툴이 실험단계 / 얼리 액세스 단계일 때 앞서 말씀드린 자잘한 버그 픽스와 개선사항 전부를 적용한 이후 추가된 작업입니다.
+
+**주:** DCC 파이프라인을 선호하시는 분들을 위한 APEX 파일 임포트도 여전히 가능합니다.
+
+### 신규: 미디어 프레임워크 개선
+
+4.18 에서 미디어 프레임워크가 크게 확장 업데이트되어 앞으로 있을 실시간 비디오 합성, 시간 동기화, 작업방식 단순화, 캡처 하드웨어 & 비디오-오버-IP, 온라인 미디어 스트리밍, 언리얼 에디터와의 통합 등의 고급 사용방식 지원은 물론 안정성과 퍼포먼스가 향상되었습니다!
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	sVXRyzoppD0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+미디어 프레임워크 API 가 최적화되어 컴파일 시간 향상은 물론 C++11 의 최신 기능을 활용하도록 업데이트되었습니다. 추가로 일반적인 수준의 미디어 플레이어 로직을 푸시 기반 패러다임에서 풀 기반 방법론으로 리팩터링, 엔진과 무관한 재사용가능 클래스 속으로 이동시켜 미디어 플레이어 인터페이스에 대한 걱정을 덜 수 있게 되었습니다.
+
+타임코드 기반 샘플 프로세싱 파이프라인으로 인해 반응속도와 퍼포먼스가 향상되었습니다. 이 파이프라인에는 오디오, 카메라 트래킹, 얼굴 트래킹 등 시간적으로 민감한 샘플에 대한 고빈도 틱 처리는 물론 어느 오브젝트에서도 프레임 활용도와 타이밍 예측도를 높여주는 다단계 틱 처리가 포함됩니다.
+
+이제 오디오 재생이 새로운 오디오 믹서 API 에 통합되어 Synth 컴포넌트 기반으로 만들어진 (미디어 사운드 웨이브를 대체하는) 미디어 사운드 컴포넌트를 활용하므로 레벨 액터에 붙이거나 UMG 위젯에서 사용할 수 있습니다. 미디어 샘플 레이트 컨버터 덕에 (기존에는 16비트 44.1kHz 만 지원하던 것이) 이제 int8, int16, int32, float, double 입력 샘플은 물론 (가변 레이트 포함) 어떤 샘플 레이트도 지원하며, 오디오 입력 채널은 최대 8 개, 출력 채널은 1 및 2 개입니다 (서라운드 사운드는 4.19 에 계획되어 있습니다). 공간 오디오 역시 액터에서 미디어 사운드 컴포넌트를 통해 지원됩니다.
+
+비디오 측면에서, 미디어 프레임워크는 이제 외부 텍스처 샘플러 API 를 사용하므로 메모리에 복사할 필요 없는 비디오 프레임 렌더링이 가능합니다. 이 기능은 현재 안드로이드에만 구현되어 있으며, 다른 플랫폼으로 확장시킬 계획입니다. 문제 소지가 있는 트리플 버퍼 메커니즘을 샘플 큐로 대체하고, 이상한 비디오 및 픽셀 포맷, 오류가 있는 인코더도 더욱 잘 지원하게 되었습니다.
+
+미디어 플레이어 에디터가 업데이트되어 트랙 포맷 선택기 메뉴, 오디오/비디오 캡처 디바이스 선택기, 캐시 상태 시각화 (지원하는 플레이어 플러그인용), 플레이리스트 제어, 플레이리스트 저장 기능이 추가되었습니다. 추가로, 문질러 이동하는 기능의 반응속도와 정보 오버레이가 개선되었습니다. 텍스트 오버레이 시각화 및 360 비디오 뷰포트 컨트롤이 실험단계로 지원되기도 합니다. 미디어 소스 애셋의 플랫폼별 미디어 플레이어 대체값 설정 역시 정상 작동합니다.
+
+미디어 플레이어 트랙 및 트랙 포맷 쿼리, 오디오 / 비디오 / 웹캠 캡처 디바이스 열거, 미디어 플레이리스트에 파일과 URL 추가를 위한 블루프린트 함수 기능이 추가되었습니다.
+
+언리얼 엔진 4.18 의 미디어 프레임워크에서 사용할 수 있는 엄청난 신기능 전부를 지원하도록 모든 미디어 플레이어 플러그인이 업데이트되었습니다.
+
+**주:** 시퀀서 통합, 스테레오스코픽 & 360 비디오 지원, 하드웨어 가속 4K 재생 등 몇몇 기능은 아직 활발히 개발중입니다.
+
+### 신규: 시퀀서 개선
+
+시퀀서 작업 관련 삶의 질의 향상시켜줄 개선사항입니다:
+
+* FBX 임포트 기능이 개선되었습니다. 스태틱/디폴트 트랜스폼 임포트, 맵에 해당 카메라가 존재하지 않는 경우 시네마틱 카메라 추가, 전방 X 축 강제 옵션 등이 추가되었습니다.
+
+* 트랙, 키프레임, 경로 궤도 그리기 효율이 높아졌습니다. 이제 겹치는 키는 빨강 테두리로 그려집니다.
+
+* 오디오, 스켈레탈 애니메이션, 샷 트랙 간략 편집 등의 편집 툴이 추가되었습니다.
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+			5RcWAMEFjVA
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		78
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+* 드래그 앤 드롭 기능이 추가 지원됩니다. 이제 샷 트랙, 서브씬 트랙, 카메라 컷 트랙, 시퀀스 레코더에도 드래그 앤 드롭 가능합니다.
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+			YKLMAliEM6o
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		78
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+* 마스터 시퀀스에서 무비를 녹화할때 샷 테두리가 워밍업됩니다.
+
+* 문질러 이동하는 도중 에디터에서 컨스트럭션 스크립트를 재실행하는 기능을 추가했습니다.
+
+* 롤 포함 시네 카메라 룩 앳이 추가되었습니다.
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+			8CEWj7FW9Ng
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		78
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+시퀀스 레코더에서 애니메이션 녹화 키에 대한 보간 및 탄젠트 세팅이나, 드래그 앤 드롭 지원같은 기능이 개선되었습니다.
+
+### 신규: 피직스 애셋 에디터 개선
+
+피직스 애셋 에디터(PhAT)가 크게 바뀌어 사용하기 편해지고 기능이 확장되었습니다! UI 모양과 느낌이 새로워져 업그레이드된 스켈레톤 트리 뷰를 통해 모든 씬 요소의 필터링과 표시가 향상되고, 노드를 사용하는 비주얼 방식으로 바디 사이 컨스트레인트를 구성하는 그래프 뷰가 새로 생겼습니다. 전에는 불가능했던 컨스트레인트 루프 구성까지도 할 수 있습니다.
+
+
+![image alt text](image_7.jpg)(w:1000 convert:false)
+
+UI 요소가 간결해졌습니다. 많은 부분이 논리적으로 맞는 위치에 이동 또는 변경되었습니다. 예를 들어 애니메이션 에디터에서처럼 표시 메뉴에서도 애니메이션 관련 세팅을 접근할 수 있습니다. 이제 애니메이션을 언제든 선택, 일시정지, 문질러 이동 가능합니다 (예전에는 시뮬레이션이 시작된 이후에만 가능했었습니다). 시뮬레이션 시작/중단 역시 애니메이션 도중 언제든 가능한데, 레벨 에디터와 비슷하게 명확히 단 하나 보이는 "시뮬레이트" 버튼 아래 옵션이 달린 식입니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	TkIRgQdadZI
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+그 외 업데이트 및 개선사항입니다:
+
+* 시간 딜레이가 애니메이션 및 피직스 같이 작동하며, 애니메이션 에디터에서처럼 뷰포트 메뉴에서 빠르게 설정됩니다.
+
+* 녹화 제어도 다른 애니메이션 에디터에서처럼 제어 메뉴로 제어됩니다.
+
+* 피지컬 애니메이션 및 컨스트레인트 프로파일 UI 가 개선되었습니다. 컨스트레인트와 피직스 프로파일의 선택, 할당, 관리가 쉬워집니다.
+
+* 컨스트레인트 & 바디 모드가 없어졌습니다. 이제 컨스트레인트와 바디를 같이 표시합니다. 각각에 대한 렌더링은 트리 뷰 & 뷰포트에서 켜고/끄거나 필터 적용 가능합니다.
+
+* 새 바디 생성이 전에 있던 모달 대화창에서 새로운 ‘툴’ 탭으로 이동되었습니다. 새 애셋을 생성할 때마다 세 번의 클릭이 제거되어 반복처리 시간이 빨라집니다. 새 피직스 애셋을 생성할 때도, 전처럼 같은 위젯을 재사용합니다.
+
+* 피직스 애셋을 콘텐츠 브라우저에서 바로 생성할 수 있게 되었습니다. 기존에는 스켈레탈 메시 애셋에 숨겨진 맥락 메뉴 옵션을 통해서만 생성할 수 있었습니다.
+
+* 바디/컨스트레인트에 수행할 수 있는 작업이 전부 맥락 메뉴에 들어갔으며, 기존에 필요했던 키보드 단축키도 추가되었습니다.
+
+### 신규: 피직스 애셋 바디에 대한 다중 컨벡스 생성
+
+이제 본 별 다중 컨벡스 헐을 사용하여 피직스 바디를 자동 생성할 수 있습니다. 컨벡스 지오메트리가 아닌 것을 다중 컨벡스 헐을 사용하여 추정할 수 있습니다.
+
+[REGION:raw]
+![image alt text](image_8.png)(w:1000 convert:false)
+[/REGION]
+
+### 신규: 애니메이션 몽타주 타임 스트레치 커브
+
+이 제 애니메이션 몽타주에 Time Stretch Curve (타임 스트레치 커브) 트랙을 추가하여 재생 속도를 제어할 수 있습니다! 몽타주에서 정상 재생 속도를 유지하면서 일정 부분만 선택적으로 느리게 만들 수 있습니다. 예를 들어 타임 스트레치 커브를 사용하면, 공격 애니메이션을 하나만 만들고도 재생 시간이 크게 다른 모양새 최적화 및 제어가 가능합니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	bWx2tDKPvCE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+타임 스트레치 커브를 사용하려면, 몽타주에서 MontageTimeStretchCurve 라는 이름의 플로트 커브를 만들고 키를 추가하여 커브를 정의합니다. 조금 더 세밀한 제어가 필요한 경우, 애셋 디테일 패널에서 타임 스트레치 커브 프로퍼티를 사용하여 커브 샘플링 방식을 결정하거나, 디버깅 목적으로 내부에서 생성된 마커 수를 조사할 수도 있습니다.
+
+
+### 신규: RigidBody 애님 노드 개선
+
+RigidBody 노드는 이제 루트 본 시뮬레이션 스페이스 옵션을 지원합니다. 붙은 스켈레탈 메시가 플레이어 캡슐에서 반대 방향으로 회전하는 경우를 처리할 때 좋습니다. 피직스 에디터에 관성 스케일과 우세 컨스트레인트 옵션을 노출시켜 안전성과 떨림 현상이 크게 개선되었습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	RGTegdhUXWc
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+### 신규: 블렌드스페이스 에디터 사용편의성 개선
+
+이제 Shift 를 누르고 (초록) 프리뷰 핀을 끌면 핀이 커서를 따라오는 대신 그리드에서 끌어 놓을 수 있습니다. 실제 블렌드 스페이스 그리드에서 스테이트에 따라 달라지는 팁이 추가되어 맥락에 따른 기능 및 함수 내용에 대한 설명이 제공됩니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4P2NMf07Vhs
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+### 신규: 글로벌 블루프린트에서 찾기
+
+이제 블루프린트 에디터 창을 열지 않고도 "모든 블루프린트에서 찾기" 기능을 실행할 수 있습니다. 최대 4 개의 글로벌 "블루프린트에서 찾기" 탭을 열어두고 언제든 각기 다른 창에 도킹시킬 수도 있습니다. 메인 "창" 메뉴에서 확인할 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ClMXpWs3YxE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+블루프린트 에디터 메뉴에서, 편집->블루프린트에서 찾기( 또는 블루프린트 에디터 창에 포커스가 잡힌 상태에서 CTRL-SHIFT-F)를 누르면 글로벌 블루프린트에서 찾기 탭이 새로 열립니다 (또는 잠기지 않은 열린 탭이 있는 경우 첫 번째 글로벌 탭으로 전환합니다). 이 탭은 블루프린트 에디터 창이 닫힌 이후에도 블루프린트 에디터 창 외부 어딘가에 도킹되어 있다면 열린 채 남아있게 됩니다.
+
+글로벌 블루프린트에서 찾기 탭에는 잠금 버튼이 있어 현재 결과 세트를 현재 탭에 고정시킬 수 있습니다. 현재 열린 탭이 전부 잠긴 경우 블루프린트 에디터에서 편집->블루프린트에서 찾기를 선택하면 글로벌 블루프린트에서 찾기 탭이 새로 열립니다.
+
+블루프린트 에디터 메뉴에서 편집->찾기( 또는 CTRL-F)를 누르면 예전처럼 로컬 찾기 결과 탭이 열려 현재 블루프린트 안에서만 검색할 수 있습니다. "모든 블루프린트에서 찾기" 버튼을 클릭하면 글로벌 블루프린트에서 찾기 탭에서 모든 블루프린트 애셋에 대해 같은 검색을 할 수 있습니다.
+
+에디터 개인설정->블루프린트 에디터->Workflow (작업방식) 아래 Host Find in Blueprints in Global Tab (블루프린트에서 찾기 글로벌 탭에 관리) 옵션으로 조절할 수 있습니다.
+
+### 신규: 교차 레벨 액터 레퍼런스 개선
+
+교차 레벨 액터 레퍼런스가 이제 약 오브젝트 레퍼런스를 지원하는데, 이는 기존에 애셋 ID/애셋 포인터라 불리던 것입니다. 액터를 가리키는 약 오브젝트 레퍼런스 프로퍼티를 생성하면, 이제 향상된 UI 를 통해 가리킨 대상이 언로드되거나 깨지는 것은 물론, 전체 액터 ID 도 같이 표시합니다:
+
+![image alt text](image_14.png)(w:1000 convert:false)
+
+이러한 교차 레벨 레퍼런스는 이제 "현재 레벨로 이동" 옵션을 사용하여 가리킨 액터의 이름을 변경하거나 이동시킨 경우 자동으로 수정됩니다. 해당 액터를 가리키는 다른 레벨/시퀀스가 있으면 자동으로 체크아웃하여 재저장 시도합니다. 이런 식으로 가리킨 액터를 삭제할 때 경고가 뜨기도 합니다. 스트리밍 레벨을 에디터에서 플레이할 때도 정상 작동합니다. 새로 생성된 시퀀서 액터 레퍼런스는 이제 약 오브젝트 레퍼런스이며, 예전 시퀀스는 먼저 Rebind Possessable References (빙의가능 레퍼런스 다시 묶기) 옵션을 사용한 뒤 다시 저장해야 합니다.
+
+**주:** 이번 업데이트의 일부로 네이티브 유형 FStringAssetReference 와 TAssetPtr 의 이름이 FSoftObjectPath 와 TSoftObjectPtr 로 변경되었습니다.
+
+### 신규: 에디터 내 현지화 프리뷰
+
+에디터에서 플레이(PIE) 모드의 UMG 에디터에서 게임의 현지화를 미리보는 기능을 추가하여 위젯을 다양한 언어로 미리볼 수 있습니다!
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+		Juf9O3Cri2c
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+* 에디터 개인설정 -> 지역 & 언어 부분의 Preview Game Culture (게임 컬처 프리뷰) 세팅으로 설정하며, 에디터에서 플레이(PIE) 모드에서 자동 활성화됩니다. 프리뷰 언어는 에디터를 통해 실행되는 독립형 게임에도 전달됩니다.
+
+* 프리뷰 실행 도중에는 모든 편집가능 텍스트 칸이 잠겨(읽기전용) 실수로 소스 데이터를 번역 데이터로 덮어쓰는 것이 방지됩니다. 프로젝트의 DefaultGame.ini 또는 DefaultEngine.ini 환경설정 파일의 Internalization 섹션 아래 LockLocalization (현지화 잠금) 옵션을 True 로 설정하면 프로젝트에서 현지화 데이터가 바뀌는 것을 방지할 수도 있습니다.
+
+### 신규: 배열 순서변경
+
+이제 드래그 앤 드롭으로 배열 내 엘리먼트의 순서를 변경할 수 있습니다! 블루프린트나 C++ 를 통해 구성된 모든 배열은 기본적으로 순서 변경 가능합니다. C++ 에서 기본 작동방식을 변경하고 고정 순서 배열을 만들려면, EditFixedOrder 메타데이터를 사용하세요.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+		aqkY9927LB4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	78
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+### 신규: 고급 머티리얼 프리뷰 뷰포트
+
+머티리얼 에디터와 머티리얼 인스턴스 에디터에 이제 뷰포트에서 머티리얼을 미리볼 수 있는 고급 프리뷰 씬 기능이 생겼습니다. 여기서 씬 라이팅이나 인바이언먼트 큐브 맵과 같은 뷰 세팅을 바꾸는 것은 물론, 씬에서 프리뷰 메시 주변의 환경을 회전시켜 볼 수도 있습니다. 
+
+이 프리뷰 세팅은 창 > 프리뷰 씬 세팅에서 변경할 수 있습니다.
+
+![image alt text](image_17.jpg)(w:500 convert:false) ![image alt text](image_18.jpg)(w:500 convert:false)
+
+### 신규: 플랫폼 SDK 업그레이드
+
+모든 릴리즈마다 플랫폼 파트너사의 최신 SDK 릴리즈를 지원하도록 엔진을 업데이트하고 있습니다.
+
+[REGION:raw]
+![image alt text](image_13.jpg)(w:1000 convert:false)
+[/REGION]
+
+* **빌드 팜 컴파일 대상 IDE 버전**
+	* **Visual Studio:**  Visual Studio 2015 Update 3
+	* **Xcode:**  XCode 9.0
+
+* **안드로이드:**
+	* NDK 12b
+	* Installer 1r6u1
+
+* **HTML5:** emscripten toolchain 1.37.19
+
+* **Linux:** v10_clang-5.0.0-centos7
+
+* **Steam:** 1.39
+
+* **Oculus Runtime:** 1.17
+
+* **SteamVR:** 1.39
+
+* **Switch:** 1.7.0, 3.5.1 + NEX 4.2.0; 펌웨어 버전 3.0.1-1.0
+
+* **PS4:**
+	* 4.508.111
+	* 펌웨어 버전 4.730.001
+	* 지원 IDE: Visual Studio 2015, Visual Studio 2013
+
+* **Xbox One:**
+	* XDK: June 2017 QFE3 모든 Xbox 콘솔용 (XB, XB1-S, XB1-X)
+	* 펌웨어 버전: October 2017 Preview 3 (versuib 16291.1000.170913-1900)
+	* 지원 IDE: Visual Studio 2015
+
+* **macOS:** macOS 10.13 High Sierra 가 완벽 지원 플랫폼으로 추가되었습니다!
+
+* **iOS:** SDK 11
+
+* **tvOS:** SDK 11
+
+### 신규: 윈도우, 맥, 리눅스에서 Visual Studio Code 지원
+
+이제 모든 UE4 호스트 플랫폼에서 Visual Studio Code 를 사용하여 코드를 작성할 수 있습니다. 사용하려면 에디터 개인설정 대화창에서 선호 IDE 로 Visual Studio Code 를 선택하거나, 명령줄에 프로젝트 파일을 생성할 때 -vscode 인수를 붙여주면 됩니다. 모든 플랫폼에는 NET Core 2.0 런타임이 설치되어 있어야 하며, [Microsoft .NET Core website](https://www.microsoft.com/net/core) 에서 받을 수 있습니다.
+
+Visual Studio Code 로 모든 프로젝트 유형 빌드 및 디버깅을 하기 위해서는, 몇 가지 추가 익스텐션이 필요합니다. 모든 플랫폼에서 Microsoft C/C++ 익스텐션과 C# 익스텐션이 설치되어 있는지 확인합니다. 리눅스와 맥에서는 Mono Debug 익스텐션이 있어야 C# 프로젝트 디버깅이, LLDB Debugger 익스텐션이 있어야 C++ 프로젝트 디버깅이 가능합니다. 또한 C# 프로젝트 디버깅을 위해서는, mono 런타임이 설치되어 있어야 합니다:
+
+* OS X 에서: *brew install mono*
+
+* 리눅스에서: *sudo apt-get install mono-complete*
+
+[REGION:raw]
+![image alt text](image_12.png)(w:1000 convert:false)
+[/REGION]
+
+### 신규: iOS Certificate 및 Signing 단순화
+
+리모트 툴체인을 사용하여 원격 맥에서 iOS 빌드하는 작업을 PC 에서 내릴 때, Certificate 와 Provisioning 셋업을 PC 의 프로젝트 세팅에서 가져옵니다. 더이상 원격 맥에서 Keychain Access 를 사용하여 private key 나 certificate 를 설치할 필요가 없다는 뜻입니다.
+
+### 신규: iOS 에서 테스크탑급 포워드 렌더러 (실험단계)
+
+언리얼 엔진 4.18 에는 WWDC 2017 에서 있었던 Wingnut AR 데모에 사용된 데스크탑급 포워드 렌더러가 포함되어 있습니다! A9 이상 프로세서가 탑재된 iOS 10.3 이상 iOS 디바이스에서 지원되며, A10X 이상이 탑재된 iOS 11 이상을 강력 추천합니다.
+
+![image alt text](image_16.jpg)(w:1000 convert:false)
+
+이 렌더링 기술 덕에 최신 iOS 디바이스에 똑같은 물리 기반 셰이딩, 리플렉션, 라이팅, 섀도잉이 지원됩니다. 이 기능은 기존 모바일 렌더러보다 하드웨어 요구사양이 높고 실험단계이므로 디바이스 & OS 리비전에 따라 일부 기능이 정상 작동하지 않을 수 있습니다. 작동하지 않는 것으로 알려진 기능은 다음과 같습니다: GPU 스킨 캐시, GPU 모프 타겟, 애트머스페릭 포그, 멀티 샘플 안티 앨리어싱
+
+### 신규: 안드로이드에 Gradle 기본 활성화
+
+Gradle 은 이제 안드로이드 APK 패키징에 기본 옵션이 되었습니다. Ant 가 필요한 경우 안드로이드 프로젝트 세팅에서 Enable Gradle 옵션을 끄는 것으로 여전히 가능하긴 하지만, Ant 는 폐기상태에 접어든 것으로 간주되므로 Gradle 로 전환할 것을 추천합니다.
+
+**주:** 기존에 Enable Gradle 체크를 하여 Android SDK 라이선스 계약을 수락하지 않은 경우, 안드로이드 프로젝트 세팅에서 Accept SDK License (SDK 라이선스 수락) 버튼을 눌러줘야 합니다. 라이선스 수락 없이 패키징 또는 실행을 하려 하면 오류가 뜰 것입니다.
+
+### 신규: 안드로이드 카메라 플러그인
+
+언리얼 엔진에 이제 안드로이드 디바이스의 전후방 카메라 접근을 노출시키는 옵션 플러그인이 생겼습니다. 이 플러그인을 켜면 새로운 안드로이드 카메라 플러그인 프로젝트 세팅 패널이 추가되어 Android Manifest 요건을 선택할 수 있습니다.
+
+![image alt text](image_15.jpg)(w:550 convert:false)
+
+### 신규: HTML5 최적화된 브라우저 WebAssembly 기본 활성화
+
+WebAssembly 가 이제 HTML5 프로젝트에 기본으로 켜집니다. 주요 브라우저 제조사 다수가 WebAssembly 표준을 지원하면서, 애셋 크기와 브라우저 로드 시간, 웹에 퍼블리싱할 때의 런타임 퍼포먼스가 크게 향상된 것을 알 수 있습니다. 기존 최적화된 HTML5 출력 ASM.js 는 해체되어 코드 베이스에서 제거되었습니다.
+
+**주:** 멀티 스레드는 아직 WebAssembly 에 사용할 수 없습니다. ASM.js 가 지원하기는 하지만, (현재로서) WebAssembly 는 싱글 그레드 모드에서만 실행됩니다. 하지만 멀티 스레드는 앞으로 있을 모든 브라우저 메이커에서 주력으로 밀고있는 기능이므로, 곧 구현될 것입니다.
+
+### 신규: LLM 로우 레벨 메모리 트래커
+
+새로운 LLM 로우 레벨 메모리 트래커는 **모든 메모리를 전부 단 한번에 트래킹 해내며**, 빠지는 것도 중복되는 것도 없습니다!
+
+![image alt text](image_11.jpg)(w:1000 convert:false)
+
+엔진 또는 게임에서 이루어지는 모든 할당은 어디에 속하는지를 나타내는 카테고리 태그 값이 할당됩니다. 모든 카테고리 총합이 게임에 사용된 메모리 총량에 더해집니다. 태그는 태그 범위 매크로를 사용하여 적용됩니다. 그 범위 안에서 이루어진 할당에는 지정된 태그가 붙습니다.
+
+LLM 통계는 게임에서 stat LLM 또는 stat LLMFULL 로 볼 수 있습니다. 각 태그에 대한 현재 총합이 MB 로 표시됩니다. LLM 은 통계값을 csv 로 써 주기도 하여 값을 시간에 따른 그래프로 표시할 수도 있습니다.
+
+LLM 은 그 속성상 각 플랫폼별로 추가해야 합니다. 현재 LLM 은 PS4 와 XboxOne 을 지원합니다. 윈도우는 실험단계 릴리즈로 지원합니다.
+
+### 신규: XGE (Incredibuild) 셰이더 컴파일러 지원 개선
+
+XGE (Incredibuild) 셰이더 컴파일러 지원을 개선하여, 예전 시스템에서 보이던 랙이나 멈춤 현상이 크게 줄어들었고, 새로운 셰이더 잡을 XGE 에 비동기 스트리밍할 수 있게 되었습니다.
+
+새로운 시스템은 퍼포먼스 효율이 훨씬 높아져, Cook on the fly, Cook by the book, 에디터 내 셰이더 반복처리 작업을 포함한 모든 상황에서 셰이더 컴파일 속도가 크게 빨라집니다.
+
+이 개선사항은 기본으로 켜지지만, Incredibuild 버전 8.01 이상이 필요합니다. 엔진 시동 시 버전 검사를 하여 지원되는 버전이 설치되지 않은 경우 구형 XGE 셰이더 컴파일러로 예비 전환합니다. 예전 시스템과 마찬가지로, XGE 셰이더 컴파일러 자체를 켜기 위해서는 명령줄 -xgeshadercompile 을 붙이거나 ConsoleVariables.ini 에 r.XGEShaderCompile 를 1 로 설정해야 합니다.
+
+### 언리얼 오디오 엔진 (얼리 액세스 프리뷰)
+
+신형 언리얼 오디오 엔진에 대한 개발이 지속되고 있습니다. 이번 릴리즈에는 보다 많은 플랫폼, 업데이트된 플러그인 아키텍처, 몇몇 흥미로운 신기능이 지원됩니다. 이와 같은 언리얼 오디오 신기능은 아직 얼리 액세스 단계입니다. 앞으로 있을 버전에서는 퍼포먼스와 안정성에 집중하겠습니다.
+
+언리얼 오디오 엔진에 지원되는 플랫폼은 윈도우, 맥, iOS, 안드로이드, 엑스박스원, PS4 에 더해, 닌텐도 스위치, 리눅스와 HTML5 도 지원됩니다. 신형 언리얼 오디오 엔진은 리눅스에 기본 활성화됩니다. 4.17 과 4.16 에 처음 릴리즈된 다른 모든 백엔드에도 중요한 픽스와 개선사항이 적용되었습니다.
+
+### 오디오 플러그인 아키텍처 개선 (신형 언리얼 오디오 엔진 전용)
+
+오디오 플러그인은 오디오 엔진 코어 피처를 덮어쓰거나(override) 확장(extend)할 필요가 있는 오디오 이펙트에 쓰기 좋습니다. 오브젝트 기반 양쪽 귀 공간화, 소스 오클루전, 마스터 리버브와 같은 것은 코어 믹싱 엔진에 대한 훨씬 심도있는 통합을 통해서 가장 잘 이뤄낼 수 있습니다. 이러한 이펙트는 특수한 오디오 플러그인 지원이 필요합니다.
+
+[REGION:asyncgif]
+![image alt text](image_9.gif)(w:929)
+[/REGION]
+
+* 오디오 플러그인 아키텍처 개선을 통해 코어 믹싱 피처 오버라이드를 제작하고자 하는 써드 파티 개발자의 보다 부드러운 통합이 가능합니다.
+
+* 플러그인 오버라이드 믹싱과 매칭을 위한 프로젝트 강화가 가능합니다: 소스 공간화, 소스 오클루전, 리버브
+
+* 이제 에디터 재시작 없이 다른 플러그인으로 교체 가능합니다!
+
+### 신규: 소스 버스 (신형 언리얼 오디오 엔진 전용)
+
+소스 버스(Source Bus)는 신형 언리얼 오디오 엔진의 유연한 라우팅 기능을 선보이는 강력한 신기능으로, 다중 사운드 소스를 하나의 실시간 소스로 전송시켜 합칠 수 있습니다. 소스 버스는 사운드 베이스(Sound Base)에서 파생되었기에, 3D 믹스 버스로 공간화시키든 소스 이펙트 지속성 유지를 위한 수단이든, 사운드 웨이브 또는 사운드 큐와 같은 방식으로 재생 및 활용 가능합니다. 소스 버스는 오디오 디자이너를 위한 소중한 툴은 물론 앞으로 나올 흥미로운 기능을 위한 발판이 될 것입니다.
+
+* 소스 버스는 어떤 오디오 소스든지 3D 오디오 소스로 라우팅 가능합니다. (자신을 포함해서, 런타임 오디오 피드백 시스템을 생성하여) 다른 소스 버스로 라우팅 가능합니다.
+
+* 소스 버스는 새로운 USoundBase 유형으로, 보통의 사운드 BP, C++ API, 오디오 컴포넌트, 앰비언트 액터에서 다른 사운드인 것처럼 재생 가능합니다. 기간을 일회성 버스 아니면 0.0 으로 하여 무한 반복되는 루핑 소스로 지정할 수도 있습니다.
+
+* 소스 이펙트(Source Effect)와 서브믹스 센드(Submix Send) 역시 보통 사운드 소스처럼 사운드 버스와 함께 사용할 수 있습니다.
+
+* 다른 소스도 오디오를 버스에 보낼 때 서브믹스 센드와 비슷한 방식으로 보내며, 소스 버스로만 오디오를 보내도록 할 수도 있고, 서브믹스로도 전송하도록 할 수도 있습니다.
+
+### 신규 서브믹스 이펙트 (신형 언리얼 오디오 엔진 전용)
+
+Synthesis(신디시스) 플러그인을 단순한 딜레이에서 유연한 계산형 실효 리버브까지 아우르는 시간 기반형 Submix Effects(서브믹스 이펙트)로 업데이트하여, 복잡하고 흥미로운 상호작용형 공간 이펙트를 만들 수 있습니다:
+
+* **Delay**: 딜레이 - 블루프린트에서 런타임에 변조할 수 있는 단순 멀티채널 딜레이 라인입니다. 이 이펙트가 적용되어 실행중인 지정 서브믹스에 전송된 오디오에서 단순 브로드캐스트 딜레이를 시뮬레이션하는 이펙트이며, 애니메이션이나 기타 게임플레이 시스템과 밀리초 이하 단위로 동기화시키는 데 사용할 수 있습니다.
+
+* **Tap Delay:** 탭 딜레이 - 일정량의 탭(에코) 효과를 낼 수 있는 복합 멀티채널 딜레이 이펙트로, 런타임 도중 강력한 블루프린트 API 를 통해 독립적인 추가, 변경, 제거가 가능합니다. 각 탭은 탭 감쇠, 탭 방위각, 탭 딜레이가 파라미터로 되어 있습니다. 도플러 효과 시뮬레이션, 이른 반향 에뮬레이션, 기타 여러가지 딜레이 기반 믹스 이펙트에 쓰기 좋습니다.
+
+* **Flexiverb:** 플렉시버브 - 계산 비용이 비싸지 않은 단일 채널 리버브 알고리즘으로, 최소한의 곱셈으로 최대한의 에코 밀도를 내는 데 최적화되어 있습니다. 이 이펙트는 CPU 리소스가 제한된 플랫폼에서 작은 방의 울림같은 효과를 에뮬레이션하는 데 최적입니다.
+
+### 개선된 어테뉴에이션 세팅
+
+어테뉴에이션(감쇠) 세팅들에 대해 명확성과 체계적인 정리를 위주로 하는 개선이 있었습니다. 여기에는 카테고리에 따른 어테뉴에이션 세팅 표시에서 특수한 편집 조건을 통해 현재 활용되는 어테뉴에이션 세팅을 명확히 해주는 기능이 포함됩니다.
+
+[REGION:asyncgif]
+![image alt text](image_10.gif)(w:550)
+[/REGION]
+
+### 신규: VR / AR 카메라 시스템 리팩터링
+
+언리얼 엔진 4.18 에는 이제 카메라 컴포넌트와 원본 뷰 양쪽에 대한 기본 카메라 구현이 포함되어 있어, 최신 업데이트를 엔진에서 자동으로 처리해 줍니다. 이 기본 카메라 구현은 뷰 타겟에 카메라 컴포넌트가 있을 때 디바이스의 보정된 원점에서 현실의 디바이스 위치에 해당하는 만큼 (상대 트랜스폼을 통해) 위치를 이동시킵니다. 그 결과, API 구현을 위한 하드웨어 개발자 몫이 훨씬 작아져, 효율이 대폭 향상되었습니다.
+
+주: 모든 기존 플랫폼에는 카메라 구현이 빠지고 기본 카메라 구현으로 대체되어 있습니다.
+
+릴리즈 노트 상세 내역은 [4.18 릴리즈 노트 원문을](https://docs.unrealengine.com/latest/INT/Support/Builds/ReleaseNotes/4_18/index.html] 참고하시기 바랍니다.

@@ -10,10 +10,6 @@ Order:3
 Tags:UMG UI Designer
 Topic-image:Clipping_Topic.png
 
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:30 convert:false)[/VAR]
-
-
 [REGION:warning]
 With Unreal Engine 4.17, the clipping system has been overhauled and in some cases may break backward compatibility. For additional information about these changes see the 
 [Slate Clipping System](Programming\Slate\ClippingSystem) details here. 
@@ -52,7 +48,8 @@ Take for instance these examples showing a comparison before and after the chang
 
 
 
-<!----
+[COMMENT:none]
+--
 [INCLUDE:#comparison]
 
 [EXCERPT:comparison]
@@ -66,7 +63,8 @@ Take for instance these examples showing a comparison before and after the chang
 [/OBJECT]
 [/EXCERPT:comparison]
 
---->
+-
+[/COMMENT]
 
 The Image Widget (left) has been placed at the edge of the Canvas panel so that part of its bounding box is outside. Now that the clipping system is axis-aligned, instead of using layout-space,
 clipping which resolves artifacts and issues like the comparison (right).  
@@ -78,13 +76,13 @@ You can change how clipping is handled based on the Widget selected in the UMG *
 ![](ClippingProperties.png)
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| --- | --- | --- |
-| **Inherit** || This widget does not clip children and obeys whatever clipping / culling it was passed in from a parent widget. |
-| **Clip to Bounds** || This widget clips content to the bounds of the widget. It intersects those bounds with any previous clipping area. |
-| **Clip to Bounds - Without Intersecting** || This widget clips to its bounds. It does not intersect with any existing clipping geometry, it pushes a new clipping state. Effectively allowing it to render outside the bounds of hierarchy that does clip. [REGION:note] This will not allow you to ignore the clipping zone that is set to **Clip to Bounds - Always** [/REGION] |
-| **Clip to Bounds - Always** || This widget clips to its bounds. It intersects those bounds with any previous clipping area. [REGION:note] This clipping area cannot be ignored, it will always clip children. This is useful for hard barriers in the UI where you never want animations or other effects to break this region. [/REGION] |
-| **On Demand** || This widget clips to its bound when it's Desired Size is larger than the allocated geometry the widget is given. If that occurs, it will work like **Clip to Bounds**.  [REGION:note] This mode was primarily added for **Text**, which is often placed into containers that eventually are resized to not be able to support the length of the text. So rather than needing to tag every container that could contain text with [YES], which would result in almost no batching, this mode was added to dynamically adjust the clipping if needed. The reason not every is not set to **On Demand** is because not every panel returns a Desired Size that matches what it plans to render at. [/REGION] |
+| Property | Description |
+| --- | --- |
+| **Inherit** | This widget does not clip children and obeys whatever clipping / culling it was passed in from a parent widget. |
+| **Clip to Bounds** | This widget clips content to the bounds of the widget. It intersects those bounds with any previous clipping area. |
+| **Clip to Bounds - Without Intersecting** | This widget clips to its bounds. It does not intersect with any existing clipping geometry, it pushes a new clipping state. Effectively allowing it to render outside the bounds of hierarchy that does clip. [REGION:note] This will not allow you to ignore the clipping zone that is set to **Clip to Bounds - Always** [/REGION] |
+| **Clip to Bounds - Always** | This widget clips to its bounds. It intersects those bounds with any previous clipping area. [REGION:note] This clipping area cannot be ignored, it will always clip children. This is useful for hard barriers in the UI where you never want animations or other effects to break this region. [/REGION] |
+| **On Demand** | This widget clips to its bound when it's Desired Size is larger than the allocated geometry the widget is given. If that occurs, it will work like **Clip to Bounds**.  [REGION:note] This mode was primarily added for **Text**, which is often placed into containers that eventually are resized to not be able to support the length of the text. So rather than needing to tag every container that could contain text with [YES], which would result in almost no batching, this mode was added to dynamically adjust the clipping if needed. The reason not every is not set to **On Demand** is because not every panel returns a Desired Size that matches what it plans to render at. [/REGION] |
 [/REGION]
 
 

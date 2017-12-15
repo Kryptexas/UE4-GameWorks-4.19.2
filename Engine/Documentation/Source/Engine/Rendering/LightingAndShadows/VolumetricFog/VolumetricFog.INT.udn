@@ -103,6 +103,10 @@ In this scene, the fog particles have populated these low-lying areas to create 
 The volume textures (voxels) used by Volumetric Fog are relatively low-resolution and aligned to the camera frustum. Volumetric Fog uses a heavy temporal reprojection filter with a different sub-voxel jitter
 per frame to smooth out the aliasing. As a side-effect, fast-changing lights, like flashlights and muzzle flashes, leave lighting trails. To disable the contribution of these lights, set **Volumetric Scattering Intensity** to 0.
 
+## Precomputed Lighting on Volumetric Fog
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/VolumetricLightmaps#Volumetricfog]
+
 ## Performance
 
 The GPU cost of Volumetric Fog is primarily controlled by the volume texture resolution, which is set from the Shadow level of the [Engine Scalability](Engine/Performance/Scalability/ScalabilityReference). Volumetric Fog costs 1 millisecond on PlayStation 4 at **High** settings,
@@ -117,6 +121,8 @@ This list comprises the currently supported features of Volumetric Fog:
 
 * A single Directional Light, with shadowing from Cascaded Shadow Maps or static shadowing, with a Light Function.
 * Any number of Point and Spot Lights, with dynamic or static shadowing (if **Cast Volumetric Shadowing** is enabled).
+* Shadowing of Stationary Sky Lights.
+* Precomputed Lighting through Volumetric Lightmaps (Direct Lighting of Static Lights, Indirect Lighting of Stationary Lights).
 * A single Skylight, with shadowing from Distance Field Ambient Occlusion (if enabled). 
 * Particle Lights (if **Volumetric Scattering Intensity** is greater than 0).
 
@@ -127,8 +133,6 @@ introduce artifacts. These materials can be set to compute fogging per-pixel to 
 
 The following features are **not yet supported** while using Volumetric Fog:
 
-* Precomputed Global Illumination.
-* Shadowing of Stationary Skylights.
 * IES profiles and Light Functions on Point and Spot Lights. 
 * Shadowing from Ray Traced Distance Field Shadows.
 * Shadowing from Volumetric Fog (itself).

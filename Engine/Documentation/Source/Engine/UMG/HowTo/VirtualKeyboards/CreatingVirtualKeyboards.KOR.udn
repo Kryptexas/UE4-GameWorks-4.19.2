@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:가상 키보드 상호작용 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -33,21 +33,13 @@ _이 안내서를 마칠 때 즈음이면, 3D 게임 월드에 나타나 상호�
 
 첫 단계는 캐릭터에 Widget Interaction 컴포넌트를 포함하여 구성하고, UI 표시를 위한 애셋을 생성하는 것입니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup)
-	* [](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup)
-	* [](Engine\UMG\HowTo\VirtualKeyboards\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup)
+* [](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup)
+* [](Engine\UMG\HowTo\VirtualKeyboards\ActorSetup)
+[/REGION]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")

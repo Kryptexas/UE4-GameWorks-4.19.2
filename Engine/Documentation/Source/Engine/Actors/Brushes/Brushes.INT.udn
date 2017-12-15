@@ -95,7 +95,8 @@ Brushes are created using the **Geometry** tab in the **Place Mode** panel:
 |![](BSP_Sphere.png)|Creates a Geometry Brush Actor in a Sphere shape that can then be customized within the **Details** panel. Options include:[INCLUDE:#SphereBuilder]|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BoxBuilder]
 [REGION:simpletable]
 |Box Builder Settings||
@@ -188,7 +189,8 @@ Brushes are created using the **Geometry** tab in the **Place Mode** panel:
 [/REGION]
 [/EXCERPT:SphereBuilder]
 
---->
+-
+[/COMMENT]
 
 
 ## Modifying Brushes

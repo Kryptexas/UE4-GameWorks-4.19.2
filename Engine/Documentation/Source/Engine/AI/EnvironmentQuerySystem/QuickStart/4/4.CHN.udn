@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 首先，您需要在 **内容浏览器** 中创建 7 个资源：1 个 AI 控制器蓝图、1 个角色蓝图、1 个行为树资源、1 个黑板资源、1 个 EnvQueryContext_BlueprintBase（EQS Context）蓝图，以及 2 个场景查询模板。这些便是完成此快速入门所需的所有资源。
 
@@ -78,6 +78,6 @@ version:4.9
 
 	将 **场景查询** 命名为“PlayerContext”。
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

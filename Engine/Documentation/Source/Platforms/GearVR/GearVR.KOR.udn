@@ -1,39 +1,33 @@
-﻿INTSourceChangelist:3467293
-Title: 삼성 Gear VR 개발
-Description:UE4 에서 삼성 Gear VR 헤드셋을 사용하기 위한 안내입니다.
+﻿INTSourceChangelist:3782314
+Title: 삼성 기어 VR 개발
+Description:UE4 에서 삼성 기어 VR 헤드셋을 사용하기 위한 안내입니다.
 Availability:Public
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.9
-prereq: Engine\Blueprints\GettingStarted
+Version: 4.17
 Crumbs:%ROOT%, Platforms
-type:landing
-parent:Platforms/VR
+type: landing
+Parent: Platforms/VR
 tags:VR
+Tags: Mobile VR
 tags:GearVR
 tags:Platform
 Topic-image:SamsungGearVRDevelopment_topic.png
 
-## 시작하기
+![](SamsungGearVR.png)(w:1000)
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
+## 입문서
 
-## GearVR 토픽
+[DIR(end:"1" output:"topic" type:"quick start" parent:"Platforms/GearVR")]
 
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
+## 삼성 기어 VR 개발
 
-## 교육 자료
+[DIR(end:"1" output:"topic" type:"reference,overview" parent:"Platforms/GearVR")]
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-rNjDsNYvgfk
-[/PARAMLITERAL]
-[/OBJECT]
+## 안내서
 
+[DIR(output:"fancy" type:"how-to" skilllevel:"Beginner" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Intermediate" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Advanced" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Expert" parent:"Platforms/GearVR" org:"flat")]

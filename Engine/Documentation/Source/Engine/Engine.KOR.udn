@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 엔진 기능
 Crumbs: %ROOT%
@@ -10,10 +10,5 @@ topic-image:Engine/Rendering/rendering_topic.png
 topic-icon:%ROOT%/docs_icon.png
 type:landing
 
-## 언리얼 엔진 기초
 
-[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"Engine/Basics")]
-
-## 시스템 및 기능
-
-[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"!Engine/Basics")]
+[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]

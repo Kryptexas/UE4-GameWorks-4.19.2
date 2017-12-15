@@ -1,0 +1,103 @@
+Availability: Docs
+Crumbs: %ROOT%, 
+Title:Create a Mesh-Based Effect with Niagara
+Description:Describes how you can create a static mesh based visual effect using Niagara.
+Type: how-to
+SkillLevel:Beginner
+Version: 4.17
+parent:Engine/Niagara/HowTo
+order:3
+tags:Niagara
+topic-image:
+
+Having the ability to spawn a Static Mesh instead of a camera facing sprite can help with the believability and realism of the effects you are creating. In the following How - To we will take a look at setting up a Niagara emitter to spawn Static Meshes instead of Sprites.
+
+![](HeroImage_00.png)
+
+## Steps
+
+[region:note]
+This How-To will make use of the **Shape_Sphere** Static Mesh that can be found with the **Starter Content**. If you have not done so already, make sure that this Static Mesh or the Starter Content has been added to your project.
+[/region]
+
+1. First, we will need to create a **Niagara Emitter** by right-clicking in the **Content Browser** and from the displayed menu go to **FX** and then click on the **Niagara Emitter**. 
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_01.png)
+
+1. Name the newly created Niagara Emitter, **FX_Mesh** and then double click on it to open it up.
+    
+    ![](ME_02.png)
+
+1. Go to the **Render** section and press the **Trashcan** icon to remove the **Sprite Rendering** component. 
+
+    ![](ME_03.png)
+
+1. Press the **Plus** sign icon and from the displayed list, select the **Niagara Mesh Renderer Properties** option.
+
+	 ![](ME_12.png)
+
+1. Expand the **Mesh Rendering** section and then in the **Particle Mesh**, input the **Spahe_Sphere** Static Mesh.
+
+    ![](ME_04.png)
+
+1. Next, go to the **Particle Spawn** section and in the **Add Velocity** section, set the **Minimum Z** to **400** and the **Maximum Z** to **980**. 
+
+    ![](ME_05.png)
+
+1. Down in the **Sphere Location**, set the **Sphere Radius** to **32**.
+
+    ![](ME_06.png)
+
+1. Then in the **Set Particles.Lifetime** section set the **Minimum** lifetime to **1.25** and the **Maximum** lifetime to **5.0**. 
+
+    ![](ME_07.png)
+
+1. Next, to the far right of the **Set Particles.SpriteSize** and **Set Particles.SpriteRotation** there will be an icon of a **Trash Can**. Press this icon to remove both Set Particles.SpriteSize and Set Particles.SpriteRotation from the Particle Spawn as it is no longer needed.
+
+    ![](ME_08.png)
+
+1. Then press the **Compile**, **Apply** and **Save** buttons to apply and save the changes and then close the **FX_Mesh** emitter.
+
+    ![](ME_09.png)
+
+1. Now over in the Content Browser, right - click and from the displayed list, go to **FX** and then select the **Niagara System** option, giving it a name of **Mesh**.
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_16.png)
+
+1. Double - click on the Mesh Niagara System to open it up and when open, drag the **FX_Mesh** from the Content Browser to the **Timeline**.
+
+    ![](ME_10.png)
+
+1. Press the **Compile** and **Save** buttons and then close the Mesh Niagara System down and then over in the Content Browser, drag the Mesh Niagara System into the level viewport.
+
+    [REGION:lightbox]
+    [![](ME_11.png)(w:834)](ME_11.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+## End Result
+
+When completed you will now have a Niagara System that will play your Niagara Emitter when the Niagara System is placed in a level like in the following video.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    SjCLcU67gcQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+

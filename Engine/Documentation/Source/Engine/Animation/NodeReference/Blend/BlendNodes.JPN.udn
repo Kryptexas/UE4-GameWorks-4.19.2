@@ -131,7 +131,8 @@ version:4.9
 
 
 
-<!-- Hidden for now, still experimentalSeems no longer available.
+[COMMENT:none]
+ Hidden for now, still experimentalSeems no longer available.
 
 ## Two-Way Additive Blend
 
@@ -147,4 +148,5 @@ version:4.9
 | Alpha | 2 つのポーズの重み付けを設定する際にアルファ値として使用する **[0.0, 1.0]** の範囲の `float` 値です値 **0.0** は、**A** の入力ポーズに対して最大限の重み付けをしますが、値 1.0 は、 **B** の入力ポーズに対して最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
 | Pose | ブレンディング適用後の最終加算ポーズ |
---->
+-
+[/COMMENT]

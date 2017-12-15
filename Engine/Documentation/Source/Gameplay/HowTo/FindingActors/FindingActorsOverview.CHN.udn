@@ -33,9 +33,11 @@ order:11
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\FindingActors\Blueprints)
-<!-- When Code is Ready we will re-enable this link.
+[COMMENT:none]
+ When Code is Ready we will re-enable this link.
 * [](Gameplay\HowTo\FindingActors\Code)
--->
+
+[/COMMENT]
 [/REGION]
 
 

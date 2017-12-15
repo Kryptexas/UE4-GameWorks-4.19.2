@@ -68,21 +68,6 @@ type:landing
 
 [DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%" type:"landing")]
 
-<!--
-[REGION:frontpage]
-	[REGION:features third]
-	%GettingStarted:role%
-	%Engine/Editor:role%
-	%Engine:role%
-	%Programming:topicrole%
-	%Engine/Blueprints:role%
-	%Gameplay:role%
-	%Resources:role%
-	%Platforms:role%
-	%Support/Builds:role%
-	[/REGION]
-[/REGION]
--->
 
 ### 关于此中文文档和意见反馈
 我们致力于改进中文用户使用虚幻引擎的用户体验，帮助更多人学习掌握虚幻引擎。您在阅读浏览文档的过程中，对内容有任何问题，包括错误反馈、意见、建议，或者对尚未翻译的文档，甚至尚未编写的文档有明确需求的话，都可发送邮件到中文问题收集的邮箱，地址为：ue-locbug-chn（避免 SPAM 的故意分开的后缀为 @epicgames.com）。除了此处的文档以外，其他中文相关的问题，包括启动器、编辑器中对中文翻译的错误反馈、意见建议等也可以发送邮件至上述邮箱。感谢大家资词。

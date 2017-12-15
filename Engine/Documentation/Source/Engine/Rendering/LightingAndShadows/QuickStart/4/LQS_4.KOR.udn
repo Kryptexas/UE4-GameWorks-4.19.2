@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4. 스포트 라이트 추가하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -23,7 +23,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 섹션에서는, **스포트 라이트** 를 사용해서 입구 위에 스타일리쉬한 라이트를 달아 보도록 하겠습니다.
 
@@ -96,7 +96,6 @@ Version: 4.9
 
 **다음 단계** 에서는 라이트의 퀄리티를 향상시키고 아파트에 반사광을 추가해 보겠습니다.
 
-%Steps%
 
 
 

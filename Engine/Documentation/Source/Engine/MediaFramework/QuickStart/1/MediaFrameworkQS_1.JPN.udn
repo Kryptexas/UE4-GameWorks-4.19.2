@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:3684558
+Availability:Public
+Title:1 - 必要な設定を行う
+Description:必要なコンテンツをインポートして、この操作ガイドで使用するアセットのセットアップを行います。 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:1
+tags:Media Framework
+ 
+[NAV]
+
+このステップではプロジェクトの準備として、この操作ガイドで使用するアセットをいくつかインポートおよび作成します。 
+
+[REGION:note]
+ここでは **Blueprint Third Person Template** プロジェクトを使います。チュートリアルではこちらの [サンプル アセット](Sample_Content.rar) も使いますので、ダウンロード / 解凍しておいてください。
+[/REGION]
+
+## ステップ
+
+1. **[コンテンツ ブラウザ]** の **[Sources]** パネルを展開し、**「Content」** フォルダを右クリックして内に **「Movies」** という名前のフォルダを新規作成します。 
+
+	![](Setup_01.png)
+
+	プロジェクトあるいは他のメディア ファイルをパッケージ化およびデプロイするためには、プロジェクトの **「Content/Movies」** フォルダ内にメディアを **置かなければなりません**。 
+
+1. **「Movies」** フォルダを右クリックして **[Show in Explorer (エクスプローラーで表示)]** オプションを選択します。 
+
+	![](Setup_02.png)
+
+1. コンピューターの **「Content/Movies」** フォルダ内にサンプル動画を置きます。 
+
+	![](Setup_03.png)
+
+	[REGION:warning]
+	独自の動画を使う場合は、[](Engine\MediaFramework\TechReference\) で動画ファイル フォーマットがサポートされていることを確認してください。 
+	[/REGION]
+
+1. **「Movies」** フォルダを右クリックして、**[Media]** で **[File Media Source]** を選んで **「Video_01」** と名前を付けます。 
+
+	![](Setup_04.png)
+
+	**File Media Source** アセットを使って、デバイスにローカル保存している動画ファイルを指定します (これをサンプル ファイルに指定します)。 
+
+1. **File Media Source** アセットを開いて、**[...]** 記号をクリックして、コンピューター上にあるサンプル動画ファイルに指定します。 
+
+	![](Setup_05.png)
+
+	再生用のソースを作成したので、**Media Player** アセットが実際に動画を再生させる必要があります。 
+
+1. **「Movies」** フォルダを右クリックして、**[Media]** で **[Media Player]** を選択します。 
+
+	![](Setup_06.png)
+
+1. **[Create Media Player]** ダイアログ ウィンドウで **[Video output Media Texture asset]** を有効にして **[OK]** ボタンをクリックし、**「MediaPlayer_01」** と名前を付けます。 
+
+	![](Setup_07.png)
+
+	この操作により、**Media Texture** が自動作成され、動画再生に必要な Media Player アセットに割り当てられます。 
+
+	![](Setup_08.png)
+
+1. **MediaPlayer_01** アセットを開いて、**[Media Editor]** の **[Details]** パネルで **[Loop]** オプションを有効にします。 
+
+	![](Setup_09.png)
+
+	[メディア エディタ](Engine\MediaFramework\MediaEditorReference\) で **「Video_01」** ファイルをダブルクリックすると再生が始まります。 
+	**[Detials]** パネルには再生処理を調節するオプションがあります (ここでは、この動画のループ再生を設定しています)。 
+	**[Play on Open]** オプションもデフォルトで有効になっています。ブループリントまたは C++ で開くとすぐに動画が再生を開始するように指示します。 
+
+1. **コンテンツ ブラウザ** の中に **「TV」** という名前のフォルダを作り **「SM_TV」** および **「T_TV_M2」** ファイルをサンプル コンテンツからプロジェクトにドラッグして **[Import All]** をクリックします。 
+
+	![](Setup_10.png)	
+
+
+## 最終結果
+
+セットアップに必要なアセットがそろい、動画の再生に必要な Medhia Framework アセットをいくつか作成しました (File Media Source、Media Player、Media Texture アセット)。
+さらに、次のステップで必要となる、レベル内でプレイする Static Mesh TV、および TV 用マテリアルのセットアップで使用するテクスチャもインポートしました。
+
+[NAV]
+
+

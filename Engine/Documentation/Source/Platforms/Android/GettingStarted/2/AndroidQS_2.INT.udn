@@ -2,7 +2,7 @@ Availability:Public
 Title:2. Set Up Your Android Device
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Set up your Android device for development.
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -62,7 +62,8 @@ Now that Android Works has been installed it is now time to set up your Android 
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 1. Connect your Android device to your development PC via USB.
@@ -209,7 +210,8 @@ If you do not see your device after you input the adb devices command, here are 
 [EXCERPT:LinuxSetup]
 [INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]
 [/EXCERPT:LinuxSetup]
--->
+
+[/COMMENT]
 
 ## End Result
 When completed you will now have an Android-based smartphone that is ready for your UE4 project to be deployed to and run on. 

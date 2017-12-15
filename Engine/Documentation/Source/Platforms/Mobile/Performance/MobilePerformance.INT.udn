@@ -10,12 +10,6 @@ Order:6
 Tags:mobile
 
 
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-[VAR:spacer3]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
-[VAR:spacer4]![](%ROOT%/spacer.png)(w:140 convert:false)[/VAR]
-
 [TOC(start:2 end:2)]
 
 When developing for Mobile platforms, there are some things you should keep in mind when targeting specific devices or that are general good practices depending on the 
@@ -46,7 +40,8 @@ To use this mode, you must disable **Mobile HDR** for your project in the Render
 | [INCLUDE:#ldradvantages] | [INCLUDE:#ldrlimitations] | [INCLUDE:#ldrreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS LDR
+[COMMENT:none]
+- EXCERPTS LDR
 
 [INCLUDE:#ldrreccommendations]
 
@@ -67,7 +62,8 @@ To use this mode, you must disable **Mobile HDR** for your project in the Render
 * Consider performing as many operations in the Materials **Vertex Shader** as possible. You can do this by enabling **Customized UVs**, connecting nodes to them and then in the pixel shader using a **Texture Coordinate** node to target the customized UV.
 [/EXCERPT:ldrreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -86,7 +82,8 @@ To use this mode, you must disable **Mobile HDR** for your project in the Render
 | [INCLUDE:#BLadvantages] | [INCLUDE:#BLlimitations] | [INCLUDE:#BLreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#BLreccommendations]
 
@@ -108,7 +105,8 @@ To use this mode, you must disable **Mobile HDR** for your project in the Render
 * Disable some Post Processing features completely, like **Bloom**. Also, stick to the basic set of film and color controls. See [Mobile Post Process](Platforms/Mobile/PostProcessEffects) for more details.
 [/EXCERPT:BLreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -131,7 +129,8 @@ To use this mode, you must enable **Mobile HDR** for your project in the Renderi
 | [INCLUDE:#HDRadvantages] | [INCLUDE:#HDRreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#HDRreccommendations]
 
@@ -150,7 +149,8 @@ To use this mode, you must enable **Mobile HDR** for your project in the Renderi
 * Use only Static Lights and Lightmaps in your scene for the best performance.
 [/EXCERPT:HDRreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -169,7 +169,8 @@ To use this mode, you must enable **Mobile HDR** for your project in the Renderi
 | [INCLUDE:#HDRSunadvantages] | [INCLUDE:#HDRSunreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#HDRreccommendations]
 
@@ -185,7 +186,8 @@ To use this mode, you must enable **Mobile HDR** for your project in the Renderi
 * Use only Static Lights in your except for a single Directional Light, which should be set to Stationary. 
 [/EXCERPT:HDRSunreccommendations]
 
---->
+-
+[/COMMENT]
 
  
 ## Shader Complexity View Mode
@@ -209,7 +211,8 @@ These are some examples taken from Mobile Sun Temple to give you an idea of Mate
 | [INCLUDE:#image1] | [INCLUDE:#image2] | [INCLUDE:#image3] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Image1]
 The pillar Materials are fairly expensive here, and the translucent volumetric sheets are **very** expensive.  In this scene, I asked to have the translucent sheets should be removed, as they cost too much. 
 [/EXCERPT:Image1]
@@ -219,7 +222,8 @@ Here the pillars are quite expensive as they use all five texture lookups and do
 [EXCERPT:Image3]
 Here, the tree is causing pixels to be **extremely** expensive. If the player could ever get up close or cover the screen with that Material, the cost would be enormous.
 [/EXCERPT:Image3]
--->
+
+[/COMMENT]
 
 ## Mobile Content Scale Factor 
 
@@ -234,7 +238,7 @@ Inside of this file, you can specify what will happen to the resolution of your 
 In the following image, you can see an example of the Mobile Content Scale Factor being set in a configuration file:
 
 [REGION:lightbox]
-[![](T_MCF_INI_File.png)(w:358 h:505)](T_MCF_INI_File.png)
+[![](T_MCF_INI_File.png)(w:358)](T_MCF_INI_File.png)
 [/REGION]
 [REGION:caption]
 Click for full image.
@@ -296,7 +300,7 @@ You can view what the different Material Quality Level settings will look like i
 the level you want to preview.
 
 [REGION:lightbox]
-[![](MQS_Material_Preview_Level.png)(w:332 h:324)](MQS_Material_Preview_Level.png)
+[![](MQS_Material_Preview_Level.png)(w:332)](MQS_Material_Preview_Level.png)
 [/REGION]
 [REGION:caption]
 Click for full image.
@@ -336,7 +340,7 @@ Using a configuration (.ini) file, you can set the Material Quality for the devi
 
 1. From the Main Toolbar go to **Windows** > **Developer Tools** and then click on **Device Profiles**.  
 	[REGION:lightbox]
-	[![](MQS_Device_Profiles.png)(w:217 h:371)](MQS_Device_Profiles.png)
+	[![](MQS_Device_Profiles.png)(w:217)](MQS_Device_Profiles.png)
 	[/REGION]
 	[REGION:caption]
 	Click for full image.
@@ -349,7 +353,7 @@ Using a configuration (.ini) file, you can set the Material Quality for the devi
 1. In the **Console Variables** section under the **Rendering** option, click on the **Plus** icon and in the input window that pops up, input **R.MaterialQualityLevel** and then press the Enter key to add that command to the list. 
 
 	[REGION:lightbox]
-	[![](MQS_Set_Con_Var.png)(w:505 h:242)](MQS_Set_Con_Var.png)
+	[![](MQS_Set_Con_Var.png)(w:505)](MQS_Set_Con_Var.png)
 	[/REGION]
 	[REGION:caption]
 	Click for full image.
@@ -358,7 +362,7 @@ Using a configuration (.ini) file, you can set the Material Quality for the devi
 1. Once the new entry has been added, change the value from the default value from **1** to **0** so that when this project is viewed on lower end Android devices it will use the fastest possible Material settings.
 
 	[REGION:lightbox]
-	[![](MQS_Set_Quality_Level.png)(w:505 h:242)](MQS_Set_Quality_Level.png)
+	[![](MQS_Set_Quality_Level.png)(w:505)](MQS_Set_Quality_Level.png)
 	[/REGION]
 	[REGION:caption]
 	Click for full image.
@@ -370,7 +374,7 @@ By adjusting the **Preview Rendering Level**, you can use the Unreal Engine 4 Ed
 **Main Toolbar** and then select **Settings** > **Preview Rendering Level** and select the preview level you want to use.
 
 [REGION:lightbox]
-[![](MQS_Material_Quality_Level.png)(w:332 h:324)](MQS_Material_Quality_Level.png)
+[![](MQS_Material_Quality_Level.png)(w:332)](MQS_Material_Quality_Level.png)
 [/REGION]
 [REGION:caption]
 Click for full image.
@@ -387,7 +391,7 @@ To use the Quality Switch in your Materials, you will need to first add the **Qu
 node. In the following image, the M_Brick_Clay_Old Material (that can be found in the Starter Content) is setup so that when the Quality Level is switched, the complexity of the Material will be reduced.
 
 [REGION:lightbox]
-[![](MQS_Material_Setup.png)(w:789 h:412)](MQS_Material_Setup.png)
+[![](MQS_Material_Setup.png)(w:789)](MQS_Material_Setup.png)
 [/REGION]
 [REGION:caption]
 Click for full image.
@@ -406,7 +410,7 @@ If you open up any **Material** and click on the Main Material Node then look in
 
 
 [REGION:lightbox]
-[![](MQS_Mobile_Material_Options.png)(w:556 h:410)](MQS_Mobile_Material_Options.png)
+[![](MQS_Mobile_Material_Options.png)(w:556)](MQS_Mobile_Material_Options.png)
 [/REGION]
 [REGION:caption]
 Click for full image.
@@ -481,7 +485,8 @@ Under the **Mobile** category, you can set properties that directly affect the l
 | **Maximum number of CSM cascades to render** | The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer. |
 | **Mobile MSAA** | This is the Multi-Sample Anti-Aliasing (MSAA) setting to use on mobile. MSAA is currently supported using Metal on iOS, and on Android devices with the required supported using ES2 or ES 3.1. If MSAA is not available, the current default AA method will be used. |
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:MMQ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -503,7 +508,8 @@ Under the **Mobile** category, you can set properties that directly affect the l
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MMQ]
--->
+
+[/COMMENT]
 
 
 ## Shader Reduction Settings for Mobile
@@ -515,37 +521,38 @@ Materials, which in-turn will reduce app size, save memory and improve load time
 ![](MobileOptimizations.png)
 
 [REGION:raw]
-|Property Name| %spacer3% | Description|
-|------------ | --------- |-------|
-| **Lighting** || The listed options found under the **Lighting** section of the Project Settings that should be adjusted for mobile performance.  [INCLUDE:#lighting] |
-| **Mobile Shader Permutation Reduction** || The listed options found under **Mobile Shader Permutation Reduction** that should be adjusted for mobile performance. [INCLUDE:#shaderpermutations] |
+|Property Name| Description|
+|------------ | -------|
+| **Lighting** | The listed options found under the **Lighting** section of the Project Settings that should be adjusted for mobile performance.  [INCLUDE:#lighting] |
+| **Mobile Shader Permutation Reduction** | The listed options found under **Mobile Shader Permutation Reduction** that should be adjusted for mobile performance. [INCLUDE:#shaderpermutations] |
 [/REGION]
 
-<!--- EXCERPTS ---
+[COMMENT:none]
+- EXCERPTS ---
 
 [INCLUDE:#shaderpermutations]
 
 [EXCERPT:lighting]
 [REGION:simpletable]
-|--------------------| --- |-------|
-| **Allow Static Lighting** || Whether to allow any static lighting to be generated and used, like lightmaps and shadow maps. Games that only use dynamic lighting or that are unlit should set this to 0 to save some static lighting overhead. |
-| | %spacer4% | | 
+|--------------------| -------|
+| **Allow Static Lighting** | Whether to allow any static lighting to be generated and used, like lightmaps and shadow maps. Games that only use dynamic lighting or that are unlit should set this to 0 to save some static lighting overhead. |
 [/REGION]
 [/EXCERPT:lighting]
 
 [EXCERPT:shaderpermutations]
 [REGION:simpletable]
-| ------------------ | ----- | -------|
-| **Support Combined Static and CSM Shadowing** || Allows primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler. |
-| **Support Distance Field Shadowing** || Generate shaders for primitives to receive distance field shadows from Stationary Directional Lights. |
-| **Support Movable Directional Light** || Generate shaders for primitives to receive movable directional lights. |
-| **Max Movable Point Lights** || The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shaders generated. |
-| **Use Shared Movable Point Light Shaders** || If this setting is enabled, the same shader will be used for any number of dynamic point lights(up to the maximum specified above)hitting a surface. This is slightly slower but reduced the number of shaders generated. |
-|| %spacer3% |||
+| ------------------ | -------|
+| **Support Combined Static and CSM Shadowing** | Allows primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler. |
+| **Support Distance Field Shadowing** | Generate shaders for primitives to receive distance field shadows from Stationary Directional Lights. |
+| **Support Movable Directional Light** | Generate shaders for primitives to receive movable directional lights. |
+| **Max Movable Point Lights** | The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shaders generated. |
+| **Use Shared Movable Point Light Shaders** | If this setting is enabled, the same shader will be used for any number of dynamic point lights(up to the maximum specified above)hitting a surface. This is slightly slower but reduced the number of shaders generated. |
+
 [/REGION]
 [/EXCERPT:shaderpermutations]
 
------>
+---
+[/COMMENT]
 
 [REGION:note]
 Changing any of these settings will require you to restart the editor before they take effect. 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654627
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:12.FindHidingSpot EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:プレイヤーの TopDownCharacter から隠れるためのグリッド上の一番良いポイントを見つける EQS を作成します。
-バージョン：4.9
+Description:プレイヤーの TopDownCharacter から隠れるグリッド上の一番良いポイントを見つける EQS を作成します。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,19 +21,19 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-このステップでは、さらに複雑な Environment Query を作成します。ポイントのグリッドを作成し、NavMesh 上に投影します。次に、一連のテストを実行し、隠れるための「一番良い」ポイントを見つけます。あるテストでは、例えば、プレイヤーのキャラクターから見えるものなど完全に不適切な位置を選別します (Trace)。他のテストでは、NavMesh (PathFinding) で到達可能かどうかに基づき隠れるスポット候補にウェイトをかける、またはプレイヤー キャラクターの前にどれくらいポイントがあるか (Dot Product (内積)) に基づきウェイトをかけます。
+
+このステップでは、さらに複雑な Environment Query を作成します。ポイントのグリッドを作成し、NavMesh 上に投影します。次に、一連のテストを実行し、隠れるための「一番良い」ポイントを見つけます。あるテストでは、例えば、プレイヤーのキャラクターから見えるものなど完全に不適切な位置を選別します (Trace)。他のテストでは、NavMesh (PathFinding) で到達可能かどうかに基づき隠れるスポット候補にウェイトをかける、またはプレイヤー キャラクターの前のポイントがどの程度か (Dot Product (内積)) に基づきウェイトをかけます。
 
 以下は簡単な覚書です。
 
-* Generator は、Context に関連して Items を作成します。
-* Items は多くの場合、 Context (Item X は Context Y からどれくらい離れているか) に関連して Tests で使用されます。
-* Items は Tests 結果に基づき選別またはスコアリングされます。
+* Generator は、Context に関連して Item を作成します。
+* Item は多くの場合、 Context (Item X は Context Y からどれくらい離れているか) に関連して Test で使用されます。
+* Item は Test 結果に基づき選別またはスコアリングされます。
 
 ## ステップ
 
-1. はじめに、**コンテンツ ブラウザ** で FindHidingSpot Environment Query アセットを **ダブルクリック** します。
+1. はじめに、**コンテンツ ブラウザ** にある FindHidingSpot Environment Query アセットを **ダブルクリック** します。
 
 	![](findHide.png)
 
@@ -59,7 +59,7 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 
 	[INCLUDE:#eqsqs122]
 
-	この Distance テストは、プレイヤーから _より遠い_ Items により高いスコアを与えます。
+	この Distance テストは、プレイヤーから _より離れた場所にある_ Item により高いスコアを付けるものです。
 
 1. 2 つめを選択し、 **[Details]** パネルで、以下のプロパティを調整します。
 
@@ -77,7 +77,7 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 
 	![](traceProps.png)	
 
-	ここではプレイヤーのポーンまたは AI のポーンが視線を持つアイテムがあれば取り除きます。このテストが多くの **Distance** テストの後に行われることに懸念を抱かれるかもしれませんが大丈夫です。Environment Query はここでの順序に関係なく **Trace** テストを実行するからです。もうひとつの Trace では、追加のセットアップは不要です。
+	ここではプレイヤーのポーンまたは AI のポーンの視界に入るアイテムがあれば取り除きます。このテストが多くの **Distance** テストの後に行われることに懸念を抱かれるかもしれませんが大丈夫です。Environment Query はここでの順序に関係なく最初に **Trace** テストを実行するからです。もうひとつの Trace では、追加のセットアップは不要です。
 
 1. [REGION:raw] **Simple Grid** ノードを **右クリック** して **Tests** %arrow% **Dot** を選択して **Dot** テストを追加します。[/REGION]
 
@@ -89,13 +89,13 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 
 	[INCLUDE:#eqsqs125]
 
-	これからは少し難しくなります。大まかにいうと、「プレイヤーのポーンの横にあるアイテムを優先する」ということですが、その仕組みは少々変わっています。Dot Product (内積) 関数は、1.0 (全く同じ) から -1.0 (完全に逆) のスケールで2 つのベクターがどれくらい「似ている」かを戻します。従って、プレイヤーの回転ベクターとプレイヤーからアイテムまでのベクターとの間の Dot Product の **Absolute Value (絶対値)** を取得すると、プレイヤーの前または後ろのポイントを優先します。しかし、 **Scoring Factor** を -1.0 に設定すると、プレイヤーの側面を優先します。
+	これからは少し難しくなります。大まかにいうと、「プレイヤーのポーンの横にあるアイテムを優先する」ということですが、その仕組みは少々変わっています。Dot Product (内積) 関数は、1.0 (全く同じ) から -1.0 (完全に逆) のスケールで 2 つのベクターがどれくらい「似ている」かを戻します。従って、プレイヤーの回転ベクターとプレイヤーからアイテムまでのベクターとの間の Dot Product の **Absolute Value** を取得すると、プレイヤーの前または後ろにあるポイントを優先します。しかし、 **Scoring Factor** を -1.0 に設定すると、プレイヤーの側面を優先します。
 
 1. [REGION:raw] **Simple Grid** ノードを **右クリック** し、**Tests** %arrow% **PathFinding** を選択して、 **PathFinding** テストを追加します。[/REGION]
 
 	![](addPath.png)
 
-1. **PathFinding** テストを選択し、 **[Details]** パネルで、**Test Purpose (テスト目的)** を Score Only に調整します。
+1. **PathFinding** テストを選択し、 **[Details]** パネルで、**Test Purpose** （テスト目的）を Score Only に調整します。
 
 	![](pathProps.png)
 
@@ -103,11 +103,12 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 
 	![](final.png)
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:eqsqs125]
 * **Line A - Rotation** = PlayerContext
 * **Line B - Line From** = PlayerContext
@@ -134,4 +135,5 @@ Description:プレイヤーの TopDownCharacter から隠れるためのグリ�
 * **Scoring Equation** = Inverse Linear
 * **Scoring Factor** = 2.0
 [/EXCERPT]
--->
+
+[/COMMENT]

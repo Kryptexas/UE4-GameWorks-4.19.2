@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:좌표계 용어집
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -22,7 +22,8 @@ order:23
 | **Viewport** | **ViewportCoordinates**, **WindowCoordinates** | [INCLUDE:#Viewport] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TranslatedWorld]
 [REGION:simpletable]
 | ------ | ------ |
@@ -49,7 +50,8 @@ order:23
 | 상/하 | 0, 높이-1 |
 [/REGION]
 [/EXCERPT:Viewport]
--->
+
+[/COMMENT]
 
 ## 좌표계 변환
 

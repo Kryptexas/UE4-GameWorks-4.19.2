@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 14. 비헤이비어 트리 제작
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:14 단계. 비헤이비어 트리 제작
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:14
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/13 "%Engine/AI/BehaviorTrees/QuickStart/13:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/15 "%Engine/AI/BehaviorTrees/QuickStart/15:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 
 이제 비헤이비어 트리를 제작하는 데 필요한 모든 조각이 갖춰졌을 것입니다:
@@ -163,7 +151,7 @@ q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 
-%Steps%
+[NAV]
 
 
 

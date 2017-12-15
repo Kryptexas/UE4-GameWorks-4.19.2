@@ -1,7 +1,7 @@
 Availability: Public
 Crumbs:%ROOT%, Platforms
-Title:Set Up Cameras for Google VR
-Description:Setting up the UE4 camera to work with Google VR.
+Title:Set Up Cameras for GoogleVR
+Description:Setting up the Camera to work with GoogleVR.
 Type: how-to
 SkillLevel:Beginner
 Version:4.17
@@ -11,13 +11,15 @@ Tags:Basics
 topic-image:Platforms\GoogleVR\HowTo\HT_GoogleVR_Camera_Setup_Topic_Image.png
 prereq: Platforms\GoogleVR\QuickStart
 
-No matter if your Google VR project is a sitting or standing experience, the manner in which the user's camera is set up will be the same. In the following How - To we will go over how up the UE4 camera for use with Google VR experiences.
+![](Platforms\VR\ContentSetup\VR_Seated_Experiance.png)
 
-## Project & Basic Camera Setup for a Google VR Experience 
+Regardless of whether your GoogleVR project is a sitting or standing experience, the manner in which the game's Camera is set up will be the same. In the following How-To, we will go over how to set up the Camera for use with GoogleVR experiences.
 
-Below you will find instructions on project setup requirements as well as how to create and setup the needed Blueprints for a Google VR experience.
+## Steps
 
-1. First, create a new UE4 project with the following settings and once completed press the **Create Project** button.
+Below, you will find instructions on project and camera setup requirements for a GoogleVR experience.
+
+1. First, create a new Unreal Engine project with the following settings:
 
     * Blueprint 
     * Blank Project
@@ -35,11 +37,11 @@ Below you will find instructions on project setup requirements as well as how to
     Click for full image.
     [/REGION]
 
-1. When the UE4 Editor loads, from the Main Menu, open up the **Plugins** menu by going to **Edit** > **Plugins**.
+1. In the Editor, open up the **Plugins** menu by going to **Edit** > **Plugins**.
     
     ![](HT_GoogleVR_Camera_Setup_01.png)
 
-1.  Inside the Plugins window, select the **Virtual Reality** section and then enable the **Google VR** option by clicking on the **Enabled** check mark box.
+1.  Inside the Plugins window, select the **Virtual Reality** section and then enable the **GoogleVR** option by clicking on the **Enabled** check mark box.
  
     [REGION:lightbox]
     [![](HT_GoogleVR_Camera_Setup_02.png)(w:547)](HT_GoogleVR_Camera_Setup_02.png)
@@ -50,49 +52,40 @@ Below you will find instructions on project setup requirements as well as how to
     [/REGION]
 
     [region:note]
-    You will need to re-start UE4 once you have enabled the plugin so that it will be loaded on the next UE4 Editor launch.
+    You will need to restart the Editor once you have enabled the plugin so that it will be loaded on the next Editor launch.
     [/region] 
 
-1. After the UE4 Editor has re-started, Right-click in the **Content Browser** and from the displayed menu, go to the **Create Basic Asset** section and select the **Blueprint Class** option.
+1. After the Editor has restarted, Right-click in the **Content Browser** and from the displayed menu, go to the **Create Basic Asset** section and select the **Blueprint Class** option.
 
-    [![](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_01.png)(w:150)](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_01.png)
+    [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)(w:150)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)
 
-1. From the **Pick Parent Class** window, select the **Pawn** option, giving it a name of **GoogleVR_Pawn** then double - click on the GoogleVRPawn to open it up in the Blueprint Editor.
+1. From the **Pick Parent Class** window, select the **Pawn** option, giving it a name of **GoogleVR_Pawn** then double-click on the GoogleVRPawn to open it up in the Blueprint Editor.
 
     [![](HT_GoogleVR_Camera_Setup_03.png)(w:691)](HT_GoogleVR_Camera_Setup_03.png)
 
 1. Open up the GoogleVR_Pawn Blueprint and go to the **Component** section of the **Viewport** tab. Using the **Add Component** button add the following two components with the following names and make sure that the Camera is a child of the Scene Component.
     
-    * Scene - VRCameraRoot
-    * Camera - VRCamera
+    [REGION:simpletable]
+	|Component Name| Value |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
 
-    ![](HT_GoogleVR_Camera_Setup_03.png)
+    ![](HT_GoogleVR_Camera_Setup_08.png)
 
     [region:note]
-    No matter what VR HMD you are using, this is the Epic recommend way to set up a VR camera as it allows you to offset the position of the camera without having to move the actual camera.
+    No matter what VR HMD you are using, this is the Epic-recommended way to set up a VR camera, as it allows you to offset the location of the Camera without having to move the actual Camera.
     [/region]
-
-Now that a basic Blueprint for the VR Camera has been set up, in the next section we will go through setting up this Blueprint to be used with Google VR.
-
-## Camera Setup for Google VR Experience 
-
-Below you will find instructions on how to setup your camera for a Google VR experience.
-
 
 1. First, open up the **GoogleVR_Pawn** Blueprint and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list. In the list search for the **Set Tracking Origin** node and click on it to add it to the Event Graph.
 
-    [REGION:lightbox]
-    [![](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_09.png)(w:555)](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_09.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
+	![](HT_GoogleVR_Camera_Setup_06.png)
 
 1. Make sure the **Origin** of the Set Tracking Origin node is set to **Eye Level**.
     
     [REGION:lightbox]
-    [![](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\Camera\HT_Rift_Camera_Setup_10.png)
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)
     [/REGION]
 
     [REGION:caption]
@@ -104,7 +97,7 @@ Below you will find instructions on how to setup your camera for a Google VR exp
     ![](Platforms\GearVR\HowTo\CameraSetup\HT_GearVR_Camera_Setup_03.png)
 
     [region:note]
-    This number should be set to the real world standing height of the user in Centimeters.
+    This number should be set to the real-world standing height of the user in Centimeters.
     [/region]
 
 1. Drag off the output of the Set Tracking Origin node and search for the **Set Relative Location** node, selecting the **SetRelativeLocation(VRCameraRoot)** option.
@@ -117,14 +110,14 @@ Below you will find instructions on how to setup your camera for a Google VR exp
     Click for full image.
     [/REGION]
 
-1. Connect the **CameraHeight** variable to the **New Location** input on the Set Relative Location node and then press the Compile button. When completed your Event Graph should look like the following image.
+1. Connect the **Camera Height** variable to the **New Location** input on the **Set Relative Location** node and then press the **Compile** button. When completed, your Event Graph should look like the following image:
 
     [REGION:fullwidth]
     [INCLUDE:Platforms\GoogleVR\HowTo\CameraSetup\#GoogleVRCamera]
     [/REGION]
 
     [region:tip]
-    You can copy the completed Blueprint by clicking on the upper left-hand corner of above and pressing CRTL + C to copy the graph. Once copied, go to your Blueprints event and press CTRL + V to paste it in. 
+    You can copy the completed Blueprint by clicking on the upper left-hand corner of the above image and pressing CRTL + C to copy the graph. Once copied, go to your Blueprints event and press CTRL + V to paste it in.
     [/region]
 
 1. Drag the **GoogleVR_Pawn** Blueprint from the Content Browser to a level, making sure that it is placed as close to the ground as possible.
@@ -137,22 +130,25 @@ Below you will find instructions on how to setup your camera for a Google VR exp
     Click for full image.
     [/REGION]
 
-1. Select the GoogleVR_Pawn Blueprint and in the **Details** panel under the **Pawn** setting, set the **Auto Possess Player** from **Disabled** to **Player 0**.
+1. Select the GoogleVR_Pawn Blueprint. In the **Details Panel**, under the **Pawn** setting, change the value of **Auto Possess Player** from **Disabled** to **Player 0**.
 
     ![](HT_GoogleVR_Camera_Setup_05.png)
 
-1. Finally, go to the **Main Toolbar** and click on the small white triangle next to **Launch Options** and then select your Android device from the list to start the packaging and deployment to that device.
+## End Result
 
-    ![](Platforms\GearVR\HowTo\CameraSetup\HT_GearVR_Camera_Setup_08.png)
+Finally, go to the **Main Toolbar** and click on the small white triangle next to **Launch Options**, then select your Android device from the list to start the packaging and deployment process for that device. When that is completed put your smartphone into your HMD to allow you to view your UE4 project in VR.
 
-## UE4 Project Downloads
+ ![](Platforms\GearVR\HowTo\CameraSetup\HT_GearVR_Camera_Setup_08.png)
 
-Below you will find a link to where you can download the UE4 project that was used to create this example. 
+## Unreal Engine Project Downloads
 
-* [**Google VR Camera Example Project**](https://epicgames.box.com/s/duniqrm3wl8u9lkq7igskq4fh7rl9e0f)
+Below, you will find a link to where you can download the Unreal Engine project that was used to create this example:
+
+* [**GoogleVR Camera Example Project**](https://epicgames.box.com/s/duniqrm3wl8u9lkq7igskq4fh7rl9e0f)
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GoogleVRCamera]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -219,4 +215,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:GoogleVRCamera]
--->
+
+[/COMMENT]

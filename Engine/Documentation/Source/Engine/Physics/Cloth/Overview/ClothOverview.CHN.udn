@@ -154,7 +154,8 @@ Topic-image:Clothing_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:oldworkflow]
 [REGION:lightbox]
@@ -176,4 +177,5 @@ _点击图片查看全图。_
 [/REGION]
 [/EXCERPT:clickimage]
 
---->
+-
+[/COMMENT]

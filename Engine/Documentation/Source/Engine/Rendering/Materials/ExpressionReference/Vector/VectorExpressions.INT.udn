@@ -4,7 +4,7 @@ Title: Vector Expressions
 Description:Expressions that output a vector value, such as a position or normal.
 Type: Reference
 Version:4.16
-Parent:Engine/Rendering/Materials
+Parent:Engine/Rendering/Materials/ExpressionReference
 reference-image:PreSkinnedTriPlanar.gif
 reference-image:TriPlanarMaterial.gif
 reference-image:PS_LocalPositionMaterial.gif
@@ -73,7 +73,8 @@ The **CameraVector** expression outputs a three-channel vector value representin
 [REGION:warning]
 This expression has been deprecated in Unreal Engine 4 as lighting calculations are now deferred.
 [/REGION:warning]
-<!--
+[COMMENT:none]
+
 The LightVector expression is a three-channel vector value representing the direction of the light with respect to the surface.
 
 **Example Usage:** LightVector can be used to calculate custom lighting algorithms, such as a simple Lambert lighting model.
@@ -83,7 +84,8 @@ The LightVector expression is a three-channel vector value representing the dire
 [REGION:note]
 	The LightVector expression is not valid while evaluating the Emissive output, and can only be used in LightFunction or DeferredDecal materials.
 [/REGION]
--->
+
+[/COMMENT]
 
 
 ## Object Bounds
@@ -153,7 +155,8 @@ _Click image for larger size._
 | Tri-Planar Pre-Skinned Local Normal Vector Expression | Tri-Planar Material |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalNormal1]
 [REGION:asyncgif]
 ![](PreSkinnedTriPlanar.gif)(w:250)
@@ -165,7 +168,8 @@ _Click image for larger size._
 ![](TriPlanarMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 ## Pre-Skinned Local Position
 
@@ -188,7 +192,8 @@ In this example, the Skeletal Mesh's default pose is used for mapping versus the
 | Pre-Skinned Local Position Vector Expression | Skeletal Mesh's Default UV Layout |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalPos1]
 [REGION:asyncgif]
 ![](PS_LocalPositionMaterial.gif)(w:250)
@@ -200,7 +205,8 @@ In this example, the Skeletal Mesh's default pose is used for mapping versus the
 ![](PS_DefaultMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 
 ## ReflectionVectorWS
@@ -301,7 +307,8 @@ Below you will find descriptions of the various noise functions you will find in
 		
 [/EXCERPT:VectorNoiseTest]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorNoiseFunctions]
 
 |Function| Description|
@@ -312,4 +319,5 @@ Below you will find descriptions of the various noise functions you will find in
 | **Perlin Curl** | Computes a 3D curl noise. The output is the mathematical curl of Perlin 3D Noise. About 162 instructions. |
 | **Voronoi** | The same algorithm and instruction counts as the Voronoi function in the *Noise* expression, but RGB is the location of the closest seed point in each Voronoi cell, and A is the distance to that seed point. |
 [/EXCERPT]
--->
+
+[/COMMENT]

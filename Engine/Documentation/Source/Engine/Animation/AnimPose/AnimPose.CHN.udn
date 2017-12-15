@@ -58,21 +58,18 @@ n73gdIPifXY
 
 以上视频中的动画序列包含多个动作的曲线数据。然后从动画序列创建一个 **动作资源**，以便访问每个曲线/动作（我们将 **R_smile_pose** 和 **L_smile_pose** 区分开来，说明如何让面部出现笑容）。下一步，从默认基础动作新建一个动画序列，并添加两条取消到该序列（两个笑容动作）。最后在动画中间添加新加权值，以便创建面部笑容表情。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		准备开始
-	[/PARAM]
-	[PARAM:links]
+## 准备开始
+
+[REGION:buttonlist]
+
 		[REGION:topics fourth]
 		[INCLUDE:#topics]
 		[/REGION]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Topics]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -143,4 +140,5 @@ n73gdIPifXY
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Topics]
--->
+
+[/COMMENT]

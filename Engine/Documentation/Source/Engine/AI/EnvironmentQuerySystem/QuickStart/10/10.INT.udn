@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 While an Environment Query can generate a number of Items based on getting an Actor type, it doesn't do that for Contexts. So, we need a way to have the Player's Pawn as a Context, which is where the **EnvQueryContext_BlueprintBase** comes into play.
 
@@ -44,4 +44,4 @@ While an Environment Query can generate a number of Items based on getting an Ac
 
 1. Finally set the **Actor Class** of the **Get All Actors Of Class** Node to **Top Down Character**, **Compile**, and **Save**.
 
-%Steps%
+

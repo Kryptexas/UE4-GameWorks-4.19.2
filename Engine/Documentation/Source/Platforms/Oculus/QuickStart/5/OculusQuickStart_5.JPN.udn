@@ -1,63 +1,45 @@
-﻿INTSourceChangelist:2744797
-Title:5.バーチャル リアリティのコンテンツをテストする
-Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:アンリアル エンジン 4 を使って Oculus Rift 用に作成されたコンテンツをロードし再生する
+﻿INTSourceChangelist:3718992
 Availability:Public
-Version:4.9
-SkillLevel:Intermediate
+Crumbs: %ROOT%
+Title:5.Rift と UE4 をテストする
+Description:アンリアル エンジン 4 を使って Oculus Rift 向けに作成したコンテンツをロードおよびプレイする方法の説明です。
+Type: quick start
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/Oculus/QuickStart
+Order:5
+Checkpoint:RIFTQS
 
-このセクションでは、DK2 がアンリアル エンジン 4 で機能しているか確認するためのテスト方法を説明します。
+[NAV]
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Platforms/Oculus/QuickStart/4 "%Platforms/Oculus/QuickStart/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Platforms/Oculus/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Platforms/Oculus/QuickStart/6 "%Platforms/Oculus/QuickStart/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+このセクションでは、Rift がアンリアル エンジン 4 で機能しているか確認するためのテスト方法を説明します。
 
-%Steps%
+1. [Unreal Projects] ブラウザを開いて **[New Project]** タブで、新しいプロジェクトを以下の設定で作成します。
 
-1. まだお持ちでない場合は、アンリアル エンジン ランチャーから [](Resources\ContentExamples) プロジェクトをダウンロードしてください。
-
-1. **Content Examples** プロジェクトを開きます。
-
-	![](CE_Start.png)(w:500)
-
-1. **[File (ファイル)] > [Open Level (レベルを開く)]** をクリックします。
-
-1. **[VR.umap]** を選択して **[Open (開く)]** をクリックします。
-
-	![](VRmap.png)
-
-1. **レベル エディタ ツールバー** の **[Play (再生)]** の横にあるドロップダウン矢印をクリックして、**[Play In Editor]** オプションを開きます。
-
-	![](PlayDropdown.png)
-
-1. **[VR Preview]** オプションを選択して HMD を装着します。
-
-	![](StandAloneGame.png)
-
-	[REGION:tip]
-	**[Standalone Game]** オプションの使用も可能ですが、その場合は必ず **Alt+Enter** で VR モードにしてください。これを行わないと、HMD を装着した時に何も見えません。
+	[REGION:lightbox]
+	[![](Rift_New_Project_00.png)(w:555)](Rift_New_Project_00.png)
 	[/REGION]
 
-1. HMD を装着すると、以下のような画像が HMD に表示されているはずです。
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
 
-	![](VRMode.png)(w:800)
+1. UE4 が起動したら、**メインメニュー** で **[Play]** オプションをデフォルトの **[Selected Viewport]** から **[VR Preview]** に変更します。[VR Preview] を押してレベルを起動します。
 
-1. ゲームプレイは、以下の 2 通りの方法で終了することができます。
+	![](Rift_VR_Preview_00.png)
 
-	* **~** を押し、コンソールに **「Quit」** と入力する、または
-	* **Shift+F1** を押して、マウス カーソルを復活させてウィンドウを閉じます。
+1. Rift を装着すると、以下のように見えます。 
 
+	[REGION:lightbox]
+	[![](Rift_Preview_Window_00.png)(w:648)](Rift_Preview_Window_00.png)
+	[/REGION]
 
-%Steps%
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+	[region:note]
+	VR プレビュー オプションと Rift を使うと、VR プレビュー ウィンドウの表示が真っ黒で、VR プレビュー ウィンドウを起動または再起動するたびに何もアップデートされていないように見えます。これは、Rift は頭に装着していない間、HMD の寿命を延ばすために出力を無効にしているためです。 
+	[/region]
+
+[NAV]

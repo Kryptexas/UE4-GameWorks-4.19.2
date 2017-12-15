@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:투 본 IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:투 본 IK 를 사용해서 3 조인트 체인에 IK 를 적용하는 법입니다.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:title%](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK\node_twobone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:title%](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK\node_twobone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:node_twobone.png
 
 
 
@@ -89,7 +56,8 @@ JxzEo3wUSWw
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -99,5 +67,6 @@ JxzEo3wUSWw
 | **Scale** | 스케일 - 타겟 본의 스케일 XYZ 컴포넌트입니다. |
 [/REGION] 
 [/EXCERPT:LocationSpace]
--->
+
+[/COMMENT]
 

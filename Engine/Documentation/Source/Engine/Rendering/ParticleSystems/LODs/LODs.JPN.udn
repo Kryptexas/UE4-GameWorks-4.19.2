@@ -150,7 +150,8 @@ LODDistanceCheckTime では、Automatic モードに設定された各 ParticleS
 | **LODDistances** | 使用する LOD レベルを決定するための距離の配列です。(LODMethod が Automatic に設定時のみ使用します。)これらの数値は、選択する LOD レベルに推奨する最少距離を示します。例えば 3 つの LOD レベルをもつシステムを想定してみましょう。[INCLUDE:#LODDistance] |
 | **LODSettings** | 各 LOD に使用する具体的な設定を決定する ParticleSystem がライトを受け取ると、常に _Lit_ が制御する唯一の設定です。 |
 
-<!----
+[COMMENT:none]
+--
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | 値 | 範囲 | 選択される LOD レベル |
@@ -170,4 +171,5 @@ LODDistanceCheckTime では、Automatic モードに設定された各 ParticleS
 [/REGION]
 [/EXCERPT:LODMethod]
 
----->
+--
+[/COMMENT]

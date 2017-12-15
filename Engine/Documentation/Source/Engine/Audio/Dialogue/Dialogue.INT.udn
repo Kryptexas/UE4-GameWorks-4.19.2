@@ -12,45 +12,7 @@ skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image: Engine/Audio/audio_topic.png
 
 
 This example goes over a very basic dialogue setup. For longer conversations, you will likely want to create a conversation manager system. 
@@ -70,20 +32,9 @@ Also, here's a snippet of our example design document:
 		- Zoe is an ex-soldier who joined Adam's team after the last major Galactic Skirmish.
 
 
+## Steps
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Audio/Dialogue/1 "%Engine/Audio/Dialogue/1:title%")

@@ -73,9 +73,11 @@ resources
 	* プロシージャルなコンテンツ
 	* カバー システム
 
-<!--
+[COMMENT:none]
+
 
 * [カスケード パーティクル エディタ](Engine/Rendering/ParticleSystems/Cascade) を使用してマズルフラッシュ (発火炎) を表す [パーティクル エフェクト](Engine/Rendering/ParticleSystems) を作成します。次に [パーティクル システム コンポーネント](Engine/Components/Rendering#パーティクルシステムのコンポーネント) を使用して、**FirstPersonCharacter** ブループリントに追加します。次に、**InputAction Fire** Event にあるコンポーネントをアクティベートします。
 	* 追加オプション:パーティクル システム コンポーネントを **FirstPersonProjectile** に追加し、背後に煙がたなびいて見えるようにします。**Use Local Space** プロパティを [ここで](Engine/Rendering/ParticleSystems/Reference/Modules/Required) 探します。
 
--->
+
+[/COMMENT]

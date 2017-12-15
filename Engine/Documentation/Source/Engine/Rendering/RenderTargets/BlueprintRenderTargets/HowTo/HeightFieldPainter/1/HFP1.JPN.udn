@@ -82,7 +82,8 @@ checkpoint: animpropertyblend
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HUD]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -232,4 +233,5 @@ checkpoint: animpropertyblend
 [/EXCERPT:HUD]
 
 
--->
+
+[/COMMENT]

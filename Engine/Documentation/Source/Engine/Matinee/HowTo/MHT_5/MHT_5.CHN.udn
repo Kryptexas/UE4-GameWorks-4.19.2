@@ -7,19 +7,13 @@ Version:4.9
 SkillLevel:Intermediate
 
 
----
 在下列步骤中，我们将利用 **Matinee** 创建可以移动、存在颜色和明亮度变化的灯光。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee Actor、走廊和灯光
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee Actor**，创建一个小走廊并添加灯光。 
-	[/PARAM]
-[/OBJECT]
+## 添加 Matinee Actor、走廊和灯光
+
+在这步中，我们将添加 **Matinee Actor**，创建一个小走廊并添加灯光。 
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -69,14 +63,9 @@ SkillLevel:Intermediate
 
 	![](MHT5_AddPointLight.png)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		为 Matinee 添加灯光并设置轨迹
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将为 **Matinee** 添加灯光并使用关键帧设置轨迹。 
-	[/PARAM]
-[/OBJECT]
+## 为 Matinee 添加灯光并设置轨迹
+
+在这步中，我们将为 **Matinee** 添加灯光并使用关键帧设置轨迹。 
 
 1. 在 **World Outliner** 中点击 Matinee Actor，从 Details 面板中选择 **Open Matinee** 打开 Matinee。 
 
@@ -113,14 +102,9 @@ SkillLevel:Intermediate
 	![](MHT5_AllKeysAdded.png)(w:720)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		调整运动和强度
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将设置灯光运动并对其强度进行调整。 
-	[/PARAM]
-[/OBJECT]
+## 调整运动和强度
+
+在这步中，我们将设置灯光运动并对其强度进行调整。 
 
 1. 在 Matinee 中的运动轨迹上，点击第二个关键帧（**2.00** 处），然后最小化 Matinee，将灯光移至走廊的中央。 
 
@@ -145,14 +129,9 @@ SkillLevel:Intermediate
 	_此操作将增加灯光的强度，使其向走廊中央移动时变得更加明亮。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		调整灯光颜色和衰减半径
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将调整灯光在走廊中移动时的颜色和尺寸（或称作 **衰减半径**）。 
-	[/PARAM]
-[/OBJECT]
+## 调整灯光颜色和衰减半径
+
+在这步中，我们将调整灯光在走廊中移动时的颜色和尺寸（或称作 **衰减半径**）。 
 
 1. 在 Matinee 中的 **Light Color** 轨迹上，**点击** 第一个关键帧（**0.00** 处）并选择 **Set Color**，然后在 **Color Picker** 窗口中选择任意颜色。 
 
@@ -167,16 +146,9 @@ SkillLevel:Intermediate
 	![](MHT5_AttenuationKey4.png)(w:720)
 
 
+## 完成 - 构建并开始游戏
 
-
-[OBJECT:TopicList]
-	[PARAM:title]
-		完成 - 构建并开始游戏
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将完成 **Matinee**、**构建** 几何体与灯光，然后在编辑器中 **开始游戏**，查看实现的效果。 
-	[/PARAM]
-[/OBJECT]
+在这步中我们将完成 **Matinee**、**构建** 几何体与灯光，然后在编辑器中 **开始游戏**，查看实现的效果。 
 
 1. 在 World Outliner 中选择 **Matinee Actor**，然后在 Play 部分 **启用** Play on Level Load 和 Looping。 
 

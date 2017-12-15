@@ -19,10 +19,6 @@ To learn more about Raycasts using Blueprints , follow the link below:
 
 [REGION:buttonlist]
 * [](Engine/Physics/Tracing/HowTo)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\UseRaycasts\Code)
-* [](Gameplay/HowTo/UseRaycasts/UVCoordsFromTrace)
-[/PUBLISH:Docs]
 [/REGION]
 
 

@@ -29,7 +29,8 @@ Topic-image:EyeAdap_Topic.png
 | **Speed Down** | The speed at which the adaptation occurs from a bright environment to a dark environment. |
 | **Auto Exposure Bias** | Controls biasing of the exposure settings. The value is logarithmic meaning: [INCLUDE:#ExposureOffset] Fractional values like 1.5 or values outside of the shown examples work as well. If eye adaptation is active, the value is added to the automatic exposure. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ExposureOffset]
 [REGION:simpletable]
 | Value | Effect |
@@ -41,7 +42,8 @@ Topic-image:EyeAdap_Topic.png
 | 2 | four times as bright |
 [/REGION]
 [/EXCERPT:ExposureOffset]
--->
+
+[/COMMENT]
 
 Eye adaptation is [histogram](#Histogram) based and uses the following method:
 

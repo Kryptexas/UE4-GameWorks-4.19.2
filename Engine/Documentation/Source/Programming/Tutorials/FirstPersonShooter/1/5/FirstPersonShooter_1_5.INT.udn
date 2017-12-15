@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now that we've successfully extended our newly modified Game Mode to Blueprints, we'll need to set our project to use `BP_FPSProjectGameMode` as the default **Game Mode** in this step.
 
@@ -41,53 +41,46 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Finished Section Code
-    [/PARAM]
-    [PARAM:content]
-		**FPSProjectGameMode.h**
-			// Fill out your copyright notice in the Description page of Project Settings.
-			
-			#pragma once
-			
-			#include "GameFramework/GameModeBase.h"
-			#include "FPSProjectGameMode.generated.h"
-			
-			/**
-			 * 
-			 */
-			UCLASS()
-			class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
-			{
-				GENERATED_BODY()
+## Finished Section Code
 
-				virtual void StartPlay() override;
-			};
+**FPSProjectGameMode.h**
 
-		**FPSProjectGameMode.cpp**
-			// Fill out your copyright notice in the Description page of Project Settings.
+	// Fill out your copyright notice in the Description page of Project Settings.
 			
-			#include "FPSProject.h"
-			#include "FPSProjectGameMode.h"
+	#pragma once
 			
-			void AFPSProjectGameMode::StartPlay()
-			{
-				Super::StartPlay();
+	#include "GameFramework/GameModeBase.h"
+	#include "FPSProjectGameMode.generated.h"
 			
-				if (GEngine)
-				{
-					// Display a debug message for five seconds. 
-					// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
-				}
-			}
+	/**
+		* 
+		*/
+	UCLASS()
+	class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
+	{
+		GENERATED_BODY()
 
-    [/PARAM]
-[/OBJECT]
+		virtual void StartPlay() override;
+	};
+
+**FPSProjectGameMode.cpp**
+
+	// Fill out your copyright notice in the Description page of Project Settings.
+			
+	#include "FPSProject.h"
+	#include "FPSProjectGameMode.h"
+			
+	void AFPSProjectGameMode::StartPlay()
+	{
+		Super::StartPlay();
+			
+		if (GEngine)
+		{
+			// Display a debug message for five seconds. 
+			// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
+		}
+	}
 
 Congratulations! You've learned how to:
 
@@ -99,4 +92,3 @@ Congratulations! You've learned how to:
 
 You're now ready to learn how to implement your character in the next section.
 
-%Steps%

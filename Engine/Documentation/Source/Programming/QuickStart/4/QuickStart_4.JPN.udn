@@ -22,7 +22,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **アンリアル エディタ** の **コンテンツ ブラウザ** から「C++ Classes」という名前のフォルダを展開します。そのフォルダ内の「QuickStart」フォルダの中に、**Actor** クラスの **FloatingActor** が入っています。
 
@@ -114,4 +114,4 @@ Version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

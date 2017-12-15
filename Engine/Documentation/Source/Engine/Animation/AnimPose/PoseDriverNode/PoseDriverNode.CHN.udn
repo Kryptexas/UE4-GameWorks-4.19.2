@@ -130,7 +130,8 @@ Below are the properties within the Pose Driver section:
 | **Drive Source** | Which part of the transform is read: **Rotation** or **Translation**. | 
 | **Drive Output** | Whether we should drive poses or curves. | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:rbftable]
 | Option | Description |
 | ----------- |------|
@@ -140,7 +141,8 @@ Below are the properties within the Pose Driver section:
 | **Twist Axis** | Axis to use when **Distance Method** is set to **Swing Angle**. | 
 | **Weight Threshold** | Weight below which we shouldn't bother returning a contribution from a target. | 
 [/EXCERPT:rbftable]
--->
+
+[/COMMENT]
 
 
 ## Settings and Relevancy

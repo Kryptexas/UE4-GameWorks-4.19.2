@@ -30,7 +30,8 @@ Topic-image:EyeAdap_Topic.png
 | **Speed Down** | 明るい環境から暗い環境へ暗順応が起こる速度です。 |
 | **Auto Exposure Bias** | 露光設定のバイアスを制御します。値は対数で表されています。 [INCLUDE:#ExposureOffset] つまり 1.5 などの小数値、または表示例の外側の値でも機能します。自動露光がアクティブな時、値は自動露出に加算されます。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ExposureOffset]
 [REGION:simpletable]
 | 値 | 効果 |
@@ -42,7 +43,8 @@ Topic-image:EyeAdap_Topic.png
 | 2 | 4 倍の明るさになります |
 [/REGION]
 [/EXCERPT:ExposureOffset]
--->
+
+[/COMMENT]
 
 自動露光は [ヒストグラム](#ヒストグラム) ベースで、以下の手法を使用します。
 

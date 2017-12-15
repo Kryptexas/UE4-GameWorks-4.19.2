@@ -103,9 +103,11 @@ As of the DEC 2007 QA-Approved build, you can move Actors between levels by simp
 
 In builds prior to the JAN 2007 QA-Approved build, you may have experiencd _out of memory_ problems when moving a large number of Actors at once; but this was fixed when we improved performance (and memory usage) of editor transaction buffers (changelist #206829).
 
-<!--
+[COMMENT:none]
+
 Also in the JAN 2007 QA-Approved build, you can move Actors into a new level using the _New Level from Selected Actors_ button in the [Level Browser] (Editor/Browsers/Levels) (changelist #206324).
--->
+
+[/COMMENT]
 
 ### Optimization
 

@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:3716175
+Availability: Public
+Crumbs: %ROOT%
+Title:디스턴스 필드 앰비언트 오클루전 사용법
+Description:언리얼 엔진 4 에서 디스턴스 필드 앰비언트 오클루전 구성 및 사용 방법 안내입니다.
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:2
+Tags:Lighting
+Topic-image:DFAO_Topic.png
+Social-image:DFAO_Header.png
+
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:75 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:30 convert:false)[/VAR]
+
+
+[REGION:fullwidth raw]
+![](DFAO_Header.png)
+[/REGION]
+
+게임에서 동적인 **앰비언트 오클루전** (AO) 효과를 내기 위해 대부분 스크린 스페이스 기법에 의존하거나, 오브젝트가 월드 바닥에 있는 느낌을 내기 위해 프리컴퓨티드 라이팅을 활용할 수도 있습니다. 
+이러한 기법은 매우 유용하지만, 저마다의 한계점이 있습니다. [스크린 스페이스 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/AmbientOcclusion) (SSAO)은 씬 뎁스만 사용할 수 있어 
+보이는 스크린 스페이스 안에서만 작동합니다. 프리컴퓨티드 메소드는 월드의 스태틱 오브젝트에만 작동합니다. 즉 실시간 업데이트가 불가능하다는 뜻입니다.
+[디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) (DFAO)은 무버블 스태틱 메시에 [메시 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 를 사용하는 풀 다이내믹 AO 메소드입니다. 
+월드의 다이내믹 라이트에만 사용하도록 제한되어있지 않으며, 프리컴퓨티드 라이팅에도 쉽게 사용할 수 있습니다.
+
+여기서는 무버블 스카이 라이트 액터에 DFAO 를 켜는 방법을 살펴본 뒤, 사용할 수 있는 다양한 세팅에 대해 알아보겠습니다.
+
+
+## 단계
+
+[REGION:note]
+이 기능은 **프로젝트 세팅** 의 **Rendering** 섹션에서 [Generate Mesh Distance Fields 옵션을 켜야](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 합니다. 자세한 방법은 
+문서를 참고하세요.
+[/REGION]
+
+1. 먼저 **모드** 창의 **라이트** 섹션에서 **스카이 라이트** 를 레벨 뷰포트에 끌어 놓습니다.
+	
+	![](AddSkylight.png)(w:750)
+	
+1. 스카이 라이트를 선택한 채 디테일 패널에서 **모빌리티** 를 **무버블** 로 설정합니다.
+
+	![](TransformMobility.png)(w:450)
+	
+
+## 최종 결과
+
+스카이 라이트를 무버블로 설정했으면, 디스턴스 필드 앰비언트 오클루전이 레벨에 자동으로 켜집니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light | without | Distance Field Ambient Occlusion](NoDFAOScene.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light | with | Distance Field Ambient Occlusion](DFAOEnabledScene.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+이 비교 예제에서 디스턴스 필드 앰비언트 오클루전을 켜고 씬에 스카이 라이트를 추가했을 때 차이가 얼마나 큰지 확인할 수 있습니다.
+
+## 부가 스카이 라이트 세팅
+
+[](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서에서 스카이 라이트용 [](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 세팅을 
+참고할 수 있습니다. 이 세팅을 통해 오클루전 정확도, 색조, 대비 등 씬의 미적인 부분에 대한 제어가 가능합니다.
+

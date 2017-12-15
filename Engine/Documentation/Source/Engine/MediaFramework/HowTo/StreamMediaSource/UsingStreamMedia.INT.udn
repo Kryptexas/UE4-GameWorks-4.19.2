@@ -1,29 +1,24 @@
 Availability:Public
-Title: Streaming Videos in a Level
+Title: Play a Video Stream
 Crumbs:%ROOT%, Engine
-Description:Describes how to use the Stream Media asset to stream videos from the internet in Unreal Engine 4. 
-parent:Engine/MediaFramework/HowTo
-order:3
-checkpoint: editorqs
-Version: 4.15
+Description:Shows how you can stream video from the internet and play it inside a UI element. 
+Type: how-to
 SkillLevel: Beginner
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
 Related: Engine\MediaFramework
+Related: Engine\UMG
 
-In this how-to we play a video on a Static Mesh inside the level when we start the game. 
-Our source video will come from a provided URL stream and we use some **Blueprint Visual Script** to open the stream and start playback once we load into the level. 
-The end result is a video playing inside our level where the source comes from our assigned URL similar to below. 
+A **Stream Media Source** is an asset that enables you to stream a video in the [supported URL](Engine\MediaFramework\TechReference) format inside Unreal Engine 4 (UE4). 
+With the stream defined, you can load it up and play it inside UE4 with a **Media Player** asset and (with an associated **Media Texture**) can assign it to various aspects of your level. 
+The stream can be loaded and played as part of a UI element, played fullscreen or even applied to a Static Mesh (such as a TV) and played inside your level. 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-ncHIQ0QteC8
-[/PARAMLITERAL]
-[/OBJECT] 
+For this how-to, we use [Unreal Motion Graphics](Engine\UMG) (UMG) to create a UI element that will play a streamed video fullscreen. 
+
+![](StreamSourceHero.png)
 
 ## Steps
 
@@ -31,11 +26,11 @@ ncHIQ0QteC8
 For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
 [/REGION]
 
-1.	In the **Content Browser** expand the **Sources Panel** then create a new folder called **Media** inside the **Content** folder.
+1.	In the **Content Browser** expand the **Sources Panel** and create a new folder called **Media** inside the **Content** folder.
 
 	![](StreamMedia_01.png)
 	
-1.	Click the **Add New** button, then under **Media**, select **Stream Media Source** and name the asset **MediaStream**. 
+1.	Right-click inside the empty Media folder, then under **Media**, select **Stream Media Source** and name the asset **MediaStream**. 
 
 	![](StreamMedia_02.png)
 
@@ -43,78 +38,113 @@ For this how-to we are using the **Blueprint Third Person Template** project wit
 
 	![](StreamMedia_03.png) 
 
-	If you do not have a URL file to link to, **Right-click** this [Sample Video](Infiltrator Demo.mp4) and copy the link address and paste it in the Stream URL field.
+	If you do not have a URL file to link to, right-click this [Sample Video](Infiltrator Demo.mp4) and copy the link address and paste it in the Stream URL field.
 	
 	[REGION:note]
-	Your Stream URL must link directly to a supported format in order to play back the video. 
-	For example, PS4Media (PS4) only supports MP4 through HLS right now, while WmfMedia (Windows) can support a number of other stream sources. 
-	For futher information on supported formats per platform/player plug-in, see the [](Engine\MediaFramework\TechReference\) page. 
+	Your Stream URL must link directly to a supported format in order to play the video. 
+	For example, PS4Media (PS4) only supports MP4 through HLS in the latest engine version, while WmfMedia (Windows) can support a number of other stream sources. 
+	For further information on supported formats per platform/player plug-in, see the [](Engine\MediaFramework\TechReference\) page. 
 	[/REGION]
 
-1.	Click the **Add New** button, then under **Media**, select the **Media Player** asset. 
+1.	Right-click inside the Media folder, then under **Media**, select the **Media Player** asset. 
 
 	![](StreamMedia_04.png)
 
-1.	In the **Create Media Player** window, check **Audio output SoundWave asset** and **Video output Media Texture asset**. 
+1.	In the **Create Media Player** window, enable **Video output Media Texture asset** then click **Ok**. 
 
 	![](StreamMedia_05.png)
 
-	This will automatically create a Sound Wave and Media Texture asset linked to this Media Player asset which is needed for playback.
+	This will automatically create and associate a Media Texture asset linked to this **Media Player** asset which is needed for playback.
 	
-1. Name the new Media Player Asset. We have called our Media Player asset **SampleStream** which is also applied to the Sound Wave and Media Texture. 
+1. Name the new Media Player Asset **MyPlayer** which will automatically be applied to the created **Media Texture** asset. 
 
 	![](StreamMedia_06.png) 
 
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level. We will use this Static Mesh to playback our video on.
+1.	Right-click in the Media folder, then under **User Interface** select **Widget Blueprint** and call it **HUD**.
 
 	![](StreamMedia_07.png) 
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the mesh to your desired size and location.
+	A **Widget Blueprint** is an asset that is used with [](Engine/UMG) to create UI elements within Unreal Engine 4 which we will apply our streaming video to.  
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+1.	Inside the **HUD** Widget Blueprint, from the **Palette** window drag an **Image** into the graph and stretch it to fill the grid's aspect ratio. 
 
 	![](StreamMedia_08.png) 
 
-	This will automatically create a **Material** and apply it to the Static Mesh.
+	We are going to apply our Media Texture to this image, and the image will fill the player's viewport when playing the game (creating a video that will play fullscreen). 
 
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	In the **Details** panel for the **Image** under **Appearance** expand **Brush** then set the **Image** to **MyPlayer_Video**. 
 
 	![](StreamMedia_09.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **Media Player** and set it to your **SampleStream** Media Player asset. 
+1.	In the **Details** panel for the **Image** under **Slot**, click the **Anchors** dropdown and select the anchor middle option. 
+
+	![](StreamMedia_08b.png)
+
+	This will ensure that the image stays fixed in the center of the viewport regardless of viewport size. 
+
+1.	Close the **HUD** Widget Blueprint, then from the Level Editor Toolbar, select **Blueprints** and **Open Level Blueprint**. 
 
 	![](StreamMedia_10.png)
 
-	[REGION:note]
-	You may need to **Compile** before you can assign the **Default Value**. 
-	[/REGION]
-
-1.	Hold **Ctrl** and drag in the **MediaPlayer** variable and also **Right-click** and add an **Event Begin Play** node. 
+1.	Create a new variable called **MediaPlayer** of the **Media Player Reference** type and set the **Default Value** to your **MyPlayer** Media Player asset. 
 
 	![](StreamMedia_11.png)
 
-1.	Drag off the **MediaPlayer** variable and use the **Open Source** node set to your **MediaStream** Media Source then connect as shown. 
+	You may need to click **Compile** in order to see the Default Value of your **MediaPlayer** variable. 
+
+1.	Hold **Ctrl** and drag the **MediaPlayer** variable into the graph to create a **Get** node for this variable, then right-click and add an **Event Begin Play** node. 
 
 	![](StreamMedia_12.png)
 
-1.	Close the Level Blueprint, then **Play** in the editor. 
+	When our game starts, we will go through the process of creating and displaying our **HUD**, set up sound for our stream, then open our stream so that it plays. 
 
+1.	Right-click and add a **Create Widget** node and set **Class** to **HUD**, then off the **Return Value** use **Add to Viewport** and connect as shown. 
+
+	![](StreamMedia_13.png)
+
+1.	Following the **Add to Viewport** node, right-click and use **Add Media Sound Component** and set the **Media Player** to **MyPlayer** in the **Details** panel. 
+
+	![](StreamMedia_14.png)
+
+	In order to hear audio along with your video, you will need to use a Media Sound Component which points to your Media Player asset. 
+	Here we are dynamically creating and adding one at runtime. However, you can also add this component to an  Actor that exists in the level or as part of a Blueprint from the **Components** panel.
 	
+1.	Following the **Add Media Sound Component** node off the **Media Player** reference node, use **Open Source** and set **Media Source** to your **MediaStream** asset. 
+
+	[REGION:lightbox]
+	[![](StreamMedia_15.png)](StreamMedia_15.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
+
+	With our node network complete, when the game starts our **HUD** will be created and displayed, and sound will play along with our Media Stream we open it for play.
+
+1.	Close out the Level Blueprint, then click the **Play** button to play in the Level. 	
+
 ## End Result
 
-When you play in the editor, the video will start playing on the Static Mesh. 
+After playing in the Editor, the video will start playing back in full screen as part of our **HUD** Widget Blueprint. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-ncHIQ0QteC8
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	fuFYggIC23Q
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	58
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 Similar to using a [File Media Source](Engine\MediaFramework\HowTo\FileMediaSource) which plays a video file from disk, Stream Media Sources will automatically play when calling **Open Source** if their associated **Media Player** asset are set to **Play on Open** which by default is enabled.
 There are additional commands you can issue to the Media Player asset such as pausing, rewinding or stopping the video once it has begun playing which can be found under the **Media Player** section when dragging off the Media Player Reference.

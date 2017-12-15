@@ -174,7 +174,8 @@ Do not forget to Compile and Save your Blueprint so that it can be used.
 Now that the Blueprints have been setup in the next section we will take a look at how to set all of this up for use in UE4.
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompSurfNorm]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -2002,4 +2003,5 @@ Now that the Blueprints have been setup in the next section we will take a look 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ApplySim]
--->
+
+[/COMMENT]

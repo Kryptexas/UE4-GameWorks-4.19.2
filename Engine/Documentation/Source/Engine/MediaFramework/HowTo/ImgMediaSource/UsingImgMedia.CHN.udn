@@ -1,0 +1,185 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Play an Image Sequence
+Crumbs:%ROOT%, Engine
+Description:Example of how you can use playback an Image Sequence with the Image Media Source asset. 
+Type: how-to
+SkillLevel: Beginner
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
+Tags: Image Sequences
+Related: Engine\MediaFramework
+Related: Engine\MediaFramework\TechReference
+Related: Engine\MediaFramework\MediaEditorReference
+
+The **Image Media Source** asset provides a way for you play back Image Sequences inside Unreal Engine 4 as part of the Media Framework tools. 
+Image Media Source assets are similar to the **File Media Source** in that you specify a path to your Image Sequence files so it knows where the images are and can play them back. 
+Naming conventions are important and recommended that you follow a sequentially based system for your images, for example, _Image_01_, _Image_02_, _Image_03_ so they play back correctly in order. 
+
+In this how-to, we apply and use the Image Media Source to play an Image Sequence on a Static Mesh inside the level. 
+
+![](ImageMediaHero.png)
+
+## Steps
+
+[REGION:note]
+For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
+[/REGION]
+
+1.	In the **Content Browser** expand the **Sources Panel** and create a new folder called **Movies** inside the **Content** folder.
+
+	![](IMGSequence_01.png)
+	
+1.	Right-click on the **Movies** folder, then select **Show in Explorer**. 
+
+	![](IMGSequence_02.png)
+
+	In order to package and deploy your media with your project correctly it is recommended you place it inside **Content/Movies** folder. 
+
+1.	Place the images from your Image Sequence inside the **Content/Movies** folder. 
+
+	![](IMGSequence_03.png)
+
+	In the image above, we have created a new folder within **Content/Movies** called **UE4_Images** and within it, placed our PNG images. 
+	We also created another folder called **lowres** that contains lower resolution versions of the images in our sequence. 
+	The Media Framework tools provide a way for you to work with (typically) lower resolution versions of your images through media source proxies during development. 
+	This is more efficient and will help minimize any performance issues when working with larger image sequences and file sizes. 
+	
+	[REGION:note]
+	If you do not have your own image sequence, you can download and use this [Sample Image Sequence](UE4_Images.rar) for this tutorial. 
+	[/REGION]
+	
+1.	Click **Don't Import** on the **Auto-Import** dialog window inside your Unreal Engine 4 project. 
+
+	![](IMGSequence_03b.png)
+
+	We do not want to import the images into our project and only want a reference to where they are located in our project directory. 
+
+1.	Right-click in your **Content/Movies** folder and under **Media**, select **Img Media Source** and call it **MyImageSequence**. 
+
+	![](IMGSequence_04.png)
+
+1.	Inside the new **MyImageSequence** asset, click the **...** button next to **Sequence Path** and point it to the first image in your image sequence. 
+
+	![](IMGSequence_05.png)
+
+1.	Click the **Advanced Options** rollout button to expand the **Sequence** options and under **Proxy Override**, enter **lowres**. 
+
+	![](IMGSequence_06.png)
+
+	Here we are pointing to a folder called **lowres** containing our lower resolution images that we will use for development. 
+
+	[REGION:warning]
+	The Proxy Override path must point to a folder of the same name, in the same directory structure as your full resolution images order to locate it. 
+	[/REGION]
+
+1.	Right-click in the **Content/Movies** folder and under **Media**, select **Media Player**. 
+
+	![](IMGSequence_07.png)
+
+	The Media Player asset is what we will use to play back our image sequence we have created. 
+
+1.	In the **Create Media Player** window, enable the **Video output Media Texture asset** option, then click the **OK** button. 
+
+	![](IMGSequence_08.png)
+
+	This will create and automatically assign a **Media Texture** asset that is associated with this Media Player that will be used for playing our image sequence. 
+
+1.	Name the **Media Player** asset **MyPlayer** (which will automatically name the Media Texture) and double-click to open it. 
+
+	![](IMGSequence_09.png)
+
+1.	Inside the **Media Editor**, in the **Details** panel, enable the **Loop** option. 
+
+	![](IMGSequence_09b.png)
+
+	Enabling this option will cause the Media Player to continually loop playback of our image sequence. 
+
+1.	Double-click on the **MyImageSequence** asset to start playing the image sequence. 
+
+	![](IMGSequence_10.png)
+
+	Your image sequence will start to play inside the Media Editor and if you click on the **Info** tab, you will see information about the image sequence that is playing. 
+	In our example, we can see that the **Dimension** for our image sequence is **640 x 360** as we are currently set to use our **lowres** images. 
+
+1.	In the **Content Browser**, open the **MyImageSequence** asset and clear out the **Proxy Override** section. 
+
+	![](IMGSequence_11.png)
+
+	This enables us to switch to our full resolution images, where if we open the Media Player asset and play our image sequence again, the **Dimension** values are different. 
+
+	![](IMGSequence_12.png)
+
+	[REGION:note]
+	The **Image Cache** progress bar at the bottom of the Player window reflects the amount of content cached in memory (green means fully ready and loaded, yellow is currently being loaded, gray means it's being scheduled for loading). 
+	Based on your system hardware, the amount of caching and colors displayed may vary. See the Image Media section of the [](Engine\MediaFramework\Overview\) for more information. 
+	[/REGION]
+
+1.	From the Main Editor, in the **Modes** panel under **Basic**, drag a **Plane** into the level and resize and position as desired. 
+
+	![](IMGSequence_14.png)
+
+	You can use the [Transform Tools](GettingStarted/HowTo/ManipulatingActors) to move, rotate or scale the plane as you would like. 
+
+1.	From the **Content Browser**, drag the **MyPlayer_Video** Media Texture asset on top of the **Plane** in the level. 
+
+	![](IMGSequence_14b.png)
+
+	This will automatically create and apply a **Material** using the Media Texture to the Plane in the level, which our image sequence will play back on. 
+
+1.	From the Main Toolbar, click the **Blueprints** button then select **Open Level Blueprint**. 
+
+	![](IMGSequence_15.png)
+
+	Before we can test, we will use [Blueprint](Engine/Blueprints) to tell our Media Player to open our Image Media Source asset at the start of gameplay so it can start playing. 
+
+1.	In the **MyBlueprint** panel, create a variable called **MediaPlayer** of the **Media Player Reference** type and assign **MyPlayer** as the **Media Player**. 
+
+	![](IMGSequence_16.png)
+
+	[REGION:note]
+	You may need to click **Compile** after creating your variable in order to assign the **Default Value** for the **Media Player**. 
+	[/REGION]
+
+1.	Hold **Ctrl** and drag the **MediaPlayer** variable into the graph, then right-click and create an **Event Begin Play** node. 
+
+	![](IMGSequence_17.png)
+
+1.	Drag off the **Media Player** variable and use the **Open Source** node and set **Media Source** to **MyImageSequence** and connect as shown. 
+
+	![](IMGSequence_18.png)
+
+1.	**Compile** and **Save**, then from the Main Editor click the **Play** button to play inside the editor. 
+	
+	
+## End Result
+
+After playing in the editor, the image sequence will start to play on the Static Mesh in the level and loop playing. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	kNImb7wzVZQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+This example used PNG files, however, you can use any image files that are of the [supported file type](Engine\MediaFramework\TechReference) within an Image Media Source. 
+
+
+
+
+

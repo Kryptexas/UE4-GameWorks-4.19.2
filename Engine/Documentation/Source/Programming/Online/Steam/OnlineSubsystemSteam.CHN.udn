@@ -96,7 +96,8 @@ define STEAM_SDK_VER TEXT("Steamv130")，
 
 和 Windows 相反，Mac 上的 Steam 覆盖要求使用 Steam 客户端运行游戏。对此，首先需要使用 Steam 游戏菜单中的“Add a Non-Steam Game to My Library”选项将游戏添加到库。
 
-<!--
+[COMMENT:none]
+
 ### Steam 套接字
 
 ### Steam 网络驱动
@@ -120,4 +121,5 @@ define STEAM_SDK_VER TEXT("Steamv130")，
 	[/PARAM]
 [/OBJECT]
    
-  --> 
+  
+[/COMMENT] 

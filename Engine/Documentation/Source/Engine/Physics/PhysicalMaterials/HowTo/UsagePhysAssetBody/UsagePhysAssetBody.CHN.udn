@@ -62,7 +62,8 @@ SkillLevel:Intermediate
 
 1. **单击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
-<!--
+[COMMENT:none]
+
 The default behavior for Physics interactions with Skeletal Meshes is to only interact with its associated Physics Asset, so the Skeletal Mesh's material's Physical Material will 
 not be used.
 
@@ -70,7 +71,8 @@ not be used.
 With Physics Assets, though you are setting the Simple Collision Physical Material, when you trace against a Physics Asset, you will need to do a complex trace and the complex trace 
 will return the Physical Material listed in the Simple Collision Physical Material property of the hit Physics Body.
 [/REGION]
--->
+
+[/COMMENT]
 
 
 

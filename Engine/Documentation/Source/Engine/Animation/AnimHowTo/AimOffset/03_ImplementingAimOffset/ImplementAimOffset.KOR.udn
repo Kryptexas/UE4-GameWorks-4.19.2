@@ -1,31 +1,18 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3 - 에임 오프셋 구현
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:이번 단계에서는 애니메이션 블루프린트에 에임 오프셋을 추가하고 기존 애님 그래프에 연결해 봅니다.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:3
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset\)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Creating an Aim Offset - Home ](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AimOffset\04_FinishingUp)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이번 단계에서는 애니메이션 블루프린트에 에임 오프셋을 추가하고 기존 애님 그래프에 연결해 봅니다.
 
@@ -95,7 +82,7 @@ tags:Aim Offset
 
 	캐릭터의 로테이션과 플레이어 입력의 로테이션을 사용하여 캐릭터가 한 방향으로 얼마나 회전할 수 있는지를 제한하는 로테이터를 새로 만들 것입니다.
 
-1. **RInterp To** 노드에서, **Break Rotator** 를 추가하고, **Pitch** 와 **Yaw** 의 **Clamp Angle** 최소/최대치를 각각 **-90** / **90** 으로 설정합니다.
+1. **RInterp To** 노드에서, **Break Rotator** 를 추가하고, **Pitch** 와 **Yaw** 의 **Clamp Angle** 최소/최대치를 각각 **-90** 과 **90** 으로 설정합니다.
 
 	![](step3_14.png)
 
@@ -109,40 +96,4 @@ tags:Aim Offset
 구성이 거의 완료되었으니, 다음 단계에서는 모두 한 데 모아 캐릭터의 조준 기능을 테스트해 보겠습니다.
 
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

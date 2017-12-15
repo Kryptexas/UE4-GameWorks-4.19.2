@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429233
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:アニメーション通知
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -9,26 +9,6 @@ Related:Engine/Animation/AnimMontage
 Related:Engine/Animation
 Related:Engine/Animation/AnimHowTo
 topic-image:Engine/Animation/Overview/AnimNotifiesTopic.png
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Sequences/Notifies:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Sequences/Notifies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Sequences/Notifies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Sequences/Notifies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 [EXCERPT:Intro]
@@ -179,7 +159,8 @@ AnimTrail エミッタを使用するには、以下を行う必要がありま�
 1. AnimTrail タイプのデータを含む [パーティクル システム](Engine/Rendering/ParticleSystems) を作成します。 
 2. **Trail** タイプの通知ステートを作成しアニメーションに追加します。
 
-<!-- To be included as part of a HowTo.
+[COMMENT]
+ To be included as part of a HowTo.
 パーティクル システムをセットアップする
 
 通常どおりパーティクル システムを作成し、タイプ AnimTrail データの新規エミッタを追加します。 
@@ -217,7 +198,8 @@ AnimNotify のセットアップ
 **Animation Editor** を開き、**Timeline** を追加するか、**Notifies** セクションにある既存の **Timeline** を使用して、その上で **右クリック** してメニューを呼び出します。**Add Notify State** セクションに、Trails 通知があります。 
 
 ![](SetUpTrail.png)
--->
+
+[/COMMENT]
 
 AnimTrail を追加したら **[Details]** パネルからプロパティを変更することができます。 
 
@@ -250,7 +232,8 @@ AnimTrail を追加したら **[Details]** パネルからプロパティを変�
 | **Render Tangents** | カーブ タンジェントのデバッグ レンダリングを切り替えます。 |
 | **Render Tessellation** | カーブ上の全頂点のデバッグ レンダリングを切り替えます。スポーンポイント間でカーブがどのようにテッセレーションされるかを示します。 |
 
-<!-- To be included as part of a HowTo.
+[COMMENT]
+ To be included with AnimTrail HowTo.
 ### ブループリントでアニメーションのトレイルを制御する
 上記の方法は、AnimTrails を制御する標準的なアプローチですが、Anim Notify を使用する必要なく、ブループリント内から制御することもできます。 
 この方法の唯一の制約は、Particle System コンポーネントがソケットの位置のサンプリング元である Skeletal Mesh コンポーネントの子でなければならないことです。 
@@ -263,7 +246,8 @@ AnimTrail を追加したら **[Details]** パネルからプロパティを変�
  ![](TrailBlueprint3.png)
 1. 実行中にトレイルのプロパティを変更することもできます (以下の例は、ゲーム時間を使用して各ティックで幅を変更しています)。  
  ![](TrailBlueprint4.png)
-  -->
+  
+[/COMMENT]
 
 ## その他の通知のプロパティ
 **[Details]** パネルの各通知の種類に対する **[Anim Notify]** セクションで変更可能なプロパティに加えて、以下のプロパティでも通知をどのように使うかを定義することができます。

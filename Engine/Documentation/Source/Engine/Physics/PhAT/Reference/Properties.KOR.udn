@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3459053
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 애셋 프로퍼티 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
@@ -90,7 +90,8 @@ SkillLevel: Beginner
 | **Constraint Draw Size** | 컨스트레인트 그리기 크기 - **피직스 애셋 툴** 에서 컨스트레인트를 얼마나 크게 그릴지 조절합니다. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UpdateJointsfromAnimationEnum]
 
 루트 바디 시뮬레이션이 컴포넌트 트랜스폼을 업데이트할지 여부입니다.
@@ -100,7 +101,8 @@ SkillLevel: Beginner
 | **Simulation Updates Component Transfrom** | 시뮬레이션이 컴포넌트 트랜스폼 업데이트 - 시뮬레이션이 컴포넌트의 트랜스폼을 업데이트합니다. |
 | **Component Trasform is Kinematic** | 컴포넌트 트랜스폼은 키네마틱 - 시뮬레이션이 컴포넌트의 트랜스폼을 업데이트하지 않습니다. 그 대신 애니메이션, 블루프린트 등으로 구동됩니다. |
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## 바디 모드 프로퍼티
 

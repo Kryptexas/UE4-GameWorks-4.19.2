@@ -61,13 +61,15 @@ Description:虚幻引擎4包含的风格化展示的景观特效概述。
 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:SlopeDiagram]
 [REGION:raw]
 ![](LandSlopeDiagram.png)
 [/REGION]
 [/EXCERPT:SlopeDiagram]
---->
+-
+[/COMMENT]
 
 
 [VAR:GrassSize]
@@ -108,13 +110,15 @@ h:295
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OutlineBlendNetwork]
 [REGION:lightbox]
 [![](OutlineBlend.png)(w:500)](Resources/Showcases/Stylized/Landscape/OutlineBlend.png)
 [/REGION]
 [/EXCERPT:OutlineBlendNetwork]
--->
+
+[/COMMENT]
 
 ### 地貌样条曲线
 

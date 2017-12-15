@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.1 - 기본 데칼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -12,67 +12,14 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Version: 4.9
+topic-image:Resources\ContentExamples\Decals\Decals_1.png
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[데칼 홈](Resources/ContentExamples/Decals)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/Decals/1_2 "%Resources/ContentExamples/Decals/1_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_1.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals/1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Decals/1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Decals/1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_1.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals/1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Decals/1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Decals/1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_1.png)
 
+[/REGION]
 
 
 Decal(데칼)이란 레벨의 메시에 투영되는 머티리얼로, 여기에는 스태틱 메시나 스켈레탈 메시가 포함됩니다. 이러한 메시는 Static (스태틱) 또는 Movable (무버블) 같은 **Mobility** (모빌리티) 세팅으로 이동가능 여부를 결정하고, 데칼은 그 위에 투영되게 됩니다. 다수의 데칼도 큰 퍼포먼스 저하 없이 한 번에 렌더링 가능합니다. 퍼포먼스 저하는 스크린 스페이스 크기가 커 질수록, 셰이더 인스트럭션 수가 많아 질수록 심해지게 됩니다.
@@ -89,9 +36,8 @@ Decal(데칼)이란 레벨의 메시에 투영되는 머티리얼로, 여기에�
 데칼의 투영 거리는 데칼 스프라이트를 둘러싸고 있는 박스의 X-축 스케일로 결정됩니다. 표면이 이 박스 크기에 다가갈수록 데칼이 희미해지는 블렌딩이 생깁니다.
 
 ![](DecalFadeaway.png)
+
 [REGION:caption]
 위 그림에서, 표면이 데칼 액터에서 너무 멀어지면서 뒷 벽의 데칼 투영이 희미해지는 것을 볼 수 있습니다.
 [/REGION]
 
-
-[/REGION]

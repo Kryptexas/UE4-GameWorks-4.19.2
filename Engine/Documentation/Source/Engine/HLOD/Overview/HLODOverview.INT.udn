@@ -17,11 +17,11 @@ HLODs, in their simplest form, combine pre-existing **Static Mesh Actors** into 
 
 Once your proxy meshes have been generated, you can find them located under the `HLOD` folder generated in your project. This will include the **LODActors** referenced in the **HLOD Outliner**. 
 
-![image alt text](image_15.png)(h:320 w:373 convert:false)
+![image alt text](image_15.png)(w:373 convert:false)
 
 These proxy meshes can be opened independently and settings adjusted.
 
-![image alt text](image_16.png)(h:357 w:404 convert:false)
+![image alt text](image_16.png)(w:404 convert:false)
 
 The proxy mesh above contains several different elements that originally all had their own textures that have now been combined into a single texture.
 
@@ -32,13 +32,13 @@ This can be problematic for anything using **Mask** or **Opacity**. These alpha 
 
 [/REGION]
 
-![image alt text](image_17.png)(h:420 w:422 convert:false)
+![image alt text](image_17.png)(w:422 convert:false)
 
 ## HLOD Volume
 
 **The HLOD Volume** is used to manually define/create a HLOD cluster. This volume can be added from the **Modes** panel **Place Mode** and dragged into your level.  
 
-![image alt text](image_18.png)(h:266 w:229 convert:false)
+![image alt text](image_18.png)(w:229 convert:false)
 
 Place this volume around **Actors** you want to be grouped into the same cluster. It can be helpful to make this slightly larger than the **Actors** and should not be tightly bounding them. Once you have placed the volume around the **Actors** you can use the option **Generate Clusters** from the HLOD Outliner to create a new cluster with these grouped **Actors**.
 
@@ -46,35 +46,32 @@ Place this volume around **Actors** you want to be grouped into the same cluster
 
 Below is an example of Generated Clusters before and after adding HLOD Volume.
 
-![image alt text](image_19.png)(h:264 w:354 convert:false)
+![image alt text](image_19.png)(w:354 convert:false)
 
 HLOD Level Desired Bound Radius: 500
 
-![image alt text](image_20.png)(h:288 w:372 convert:false)
+![image alt text](image_20.png)(w:372 convert:false)
 
 Drag in the Volume and scale accordingly to cover your **Actors**.
 
- ![image alt text](image_21.png)(h:273 w:370 convert:false)
+ ![image alt text](image_21.png)(w:370 convert:false)
 
 Selecting the generated **LODActor** from the HLOD Outliner shows the cluster created and the Cluster bounds. 
 
 Right-click on the **LODActor** in the HLOD Outliner and click on **Select Contained Actors** to see the **Actors** used for this particular **LODActor** in your scene.
 
-![image alt text](image_22.png)(h:93 w:212 convert:false)
+![image alt text](image_22.png)(w:212 convert:false)
 
-![image alt text](image_23.png)(h:268 w:357 convert:false)
+![image alt text](image_23.png)(w:357 convert:false)
 
 ## Details Panel for LODActor
 
 By selecting a **LODActor** in the level you have access to some settings in the Details panel to override some aspects of your generated HLOD along with details to which static meshes have been included with this cluster. This is not unlike any other **Actors** in your scene where you have the option to override or change some values to work within the confines of your design. 
 
-![image alt text](image_24.png)(h:237 w:270 convert:false)
+![image alt text](image_24.png)(w:270 convert:false)
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[COMMENT:none]
 
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
-<!--
 
 We should have a doc that covers the "Simplygon" features of HLOD
 
@@ -82,4 +79,5 @@ We should have a doc that covers the "Simplygon" features of HLOD
 
 The HLODMesh Culling Volume is a volume that can be added to a HLOD cluster to remove triangles from source meshes before generating HLOD Mesh.
 
--->
+
+[/COMMENT]

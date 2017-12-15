@@ -81,7 +81,8 @@ Do not forget to Compile and Save your Blueprint so that it can be used.
 With the necessary assets now setup, in the next section, we will take a look at how each piece fits togther to create the Fluid Surface Blueprint.
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HeightSim]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -2129,5 +2130,6 @@ With the necessary assets now setup, in the next section, we will take a look at
 [/OBJECT]
 [/EXCERPT:ForceSplat]
 
--->
+
+[/COMMENT]
 

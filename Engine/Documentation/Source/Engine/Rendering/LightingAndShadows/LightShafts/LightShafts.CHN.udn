@@ -94,8 +94,10 @@ Version:4.9
   
 这些效果（遮挡和光晕）存在单独的消耗，因此只启用必要的效果方为上策。使用 680GTX 显卡运行 1080p 画面时，遮挡为 .5ms，单个光源上的光晕为 .68ms。 
 
-<!-- Redundant Images
+[COMMENT:none]
+ Redundant Images
 [REGION:lightbox]
 [![](2LightShafts.png)(h:250)](2LightShafts.png) [![](5LightShafts.png)(h:250)](5LightShafts.png) 
 [/REGION]
--->
+
+[/COMMENT]

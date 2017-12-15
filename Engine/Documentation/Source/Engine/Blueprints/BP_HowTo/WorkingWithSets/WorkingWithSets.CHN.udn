@@ -35,19 +35,9 @@ Related:Programming/UnrealArchitecture/TSet
 * 如何查询并显示蓝图 Set 中包含的项目。 
 * 如何在蓝图 Set 上进行一些基本预算，如交集与合并。
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 步骤
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Blueprints/BP_HowTo/WorkingWithSets/1 "%Engine/Blueprints/BP_HowTo/WorkingWithSets/1:title%")

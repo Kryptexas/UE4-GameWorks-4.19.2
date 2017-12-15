@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:애님 블루프린트 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -13,7 +13,7 @@ type:landing
 topic-image:AnimGraphEditor_topic.png
 tags:Animation
 tags:Blueprints
-tags:Tools
+tags:Animation Tools
 
 
 [REGION:fullwidth]

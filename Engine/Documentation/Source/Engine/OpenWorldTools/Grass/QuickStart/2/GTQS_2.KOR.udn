@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2. 그래스 툴 액터 생성 및 구성
 Crumbs:
@@ -23,7 +23,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 여기서는 그래스 툴의 정상 작동에 필요한 액터와 머티리얼을 만들어 보겠습니다.
 예전 단계에서 만들던 **GT_00** 레벨 작업을 이어가겠습니다.
@@ -58,4 +58,4 @@ Version: 4.8
 	|**Random Rotation**  |켜짐 | 랜덤 로테이션 - 식물과 풀에 사용되는 스태틱 메시에 임의의 회전값을 주면 항상 메시의 같은 면만 보이지 않아 씬에 시각적 다양성이 더해집니다. |
 	|**Align to Surface** |켜짐 | 표면에 정렬 - 사용된 스태틱 메시가 랜드스케이프 터레인 표면에 일치하도록 만듭니다. |
 
-%Steps%
+

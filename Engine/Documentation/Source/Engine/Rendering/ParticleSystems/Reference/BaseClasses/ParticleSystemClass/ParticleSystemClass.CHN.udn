@@ -41,8 +41,11 @@ ParticleSystem 类包含下列公共变量：
 | **Custom Occlusion Bounds** | 使用 _EPSOBM_CustomBounds_ _Occlusion Bounds Method_ 时，用于计算遮挡的边界。|
 
 
-<!-- Begin ParticleSystem Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleSystem Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | 值| 范围 | 所选 LOD 级别 |
@@ -79,6 +82,9 @@ ParticleSystem 类包含下列公共变量：
 [/REGION]
 `EPSUM_FixedTime`将无视当前帧率为系统设置特定时间步长。该模式仅用于特效时间并非另一个系统关键因素的情况下 – 比如将发射器绑定到一个动画上。
 [/EXCERPT:SystemUpdate]
--->
-<!-- End ParticleSystem Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleSystem Includes 
+[/COMMENT]
 

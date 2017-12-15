@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 此 AI 控制器的设置为：单一 **Run Behavior Tree** 节点在 **Event BeginPlay** 执行时运行 RunnerBT 行为树。
 
@@ -33,4 +33,4 @@ version:4.9
 
 	![](setup.png)
 
-%Steps%
+

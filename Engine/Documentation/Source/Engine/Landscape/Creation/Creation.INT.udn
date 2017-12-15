@@ -5,45 +5,7 @@ Description:Guide to creating new Landscape terrains.
 version: 4.9
 parent:Engine/Landscape
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Creation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Creation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Creation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Creation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Creation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Creation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:landscape_create_topic.png
 
 [TOC(start:2)]
 
@@ -59,9 +21,11 @@ Because of the flexibility of the Landscape system, you can create your Landscap
 For examples of the Landscape tool in action, see the [](Resources\ContentExamples\Landscapes) Content Example.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 For more information about customizing the Level Editor's panels, see [Level Editor Interface Overview](Engine/UI/InterfaceOverview).
--->
+
+[/COMMENT]
 
 ## Opening the Landscape Tool
 

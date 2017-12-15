@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:C++ 클래스 마법사
 Crumbs: %ROOT%, Programming, Programming\Development
@@ -91,8 +91,6 @@ _C++ 클래스 마법사_ (C++ Class Wizard)는 자신만의 함수성을 원하
 
 * [](Programming\Development\VisualStudioSetup)
 * [](Programming\Development\CodingStandard)
-[PUBLISH:Licensee]
 * [](Programming\Development\BuildingUnrealEngine)
-[/PUBLISH:Licensee]
 * [](Programming\Development\CompilingProjects)
 

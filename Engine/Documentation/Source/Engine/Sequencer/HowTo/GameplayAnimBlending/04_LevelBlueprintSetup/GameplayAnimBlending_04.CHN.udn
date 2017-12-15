@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:4. Triggering the Sequence Playback and Blend
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:In this step we trigger the playback of our sequence and tell our Blueprints to start blending in our Slot animation.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor
+Related: Engine\Blueprints
+Related: Engine\Animation\AnimBlueprints
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Gameplay Animation Blending - Home ](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+In the final step before we can test out our setup, we use the Level Blueprint to activate our Level Sequence when the player enters the Trigger Box. 
+When our Sequence starts, the exposed to cinematics property **DefaultSlotInterp** is changed which starts the process of updating our interp values, telling our Animation Blueprint to start blending from gameplay animation to our Slot Animation. 
+
+1.	With the **Triggerbox** selected, from the main toolbar click the **Blueprints** button then **Open Level Blueprint**. 
+
+	![](GameBlend_16.png)
+
+1.	Right-click in the graph then under **Collision** for the Trigger Box select **Add On Actor Begin Overlap**. 
+
+	![](GameBlend_17.png)
+
+1.	Return to the level viewport and select your Level Sequence, then in the **Level Blueprint** right-click and add a reference to your Level Sequence. 
+
+	![](GameBlend_18.png)
+
+1.	Off your Level Sequence, **Get Sequence Player** then off it use the **Play** node and connect as shown. 
+
+	![](GameBlend_19.png)
+
+1.	**Compile** and **Save**, then click **Play** to play in the editor. 
+
+
+## End Result
+
+When our character enters the trigger volume, regardless of their current animation state, we start to blend from our gameplay pose into our death pose defined by Sequencer.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KxmKS4hnSHk
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+We could take this a step further by adding a camera to our Sequence and improve the blending by shifting the point in which the death animation starts in our Sequence. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+In the example above, the player can walk, run, crouch walk or jump into the trigger and each case they will blend into the death animation when entering the trigger volume. 
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

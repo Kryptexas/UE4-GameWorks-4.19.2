@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3610206
 Availability:Public
 Title:プラグイン
 Crumbs:
 Description:アンリアルエンジンのプラグインの作り方
-Version:4.9
+Version:4.16
 Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
@@ -197,18 +197,26 @@ Public ソース フォルダにあるヘッダー ファイルでパブリッ�
 
 	{
 		"FileVersion" :3,
-
-		"FriendlyName" :"UObject Example Plugin",
 		"Version" :1,
-		"FriendlyVersion" :"1.0",
+		"VersionName" :"1.0",
+		"FriendlyName" :"UObject Example Plugin",
 		"Description" :"An example of a plugin which declares its own UObject type.This can be used as a starting point when creating your own plugin.",
-		"Category" :"Programming Examples.Plugins",
-
+		"Category" :"Examples",
+		"CreatedBy" :"Epic Games, Inc.",
+		"CreatedByURL" : "http://epicgames.com",
+		"DocsURL" : "",
+		"MarketplaceURL" : "",
+		"SupportURL" : "",
+		"EnabledByDefault" : true,
+		"CanContainContent" : false,
+		"IsBetaVersion" : false,
+		"Installed" : false,
 		"Modules" :
 		[
 			{
 				"Name" :"UObjectPlugin",
-				"Type" :"Developer"
+				"Type" :"Developer",
+				"LoadingPhase" :"Default"
 			}
 		]
 	}
@@ -227,8 +235,12 @@ Public ソース フォルダにあるヘッダー ファイルでパブリッ�
 | **CreatedBy**						| _任意_	| プラグインを作成した個人名または企業名。これはプラグイン UI や他の場所に表示される場合があります。 |
 | **CreatedBy**					| _任意_	| プラグインを作成した個人または企業へのリンク。指定すると、エディタ UI にウェブページにブラウズできるハイパーリンクが表示されます。 |
 | **DocsURL**						| _任意_	| プラグインのドキュメントへのリンク。指定すると、エディタのプラグイン ブラウザにウェブページにブラウズできるハイパーリンクが表示されます。 |
+| **MarketplaceURL**				| _Optional_	| プラグインのマーケットプレイス ページへのリンク。指定すると、エディタのプラグイン ブラウザにウェブページにブラウズできるハイパーリンクが表示されます。 |
 | **SupportURL**					| _Optional_	| プラグインのサポート ページへのリンク。指定している場合、エディタのプラグイン ブラウザに表示されます。 |
-| **CanContainContent**				| _任意_	| 指定して、**true** に設定すると、プラグインのコンテンツ サポートを有効にします。デフォルト設定は **false** です。詳細は [プラグインのコンテンツ](#ContentInPlugins) をご覧ください。 | 
+| **EnabledByDefault**				| _Optional_	| true に設定すると、このプラグインが存在すればデフォルトで有効にされます。 |
+| **CanContainContent**				| _任意_	| 指定して、**true** に設定すると、プラグインのコンテンツ サポートを有効にします。デフォルト設定は **false** です。詳細は [プラグインのコンテンツ](#ContentInPlugins) をご覧ください。 |
+| **IsBetaVersion**					| _Optional_	| コンテンツをベータ版としてマークします。プラグインのリストの中で、このエントリに対して「Version」を「BETA Version」に置き換えます。 |
+| **Installed**						| _Optional_	| `true` に設定すると、プラグインは [Project] でも [Built-in] セクションでもなく、プラグイン リストの [Installed] セクションにリストされます。 |
 | **Modules**						| _任意_	| ソースコード (およびバイナリ) を含むプラグインの場合、これは起動時にロードすべきモジュールのリストになります。詳細は以下をご覧ください。 |
 
 
@@ -239,6 +251,7 @@ Public ソース フォルダにあるヘッダー ファイルでパブリッ�
 	{
 		"Name" :"UObjectPlugin",
 		"Type" :"Developer"
+		"LoadingPhase" :"Default"
 	}
 
 | フィールド名				| 情報			| 説明 |

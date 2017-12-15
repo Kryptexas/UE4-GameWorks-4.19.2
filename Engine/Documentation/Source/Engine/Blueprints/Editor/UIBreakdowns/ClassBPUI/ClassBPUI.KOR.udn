@@ -1,30 +1,12 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 클래스 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:블루프린트 클래스 작업시 블루프린트 에디터의 UI 요소에 대한 분석입니다.
 version: 4.9
 tags:Blueprints
+topic-image:Engine/Blueprints/UserGuide/Types/class_blueprint_test_image.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI:title%](Engine/Blueprints\UserGuide\Types\class_blueprint_test_image.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](ClassBlueprint.png)
 
@@ -37,7 +19,7 @@ tags:Blueprints
 
 
 
-<!----------
+[COMMENT:none]
 [EXCERPT:Visible]
 1. [메뉴](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [툴바](Engine/Blueprints/Editor/UIComponents/Toolbar)
@@ -55,16 +37,7 @@ tags:Blueprints
 * [찾기 결과](Engine/Blueprints/Editor/UIComponents/FindResults)
 * [뷰포트](Engine/Blueprints/Editor/UIComponents/Viewport)
 [/EXCERPT:Invisible]
-------------->
-
-<!--
-[REGION:fullwidth]
-![](ClassBlueprint.png)
-[/REGION]
--->
-
-
-
+[/COMMENT]
 
 
 

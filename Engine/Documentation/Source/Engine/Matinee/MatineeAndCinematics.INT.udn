@@ -16,35 +16,19 @@ topic-image:matinee_topic.png
 [INCLUDE:Shared/Glossary/M/#Glossary_Matinee]
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [Using the Matinee Tool](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
-		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
-		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
-		* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
-		* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
-	[/PARAM]
-[/OBJECT]
+## Essentials
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Links
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:buttonlist]
+* [Using the Matinee Tool](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
+* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
+* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
+* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
+[/REGION]
+
+## Related Links
+
+[REGION:buttonlist]
+* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")	
+[/REGION]
 

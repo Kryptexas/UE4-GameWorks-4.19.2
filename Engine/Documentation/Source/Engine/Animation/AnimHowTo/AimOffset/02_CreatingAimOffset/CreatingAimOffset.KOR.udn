@@ -1,31 +1,18 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2 - 에임 오프셋 생성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:이번 단계에서는 에임 포즈 각각을 가지고 각 포즈 블렌딩을 하는 에임 오프셋을 만들어 봅니다.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:2
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전](Engine\Animation\AnimHowTo\AimOffset\01_CreatingAimPoses)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[에임 오프셋 생성 - 홈](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[다음](Engine\Animation\AnimHowTo\AimOffset\03_ImplementingAimOffset)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이번 단계에서는 에임 포즈 각각을 가지고 각 포즈 블렌딩을 하는 에임 오프셋을 만들어 봅니다.
 
@@ -73,56 +60,4 @@ tags:Aim Offset
 	
 Aim Offset 구성이 완료되었으니, 다음 단계에서는 게임플레이에서 블렌딩을 구동할 수 있도록 **애니메이션 블루프린트** 안에서 걸어주도록 하겠습니다.
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

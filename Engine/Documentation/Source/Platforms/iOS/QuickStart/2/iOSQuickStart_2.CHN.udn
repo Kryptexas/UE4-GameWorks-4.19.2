@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 这个步骤目前不是必须步骤，但是准备一个可供测试的项目总是好的。 [如果您已经准备好了项目，那么您可以跳过这个章节。](Platforms/iOS/QuickStart/3)
@@ -62,7 +62,8 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [REGION:warning]
@@ -71,6 +72,7 @@ Availability:Public
 [/EXCERPT:windows]
 [EXCERPT:macos]
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

@@ -3,6 +3,11 @@ Title:Unreal Smart Pointer Library
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:Custom implementation of shared pointers, including weak pointers and non-nullable shared references.
 Version: 4.9
+Parent:Programming/UnrealArchitecture
+Order:
+Type:landing
+Tags:Programming
+Related:Programming/UnrealArchitecture/Objects
 
 [TOC(start:2)]
 
@@ -13,9 +18,9 @@ The **Unreal Smart Pointer Library** is a custom implementation of shared refere
 
 | Type | Description |
 | --- | --- |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedPointer) (TSharedPtr) | Reference counted non-intrusive authoritative smart pointer. |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedReference) (TSharedRef) | Non-nullable, reference counted non-intrusive authoritative smart pointer. |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer) (TWeakPtr) | Reference counted non-intrusive weak pointer reference. |
+| **[](Programming/UnrealArchitecture/SmartPointerLibrary/SharedPointer)** (TSharedPtr) | Reference counted non-intrusive authoritative smart pointer. |
+| **[](Programming/UnrealArchitecture/SmartPointerLibrary/SharedReference)** (TSharedRef) | Non-nullable, reference counted non-intrusive authoritative smart pointer. |
+| **[](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer)** (TWeakPtr) | Reference counted non-intrusive weak pointer reference. |
 [/EXCERPT:Overview]
 
 ### Benefits of Shared References and Pointers

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3332303
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4 - 리눅스에서 UE4 실행
 Crumbs:
@@ -26,7 +26,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 최종 단계에 이르기까지, 에픽 게임스 계정에 GitHub 사용자명을 연동시키고, GitHub 사이트에서 언리얼 엔진 소스 코드를 다운로드한 뒤, 
 리눅스 시스템에서 UE4 바이너리를 컴파일했습니다. 이제 남은 작업은 UE4 에디터를 실행시켜 리눅스 플랫폼에서 
@@ -60,4 +60,3 @@ UE4 작업에 쓸 통합 개발 환경(IDE) 구성을 해 두지 않았다면, *
 
 이제 직접 만들어 볼 준비 되셨나요?
 
-%Steps%

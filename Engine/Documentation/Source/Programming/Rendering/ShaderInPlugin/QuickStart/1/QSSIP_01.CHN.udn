@@ -1,101 +1,96 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3567323
+Availability:Docs 
 Crumbs: %ROOT%
-Title: Creating a New Global Shader in a Plugin
-Description: Setting up the Plugin and code for the Gloabl Shader plugin
+Title:在插件 - 代码设置中新建一个全局着色器
+Description:设置全局着色器插件的插件和代码
 Type:quick start
 Type:multi-step
 SkillLevel:Intermediate
-Version: 4.17
+Version:4.17
 Parent:Programming/Rendering/ShaderInPlugin/QuickStart
 Order:1
 Tags:Rendering
+Tags:Programming
 Checkpoint:shaderqs
 
 [Nav]
 
-1. First, create a new C++ **Basic Code** project that uses the **Desktop Setting** with **Maximum Quality** and does not have any **Starter Content**. 
+开始新建虚幻引擎 4 的插件之前，需要先安装 Visual Studio。此快速入门需要 Visual Studio，用户需要对插件代码进行编译，使其能正常运行。如不了解如何进行此操作，请查阅 [设置 UE4 的 Visual Studio](Programming/Development/VisualStudioSetup/) 文档。   
+
+1. 首先新建一个 C++ **基础代码（Basic Code）** 项目，**桌面设置（Desktop Setting）** 设为 **最高精度（Maximum Quality）**，且不带 **新手内容（Starter Content）**。 
 
     [REGION:lightbox]
     [![](HT_ShadersInPlugins_00.png)(w:555)](HT_ShadersInPlugins_00.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Once the project has been created, Visual Studio will open up and after it has,  right- click on the ShadersInPlugins project and select the **Build** option to compile the project.
+1. 项目创建后，Visual Studio 将打开，之后即可右键点击 ShadersInPlugins 项目并选择 **Build** 选项编译项目。
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_01.png)(w:481)](HT_ShadersInPlugins_01.png)
-    [/REGION]
+    ![](HT_ShadersInPlugins_01.png)(w:481)
 
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
+1. 项目编译完成后，在 Visual Studio 中按下 **F5** 键在 UE4 编辑器中运行 ShadersInPlugins 项目。
 
-1. When the project has finished compiling, press the **F5** key inside Visual Studio to launch the ShadersInPlugins project in the UE4 Editor.
-
-1. Once the UE4 Editor has finished loading, open up the **Plugins** manager by going to **Edit** > **Plugins** and then click on the **New Plugin** option that is on the lower right-hand side of the Plugin window to bring up the New Plugin creation window. 
-
+1. UE4 编辑器加载完成后，前往 **Edit** > **Plugins** 打开 **Plugins** 管理器，然后点击 Plugin 窗口右下侧的 **New Plugin** 选项呼出新插件创建窗口。 
     [REGION:lightbox]
     [![](HT_ShadersInPlugins_02.png)(w:564)](HT_ShadersInPlugins_02.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. From the **New Plugin** window, select the **Blank** plugin and then input the name **Foo** for the name and keeping all of the settings as default. When all of that is completed, press the **Create Plugin** button to create all of the initial required content for the plugin.
+1. 在 **New Plugin** 窗口中选择 **Blank** 插件，然后将其命名为 **Foo**，保留全部默认设置。所有操作完成后，按下 **Create Plugin** 键创建插件最初需要的全部内容。
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_03.png)(w:505)](HT_ShadersInPlugins_03.png)
+    [![](HT_ShadersInPlugins_03.png)(w:564)](HT_ShadersInPlugins_03.png)
+    [/REGION]
+	[REGION:caption] 
+	点击查看全图。 
+	[/REGION]
+
+1. 完成后，关闭 UE4 和 Visual Studio，前往在项目文件夹中创建的 **Plugins** > **Foo** 插件文件夹。
+
+1. 在 Foo plugins 文件夹中添加一个名为 **Shaders** 的新文件夹，并在其中再新建一个名为 **Private** 的文件夹。
+
+    [REGION:lightbox]
+    [![](HT_ShadersInPlugins_04.png)(w:564)](HT_ShadersInPlugins_04.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. When that is completed, shut down UE4 and Visual Studio and then go to the **Plugins** > **Foo** plugin folder that was created inside your project folder.
+1. 在 Private 文件夹中新建一个文本文件并将其命名为 **MyShader.USF**，然后将以下 HLSL 代码复制粘贴到此文件中，完成操作后保存文件。
 
-1. Inside the Foo plugins folder, add a new folder called **Shaders** and then inside of that folder, create a new folder called **Private**.
-
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_04.png)(w:457)](HT_ShadersInPlugins_04.png)
+    [REGION:note]
+    必须将文件扩展名改为 **.USF**，否则 UE4 无法将其识别为着色器文件。
     [/REGION]
 
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
-1. Inside of the Private folder, create a new text file and call it **MyShader.USF** and then copy and paste the following HLSL code into this file, saving the file when completed.
-
-    [region:note]
-    Make sure that you change the file extension to **.USF** or UE4 will not understand that this is a shader file.
-    [/region]
-
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
         /*=============================================================================
-            LensDistortionUVGeneration.usf: Generate lens distortion and undistortion
-            UV displacement map into a render target.
+            LensDistortionUVGeneration.usf:将光学变形和不
+            变形 UV 置换贴图生成到一个渲染目标中。
 
-            The pixel shader directly compute the distort viewport UV to undistort
-            viewport UV displacement using Sv_Position and the reference equations and
-            store them into the red and green channels.
+            像素着色器直接计算变形视口 UV，
+            不对使用 Sv_Position 和参考方程式的视口 UV 置换执行变形，
+            并将它们保存到红色和绿色的通道中。
 
-            However to avoid resolving with a ferrari method, or doing a newton method
-            on the GPU to compute the undistort viewport UV to distort viewport UV
-            displacement, this couple of shaders works as follow: The vertex shader
-            undistort the grid's vertices, and passdown to the pixel shader the viewport
-            UV of where they should have been on screen without undistortion. The pixel
-            shader can then generate the undistort viewport UV to distort viewport UV
-            displacement by just subtracting the pixel's viewport UV.
+            为避免用费拉里法进行解析、
+            或在 GPU 上执行牛顿法计算不变形视口 UV 这两种方式
+            来对视口 UV 置换进行变形，这对着色器的工作方式如下：顶点着色器不对网格的顶点执行变形，
+            并下传到像素着色器视口 UV 应在屏幕上
+            所处的位置，而不进行变形。像素
+            着色器可生成不变形视口 UV，
+            减去像素的视口 UV 后即可对视口 UV 置换进行变形。
         =============================================================================*/
 
         #include "/Engine/Public/Platform.ush"
 
-        // Size of the pixels in the viewport UV coordinates.
+        // 视口 UV 坐标中的像素大小。
         float2 PixelUVSize;
 
         // K1, K2, K3
@@ -104,122 +99,122 @@ Checkpoint:shaderqs
         // P1, P2
         float2 TangentialDistortionCoefs;
 
-        // Camera matrix of the undistorted viewport.
+        // 未变形视口的摄像机矩阵。
         float4 UndistortedCameraMatrix;
 
-        // Camera matrix of the distorted viewport.
+        // 变形视口的摄像机矩阵。
         float4 DistortedCameraMatrix;
 
-        // Output multiply and add to the render target.
+        // 对渲染目标输出乘法和加法。
         float2 OutputMultiplyAndAdd;
 
-        // Undistort a view position at V.z=1.
+        // 不对 V.z=1 视图位置进行变形。
         float2 UndistortNormalizedViewPosition(float2 V)
         {
             float2 V2 = V * V;
             float R2 = V2.x + V2.y;
 
-            // Radial distortion (extra parenthesis to match MF_Undistortion.uasset).
+            // 径向变形（额外添加括号是为匹配 MF_Undistortion.uasset）。
             float2 UndistortedV = V * (1.0 + R2 * (RadialDistortionCoefs.x + R2 * (RadialDistortionCoefs.y + R2 * RadialDistortionCoefs.z)));
 
-            // Tangential distortion.
+            // 切向变形。
             UndistortedV.x += TangentialDistortionCoefs.y * (R2 + 2 * V2.x) + 2 * TangentialDistortionCoefs.x * V.x * V.y;
             UndistortedV.y += TangentialDistortionCoefs.x * (R2 + 2 * V2.y) + 2 * TangentialDistortionCoefs.y * V.x * V.y;
 
             return UndistortedV;
         }
 
-        // Returns the undistorted viewport UV of the distorted's viewport UV.
+        // 返回变形视口 UV 的未变形视口 UV。
         //
-        // Notes:
-        //        UVs are bottom left originated.
+        // 注意：
+        //        UV 创建于左下角。
         float2 UndistortViewportUV(float2 ViewportUV)
         {
-            // Distorted viewport UV -> Distorted view position (z=1)
+            // 已变形视口 UV -> 已变形视图位置（z=1）
             float2 DistortedViewPosition = (ViewportUV - DistortedCameraMatrix.zw) / DistortedCameraMatrix.xy;
 
-            // Compute undistorted view position (z=1)
+            // 计算未变形的视图位置 (z=1)
             float2 UndistortedViewPosition = UndistortNormalizedViewPosition(DistortedViewPosition);
 
-            // Undistorted view position (z=1) -> Undistorted viewport UV.
+            // 未变形的视图位置 (z=1) -> 未变形的视口 UV。
             return UndistortedCameraMatrix.xy * UndistortedViewPosition + UndistortedCameraMatrix.zw;
         }
 
-        // Flip UV's y component.
+        // 翻转 UV 的 y 组件。
         float2 FlipUV(float2 UV)
         {
             return float2(UV.x, 1 - UV.y);
         }
 
         void MainVS(
-            in uint GlobalVertexId : SV_VertexID,
-            out float2 OutVertexDistortedViewportUV : TEXCOORD0,
-            out float4 OutPosition : SV_POSITION
-            )
+            in uint GlobalVertexId :SV_VertexID,
+            out float2 OutVertexDistortedViewportUV :TEXCOORD0,
+            out float4 OutPosition :SV_POSITION
+            ）
         {
-            // Compute the cell index.
+            // 计算单元索引。
             uint GridCellIndex = GlobalVertexId / 6;
 
-            // Compute row and column id of the cell within the grid.
+            // 计算网格中单元行和列的 ID。
             uint GridColumnId = GridCellIndex / GRID_SUBDIVISION_Y;
             uint GridRowId = GridCellIndex - GridColumnId * GRID_SUBDIVISION_Y;
 
-            // Compute the vertex id within a 2 triangles grid cell.
+            // 计算双三角形网格单元中的顶点 ID。
             uint VertexId = GlobalVertexId - GridCellIndex * 6;
 
-            // Compute the bottom left originated UV coordinate of the triangle's vertex within the cell.
+            // 计算单元中三角形顶点源自左下角的 UV 坐标。
             float2 CellVertexUV = float2(0x1 & ((VertexId + 1) / 3), VertexId & 0x1);
 
-            // Compute the top left originated UV of the vertex within the grid.
+            // 计算网格中顶点源自左上角的 UV。
             float2 GridInvSize = 1.f / float2(GRID_SUBDIVISION_X, GRID_SUBDIVISION_Y);
             float2 GridVertexUV = FlipUV(
                 GridInvSize * (CellVertexUV + float2(GridColumnId, GridRowId)));
 
-            // The standard doesn't have half pixel shift.
+            // 标准不含半像素位移。
             GridVertexUV -= PixelUVSize * 0.5;
 
-            // Output vertex position.
+            // 输出顶点位置。
             OutPosition = float4(FlipUV(
                 UndistortViewportUV(GridVertexUV) + PixelUVSize * 0.5) * 2 - 1, 0, 1);
 
-            // Output top left originated UV of the vertex.
+            // 输出顶点源自左上角的 UV。
             OutVertexDistortedViewportUV = GridVertexUV;
         }
 
         void MainPS(
-            in noperspective float2 VertexDistortedViewportUV : TEXCOORD0,
-            in float4 SvPosition : SV_POSITION,
-            out float4 OutColor : SV_Target0
-            )
+            in noperspective float2 VertexDistortedViewportUV :TEXCOORD0,
+            in float4 SvPosition :SV_POSITION,
+            out float4 OutColor :SV_Target0
+            ）
         {
-            // Compute the pixel's top left originated UV.
+            // 计算像素源自左上角的 UV。
             float2 ViewportUV = SvPosition.xy * PixelUVSize;
 
-            // The standard doesn't have half pixel shift.
+            // 标准不含半像素位移。
             ViewportUV -= PixelUVSize * 0.5;
 
             float2 DistortUVtoUndistortUV = (UndistortViewportUV((ViewportUV))) - ViewportUV;
             float2 UndistortUVtoDistortUV = VertexDistortedViewportUV - ViewportUV;
 
-            // Output displacement channels.
+            // 输出置换通道。
             OutColor = OutputMultiplyAndAdd.y + OutputMultiplyAndAdd.x * float4(
                 DistortUVtoUndistortUV, UndistortUVtoDistortUV);
         }
 
-1. Now, locate the **Foo.uplugin** file and open it up inside of a text editor and replace the information in that file with the following text, saving the file when done.
+1. 现在找到 **Foo.uplugin** 文件并将其在文本编辑器中打开，用以下文本替代文件中的信息，完成后保存文件。
 
         {
-            "FileVersion" : 3,
-            "Version" : 1,
-            "VersionName" : "1.0",
-            "FriendlyName" : "Foo",
-            "Description" : "Plugin to play around with shaders.",
-            "Category" : "Sandbox",
-            "CreatedBy" : "Epic Games, Inc.",
-            "CreatedByURL" : "http://epicgames.com",
-            "DocsURL" : "",
-            "MarketplaceURL" : "",
-            "SupportURL" : "",
+            "FileVersion" :3,
+            "Version" :1,
+            "VersionName" :"1.0",
+            "FriendlyName" :"Foo",
+            "Description" :"Plugin to play around with shaders.",
+            "Category" :"Sandbox",
+            "CreatedBy" :"Epic Games, Inc.",
+            "CreatedByURL" :"http://epicgames.com",
+            "DocsURL" :"",
+            "MarketplaceURL" :"",
+            "SupportURL" :"",
             "EnabledByDefault" : false,
             "CanContainContent" : true,
             "IsBetaVersion" : false,
@@ -227,55 +222,55 @@ Checkpoint:shaderqs
             "Modules" :
             [
                 {
-                    "Name" : "Foo",
-                    "Type" : "Developer",
-                    "LoadingPhase" : "PostConfigInit"
+                    “Name" :"Foo",
+                    "Type" :"Developer",
+                    "LoadingPhase" :"PostConfigInit"
                 }
             ]
         }
 
-1. Next, go to **Plugins\Foo\Source\Foo** and create a new folder called, **Classes** and then copy both the **LensDistortionAPI.h** and **LensDistortionBlueprintLibrary.h** files from  **Engine\Plugins\Compositing\LensDistortion** to this newly created folder.
+1. 接下来前往 **Plugins\Foo\Source\Foo** 并新建一个文件夹 **Classes**，然后从 **Engine\Plugins\Compositing\LensDistortion** 路径下复制 **LensDistortionAPI.h** 和 **LensDistortionBlueprintLibrary.h** 文件到这个新建的文件夹中。
 
     [region:note]
-    The files that we will be copying can be found in **Engine\Plugins\Compositing\LensDistortion**.
+    我们将要复制的文件在 **Engine\Plugins\Compositing\LensDistortion** 中。
     [/region]
 
-    * Classes - Create New Folder
+    * 类 - 新建文件夹
 
-        * Copy - LensDistortionAPI.h
-        * Copy - LensDistortionBlueprintLibrary.h
+        * 复制 - LensDistortionAPI.h
+        * 复制 - LensDistortionBlueprintLibrary.h
 
         ![](HT_ShadersInPlugins_05.png)
 
-1. Then, go to the **Private** folder and copy both the **LensDistortionBlueprintLibrary.cpp** and the **LensDistortionRendering.cpp** files to this Private folder.
+1. 然后前往 **Private** 文件夹并将 **LensDistortionBlueprintLibrary.cpp** 和 **LensDistortionRendering.cpp** 文件复制到这个 Private 文件夹。
 
-    * Private - Existing Folder
+    * Private - 现有文件夹
 
-        * Copy - LensDistortionBlueprintLibrary.cpp
-        * Copy - LensDistortionRendering.cpp
+        * 复制 - LensDistortionBlueprintLibrary.cpp
+        * 复制 - LensDistortionRendering.cpp
 
         ![](HT_ShadersInPlugins_06.png)
 
-1. Now close both the UE4 Editor and Visual Studio and then locate your projects .U project file. When located, right-click on it and select the **Generate Visual Studio project files** option.
+1. 现在关闭 UE4 编辑器和 Visual Studio，然后找到项目的 .U 项目文件。找到后，对其单击右键，并选择 **Generate Visual Studio project files** 选项。
 
     ![](HT_ShadersInPlugins_07.png)
 
-1. Reopen your Visual Studio solution and then go to Foo > Classes and open up the **LensDistortionAPI.h** file. Inside this file replace **FLensDistortionCameraModel** with **FFooCameraModel**.
+1. 重新打开 Visual Studio 解决方案，然后前往 Foo > Classes 并打开 **LensDistortionAPI.h** 文件。在此文件中用 **FFooCameraModel** 替换 **FLensDistortionCameraModel**。
 
     [region:note]
-    You should replace FLensDistortionCameraModel with FFooCameraModel **four** times in this file.
+    您需要在此文件中 **四次** 用 FFooCameraModel 替换 FLensDistortionCameraModel。
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
             #pragma once
 
             #include "CoreMinimal.h"
             #include "LensDistortionAPI.generated.h"
 
-            /** Mathematic camera model for lens distortion/undistortion.
+            /** 光学变形/不变形的数学摄像机模型。
              *
-             * Camera matrix =
+             * 摄像机矩阵 =
              *  | F.X  0  C.x |
              *  |  0  F.Y C.Y |
              *  |  0   0   1  |
@@ -291,52 +286,52 @@ Checkpoint:shaderqs
                     C = FVector2D(0.5f, 0.5f);
                 }
 
-                /** Radial parameter #1. */
+                /** 径向参数 #1。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 float K1;
 
-                /** Radial parameter #2. */
+                /** 径向参数 #2。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 float K2;
 
-                /** Radial parameter #3. */
+                /** 径向参数 #3。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 float K3;
 
-                /** Tangential parameter #1. */
+                /** 切向参数 #1。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 float P1;
 
-                /** Tangential parameter #2. */
+                /** 切向参数 #2。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 float P2;
 
-                /** Camera matrix's Fx and Fy. */
+                /** 摄像机矩阵的 Fx 和 Fy。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 FVector2D F;
 
-                /** Camera matrix's Cx and Cy. */
+                /** 摄像机矩阵的 Cx 和 Cy。*/
                 UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Lens Distortion|Camera Model")
                 FVector2D C;
     
-                /** Undistorts 3d vector (x, y, z=1.f) in the view space and returns (x', y', z'=1.f). */
+                /** 不在视图空间中进行 3D 矢量变形（x, y, z=1.f）并返回（x', y', z'=1.f）。*/
                 FVector2D UndistortNormalizedViewPosition(FVector2D V) const;
 
-                /** Returns the overscan factor required for the undistort rendering to avoid unrendered distorted pixels. */
+                /** 返回不变形渲染所需的过扫描因子，避免出现未渲染的变形像素。*/
                 float GetUndistortOverscanFactor(
                     float DistortedHorizontalFOV,
                     float DistortedAspectRatio) const;
 
-                /** Draws UV displacement map within the output render target.
-                 * - Red & green channels hold the distortion displacement;
-                 * - Blue & alpha channels hold the undistortion displacement.
-                 * @param World Current world to get the rendering settings from (such as feature level).
-                 * @param DistortedHorizontalFOV The desired horizontal FOV in the distorted render.
-                 * @param DistortedAspectRatio The desired aspect ratio of the distorted render.
-                 * @param UndistortOverscanFactor The factor of the overscan for the undistorted render.
-                 * @param OutputRenderTarget The render target to draw to. Don't necessarily need to have same resolution or aspect ratio as distorted render.
-                 * @param OutputMultiply The multiplication factor applied on the displacement.
-                 * @param OutputAdd Value added to the multiplied displacement before storing into the output render target.
+                /** 在输出渲染目标中绘制 UV 置换贴图。
+                 * - 红色和绿色通道负责变形置换；
+                 * - 蓝色和透明通道负责不变形置换。
+                 * @param World 获取渲染设置的当前世界场景（如特征场景）。
+                 * @param DistortedHorizontalFOV 变形渲染中理想的水平视野。
+                 * @param DistortedAspectRatio 变形渲染中理想的高宽比。
+                 * @param UndistortOverscanFactor 未变形渲染的过扫描因子。
+                 * @param OutputRenderTarget 进行绘制的渲染目标。不必拥有和变形渲染相同的分辨率或高宽比。
+                 * @param OutputMultiply 应用在置换上的乘法因子。
+                 * @param OutputAdd 保存到输出渲染目标中之前被添加到相乘置换的值。
                  */
                 void DrawUVDisplacementToRenderTarget(
                     class UWorld* World,
@@ -347,7 +342,7 @@ Checkpoint:shaderqs
                     float OutputMultiply,
                     float OutputAdd) const;
 
-                /** Compare two lens distortion models and return whether they are equal. */
+                /** 对比两个光学变形模型并返回它们是否相同。*/
                 bool operator == (const FFooCameraModel& Other) const
                 {
                     return (
@@ -360,20 +355,20 @@ Checkpoint:shaderqs
                         C == Other.C);
                 }
 
-                /** Compare two lens distortion models and return whether they are different. */
+                /** 对比两个光学变形模型并返回它们是否不同。*/
                 bool operator != (const FFooCameraModel& Other) const
                 {
                     return !(*this == Other);
                 }
             };
 
-1. Next, open up the **LensDistortionBlueprintLibrary.h** file. This file controls how this node will show up in Blueprints so not only do we need to replace **FLensDistortionCameraModel** with **FFooCameraModel**, we also need to change the **Category = "Lens Distortion" ** to **Category = "Foo | Lens Distortion"**.
+1. 接下来打开 **LensDistortionBlueprintLibrary.h** 文件。此文件控制此节点在蓝图中的显示方式，因此我们不仅需要用 **FFooCameraModel** 替换 **FLensDistortionCameraModel**，还需要将 **Category = "Lens Distortion” ** 改为 **Category = "Foo | Lens Distortion”**。
 
     [region:note]
-    You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
+    您需要在此文件中 **六次** 用 FFooCameraModel 替换 FLensDistortionCameraModel。
     [/region]
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
         #pragma once
 
@@ -388,7 +383,7 @@ Checkpoint:shaderqs
         {
             GENERATED_UCLASS_BODY()
 
-            /** Returns the overscan factor required for the undistort rendering to avoid unrendered distorted pixels. */
+            /** 返回不变形渲染所需的过扫描因子，避免出现未渲染的变形像素。*/
             UFUNCTION(BlueprintPure, Category = "Foo | Lens Distortion")
             static void GetUndistortOverscanFactor(
                 const FFooCameraModel& CameraModel,
@@ -396,15 +391,15 @@ Checkpoint:shaderqs
                 float DistortedAspectRatio,
                 float& UndistortOverscanFactor);
         
-            /** Draws UV displacement map within the output render target.
-             * - Red & green channels hold the distortion displacement;
-             * - Blue & alpha channels hold the undistortion displacement.
-             * @param DistortedHorizontalFOV The desired horizontal FOV in the distorted render.
-             * @param DistortedAspectRatio The desired aspect ratio of the distorted render.
-             * @param UndistortOverscanFactor The factor of the overscan for the undistorted render.
-             * @param OutputRenderTarget The render target to draw to. Don't necessarily need to have same resolution or aspect ratio as distorted render.
-             * @param OutputMultiply The multiplication factor applied on the displacement.
-             * @param OutputAdd Value added to the multiplied displacement before storing into the output render target.
+            /** 在输出渲染目标中绘制 UV 置换贴图。
+             * - 红色和绿色通道负责变形置换；
+             * - 蓝色和透明通道负责不变形置换。
+             * @param DistortedHorizontalFOV 变形渲染中理想的水平视野。
+             * @param DistortedAspectRatio 变形渲染中理想的高宽比。
+             * @param UndistortOverscanFactor 未变形渲染的过扫描因子。
+             * @param OutputRenderTarget 进行绘制的渲染目标。不必拥有和变形渲染相同的分辨率或高宽比。
+             * @param OutputMultiply 应用在置换上的乘法因子。
+             * @param OutputAdd 保存到输出渲染目标中之前被添加到相乘置换的值。
              */
             UFUNCTION(BlueprintCallable, Category = "Foo | Lens Distortion", meta = (WorldContext = "WorldContextObject"))
             static void DrawUVDisplacementToRenderTarget(
@@ -418,7 +413,7 @@ Checkpoint:shaderqs
                 float OutputAdd = 0.5
                 );
 
-            /* Returns true if A is equal to B (A == B) */
+            /* 如 A 等于 B，则返回true (A == B) */
             UFUNCTION(BlueprintPure, meta=(DisplayName = "Equal (LensDistortionCameraModel)", CompactNodeTitle = "==", Keywords = "== equal"), Category = "Foo | Lens Distortion")
             static bool EqualEqual_CompareLensDistortionModels(
                 const FFooCameraModel& A,
@@ -427,7 +422,7 @@ Checkpoint:shaderqs
                 return A == B;
             }
 
-            /* Returns true if A is not equal to B (A != B) */
+            /* 如 A 不等于 B，则返回 true (A != B) */
             UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (LensDistortionCameraModel)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category = "Foo | Lens Distortion")
             static bool NotEqual_CompareLensDistortionModels(
                 const FFooCameraModel& A,
@@ -437,21 +432,21 @@ Checkpoint:shaderqs
             }
         };
 
-1. Now go to the **Private** folder and open up the **LensDistortionBlueprintLibrary.cpp** file and replace the following:
+1. 现在前往 **Private** 文件夹打开 **LensDistortionBlueprintLibrary.cpp** 进行以下替换：
 
-    * **FLensDistortionCameraModel** with **FFooCameraModel**
-    * **ULensDistortionBlueprintLibrary** with **UFooBlueprintLibrary**
+    * **FFooCameraModel** 替换 **FLensDistortionCameraModel**
+    * **UFooBlueprintLibrary** 替换 **ULensDistortionBlueprintLibrary**
 
     [region:note]
-    You should replace FLensDistortionCameraModel with FFooCameraModel **two** times and ULensDistortionBlueprintLibrary with UFooBlueprintLibrary **four** times.
+    您应该用 FFooCameraModel 替换 FLensDistortionCameraModel **两次**；用 UFooBlueprintLibrary 替换 ULensDistortionBlueprintLibrary **四次**。
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
             #include "LensDistortionBlueprintLibrary.h"
 
             ULensDistortionBlueprintLibrary::ULensDistortionBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
-                : Super(ObjectInitializer)
+                :Super(ObjectInitializer)
             { }
 
             // static
@@ -482,12 +477,12 @@ Checkpoint:shaderqs
                     OutputMultiply, OutputAdd);
             }
 
-1. Next, in the **Private** folder open up the **LensDistortionRendering.cpp** file and replace **FLensDistortionCameraModel** with **FFooCameraModel**
+1. 接下来在 **Private** 文件夹中打开 **LensDistortionRendering.cpp** 文件并用 **FFooCameraModel** 替代 **FLensDistortionCameraModel**
 
     [region:note]
-    You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
+    您需要在此文件中用 FFooCameraModel 替换 FLensDistortionCameraModel **六次**。
     [/region]
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
             #include "LensDistortionAPI.h"
             #include "Classes/Engine/TextureRenderTarget2D.h"
@@ -503,25 +498,25 @@ Checkpoint:shaderqs
             static const uint32 kGridSubdivisionY = 16;
 
             /**
-             * Internal intermediary structure derived from FFooCameraModel by the game thread
-             * to hand to the render thread.
+             * 派生自 FFooCameraModel 的中间结构体，
+             * 由游戏线程交付给渲染线程。
              */
             struct FCompiledCameraModel
             {
-                /** Orignal camera model that has generated this compiled model. */
+                /** 生成此编译模型的原始摄像机模型。*/
                 FFooCameraModel OriginalCameraModel;
 
-                /** Camera matrices of the lens distortion for the undistorted and distorted render.
-                 *  XY holds the scales factors, ZW holds the translates.
+                /** 未变形和变形渲染光学变形的摄像机矩阵。
+                 *  XY 保存缩放因子，ZW 保存平移。
                  */
                 FVector4 DistortedCameraMatrix;
                 FVector4 UndistortedCameraMatrix;
 
-                /** Output multiply and add of the channel to the render target. */
+                /** 对渲染目标输出通道的乘法和加法。*/
                 FVector2D OutputMultiplyAndAdd;
             };
 
-            /** Undistorts top left originated viewport UV into the view space (x', y', z'=1.f) */
+            /** 不对源自左上角的视口 UV 进行变形，将其放入视图空间（x', y', z'=1.f）*/
             static FVector2D LensUndistortViewportUVIntoViewSpace(
                 const FFooCameraModel& CameraModel,
                 float TanHalfDistortedHorizontalFOV, float DistortedAspectRatio,
@@ -549,7 +544,7 @@ Checkpoint:shaderqs
                 FLensDistortionUVGenerationShader() {}
 
                 FLensDistortionUVGenerationShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-                    : FGlobalShader(Initializer)
+                    :FGlobalShader(Initializer)
                 {
                     PixelUVSize.Bind(Initializer.ParameterMap, TEXT("PixelUVSize"));
                     RadialDistortionCoefs.Bind(Initializer.ParameterMap, TEXT("RadialDistortionCoefs"));
@@ -607,12 +602,12 @@ Checkpoint:shaderqs
 
             public:
 
-                /** Default constructor. */
+                /** 默认构造函数。*/
                 FLensDistortionUVGenerationVS() {}
 
-                /** Initialization constructor. */
+                /** 初始化构造函数。*/
                 FLensDistortionUVGenerationVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-                    : FLensDistortionUVGenerationShader(Initializer)
+                    :FLensDistortionUVGenerationShader(Initializer)
                 {
                 }
             };
@@ -623,12 +618,12 @@ Checkpoint:shaderqs
 
             public:
 
-                /** Default constructor. */
+                /** 默认构造函数。*/
                 FLensDistortionUVGenerationPS() {}
 
-                /** Initialization constructor. */
+                /** 初始化构造函数。*/
                 FLensDistortionUVGenerationPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-                    : FLensDistortionUVGenerationShader(Initializer)
+                    :FLensDistortionUVGenerationShader(Initializer)
                 { }
             };
 
@@ -652,7 +647,7 @@ Checkpoint:shaderqs
                 SCOPED_DRAW_EVENT(RHICmdList, DrawUVDisplacementToRenderTarget_RenderThread);
             #endif
 
-                // Set render target.
+                // 设置渲染目标
                 SetRenderTarget(
                     RHICmdList,
                     OutTextureRenderTargetResource->GetRenderTargetTexture(),
@@ -662,17 +657,17 @@ Checkpoint:shaderqs
 
                 FIntPoint DisplacementMapResolution(OutTextureRenderTargetResource->GetSizeX(), OutTextureRenderTargetResource->GetSizeY());
 
-                // Update viewport.
+                // 更新视口。
                 RHICmdList.SetViewport(
                     0, 0, 0.f,
                     DisplacementMapResolution.X, DisplacementMapResolution.Y, 1.f);
     
-                // Get shaders.
+                // 获取着色器。
                 TShaderMap<FGlobalShaderType>* GlobalShaderMap = GetGlobalShaderMap(FeatureLevel);
                 TShaderMapRef< FLensDistortionUVGenerationVS > VertexShader(GlobalShaderMap);
                 TShaderMapRef< FLensDistortionUVGenerationPS > PixelShader(GlobalShaderMap);
 
-                // Set the graphic pipeline state.
+                // 设置图像管线状态。
                 FGraphicsPipelineStateInitializer GraphicsPSOInit;
                 RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
                 GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
@@ -684,20 +679,20 @@ Checkpoint:shaderqs
                 GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
                 SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-                // Update viewport.
+                // 更新视口。
                 RHICmdList.SetViewport(
                     0, 0, 0.f,
                     OutTextureRenderTargetResource->GetSizeX(), OutTextureRenderTargetResource->GetSizeY(), 1.f);
 
-                // Update shader uniform parameters.
+                // 更新着色器的统一参数。
                 VertexShader->SetParameters(RHICmdList, VertexShader->GetVertexShader(), CompiledCameraModel, DisplacementMapResolution);
                 PixelShader->SetParameters(RHICmdList, PixelShader->GetPixelShader(), CompiledCameraModel, DisplacementMapResolution);
 
-                // Draw grid.
+                // 绘制网格。
                 uint32 PrimitiveCount = kGridSubdivisionX * kGridSubdivisionY * 2;
                 RHICmdList.DrawPrimitive(PT_TriangleList, 0, PrimitiveCount, 1);
 
-                // Resolve render target.
+                // 解析渲染目标。
                 RHICmdList.CopyToResolveTarget(
                     OutTextureRenderTargetResource->GetRenderTargetTexture(),
                     OutTextureRenderTargetResource->TextureRHI,
@@ -706,28 +701,28 @@ Checkpoint:shaderqs
 
             FVector2D FFooCameraModel::UndistortNormalizedViewPosition(FVector2D EngineV) const
             {
-                // Engine view space -> standard view space.
+                // 引擎视图空间 -> 标准视图空间。
                 FVector2D V = FVector2D(1, -1) * EngineV;
 
                 FVector2D V2 = V * V;
                 float R2 = V2.X + V2.Y;
 
-                // Radial distortion (extra parenthesis to match MF_Undistortion.uasset).
+                // 径向变形（额外添加括号是为匹配 MF_Undistortion.uasset）。
                 FVector2D UndistortedV = V * (1.0 + (R2 * K1 + (R2 * R2) * K2 + (R2 * R2 * R2) * K3));
 
-                // Tangential distortion.
+                // 切向变形。
                 UndistortedV.X += P2 * (R2 + 2 * V2.X) + 2 * P1 * V.X * V.Y;
                 UndistortedV.Y += P1 * (R2 + 2 * V2.Y) + 2 * P2 * V.X * V.Y;
 
-                // Returns engine V.
+                // 返回引擎 V。
                 return UndistortedV * FVector2D(1, -1);
             }
 
-            /** Compiles the camera model. */
+            /** 编译摄像机模型。*/
             float FFooCameraModel::GetUndistortOverscanFactor(
                 float DistortedHorizontalFOV, float DistortedAspectRatio) const
             {
-                // If the lens distortion model is identity, then early return 1.
+                // 如光学变形模型为同一，则会及早返回 1。
                 if (*this == FFooCameraModel())
                 {
                     return 1.0f;
@@ -735,15 +730,15 @@ Checkpoint:shaderqs
 
                 float TanHalfDistortedHorizontalFOV = FMath::Tan(DistortedHorizontalFOV * 0.5f);
 
-                // Get the position in the view space at z'=1 of different key point in the distorted Viewport UV coordinate system.
-                // This very approximative to know the required overscan scale factor of the undistorted viewport, but works really well in practice.
+                // 获取变形视口 UV 坐标系统中不同关键点在 z'=1 处视图空间中所处的位置。
+                // 这非常近似于知晓未变形视口所需的过扫描缩放因子，但在实际操作中效果极佳。
                 //
-                //  Undistorted UV position in the view space:
-                //                 ^ View space's Y
+                //  视图空间中未变形 UV 位置：
+                //                 ^ 视图空间的 Y 轴
                 //                 |
                 //        0        1        2
                 //     
-                //        7        0        3 --> View space's X
+                //        7        0        3 --> 视图空间的 X 轴
                 //     
                 //        6        5        4
                 FVector2D UndistortCornerPos0 = LensUndistortViewportUVIntoViewSpace(
@@ -763,7 +758,7 @@ Checkpoint:shaderqs
                 FVector2D UndistortCornerPos7 = LensUndistortViewportUVIntoViewSpace(
                     *this, TanHalfDistortedHorizontalFOV, DistortedAspectRatio, FVector2D(0.0f, 0.5f));
 
-                // Find min and max of the inner square of undistorted Viewport in the view space at z'=1.
+                // 寻找 z'=1 处视图空间中未变形视口的内方最大与最小值。
                 FVector2D MinInnerViewportRect;
                 FVector2D MaxInnerViewportRect;
                 MinInnerViewportRect.X = FMath::Max3(UndistortCornerPos0.X, UndistortCornerPos6.X, UndistortCornerPos7.X);
@@ -776,17 +771,17 @@ Checkpoint:shaderqs
                 check(MaxInnerViewportRect.X > 0.f);
                 check(MaxInnerViewportRect.Y > 0.f);
 
-                // Compute tan(VerticalFOV * 0.5)
+                // 计算正切（VerticalFOV * 0.5）
                 float TanHalfDistortedVerticalFOV = TanHalfDistortedHorizontalFOV / DistortedAspectRatio;
 
-                // Compute the required un-distorted viewport scale on each axis.
+                // 计算每个轴上所需的未变形视口比例。
                 FVector2D ViewportScaleUpFactorPerViewAxis = 0.5 * FVector2D(
                     TanHalfDistortedHorizontalFOV / FMath::Max(-MinInnerViewportRect.X, MaxInnerViewportRect.X),
                     TanHalfDistortedVerticalFOV / FMath::Max(-MinInnerViewportRect.Y, MaxInnerViewportRect.Y));
 
-                // Scale up by 2% more the undistorted viewport size in the view space to work
-                // around the fact that odd undistorted positions might not exactly be at the minimal
-                // in case of a tangential distorted barrel lens distortion.
+                // 将视图空间中未变形视口尺寸调大 2%，
+                // 即可解决奇数未变形位置在切向
+                // 桶状光学变形中并不为最小的问题。
                 const float ViewportScaleUpConstMultiplier = 1.02f;
                 return FMath::Max(ViewportScaleUpFactorPerViewAxis.X, ViewportScaleUpFactorPerViewAxis.Y) * ViewportScaleUpConstMultiplier;
             }
@@ -802,11 +797,11 @@ Checkpoint:shaderqs
             {
                 check(IsInGameThread());
 
-                // Compiles the camera model to know the overscan scale factor.
+                // 编译摄像机模型，以了解过扫描比例因子。
                 float TanHalfUndistortedHorizontalFOV = FMath::Tan(DistortedHorizontalFOV * 0.5f) * UndistortOverscanFactor;
                 float TanHalfUndistortedVerticalFOV = TanHalfUndistortedHorizontalFOV / DistortedAspectRatio;
 
-                // Output.
+                // 输出。
                 FCompiledCameraModel CompiledCameraModel;
                 CompiledCameraModel.OriginalCameraModel = *this;
 
@@ -841,25 +836,25 @@ Checkpoint:shaderqs
                 );
             }
 
-1. Finally, in the **LensDistortionRendering.cpp** file, at lines 155 and 156, change the following two lines of code to point to the new MyShader.USF file that was created earlier.
+1. 最后在 **LensDistortionRendering.cpp** 文件中第 155 和 156 行将以下两行代码改为指向之前新创建的 MyShader.USF 文件。
     
-    Change:
+    修改：
 
     * IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationVS, TEXT("/Plugin/LensDistortion/Private/UVGeneration.usf"), TEXT("MainVS"), SF_Vertex)
 
-    To: 
+    改为： 
 
     * IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationVS, TEXT("/Plugin/Foo/Private/MyShader.usf"), TEXT("MainVS"), SF_Vertex)
 
-    Change: 
+    修改： 
 
      * IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationPS, TEXT("/Plugin/LensDistortion/Private/UVGeneration.usf"), TEXT("MainPS"), SF_Pixel)
 
-     To: 
+     改为： 
 
      * IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationPS, TEXT("/Plugin/Foo/Private/MyShader.usf"), TEXT("MainPS"), SF_Pixel)
 
-1. Now, go  to the **Foo/Source** folder and open up the **Foo.Build.cs** file and in the **Foo.Build.cs** under the **PublicDependencyModuleNames.AddRange** section add the following lines of code:
+1. 现在前往 **Foo/Source** 文件夹打开 **Foo.Build.cs** 文件，在 **Foo.Build.cs** 中的 **PublicDependencyModuleNames.AddRange** 部分下添加以下代码行：
 
             PublicDependencyModuleNames.AddRange(
             new string[]
@@ -868,17 +863,17 @@ Checkpoint:shaderqs
                 "RenderCore",
                 "ShaderCore",
                 "RHI",
-                // ... add other public dependencies that you statically link with here ...
+                // ... 在此处添加静态连接的其他公共依赖性 ...
             }
             );
 
-1. Then, in the **PrivateDependencyModuleNames.AddRange** section of **Foo.Build.cs** remove **Slate** and **SlateCore** and when completed your Foo.Build.cs file should look like this:
+1. 然后在 **Foo.Build.cs** 文件中的 **PrivateDependencyModuleNames.AddRange** 部分移除 **Slate** 和 **SlateCore**。操作完成后 Foo.Build.cs 应如下：
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
         using UnrealBuildTool;
 
-        public class Foo : ModuleRules
+        public class Foo :ModuleRules
         {
             public Foo(ReadOnlyTargetRules Target) : base(Target)
             {
@@ -887,13 +882,13 @@ Checkpoint:shaderqs
                 PublicIncludePaths.AddRange(
                     new string[] {
                         "Foo/Public"
-                        // ... add public include paths required here ...
+                        // ... 在此处添加所需的公共包含路径 ...
                     }
                     );    
                 PrivateIncludePaths.AddRange(
                     new string[] {
                         "Foo/Private",
-                        // ... add other private include paths required here ...
+                        // ... 在此处添加所需的其他私有包含路径 ...
                     }
                     );
     
@@ -904,7 +899,7 @@ Checkpoint:shaderqs
                         "RenderCore",
                         "ShaderCore",
                         "RHI",
-                        // ... add other public dependencies that you statically link with here ...
+                        // ... 在此处添加静态连接的其他公共依赖性 ...
                     }
                     );
                 PrivateDependencyModuleNames.AddRange(
@@ -912,47 +907,45 @@ Checkpoint:shaderqs
                     {
                         "CoreUObject",
                         "Engine",
-                        // ... add private dependencies that you statically link with here ...    
+                        // ... 在此处添加静态连接的私有依赖性 ...    
                     }
                     );
                 
                 DynamicallyLoadedModuleNames.AddRange(
                     new string[]
                     {
-                        // ... add any modules that your module loads dynamically here ...
+                        // ... 在此处添加您的模式动态加载的模式 ...
                     }
                     );
             }
         }
 
-1. Re-launch your projects Visual Studio solution file and then recompile your project by pressing **CRTL + 5** and when the compile has completed, press **F5** to launch the UE4 Editor. 
+1. 重新启动项目的 Visual Studio 解决方案文件，并按下 **CRTL + 5** 重新编译项目。编译完成后按下 **F5** 启动 UE4 编辑器。 
 
-1. When the UE4 Editor finishes loading, go to the **Plugins** manager by going to **Edit** > **Plugins**.
+1. UE4 编辑器加载完成后，前往 **Edit** > **Plugins** 访问 **Plugins** 管理器。
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_08.png)(w:250)](HT_ShadersInPlugins_08.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
-1. Inside of the Plugins manager, scroll down to the bottom and look for the **Project** section and in this section, you should see your Plugin. 
+    ![](HT_ShadersInPlugins_08.png)(w:250)
+	
+1. 在 Plugins 管理器中向下滚动寻找 **Project** 部分，在此部分中找到插件。 
     
     ![](HT_ShadersInPlugins_09.png)
 
     [region:note]
-    If your plug is not enabled, enable it by clicking on the checkmark box next to it's name and re-start the UE4 editor. 
+    如插件未启用，则点击其命名旁边的勾选框将其启用，并重启 UE4 编辑器。 
     [/region]
 
-1. To check to make sure everything is there, open up the Level Blueprint and right - click in the Event Graph inputting **Foo** into the search box. Once that is complete, you should now see all of the items that were added to the Foo Camera category. 
+1. 打开关卡蓝图，在事件图表中点击右键，在搜索框中输入 **Foo** 即可检查是否所有内容均齐备。完成后，您便可看到所有项目均被添加到 Foo Camera。 
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_10.png)(w:825)](HT_ShadersInPlugins_10.png)
+    [![](HT_ShadersInPlugins_10.png)(w:950)](HT_ShadersInPlugins_10.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-	[Nav]
+## 最终结果
+
+恭喜，您便已成功重建和编译了 UE4 Lense Distortion 插件的新版本。下一部分将讲述如何从蓝图调用这个新全局着色器，以及其如何对渲染目标进行变形。
+
+[Nav]

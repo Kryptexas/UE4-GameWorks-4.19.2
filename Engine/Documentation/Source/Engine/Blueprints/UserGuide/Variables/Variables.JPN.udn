@@ -147,11 +147,13 @@ tags:Blueprints
 
 [/EXCERPT:CreatingVariables]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AddVariables]
 [INCLUDE:#creatingvariables]
 [/EXCERPT:AddVariables]
--->
+
+[/COMMENT]
 
 ### 編集可能な変数
 

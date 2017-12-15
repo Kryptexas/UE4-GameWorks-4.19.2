@@ -323,7 +323,8 @@ tags:Splines
 [/EXCERPT]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PointsType]
 定义位于选中 **曲线点** 的曲线类型。
 
@@ -335,5 +336,6 @@ tags:Splines
 | **CurveClamped** || 和 **Curve** 相似，但它将固定曲线的切线。|
 | **CurveCustomTangent** || 在 **曲线点** 上调整任意切线时，它将设为此值。|
 [/EXCERPT]
--->
+
+[/COMMENT]
 

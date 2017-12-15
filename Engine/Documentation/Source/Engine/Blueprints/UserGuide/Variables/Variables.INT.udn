@@ -7,44 +7,7 @@ skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tags:Data Types
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Variables:title%](Engine\Blueprints\UserGuide\variables_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Variables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Variables:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Variables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Variables:title%](Engine\Blueprints\UserGuide\variables_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Variables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Variables:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Variables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/variables_topic.png
 
 
 [TOC (start:2)]
@@ -62,14 +25,14 @@ Variables are displayed as rounded boxes that contain the name of the variable:
 
 
 [REGION:tip]
-For information about using Matinee to modify the values of specific types of variables, see [](Engine/Matinee\UserGuide\BlueprintComponents).
+For information about using Matinee to modify the values of specific types of variables, see [](Engine/Matinee/UserGuide/BlueprintComponents).
 [/REGION]
 
 
 ## Variable Types
 
 Variables can be created in a variety of different types, including data types - such as Boolean, integer, and float - as well as reference types for holding things like Objects, Actors, and particular Classes. 
-[Arrays](Engine/Blueprints\UserGuide\Arrays) of each variable type can also be created.  Each type is color coded for easy identification:
+[Arrays](Engine/Blueprints/UserGuide/Arrays) of each variable type can also be created.  Each type is color coded for easy identification:
 
 [EXCERPT:VarColor]
 
@@ -107,7 +70,7 @@ Creating a variable inside a Blueprint can be achieved by following the steps be
 
 1.  [Create a Blueprint](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) and open it up to the **Graph** tab. 
 
-1.  Create a new variable from the **MyBlueprint** window, by clicking on the **Add Button** ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) on the variable list header ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png).
+1.  Create a new variable from the **MyBlueprint** window, by clicking on the **Add Button** ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) on the variable list header ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_variable.png).
 
 	![](MyBlueprintPane_createVar.png)
 
@@ -146,11 +109,13 @@ Here you can set whether or not the variable is serialized and is zero-filled at
 
 [/EXCERPT:CreatingVariables]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AddVariables]
 [INCLUDE:#creatingvariables]
 [/EXCERPT:AddVariables]
--->
+
+[/COMMENT]
 
 ### Editable Variables
 

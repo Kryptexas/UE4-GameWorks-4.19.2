@@ -106,7 +106,8 @@ SkillLevel: Advanced
 
 当完成下载并且设置了虚幻引擎后，就已经为 [从源代码来编译构建引擎](Programming/Development/BuildingUnrealEngine) 做好准备了。
 
-<!--
+[COMMENT:none]
+
 
 从 Github 获得虚幻引擎源码有两种方式：
 
@@ -207,4 +208,5 @@ Keep Newer（保留较新版本）。
 ## Next Steps
 
 After installing the dependencies, you're ready to [build the engine](Programming/Development/BuildingUnrealEngine).
--->
+
+[/COMMENT]

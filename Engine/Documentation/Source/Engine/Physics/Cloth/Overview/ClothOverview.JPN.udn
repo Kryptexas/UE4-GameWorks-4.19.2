@@ -288,7 +288,9 @@ NVIDIA の PhysX DCC Plugin を使って、3DS Max や Maya、他のプログラ
 * **Max Distance** は、クロス上の任意のポイントがアニメートされた位置から移動できる最長距離です。 
 * **Backstop Distance** は、クロス上の任意のポイントから使用されるオフセットで、Max Distance 内の動きを制限します。 
 * **Backstop Radius** は、球体の半径を使用し、Max Distance と交差する場合に、クロス上のペイントされた任意のポイントがその領域に移動するのを防ぎます。 
-<!--- http://wiki.fitnect.hu/index.php/PhysX_setup --->
+[COMMENT:none]
+- http://wiki.fitnect.hu/index.php/PhysX_setup -
+[/COMMENT]
 
 こうした **ターゲット** を複数持つことはできますが、一度に割り当てできるのはひとつだけです。これにより様々な設定を迅速に非破壊的な方法でテストすることが可能になります。
 
@@ -311,7 +313,8 @@ NVIDIA の PhysX DCC Plugin を使って、3DS Max や Maya、他のプログラ
 [/REGION]
 
 
-<!--- SAVE FOR 4.18 Release Update ------- 
+[COMMENT:none]
+- SAVE FOR 4.18 Release Update ------- 
 
 ###Level of Detail （LOD）
 
@@ -372,7 +375,8 @@ LOD0 メッシュに再ペイントするが、すべての LOD メッシュを�
 [/OBJECT]
 [/EXCERPT:lod0]
 
-----  SAVE FOR 4.18 Release Update --->
+----  SAVE FOR 4.18 Release Update -
+[/COMMENT]
 
 
 [EXCERPT:lod1]
@@ -406,7 +410,8 @@ LOD0 メッシュに再ペイントするが、すべての LOD メッシュを�
 適宜作成し、割り当てます。
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:oldworkflow]
 [REGION:lightbox]
@@ -428,7 +433,8 @@ _画像をクリックしてフルサイズで表示_
 [/REGION]
 [/EXCERPT:clickimage]
 
---->
+-
+[/COMMENT]
 
 
 

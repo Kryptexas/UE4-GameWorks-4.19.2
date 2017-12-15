@@ -5,25 +5,9 @@ Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTree
 Description:第一步。必要设置
 version:4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:coloroverride]
-		#000000
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-%Steps%
+
+
 
 本快速入门将对项目中可用内容进行假定，如您不适应即时进行的替代或问题解决，建议以如下步骤设置项目。
 
@@ -41,7 +25,7 @@ version:4.9
 如需了解关于开始新项目的详细内容，请参考 [项目浏览器](Engine/Basics/Projects/Browser) 用户指南。
 
 [/EXCERPT:AIProjectStart]
-%Steps%
+
 
 
 

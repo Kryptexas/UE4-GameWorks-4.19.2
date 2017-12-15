@@ -97,7 +97,8 @@ Trace from Camera 函数将用于确定需要增加高度的静态网格体上�
 [NAV]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Function]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -846,4 +847,5 @@ Trace from Camera 函数将用于确定需要增加高度的静态网格体上�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:EG]
--->
+
+[/COMMENT]

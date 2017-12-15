@@ -1,43 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:콘텐츠 예제
 Crumbs:%ROOT%, Resources
 Description:특정 개념 또는 기법에 대해 문서 링크가 같이 제공되는 데모 예제 애셋입니다.
 Version: 4.9
+topic-image:ce_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](ce_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples]
-	[/PARAM]
-	[PARAM:description]
-	%Resources/ContentExamples:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](ce_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples]
-	[/PARAM]
-	[PARAM:description]
-	%Resources/ContentExamples:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:ContentExamples] 
 [REGION:fullwidth]
@@ -51,65 +19,49 @@ Content Examples 레벨 안의 어느 예제든지, 자유로이 열어보고, �
 
 ## 요약
 
-[REGION:topics third]
 %Resources/ContentExamples/ExampleLevelOverview:TopicCompact%
 %Resources/ContentExamples/LevelDesign:TopicCompact%
 %Resources/ContentExamples/Brushes:TopicCompact%
 %Resources/ContentExamples/ImportOptions:TopicCompact%
 %Resources/ContentExamples/NavMesh:TopicCompact%
 %Resources/ContentExamples/MathHall:TopicCompact%
-[/REGION]
-
 
 ## 애니메이션
 
-[REGION:topics third]
 %Resources/ContentExamples/Animation:TopicCompact%
 %Resources/ContentExamples/MorphTargets:TopicCompact%
-[/REGION]
 
 ## 오디오
 
-[REGION:topics third]
 %Resources/ContentExamples/Audio:TopicCompact%
-[/REGION]
 
 ## 블루프린트와 블루프린트 네트워킹
 
-[REGION:topics third]
 %Resources/ContentExamples/Blueprints:TopicCompact%
 %Resources/ContentExamples/Blueprint_Splines:TopicCompact%
 %Resources/ContentExamples/Networking:TopicCompact%
-[/REGION]
 
 
 ## 랜드스케이프
-[REGION:topics third]
+
 %Resources/ContentExamples/Landscapes:TopicCompact%
-[/REGION]
 
 ## 마티네 & 시네마틱
 
-[REGION:topics third]
 %Resources/ContentExamples/Matinee:TopicCompact%
-[/REGION]
 
 ## 페이퍼 2D
 
-[REGION:topics third]
 %Resources/ContentExamples/Paper2D:TopicCompact%
-[/REGION]
 
 
 ## 피직스
 
-[REGION:topics third]
 %Resources/ContentExamples/Physics:TopicCompact%
 %Resources/ContentExamples/Destructables:TopicCompact%
-[/REGION]
 
 ## 렌더링
-[REGION:topics third]
+
 %Resources/ContentExamples/Materials:TopicCompact%
 %Resources/ContentExamples/Lighting:TopicCompact%
 %Resources/ContentExamples/PostProcessing:TopicCompact%
@@ -119,15 +71,14 @@ Content Examples 레벨 안의 어느 예제든지, 자유로이 열어보고, �
 %Resources/ContentExamples/DynamicSceneShadows:TopicCompact%
 %Resources/ContentExamples/Reflections:TopicCompact%
 %Resources/ContentExamples/Decals:TopicCompact%
-[/REGION]
 
 ## 스태틱 메시 & 볼륨
-[REGION:topics third]
+
 %Resources/ContentExamples/StaticMeshes:TopicCompact%
 %Resources/ContentExamples/Volumes:TopicCompact%
-[/REGION]
 
 
 
  
+
 

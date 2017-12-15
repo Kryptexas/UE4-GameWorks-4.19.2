@@ -45,7 +45,8 @@ order:2
 | [INCLUDE:#pinfilter] | [INCLUDE:#pintags] | |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlueprintTags]
 * Name
 * ParentClass (Explicit)
@@ -103,7 +104,8 @@ order:2
 * PinCategory (Explicit)
 * ObjectClass (Explicit)
 [/EXCERPT]
--->               
+
+[/COMMENT]               
             	
 [REGION:tip]
  PinCategory 是引脚的类型，“布尔”、“字符串”、“Actor”、“MyBlueprint”。ObjectClass 是引脚/变量/组件所代表的结构体或对象。

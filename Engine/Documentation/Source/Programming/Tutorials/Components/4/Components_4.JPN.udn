@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. カスタム仕様の **Pawn Movement コンポーネント** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の、CollidingPawn.h のクラス定義下部に以下のコードを追加します。
 
@@ -330,4 +330,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

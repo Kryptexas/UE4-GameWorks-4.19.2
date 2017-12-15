@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149199
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:뷰포트에서 스플라인 컴포넌트 편집하기
 Crumbs: %ROOT%, Engine
@@ -12,45 +12,7 @@ version:4.13
 skilllevel:Beginner
 reference-image:FullEdit.gif
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 이번 비법에서는 레벨 에디터에서 **Blueprint Spline Component** (블루프린트 스플라인 컴포넌트) 커브를 편집하는 법을 단계별로 알아봅니다. **Blueprint Spline Mesh Components** (블루프린트 스플라인 메시 컴포넌트) 역시 레벨 에디터에서 편집 가능하도록 설정할 수 있으나, 사용할 수 있는 포인트가 둘 뿐이며 추가할 수 없습니다.
 

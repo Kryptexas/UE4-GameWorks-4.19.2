@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:3717107
+Availability: Public
+Title:다중 트랜스폼 트랙 블렌딩
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:절대, 더하기, 상대 스페이스에서 다중 트랜스폼 트랙을 사용하고 블렌딩하는 방법입니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
+type:how-to
+
+시퀀서에 액터를 추가할 때마다, **Transform Track** (트랜스폼 트랙) 역시 추가되어 다른 트랜스폼 값으로 변경하고 키프레임 설정하여 액터를 옮길 수 있도록 해줍니다.
+새로운 트랜스폼 트랙은 **Infinite** (무한) 설정되어 있어, 트랜스폼 데이터를 새로 추가하여 시퀀서 도중 어느 시간에서든 액터에 영향을 주도록 할 수 있습니다.
+액터를 이동시키는 가장 흔한 방법이기는 하지만, 주어진 액터의 위치, 회전, 스케일에 추가적인 변화를 적용하고픈 경우가 있을 수 있습니다.
+이는 트랜스폼 트랙 안에 새로운 **Transform Section** (트랜스폼 섹션)을 만드는 것으로 가능한데, 이를 통해 트랜스폼 데이터 적용 시기를 정의하는 것은 물론 다중 트랜스폼 블렌딩 기능도 사용할 수 있습니다.
+
+이 예제에서는, 두 개의 트랜스폼 트랙을 서로 블렌딩하여 레벨의 박스를 움직이도록 하겠습니다.
+
+![](MultipleTransforms.png)
+
+## 단계
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 에 **시작용 콘텐츠 포함** 시켜 사용하고 있습니다.
+[/REGION]
+
+1.	프로젝트 안에서 **모드** 패널의 **기본** 아래 **Cube** (큐브) 애셋을 끌어 레벨에 놓습니다.
+
+	![](MultipleTransform_01.png)
+
+1.	메인 툴바에서 **시네마틱** 버튼을 클릭하고 **레벨 시퀀스 추가** 를 선택한 뒤 아무 이름으로 저장합니다.
+
+	![](MultipleTransform_02.png)
+
+1.	레벨의 큐브를 시퀀서에 추가한 뒤, 트랜스폼 트랙에 우클릭합니다. **Properties** (프로퍼티) 아래 **Is Infinite** (무한인지)를 지웁니다. 
+
+	![](MultipleTransform_03.png)
+
+	기본적으로 트랜스폼 트랙은 무한 설정되어 있는데, 수명이 전체 시간이며 보통 하나의 트랜스폼 트랙만 사용한다는 뜻입니다.
+	무한 옵션을 지우면, 트랜스폼 트랙이 시퀀스의 (추가된 키프레임 내 정의된) 한 섹션을 사용한다고 선언하는 것입니다.
+
+1.	**위치** 의 **Y Track** 에 대한 키프레임을 추가하여 원하는 이동 경로를 생성합니다.
+
+	![](MultipleTransform_04.png)
+
+1.	키프레임 창에서 트랜스폼 트랙에 우클릭하고 **Translation** (이동) 의 Y 축만 **Active Channel** (활성 채널)로 설정합니다.
+
+	![](MultipleTransform_05.png)
+
+	그러면 이동 Y 축만 평가 대상으로 고립시켜, 큐브를 레벨 어디든 이동시켜도 Y 축 키프레임 데이터는 유지하도록 할 수 있습니다.
+
+1.	트랙 창의 트랜스폼 트랙에서, **섹션** 버튼을 클릭하고 **Additive** (더하기)를 선택합니다.
+
+	![](MultipleTransform_06.png)
+
+	기존 트랜스폼 트랙에 적용시킬 트랜스폼 섹션을 새로 추가하고 있습니다.
+
+1.	키 프레임 창에서 새로운 더하기 트랜스폼 트랙에 우클릭하고 이동 Z 축만 **활성 채널** 로 설정합니다.
+
+	![](MultipleTransform_07.png)
+
+1.	더하기 트랜스폼 트랙의 경우, **0** 에 기본값으로 키프레임을 추가한 뒤, 앞으로 문질러 이동하여 **Z** 값에 **300** 을 추가하고 키프레임을 설정합니다.
+
+	![](MultipleTransform_08.png)
+
+1.	**Preview Play** (프리뷰 플레이) 버튼을 눌러 이동을 미리봅니다.
+
+## 최종 결과
+
+시퀀스를 재생하면, 큐브가 Y 축을 따라 이동하면서 Z 축 이동도 블렌딩되어, 큐브가 전방 위쪽으로 이동합니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	G63cUldRjLQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+위 비디오에서 보듯, 각 섹션을 이동시켜 블렌딩 프로세스를 바꿀 수 있습니다. 우리 예제에서 더하기 섹션을 시퀀스 후반부로 이동시켜 블렌딩이 나중에 시작되도록 하여 (큐브 상등 시점이 늦춰지는) 다른 유형의 이동을 얻을 수 있습니다.
+
+추가적으로, 트랜스폼 섹션에 우클릭하고 **Blend Type** (블렌드 유형)을 선택하여 블렌딩 유형을 바꿀 수 있습니다.
+
+![](MultipleTransform_09.png)
+
+사용가능한 옵션은 다음과 같습니다:
+
+| 블렌드 유형 | 뜻 |
+| --- | --- |
+| **Absolute** | 절대 - 다른 모든 가중치 값을 전체 가중치 평균으로 블렌딩합니다. |
+| **Additive** | 더하기 - 다른 모든 더하기 값의 총합으로 값을 적용합니다. |
+| **Relative** | 상대 - 애니메이션 이전 초기 값과 다른 모든 더하기 값의 총합으로 값을 적용합니다. |

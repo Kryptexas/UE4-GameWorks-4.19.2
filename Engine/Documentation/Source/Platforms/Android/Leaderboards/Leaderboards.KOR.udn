@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3782314
 Title: 구글 플레이 서비스 순위표
 Description:게임에 순위표를 사용하는 법입니다.
 Crumbs:
@@ -8,40 +8,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Android/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Android/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 ![](Platforms\Mobile\Leaderboards\androidLeaderboard.png)(w:320 convert:false)
 

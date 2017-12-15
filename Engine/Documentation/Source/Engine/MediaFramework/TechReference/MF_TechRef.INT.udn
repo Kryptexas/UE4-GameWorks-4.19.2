@@ -4,23 +4,24 @@ Crumbs:%ROOT%, Engine
 Description:Technical information regarding Media Framework in Unreal Engine 4.
 Navigation:topic
 parent:Engine/MediaFramework
+type:reference
 order:2
-Version: 4.14
+Version: 4.18
 Related: Engine\MediaFramework\Overview
 Related: Engine\MediaFramework\HowTo
 
 [TOC(start:2 end:2)]
 
-This page outlines the currently supported file extensions and URLs as well as outlines some troubleshooting tips on how to enable Media Framework with different platforms. 
-There are some known platform specific issues and limitations which we are currently investigating and trying to resolve, each of which have been identified in the Troubleshooting Platform sections. 
+This page outlines the currently supported file extensions, URLs, and capture devices, as well as pointing out some troubleshooting tips on how to enable Media Framework with different platforms.
+There are some known platform-specific issues and limitations which we are currently investigating and trying to resolve, each of which has been identified in the Troubleshooting and Known Issues sections. 
 
-[REGION:tip]
-If you are upgrading Media Framework content from a pre-4.13 project, see the tips in [](Engine/MediaFramework/TechReference/Upgrading).
+[REGION:warning]
+If you are upgrading Media Framework content from a pre-4.18 project, see the [](Engine/MediaFramework/TechReference/Upgrading) page to successfully update your project.
 [/REGION]
 
-## Supported Files & URLs
+## Supported Files, URLs & Capture Devices
 
-The table below indicates the supported extensions based on each media player platform. 
+The table below indicates the supported file extensions based on each media player platform. 
 
 _Click the image below to download a .xlsx version of the Supported Files & URLs spreadsheets._
 
@@ -28,20 +29,30 @@ _Click the image below to download a .xlsx version of the Supported Files & URLs
 [![](MediaFrameworkExtentions.png)](SupportedExtentions.xlsx)
 [/REGION]
 
-<!-- Editor Note - you can update the table inside the Attachments folder if need be. -->
+[COMMENT:none]
+ Editor Note - you can update the table inside the Attachments folder if need be. 
+[/COMMENT]
 
-The list of supported file formats above is ongoing and support for additional file extensions will come online in future engine updates. For the best compatibility and performance, it is recommended that the **.mp4** file extension in H.264 be used. 
-Also denoted in the table above are extensions that are expected to be supported as of the 4.15 engine release. 
+The list of supported file formats above is ongoing and support for additional file extensions will come online in future engine updates. 
 
-[REGION:warning]
-The MfMedia player plug-in for XboxOne is currently in development is partially supported if UE4 is built against Windows 7 or later. The AvfMedia player plug-in for macOS and iOS is in an experimental state and not all features may work as expected. We are working to resolve both issues and hope to have them addressed in a future engine release.  
+[REGION:tip]
+For the best compatibility and performance, it is recommended to use **H.264** encoded **MP4 (.mp4)** container files. 
 [/REGION]
 
-This table shows the supported URLs based on media player platform. 
+The table below shows the supported URLs based on media player platform. 
 
 [REGION:raw]
 ![](URLSheet.png)
 [/REGION]
+
+### Capture Devices
+
+Media Framework supports audio/video capture hardware on Windows (WmfMedia) and Android (AndroidCamera) as of 4.18 (consoles however, are not yet supported). 
+
+[REGION:note]
+Please see the [](Engine\MediaFramework\HowTo\UsingWebCams) page for an example guide on working with capture devices. 
+[/REGION]
+
 
 ## WMF Media Configuration Settings
 
@@ -56,7 +67,7 @@ You can now enable and allow non-standard codecs for **WMF Media** from the **Pl
 
 ![](ProjectSettings.png)
 
-By default, the player plugin will attempt to detect audio and video codecs that are not supported by the operating system, requiring the user to install additional codec packs. 
+By default, the player plugin will attempt to detect audio and video codecs that are not supported by the operating system (OS), requiring the user to install additional codec packs. 
 If the player plugin detects an unsupported format when accessing the media, a warning message is provided in the **Output Log**. 
 
 ![](UnsupportedLog.png)
@@ -65,38 +76,35 @@ Additionally, you can see media asset information inside a **Media Player** asse
 
 ![](MediaInfo.png)
 
-When enabling **Allow non-supported codecs**, the plugin player will skip the check and allow the usage of non-standard codecs. 
+When enabling **Allow non-supported codecs**, the Plugin player will skip the check and allow the usage of non-standard codecs. 
 
 
 ## Troubleshooting
 
-Most player plug-ins will provide detailed logging of potential problems. To enable this, add the following to your projects **Engine.ini** file: 
+As of engine 4.18 most player Plugins have had extensive logging added and will provide detailed logging of potential problems. 
+
+To enable logging, add the following to your project's **Engine.ini** file: 
 
 	[Core.Log]
-	LogMedia=Verbose
-	LogMediaAssets=Verbose
-	LogAndroidMedia=Verbose
-	LogAvfMedia=Verbose
-	LogMfMedia=Verbose
-	LogPS4Media=Verbose
-	LogWmfMedia=Verbose
+	LogMedia=VeryVerbose
+	LogMediaAssets=VeryVerbose
+	LogAndroidMedia=VeryVerbose
+	LogAvfMedia=VeryVerbose
+	LogMfMedia=VeryVerbose
+	LogPS4Media=VeryVerbose
+	LogWmfMedia=VeryVerbose
 
 If a media source fails to open or play, check the **Output Log** under the [Developer Tools](https://docs.unrealengine.com/latest/INT/Engine/Tools/DevTools/) for additional details. 
 
-[REGION:raw]
-![](LogMessage.png)
-[/REGION]
-
 You can also check information about a Media Source inside the Media Player asset and **Info** tab. 
-This will show what options are available for the media source (Forward/Reverse Rates nad Scrubbing/Seeking), as well as the different Audio and Video streams and information about each stream. 
 
 ![](InfoWindow.png)
 
-If **Verbose Logging** is enabled for the Media Assets log category, this information is also added to the Output Log. 
+This will show what options are available for the media source, as well as the different Audio and Video streams and information about each stream. 
 
 ### Windows
 
-The Windows Media Foundation (WMF) based player plug-in WmfMedia has a number of limitations for MP4 containers. 
+The Windows Media Foundation (WMF) based player Plugin WmfMedia has a number of limitations for MP4 containers. 
 
 [REGION:note]
 See Microsoft's [MPEG-4 File Source](https://msdn.microsoft.com/en-us/library/windows/desktop/dd757766%28v=vs.85%29.aspx) page for more information.
@@ -105,27 +113,22 @@ See Microsoft's [MPEG-4 File Source](https://msdn.microsoft.com/en-us/library/wi
 
 ## Known Issues & Limitations
 
-**Media Framework** is still considered experimental and there are some known issues and limitations which are outlined below. 
+**Media Framework** is still in development and there are some known issues and limitations which are outlined below. 
 
 * **Android**
 	* Audio currently plays via the OS and cannot be piped through UE4's Sound System. 
-* **Audio**
-	* There is currently no synchronization of audio samples, so playback may get out of sync. 
-		*	Workaround: Use shorter clips where possible. 
-	* Audio is currently always mixed down to 16-bit stereo 44.1 kHz, regardless of the input format. 
-		*	Multi-channel audio support is being investigated and may arrive in future releases.
 * **Editor**
-	* The Playlist UI inside the Media Player only shows the currently opened Media Playlist asset. 
-		*	Workaround: Edit the Playlist contents by **Double-clicking** on the MediaPlaylist asset to open its own editor. 
+	* The Playlist UI inside the Media Player always has a playlist created internally. 
+	* Playlists can be saved from the Media Player, however, there is no way currently to edit the playlist in the Media Player. 
+	* Workaround - Save a Playlist from the Media Player then open and edit the Media Playlist asset. 
 * **Sequencer**
 	* Media Playback will not render out properly when recording cinematics from Sequencer. 
 		* We have this scheduled to release in the near future as we know this is important.
+	* The ImgMedia Plugin will be synced with Sequencer. 
 * **Windows**
-	* The Media Player state machine is still in progress and may break if multiple control commands are issued simultaneously. 
-		*	Workaround: Insert short delays between commands, so that the player has time to process them.
-	* Some videos with multiple audio tracks fail to open.
 	* QuickTime movie (.mov) support on Windows 7 and later is currently unreliable. 
 		*	Workaround: This format is currently not recommended for use. 
+
 
 
 

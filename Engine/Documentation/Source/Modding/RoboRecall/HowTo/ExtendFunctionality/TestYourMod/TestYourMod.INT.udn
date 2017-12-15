@@ -11,15 +11,19 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/7 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/7 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 With your custom pistol completed, you can click **Play** while the the hub level is loaded, and enable your GrenadeGunPistol through the mod menu. You can now use the Gun Range to toss the gun at the targets and watch them detonate!
 
-![image alt text](image_1.png)(w:934 h:604 convert:false)
+![image alt text](image_1.png)(w:934 convert:false)
 
 ## Next Steps
 
@@ -51,7 +55,7 @@ Now that you successfully created a new pistol, it’s time to see if you can ta
 
 In the top right of the GrenadeGunPistol Blueprint you will see a little magnifying glass:
 
-![image alt text](image_2.png)(w:486 h:78 convert:false)
+![image alt text](image_2.png)(w:486 convert:false)
 
 This button will take highlight the current Blueprint’s Parent in the Content Browser. By using this button you can navigate down to Gun_Pistol and Gun_Base, which contain a mountain of functionality for the Pistol. Browse through them to see what variables and functions you have available to you.
 

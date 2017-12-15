@@ -1,0 +1,180 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:動画出力のためのコマンドライン引数
+Crumbs: %ROOT%, Engine
+Description:動画出力で使用可能なシーケンサーのコマンドライン引数の概要。
+Navigation:topic
+parent:Engine\Sequencer\Workflow
+order:1
+Version:4.18
+Type:Reference
+Related:Engine\Sequencer\Overview
+Related:Engine\Sequencer\HowTo\RenderMovies
+Related:Programming/Basics/CommandLineArguments
+Related:GettingStarted/RunningUnrealEngine
+tags:Sequencer
+
+[TOC(start:2 end:2)]
+
+このページでは、シーケンスを出力するときに使う設定を決めるための様々な [コマンドライン引数](Programming/Basics/CommandLineArguments) と [コンソール変数](Programming/Development/Tools/ConsoleManager) についての概要を説明します。 
+
+
+[REGION:note]
+まだコマンドラインから UE4 エディタを起動したことがなければ、[](GettingStarted/RunningUnrealEngine) で詳しい情報をご覧ください。 
+[/REGION]
+
+[REGION:tip]
+UE4 内で動画を出力する方法については、[](Engine\Sequencer\HowTo\RenderMovies) ページをご覧ください。 
+[/REGION]
+
+## 必要なコマンド
+
+以下のコマンドは、画像シーケンスを正しく出力するために必要です。コマンドラインから出力する場合は以下を含めるようにしてください。 
+
+| 引数 | 説明 |
+| ---- | ----------- |
+| -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" | このページに掲載されている多くのコマンドラインを定義するために使います。  |
+| -LevelSequence="/Game/PathToSequence/SequenceName" | どのシーケンスを再生するかをエディタに指示します。 |
+| -NoLoadingScreen | エディタのゲーム インスタンスは、これがないと適切に出力されません。 |
+
+## 制御コマンド
+
+以下は、画像の品質、出力パラメータ、ファイルの命名と種類を十分に制御するために推奨されるコマンドライン引数です。 
+
+**用途** 欄は、コマンドライン引数を使う際の推奨事項を含みます。
+
+| 引数| 説明 | 注記 | 用途 |
+| ---- | ----------- |----------- |----------- |
+| -ResX=#### | ゲーム ウィンドウの水平解像度を設定します。 | 例、 -ResX=1920 | 低解像度はプレビュー用、高解像度は最終版用。 |
+| -ResY=#### | ゲーム ウィンドウの垂直解像度を設定します。 | 例、 -ResY=1080 | 低解像度はプレビュー用、高解像度は最終版用。 |
+| -ForceRes | スクリーン解像度より大きくても、ウィンドウを強制的に指定した解像度にします。 | | |
+| -VSync | コマンドライン経由で VSYNC をアクティベートします。 | パフォーマンスの負荷は高いですがリアルタイムで出力しないため問題ありません。 | 最終出力 |
+| -NoVSync | コマンドライン経由で VSYNC を非アクティブにします。 | 上記-VSync 行参照 | プレビュー出力用 |
+| -MovieFrameRate=30 | 出力のフレーム レートを設定します。 | デフォルトの 30fps をオーバーライドします。 | シネマティックスのニーズによって変わります (リズミカルな動きは、FPS が低いと影響を受けて、プレビューでも望ましくないレベルに成ることがあります)。 |
+| -NoTextureStreaming | テクスチャのストリーミングを無効にします。 | 出力に時間がかかりますが、最終出力ではその価値があります。 | 最終出力 |
+| -MovieFolder="PATH" | 出力画像の保存先フォルダ | デフォルトで Project/Saved/Screenshots になります。 | バッチ出力時に推奨。そうでなければ、すべての画像ファイルは、同じフォルダに入ります。 |
+| -MovieFormat=ASD | メディア フォーマット。JPG、 BMP、PNG、 または Video | デフォルトで PNG | |
+| -MovieQuality=## | 圧縮の品質を設定します。 | パーセント単位で、デフォルトで 75 になります。 | |
+| -MovieName="Example.{frame}" | 出力ファイルの命名フォーマットを設定します。 | [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#wildcard] | バッチ出力では強く推奨。マップ名やレンダー パスなどに対応する固有の名前をファイルに付けます。 |
+| -MovieCinematicMode=Yes/No | シネマティックス モードを有効にします。 | プレイヤー キャラクターを非表示にし、プレイヤー キャラクターの動きを無効にします。HUD も無効にします。 | 通常はこれを無効にした方が適切です。 |
+| -MovieWarmUpFrames=## | シーケンスを再生する前にシーンを実行するためのフレーム数。これはリアルタイムでは機能しません。 | デフォルトは 0 フレームです。これはシーケンスの再生範囲の始まりよりも前にもフレームを実行します。 | 録画を開始する前にシミュレーションする必要があるパーティクル システムや物理がある場合に役立ちます。 |
+| -MovieDelayBeforeWarmUp=#  | ウォームアップが開始するまでの秒数。リアルタイムで実行。 |  | シーケンス開始前にポーンについて何かする必要がある場合。 |
+| -MovieStartFrame=###  | シーケンスの開始フレームをオーバーライドします。 | デフォルトでシーケンサーのインとアウトのマーカー | |
+| -MovieEndFrame=###  | シーケンスの終了フレームをオーバーライドします。 | デフォルトでシーケンサーのインとアウトのマーカーになります。 | |
+| -NoScreenMessages  | "Rebuild Lighting" や "Print String" の出力のような画面上のメッセージを非表示にします。 | | |
+
+[COMMENT:none]
+
+[EXCERPT:Wildcard]
+[REGION:simpletable]
+| ワイルドカード| 説明 |
+| ----- | ------ |
+| {fps} | キャプチャーしたフレームレート。 |
+| {frame}| 現在のフレーム番号 (画像シーケンスの場合のみ該当) |
+| {width}| キャプチャーしたフレームの幅 |
+| {height}| キャプチャーしたフレームの高さ |
+| {world}| 現在のワールドの名前 |
+| {quality}| 画像圧縮の品質設定 |
+| {material}| マテリアル / レンダー パス|
+[/REGION] 
+[/EXCERPT:Wildcard]
+
+[/COMMENT]
+
+
+## カスタム レンダー パス
+
+こうしたコマンドを使用するには、`-MovieFormat=CustomRenderPasses` と `-MovieName` に `{material}` が必要です。
+
+| 引数 | 説明 | 注意 |
+| ---- | ----------- |----------- |
+| -CustomRenderPasses="RenderPassName" | カスタム レンダー パスを設定します。 | オプションは以下のとおりです (括弧内は除外)。: <br> AmbientOcclusion, BaseColor, CustomDepth, CustomDepthWorldUnits, CustomStencil, FinalImage, MaterialAO (Ambient Occlusion), Metallic, Opacity, PostTonemapHDRColor, Roughness, SceneColor, SceneDepth, SceneDepthWorldUnits, SeparateTranslucencyA (Alpha), SeparateTranslucencyRGB, ShadingModel, Specular, SubsurfaceColor, WorldNormal |
+| -CaptureFramesInHDR | .exr 形式でHDR で出力します。 | |
+| -HDRCompressionQuality=## | HDR フレームの圧縮品質 (0 は圧縮なし、1 はデフォルトの圧縮で処理速度は遅くなることがあります)。 -CaptureFramesInHDR に依存 | |
+| -CaptureGamut="HCGM_Name" | HDR キャプチャー データを保存する場合に使う色域です。 -CaptureFramesInHDR に依存 | (以下の色域のキャプチャーの説明を参照) HCGM_Rec709, HCGM_P3DCI, HCGM_Rec2020, HCGM_ACES, HCGM_ACEScg, HCGM_MAX |
+| -PostProcessingMaterial="MaterialPath" | 出力で使用するカスタムのポスト プロセス マテリアル | 以下のような形式になります。"Material'/Engine/BufferVisualization/SceneDepth.SceneDepth'" <br> このパスを取得する簡単な方法は、コンテンツ ブラウザのマテリアル上で右クリックして、 [Copy Reference] を選択するやり方です。 |
+
+* Capture Gamut Descriptions
+	* HCGM_Rec709 - Rec.709 / sRGB
+	* HCGM_P3DCI - P3 D65
+	* HCGM_Rec2020 - Rec.2020
+	* HCGM_ACES - ACES
+	* HCGM_ACEScg - ACEScg
+
+
+## コンソール変数
+
+以下のコンソール変数は出力の品質を決めるのに役立ち、プロジェクトの **Game/Config** フォルダにある `DefaultEngine.ini` に追加することができます。 
+
+[REGION:note]
+以下で使用している値は、高品質のための推奨値です。 
+[/REGION]
+
+| 変数 | 説明 |
+| ---- | ----------- |
+| r.ForceLOD=0 | すべての LOD を強制的に 0 にします。 -1 はオフ。 |
+| r.MotionBlurQuality=4 | モーション ブラーの方法を定義します (品質やパフォーマンスを調整します)。 0 はオフ、 1 は低い、 2 は中程度、 3 は高い (デフォルト)、 4 は非常に高い |
+| r.MotionBlurSeparable=1 | 高品質なブラーにするためにノイズを滑らかにする 2 つめのモーション ブラー パスを追加します。0 はオフ、 1 はオン |
+| r.DepthOfFieldQuality=4 | 被写界深度の品質を調整することができます。現在、 BokehDOF にのみ十分な影響を及ぼします。GaussianDOF は 0 でオフにするか、そうでなければオンにします。 <br> [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#dofquality] |
+| r.HLOD=0 | 単一の引数：0 または 1 で HLOD System を有効または無効にします。<br> 複数の引数： X を強制し、この場合の X は表示させる HLOD レベルです。 |
+| r.SSR.Quality=4| スクリーン空間の反射を使用するかどうか、およびどの品質設定にするかです。別のスケールを持つポスト プロセス設定に設定を制限します。パフォーマンスの負荷は高くなり、視覚的リアリティーは高まりますが、技術的に制約があります。 <br> [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#ssrquality]  |
+| r.ViewDistanceScale=30 | 表示距離のスケールを制御します。プリミティブの MaxDrawDistance はこの値によってスケーリングされます。値が高いほど表示距離は増えますが、パフォーマンスの負荷は高くなります。
+| r.MipMapLODBias=-1 | すべての 2D テクスチャ、 -15.0 から 15.0 の範囲に追加のミップマップ バイアスを適用します。 |
+| r.Shadow.MaxResolution=4096 | シャドウ デプスの出力が可能な正方形の最大寸法 (テクセル単位)。レンジ 4 からハードウェアの制約があります。値が高いほどシャドウのクオリティは高まりますが、パフォーマンスの負荷は高くなります。 |
+
+[COMMENT:none]
+
+[EXCERPT:DofQuality]
+[REGION:simpletable]
+| 値 | 説明 |
+| ----- | ------ |
+| 0 | オフ |
+| 1 | 低品質 |
+| 2 | 高品質 (デフォルト、適応可能、 4 倍遅くなります) |
+| 3 | 非常に高品質、リアルタイムでないカットシーン用、 CircleDOF のみ (遅い) |
+| 4 | 非常に高品質、リアルタイムでないカットシーン用、 CircleDOF のみ (非常に遅い) |
+[/REGION] 
+[/EXCERPT:DofQuality]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:ssrquality]
+[REGION:simpletable]
+| 値 | 説明 |
+| ----- | ------ |
+| 0 | オフ (デフォルト) |
+| 1 | 低 (光沢なし) |
+| 2 | 中 (光沢なし) |
+| 3 | 高 (光沢あり / ラフネスを使用、サンプルほとんどなし) |
+| 4 | 非常に高い (リアルタイムでは遅すぎる可能性あり) |
+[/REGION] 
+[/EXCERPT:ssrquality]
+
+[/COMMENT]
+
+## 例
+
+このセクションでは様々な状況に合わせていくつかのコマンドライン引数のサンプルを用意しました。 
+例では、プロジェクトに関連する以下の詳細を考慮しました。 
+
+* ビルドの場所 = C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe
+* プロジェクトの場所 = D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject
+* マップ名 = TestRender_Map.umap
+* シーケンス名 = Test_Render_SQ
+
+### プレビューの出力
+ .jpg ファイル形式、 1280x720 の解像度で 30fps で出力した 16:9 プレビューの例です。 
+
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=1280 -resy=720 -MovieFormat=JPG -MovieQuality=75
+
+
+### 最終出力
+この例では、30fps で 16:9、 3840x2160 解像度の .bmp ファイル形式の高品質の出力を目指しました。 
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=3840 -resy=2160 -forceres -MovieFormat=BMP -MovieQuality=100 -notexturestreaming -MovieCinematicMode=yes -MovieWarmUpFrames=60
+
+
+
+
+

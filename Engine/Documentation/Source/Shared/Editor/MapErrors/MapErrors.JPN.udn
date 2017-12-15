@@ -162,7 +162,9 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 [EXCERPT:CameraAspectRatioIsZero]
 **Camera has AspectRatio=0 - please set this to something non-zero** (カメラのアスペクト比 =0 になっています。ゼロ以外に設定してください。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:CameraAspectRatioIsZero]
 
 ### クラス
@@ -171,14 +173,18 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 [EXCERPT:AbstractClass]
 **[ ]&#58;&#58;[ ] is obsolete and must be removed (Class is abstract)** ( [] が古くなっています。取り除かなくてはなりません (クラスが抽象です) )
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:AbstractClass]
 
 (#DeprecatedClass)
 [EXCERPT:DeprecatedClass]
 **[ ]&#58;&#58;[ ] is obsolete and must be removed (Class is deprecated)**( [] が古くなっています。取り除かなくてはなりません (クラスが非推奨です) )
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:DeprecatedClass]
 
 ### Foliage
@@ -187,14 +193,18 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 [EXCERPT:FoliageMissingStaticMesh]
 **Foliage instances for a missing Static Mesh have been removed.** MapErrors(不足しているスタティックメッシュのフォーリッジ インスタンスが取り除かれました。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingStaticMesh]
 
 (#FoliageMissingStaticMesh)
 [EXCERPT:FoliageMissingClusterComponent]
 **Foliage in this map is missing [MissingCount] cluster component(s) for Static Mesh [MeshName]. Opening the Foliage tool will fix this problem.**(このマップのフォーリッジは [MissingCount] 個のクラスター コンポーネントがスタティックメッシュ [MeshName] に対して不足しています。)
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingClusterComponent]
 
 ### ランドスケープ
@@ -203,28 +213,36 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 [EXCERPT:FixedUpDeletedLayerWeightmap]
 **[LandscapeComponent] &#58; Fixed up deleted layer weightmap** (削除されたレイヤーのウェイトマップを修復します。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpDeletedLayerWeightmap]
 
 (#FixedUpIncorrectLayerWeightmap)
 [EXCERPT:FixedUpIncorrectLayerWeightmap]
 **[LandscapeComponent] &#58; Fixed up incorrect layer weightmap texture index** (誤ったレイヤー ウェイトマップのテクスチャ インデックスを修復します。 ) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpIncorrectLayerWeightmap]
 
 (#FixedUpSharedLayerWeightmap)
 [EXCERPT:FixedUpSharedLayerWeightmap]
 **Fixed up shared weightmap texture for layer [Layer] in component \[Component\] \(shares with [Name]\)** (component \[Component\] \(shares with [Name]\ にあるレイヤーの共有ウェイトマップ テクスチャを修復します。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpSharedLayerWeightmap]
 
 (#LandscapeComponentPostLoad_Warning)
 [EXCERPT:LandscapeComponentPostLoad_Warning]
 **Landscape ([ProxyName]) has overlapping render components at location ([X,Y])** (ランドスケープ ([ProxyName]) には、位置 [X,Y] にオーバーラップしているレンダー コンポーネントがあります。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:LandscapeComponentPostLoad_Warning]
 
 ### レベル
@@ -264,7 +282,9 @@ LightComponent が None に設定されているライト アクタがある場�
 [EXCERPT:StaticComponentHasInvalidLightmapSettings]
 **Component is a static type but has invalid lightmap settings!Indirect lighting will be black.Common causes are lightmap resolution of 0, LightmapCoordinateIndex out of bounds.** (コンポーネントが静的タイプですが、無効なライト設定になっています。間接光が黒になります。一般的な原因は、ライトマップの解像度が 0 で、LightmapCoordinateIndex が境界の外にあることです。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:StaticComponentHasInvalidLightmapSettings]
 
 ### ナビゲーション
@@ -273,7 +293,9 @@ LightComponent が None に設定されているライト アクタがある場�
 [EXCERPT:RebuildPaths]
 **Paths need to be rebuilt** (パスの再ビルドが必要です) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:RebuildPaths]
 
 ### パーティクル システム
@@ -368,14 +390,18 @@ Param.Material を NULL にしないでください。
 [EXCERPT:MoreMaterialsThanReferenced]
 **More overriden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]** (スタティックメッシュ コンポーネントに存在するオーバーライドされたマテリアルの数がソース メッシュ  で参照されている数を超えています) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:MoreMaterialsThanReferenced]
 
 (#ElementsWithZeroTriangles)
 [EXCERPT:ElementsWithZeroTriangles]
 **[Count] element(s) with zero triangles in Static Mesh [StaticMesh]** (スタティックメッシュの [カウント] 個の要素はトライアングルの数が 0 です。
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:ElementsWithZeroTriangles]
 
 
@@ -416,7 +442,9 @@ LevelStreamingVolume に関連付けられたレベルがなく、動作しな�
 [EXCERPT:UsingExternalObject]
 **[ObjectName] &#58; Externally referenced** (外部から参照されています。) 
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:UsingExternalObject]
 
 

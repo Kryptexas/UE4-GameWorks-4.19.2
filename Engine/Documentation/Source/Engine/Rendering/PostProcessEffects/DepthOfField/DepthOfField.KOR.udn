@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title:뎁스 오브 필드
@@ -73,10 +73,10 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 전환 구역을 포함한 이 레이어들은 ( **표시 > 시각화** 아래) **뎁스 오브 필드 레이어** 표시 옵션으로 시각화시켜 볼 수 있습니다. 근경 레이어는 초록, 원경 레이어는 파랑, 초점구역은 검정색으로 표시됩니다.
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Scene](dof_layers.png)(w:700)
+	![씬](dof_layers.png)(w:700)
 	[/PARAM]
 	[PARAM:after]
-	![Layer Visualization](dof_layers_visualize.png)(w:700)
+	![레이어 시각화](dof_layers_visualize.png)(w:700)
 	[/PARAM]
 [/OBJECT]
 
@@ -107,13 +107,16 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 | **Max Bokeh Size** | DOF 최대 보케 크기 - 보케 기반 DoF 블러의 (뷰 폭 기준 백분율) 최대 크기입니다 (**주:** 퍼포먼스 비용은 크기*크기 에 비례합니다). 어느 거리에서든 보케의 크기를 계산하는 데 사용되는 함수 근사치 표현은 아래 나타나 있습니다: [INCLUDE:#MaxBokehSize] |
 | **Near Blur Size** | DOF 근경 블러 크기 - 가우시안 기반 DoF 블러의 (뷰 폭 기준 백분율) 최대 크기입니다 (**주:** 퍼포먼스 비용은 크기에 비례합니다). [INCLUDE:#NearBlurSize] |
 | **Far Blur Size** | DOF 원경 블러 크기 - 가우시안 기반 DoF 블러의 (뷰 폭 기준 백분율) 최대 크기입니다 (**주:** 퍼포먼스 비용은 크기에 비례합니다). [INCLUDE:#FarBlurSize] |
-| **Shape** | DOF 모양 - 초점이 잡히지 않은 사물의 보케 모양을 정의하는 텍스처입니다 (블렌딩 불가). |
+| **Shape** | DOF 모양 - 초점이 잡히지 않은 사물의 보케 모양을 정의하는 텍스처입니다 (블렌딩 불가). [COMMENT:none]
+TODO: show a few example images
+[/COMMENT] |
 | **Occlusion** | DOF 오클루전 - 블러링이 적용된 지오메트리가 평상시 실루엣 너머로 얼마나 뻗어나가게 할지, 그리고 그 불투명도를 조절합니다. 0.18 정도면 꽤 자연스럽게 나옵니다. 0.4 가 되면 레이어 색이 새는 문제를 잡아줘야 할 수 있습니다. (0.18 미만으로) 값이 매우 작으면 블러 이펙트가 중화되어 버리긴 하지만, 사물이 카메라에 매우 가까이 있을 경우 괜찮아 보일 수도 있습니다. [INCLUDE:#Occlusion] |
 | **Color Threshold** | DOF 색 한계치 - 적응형 DoF 가 최대 해상도로 전환되는 색 한계치을 조절합니다. 값이 작을 수록 씬의 더 많은 부분이 최대 해상도를 사용하여 처리됩니다. |
 | **Size Threshold** | DOF 크기 한계치 - 적응형 DoF 가 최대 해상도로 전환되는 크기 한계치을 조절합니다. 값이 클 수록 씬의 더 많은 부분이 최대 해상도를 사용하여 처리됩니다. |
 | **Sky Distance** | 하늘 거리 - 스카이박스에 초점을 맞출 수 있도록 하기 위한 인공의 거리(예로 200000)이며, 값이 0 이하이면 기능이 꺼지고, GaussianDOF 에만 사용되며, 퍼포먼스 비용이 생길 수 있습니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:FocalDistance]
 [REGION:imagetable]
 | ![DoF Focal Distance - Near](dof_focaldist_0.png)(w:240) | ![DoF Focal Distance - Mid](dof_focaldist_1.png)(w:240) | ![DoF Focal Distance - Far](dof_focaldist_2.png)(w:240) |
@@ -180,7 +183,8 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 | Scale = 0.0 | Scale = 0.375 | Scale = 1.0 |
 [/REGION] 
 [/EXCERPT:Scale]
--->
+
+[/COMMENT]
 
 ## 적응형 DoF
 
@@ -188,10 +192,10 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Adaptive Resolution - Off](dof_adaptive_0.png)(w:700)
+	![적응형 해상도 - 꺼짐](dof_adaptive_0.png)(w:700)
 	[/PARAM]
 	[PARAM:after]
-	![Adaptive Reoslution - On](dof_adaptive_1.png)(w:700)
+	![적응형 해상도 - 켜짐](dof_adaptive_1.png)(w:700)
 	[/PARAM]
 [/OBJECT]
 
@@ -208,10 +212,10 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Adaptive Resolution - Optimized](dof_adaptive_good.png)(w:700)
+	![적응형 해상도 - 최적화](dof_adaptive_good.png)(w:700)
 	[/PARAM]
 	[PARAM:after]
-	![Adaptive Resolution - Expensive](dof_adaptive_bad.png)(w:700)
+	![적응형 해상도 - 비쌈](dof_adaptive_bad.png)(w:700)
 	[/PARAM]
 [/OBJECT]
 

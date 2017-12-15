@@ -24,11 +24,13 @@ SkillLevel:Advanced
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
 [/REGION]
---->
+-
+[/COMMENT]
 
 
 レンダリングされた人間の皮膚を本物のように見せることは非常に難しいトピックで、これなら実現できるという方法はありません。 

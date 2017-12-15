@@ -5,56 +5,12 @@ Description:An overview of the Geometry Editing Content Example map.
 Related: Engine/Actors/Brushes
 Related: Engine/UI/LevelEditor/Modes
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:BSP_TopicCompact.png
 
 
 [REGION:fullwidth]
 ![](BSP_Header.png)
 [/REGION]
-
-<!---[TOC(start:2 end:2)]--->
-
 
 
 There are a number of methods in which you can create the geometry that comprise your levels in Unreal Engine 4. Generally speaking, it is better (more efficient performance wise) to use [Static Meshes](Engine/Content\Types\StaticMeshes) when creating the geometry.

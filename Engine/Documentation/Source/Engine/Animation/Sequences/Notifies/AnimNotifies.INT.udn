@@ -9,26 +9,6 @@ Related: Engine/Animation
 Related: Engine/Animation/AnimHowTo
 topic-image:Engine/Animation/Overview/AnimNotifiesTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Sequences/Notifies:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Sequences/Notifies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Sequences/Notifies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Sequences/Notifies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 [EXCERPT:Intro]
 **Animation Notifications** (**AnimNotifies** or just **Notifies**) provide a way for animation programmers to setup events to occur at specific points during an **Animation Sequence**. Notifies are commonly used to add effects like footstep sounds during a walk or run animation or spawning a particle system during animation. However, they can have any number of different uses, as the system can be extended with custom notification types to cater to the needs of any type of game.
@@ -178,14 +158,15 @@ To use an AnimTrail emitter you must:
 1. Create a [Particle System](Engine/Rendering/ParticleSystems) that contains an emitter with AnimTrail type data. 
 2. Create and add a Notify State of the **Trail** type to an animation.
 
-<!-- To be included as part of a HowTo.
+[COMMENT]
+ To be included as part of a HowTo.
 Setting Up the Particle System
 
 Create a Particle System as usual and add a new emitter with type data AnimTrail to it. 
 Several properties of the type data module will affect how the trail behaves. Below is what you should see in **Cascade** when setting up the system. Note, you will see nothing in the preview window as trails must be used in conjunction with a Skeletal Mesh component as explained later. 
 
 [REGION:lightbox]  
-[![](TrailExample.png)(w:480 h:480)](TrailExample.png)
+[![](TrailExample.png)(w:480)](TrailExample.png)
 [/REGION]
 _click to view fullsize_
 
@@ -216,7 +197,8 @@ Now that we have a particle system, we must use it with an AnimNotify.
 Open the **Animation Editor**, add or use an existing **Timeline** under the **Notifies** section and **Right-click** on it to bring up the menu. The Trails Notify can be found under the **Add Notify State** section. 
 
 ![](SetUpTrail.png)
--->
+
+[/COMMENT]
 
 Once you have added an AnimTrail, you can adjust its properties from the **Details** panel: 
 
@@ -249,7 +231,8 @@ There are also some debug rendering options available:
 | **Render Tangents** | This toggles the debug rendering of the curve tangents. |
 | **Render Tessellation** | This toggles debug rendering of all vertices on the curve. This shows how the curve is tessellated between the spawn points. |
 
-<!-- To be included with AnimTrail HowTo.
+[COMMENT]
+ To be included with AnimTrail HowTo.
 ### Controlling Animation Trails in Blueprint
 While the above method is the standard approach to controlling AnimTrails, you can also control them from inside a Blueprint without the need of an Anim Notify. 
 The only restriction with this is that the Particle System Component must be a child of the Skeletal Mesh Component from which you are sampling socket locations. 
@@ -262,7 +245,8 @@ The only restriction with this is that the Particle System Component must be a c
  ![](TrailBlueprint3.png)
 1. You can also alter the trail's properties while it is running (the example below alters width each tick using the game time).  
  ![](TrailBlueprint4.png)
-  -->
+  
+[/COMMENT]
 
 ## Additional Notify Properties
 In addition to the properties that can be modified in the **Anim Notify** section of the **Details** panel for each type of Notify (when applicable), the properties below can also be used to define how your Notify is used.

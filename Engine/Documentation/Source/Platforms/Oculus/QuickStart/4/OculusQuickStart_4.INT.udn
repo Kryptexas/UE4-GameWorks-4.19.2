@@ -5,33 +5,17 @@ Description: Connect and update your Oculus Rift HMD.
 Type: quick start
 SkillLevel: Beginner
 Version: 4.17
-Parent: Platforms/Oculus
+Parent:Platforms/Oculus/QuickStart
 Order: 4
 Checkpoint: RIFTQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-    [PARAM:previous]
-        [Previous Step](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
-    [/PARAM]
-    [PARAM:current]
-    [/PARAM]
-    [PARAM:home]
-        [Quick Start Home](Platforms/Oculus/QuickStart)
-    [/PARAM]
-    [PARAM:next]
-        [Next Step](Platforms/Oculus/QuickStart/5 "%Platforms/Oculus/QuickStart/5:title%")
-    [/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
 In this section, we will look at how you complete the setup for your Oculus Rift HMD and peripherals.
 
-[region:note]
+[region:warning]
 When you first plug your Oculus Rift into your PC, the Rift software may ask you to update the firmware for your Rift. DO NOT skip this or your Rift might not work with UE4!
 [/region]
-
-%Steps%
 
 1. After the Rift drivers have finished installing the following screen will be displayed. 
     Press the **Next** button to begin the Rift setup process and follow the directions on the screen.
@@ -51,4 +35,4 @@ For quick reference, you can find the help links listed in the lower right-hand 
 * [**Setup Your Xbox Controller (wireless mode)**](https://support.oculus.com/1560296144292386) 
 * [**Touch Setup**](https://support.oculus.com/857827607684748?locale=en_US&ref=oculus-pc-app)
 
-%Steps%
+[NAV]

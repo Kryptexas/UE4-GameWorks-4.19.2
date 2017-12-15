@@ -24,7 +24,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 Making changes inside the Blueprint means that each time you make a new launchpad, it will have the look and feel you have created in the **Blueprint Editor**. While you could duplicate your LaunchPad
@@ -47,4 +47,4 @@ there will not be any behavior on it yet. In the next step, you will start setti
 
 ---
 
-%Steps%
+

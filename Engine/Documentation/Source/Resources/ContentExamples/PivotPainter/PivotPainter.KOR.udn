@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피벗 페인터 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -8,43 +8,11 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/Functions/Reference/PivotPainter
 Related: Engine/Rendering/Materials/Functions/Creating
 Version: 4.9
+topic-image:pivotPainter_compact.png
 
 [REGION:banner]
 ![](PivotPainter_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/PivotPainter:title%](pivotPainter_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PivotPainter:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PivotPainter:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PivotPainter]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/PivotPainter:title%](pivotPainter_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PivotPainter:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PivotPainter]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
 
 [Pivot Painter](Engine\Content\Tools\PivotPainter) (피벗 페인터) 툴은 모델의 버텍스 데이터 안에 모델 피벗과 로테이션 정보를 저장하는 MAXScript 입니다. 그 정보를 언리얼 엔진 4 의 셰이더 시스템에서 참조하여 상호작용형 이펙트를 만들 수 있습니다.
 

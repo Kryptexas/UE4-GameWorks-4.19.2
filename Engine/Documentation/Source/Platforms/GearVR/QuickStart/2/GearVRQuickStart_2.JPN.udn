@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3769005
 Availability:Public
 Title:2.Gear VR プロジェクトの設定
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの設定方法
-Version:4.16
+Description:プロジェクトを Gear VR ヘッドセット対応に設定する方法
+Version:4.17
 Skilllevel:Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:2
@@ -14,107 +14,90 @@ Checkpoint:GearVRQS
 
 [nav]
 
+このセクションでは、Google VR HMD を使えるようにアンリアル エンジン 4 のプロジェクトを設定する方法を説明します。
+
 ## ステップ
 
-1. プロジェクトの作成とコンパイルが終了したら、Visual Studio が (既にインストールされている場合は) エディタと一緒に自動的に開きます。
+1. エディタをロードしたら、**メイン ツールバー** から **[Edit]** > **[Plugins]** を選択して [Plugin] メニューを開きます。[Plugins] メニューから **[Virtual Reality]** を選択して **[OculusVR]** プラグインが有効にされていることを確認します。
 
-	![](GVR_Editor_Opened.png)
+    [REGION:lightbox]
+    [![](GVR_Plugin_Options_Toggle.png)(w:703)](GVR_Plugin_Options_Toggle.png)
+    [/REGION]
 
-	[region:note]
-	使用するアンリアル エンジンが 4.8 以降の場合、ブループリント ベースのプロジェクト Visual Studio は必要ないので開きません。 
-	[/region]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-1. UE4 エディタをロードしたら、**メインのツールバー** から **[Windows]** タブを開いて **[Plugins]** メニューを選択します。 
+    [region:note]
+    UE4 の以前のバージョンでは、Gear VR は独自のプラグインを有効にする必要がありました。お持ちのアンリアル エンジン 4 のバージョンで Grear VR が使用できない場合、VR プラグイン セクションにチェックを入れて、Gear VR プラグインがある場合は有効にしておいてください。
+    [/REGION]
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		eo79kj2i2bc
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+1. デバイスにデプロイしたアンリアル エンジン プロジェクトを実行するには、最低 1 つはレベルを保存しておく必要があります。現在のレベルを保存するには、**ツールバー** の **[Save]** アイコンを押して **「GearVRQSMap」** と名前を付けて保存します。
 
-1. プラグイン メニューから **[Head Mounted Displays]** セクションへ移動して、**[Oculus]** オプションを **無効** に、**[Gear VR]** オプションを **有効** にします。エディタを再起動するために **[Restart Now (今すぐ再起動)]** ボタンをクリックして、変更を反映させます。 
+    [REGION:lightbox]
+    [![](GVR_QS_Saved_Map.png)(w:299)](GVR_QS_Saved_Map.png)
+    [/REGION]
 
-	![](GVR_Plugin_Options_Toggle.png)
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-1. エディタが再起動したら **メイン ツールバー** から **[Edit (編集)]** を選択して、次に **[Project Settings (プロジェクト設定)]** を選択します。その後 **[APKPacking]** セクションから Android プラットフォームの **[Configure Now (今すぐ設定)]** ボタンをクリックします。
+1. メイン ツールバー から **[Edit]** > **[Project Settings]** を選びます。次に、**[Project]** の **[Maps & Modes]** セクションの中の **[Default Maps]** で、**[Editor Start Up]** と **[Game Default Map]** に保存したばかりレベルを入力します。
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		If_vSzD5h3w
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+    [REGION:lightbox]
+    [![](GVR_QS_Default_Maps.png)(w:546)](GVR_QS_Default_Maps.png)
+    [/REGION]
 
-1. 次に **[Minimum SDK Version]** と **[Target SDK Version]** を **9** から **19** に変更します。 
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-	![](GVR_Android_SDK_Version.png)
+1. **[Engine]** > **[Input]** を開きます。**[Mobile]** セクションで、**[Default Touch Interface]** 入力ボックスをクリックしてドロップダウンから **[None]** を選択して、**[Default Touch Interface]** を **[None]** に設定します。
 
-1. **[Configure the Android Manifest for deployment to Gear VR]** チェックボックスが表示されるまでスクロールダウンして、これを有効にします。 
+    [REGION:lightbox]
+    [![](GVR_QS_Remove_Touch.png)(w:546)](GVR_QS_Remove_Touch.png)
+    [/REGION]
 
-	[Region:note]
-	これを設定しないと Gear VR ヘッドセットでプロジェクトが実行しないので、とても重要な手順です。
-	[/region]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-	![](GVR_Deployment_Checkbox.png)
+1. **[Platforms]** の **[Android]** の中の **[ApkPackaging]** セクションを選択して **[Configure Now]** ボタンを押し、以下の設定を行います。
 
-1. 次に **[Android SDK]** セクションを選択して、必要な Android SDK ファイルの場所を開発用 PC に入力します。 
-	必要なフォルダは Tegra ファイルをインストールした場所を参照してください。 
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Version.png)(w:546)](GVR_Android_SDK_Version.png)
+    [/REGION]
 
-	[Region:note]
-	Android 1R6 用の CodeWorks がインストール済みであれば、ここで行う作業は特にありません。情報が足りなかったり、別の場所に関連づいている場合のみ修正してください。
-	[/region]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-	![](GVR_Android_SDK_Setup.png)
+    * **Minimum SDK Version:** 19
+    * **Target SDK Version:** 19
+    * **[Enable FullScreen Immersive on KitKat and above devices]:** True 
 
-1. 最後に **[File]** > **[Package Project (プロジェクトのパッケージ化)]** > **[Packing Settings (パッケージ設定)]** から、**[Full Rebuild (完全にリビルド)]** のチェックを外してイタレーション時間を加速させます。 
+1. 次に、**[Advanced APKPackaging]** セクションの **[Configure the AndroidManifest for deployment to Gear VR]** チェックマーク ボックスを有効にします。
 
-	[Region:note]
-	プロジェクトの最終パブリッシュの準備が出来たら、プロジェクトが目的通りに Gear VR Headset で機能するように、忘れずにこのオプションを **再び有効** にしてください。 
-	[/region]
+    [REGION:lightbox]
+    [![](GVR_Deployment_Checkbox.png)(w:546)](GVR_Deployment_Checkbox.png)
+    [/REGION]
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		29oB5aowElQ
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
+1. ここで **[Android SDK]** セクションをクリックして、プロジェクトのビルドに必要な [Android SDK] ツールが PC の適切なフォルダに指定されており、以下の API レベルに設定されていることを確認してください。
+    
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Setup.png)(w:546)](GVR_Android_SDK_Setup.png)
+    [/REGION]
 
-[nav]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
 ## 最終結果
-完了すると、Samsung Galaxy 上での UE4 プロジェクトのビルド、デプロイ、表示が可能な状態になります。
+
+完了すると、Gear VR HMD 上でアンリアル エンジン 4 プロジェクトのビルド、デプロイ、表示が可能な状態になります。
+
+[nav]

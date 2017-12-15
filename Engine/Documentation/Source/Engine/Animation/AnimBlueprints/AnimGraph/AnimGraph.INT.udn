@@ -66,7 +66,8 @@ Please refer to each link below for information on how each works within the con
 * [Sync Groups](Engine\Animation\SyncGroups) - can be used to keep related animation that may have different lengths synchronized. 
 
 
-<!-- includes were just duplicating information when arriving at the linked page, commenting out. 
+[COMMENT:none]
+ includes were just duplicating information when arriving at the linked page, commenting out. 
 ### Animation Sequences
 
 [INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
@@ -134,7 +135,8 @@ See [Convert Space Nodes](Engine/Animation/NodeReference/SpaceConversion) for mo
 [REGION:note]
 See [Sync Groups](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
 [/REGION]
--->
+
+[/COMMENT]
 
 ## Thread Safety
 

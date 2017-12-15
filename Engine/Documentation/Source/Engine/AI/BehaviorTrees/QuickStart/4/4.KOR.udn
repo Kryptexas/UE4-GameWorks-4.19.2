@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 4. 캐릭터 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:단계 4. 캐릭터 블루프린트 셋업
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이미 **캐릭터** 가 들어있는 프로젝트를 생성했기 때문에, 인간형 **스켈레탈 메시** 와 그 **애니메이션 블루프린트** 에 접근할 수 있습니다. 튜토리얼에서는 이것을 사용하지만, 원한다면 얼마든지 별도의 것을 사용해도 됩니다.
 
@@ -72,8 +60,4 @@ version: 4.9
 1. 컴파일 후 저장 합니다.
 
 
-%Steps%
-
-
-
-
+[NAV]

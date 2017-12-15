@@ -87,7 +87,9 @@ Mesh object does not contain geometry.
 
 ---
 
-<!-- It doesn't contain any base layer.  -->
+[COMMENT:none]
+ It doesn't contain any base layer.  
+[/COMMENT]
 
 (#Generic_Mesh_TriangulationFailed)
 [EXCERPT:Generic_Mesh_TriangulationFailed]

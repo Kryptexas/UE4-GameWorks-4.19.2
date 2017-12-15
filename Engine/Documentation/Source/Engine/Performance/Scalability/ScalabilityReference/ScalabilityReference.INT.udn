@@ -3,49 +3,8 @@ Title: Scalability Reference
 Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
 Description:Scalability options, properties, and console variables.
 version: 4.9
+topic-image:Engine/Performance/Scalability/scalability_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Scalability/ScalabilityReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Scalability/ScalabilityReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Scalability/ScalabilityReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Scalability/ScalabilityReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Scalability/ScalabilityReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Scalability/ScalabilityReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:banner]
-
-[/REGION]
 
 [TOC(start:2)]
 
@@ -122,9 +81,12 @@ The **View** -> **Engine Scalability Settings** -> **Post Processing** option ad
 |[INCLUDE:#post3]|[INCLUDE:#post4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:post1]
 	r.MotionBlurQuality=0
 	r.BlurGBuffer=0
@@ -189,7 +151,8 @@ The **View** -> **Engine Scalability Settings** -> **Post Processing** option ad
 	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post4]
 
--->
+
+[/COMMENT]
 
 
 ## Shadows - sg.ShadowQuality
@@ -213,9 +176,12 @@ The **View** -> **Engine Scalability Settings** -> **Shadows** option adjusts th
 |[INCLUDE:#shadow3]|[INCLUDE:#shadow4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:shadow1]
 	r.LightFunctionQuality=0
 	r.ShadowQuality=0
@@ -255,7 +221,8 @@ The **View** -> **Engine Scalability Settings** -> **Shadows** option adjusts th
 	r.Shadow.DistanceScale=1.0
 	r.Shadow.CSM.TransitionScale=1.0
 [/EXCERPT:shadow4]
--->
+
+[/COMMENT]
 
 
 ## Textures - sg.TextureQuality
@@ -274,9 +241,12 @@ The texture quality also affects the texture filtering mode (r.MaxAnisotropy). L
 |[INCLUDE:#texture3]|[INCLUDE:#texture4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:texture1]
 	r.Streaming.MipBias=2.5
 	r.MaxAnisotropy=0
@@ -301,7 +271,8 @@ The texture quality also affects the texture filtering mode (r.MaxAnisotropy). L
 	r.Streaming.PoolSize=1000
 [/EXCERPT:texture4]
 
--->
+
+[/COMMENT]
 
 [REGION:note]
 The effect of this feature is heavily dependent on your game and hardware. If you do not have many textures, to the point where loading and using the full resolution mip maps does not use all of the memory pool Unreal Engine 4 has devoted to textures, you will not actually see a difference between high and low settings (outside of the change to the Anisotropy settings).
@@ -322,9 +293,12 @@ The **View** -> **Engine Scalability Settings** -> **Effects** option adjusts th
 |[INCLUDE:#effects3]|[INCLUDE:#effects4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:effects1]
 	r.TranslucencyLightingVolumeDim=24
@@ -366,7 +340,8 @@ The **View** -> **Engine Scalability Settings** -> **Effects** option adjusts th
 	r.MaterialQualityLevel=1
 [/EXCERPT:effects4]
 
--->
+
+[/COMMENT]
 
 ## Detail Mode
 
@@ -391,7 +366,7 @@ It is easy to use this to disable decals, detail objects, lights or individual p
 Materials can use the **Quality Switch** Material Expression node to disable some expensive Material parts that have a minor effect on the final look. To see the effect of this, you need to toggle to the **Low Quality** mode.
 
 [REGION:lightbox]
-[![](SC_SwitchNode.png)(w:555 h:391)](SC_SwitchNode.png)
+[![](SC_SwitchNode.png)(w:555)](SC_SwitchNode.png)
 [/REGION]
 
 Whatever the **Material Quality Level** is set to, low or high, will determine which expressions get evaluated for this material (the low or high pin). The default pin will fill in either high or low (or both) if they have no inputs. This material contains 2 reasonably high-cost Perlin noise operations when set to high:
@@ -408,11 +383,11 @@ This example is to simply show off the **Material Switch Node**. The **Noise** n
 [/REGION]
 
 [REGION:lightbox]
-[![](SC_Closeup.png)(w:681 h:164)](SC_Closeup.png)
+[![](SC_Closeup.png)(w:681)](SC_Closeup.png)
 [/REGION]
 
 [REGION:lightbox]
-[![](SC_MirrorComplexity.png)(w:450 h:681)](SC_MirrorComplexity.png)
+[![](SC_MirrorComplexity.png)(w:450)](SC_MirrorComplexity.png)
 [/REGION]
 
 _Above, **Shader Complexity** mode shows us that our high quality material is more costly than other shaders, with darker greens meaning more costly shaders._
@@ -495,7 +470,8 @@ You can customize any of the Scalability Settings that are used in your UE4 proj
 	
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:FGS]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -518,9 +494,11 @@ You can customize any of the Scalability Settings that are used in your UE4 proj
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FGS]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 
 	[REGION:simpletable]
 	|FoliageQuality 0|FoliageQuality 1|
@@ -556,10 +534,12 @@ You can customize any of the Scalability Settings that are used in your UE4 proj
 	grass.DensityScale=1.0
 [/EXCERPT:FoliageQuality@3]
 
--->
+
+[/COMMENT]
 
 
-<!--
+[COMMENT:none]
+
 Both the Grass and Foliage systems can use the **Scalability System** to help reduce the impact those systems have on performance. To enable this functionality in your project you will need to do the following: 
 
 1. Go to your projects **Config** folder and create a new **.INI** file called **DefaultScalability.ini**.
@@ -593,5 +573,6 @@ Both the Grass and Foliage systems can use the **Scalability System** to help re
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
 	[/REGION]
--->
+
+[/COMMENT]
 

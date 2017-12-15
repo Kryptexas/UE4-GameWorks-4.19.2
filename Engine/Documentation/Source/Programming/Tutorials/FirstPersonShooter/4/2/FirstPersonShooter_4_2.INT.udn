@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to edit the animation's Event Graph to ensure that our animation transition variables are firing properly while the game is running.
 
@@ -111,4 +111,3 @@ During this step, we're going to edit the animation's Event Graph to ensure that
 	[/REGION]
 	_Click on the image to zoom in._
 
-%Steps%

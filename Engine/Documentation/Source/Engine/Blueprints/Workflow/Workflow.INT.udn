@@ -6,46 +6,7 @@ version: 4.9
 parent:Engine/Blueprints
 order:3
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Workflow:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Workflow:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Workflow]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Workflow:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Workflow:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Workflow]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:bp_workflow_topic.png
 
 When working in Blueprints, commenting your graphs, searching through all the Blueprints in your project, and using breakpoints to debug systems are key tools available to you.
 

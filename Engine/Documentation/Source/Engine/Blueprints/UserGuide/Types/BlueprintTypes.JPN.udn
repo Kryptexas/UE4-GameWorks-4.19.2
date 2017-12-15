@@ -67,7 +67,8 @@ Blueprint Macro Library に入れるのが理想的です。
 詳細は [](Engine/Blueprints/UserGuide/Types/MacroLibrary) を参照してください。
 
 
-<!--
+[COMMENT:none]
+
 [OBJECT:IconSection]
 	[PARAM:icon]
 		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
@@ -81,7 +82,8 @@ Blueprint Macro Library に入れるのが理想的です。
 		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現ビューポートで選択されたアクタ一式を実行します。
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Types]
 

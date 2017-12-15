@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:단순 vs 복합 콜리전
 Crumbs: %ROOT%, Engine
@@ -7,44 +7,6 @@ Version: 4.11
 parent:Engine/Physics
 order:6
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/SimpleVsComplex:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/SimpleVsComplex:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/SimpleVsComplex:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/SimpleVsComplex:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/SimpleVsComplex:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/SimpleVsComplex:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 언리얼 엔진 4 에는 단순 & 복합 콜리전 모양이 있습니다. **Simple Collision** (단순 콜리전)은 박스, 구체, 캡슐, 컨벡스 헐과 같은 
 프리미티브를 말합니다. **Complex Collision** (복합 콜리전)은 주어진 오브젝트의 트라이메시 입니다. 기본적으로 언리얼 엔진 4 는 

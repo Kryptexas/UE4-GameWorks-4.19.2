@@ -95,7 +95,8 @@ There are two ways you can implement this function. The first method requires a 
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 Method Split Here
 
 [EXCERPT:m1]
@@ -171,9 +172,11 @@ When you copy-paste the Blueprint code, the **Event Begin Play** node will not b
 
 Now that the required Blueprints have been setup, in the next section we will go over how to use the height map painter inside UE4.
 [/EXCERPT]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:Function]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -1490,4 +1493,5 @@ Now that the required Blueprints have been setup, in the next section we will go
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FunctionUV02]
--->
+
+[/COMMENT]

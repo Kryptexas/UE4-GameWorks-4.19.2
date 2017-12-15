@@ -43,24 +43,18 @@ order:1
 
 このガイドでは、新規ランドスケープ作成、ランドスケープのスカルプト、ランドスケープの新規マテリアルの作成、ランドスケープのマテリアルのペイントについて説明します。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Engine/Landscape/QuickStart/1 "%Engine/Landscape/QuickStart/1:description%")
 	* [](Engine/Landscape/QuickStart/2 "%Engine/Landscape/QuickStart/1:description%")
 	* [](Engine/Landscape/QuickStart/3 "%Engine/Landscape/QuickStart/1:description%")
 	* [](Engine/Landscape/QuickStart/4 "%Engine/Landscape/QuickStart/1:description%")
 	* [](Engine/Landscape/QuickStart/5 "%Engine/QuickStart/5:description%")
 	* [](Engine/Landscape/QuickStart/6 "%Engine/QuickStart/6:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

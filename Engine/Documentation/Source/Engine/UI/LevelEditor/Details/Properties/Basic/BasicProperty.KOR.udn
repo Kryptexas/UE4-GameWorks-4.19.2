@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 기본 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
@@ -15,7 +15,8 @@ Version: 4.9
 | **체크박스** | `Bool` 같은 단순 토글 프로퍼티 편집에 사용됩니다. [INCLUDE:#TypeBool] |
 | **드롭다운** | 유효값 리스트를 제공해 주는 `Enum` 및 기타 프로퍼티 편집에 사용됩니다. [INCLUDE:#TypeEnum] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TypeString]
 [REGION:none]
 **예제:**  
@@ -50,4 +51,5 @@ Version: 4.9
 ![Dropdown control](enum.png)
 [/REGION]
 [/EXCERPT:TypeEnum]
--->
+
+[/COMMENT]

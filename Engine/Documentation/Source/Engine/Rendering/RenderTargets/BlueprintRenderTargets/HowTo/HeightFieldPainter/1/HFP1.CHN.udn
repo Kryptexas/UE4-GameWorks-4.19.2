@@ -80,7 +80,8 @@ checkpoint:HFP
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HUD]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -230,4 +231,5 @@ checkpoint:HFP
 [/EXCERPT:HUD]
 
 
--->
+
+[/COMMENT]

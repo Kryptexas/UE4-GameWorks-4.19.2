@@ -3,45 +3,8 @@ Title:Class Viewer
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:Tool for examining UE4 classes.
 Version: 4.9
+topic-imge:Engine/UI/ClassViewer_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ClassViewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ClassViewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 
@@ -108,7 +71,8 @@ The context menu is opened by clicking on ![Context Menu Button](ContextMenuButt
 |**Blueprint Class**|[INCLUDE:#bpclassoptions]|[INCLUDE:#bpclassoptiondesc]|
 |**Code Class**|[INCLUDE:#codeclassoptions]|[INCLUDE:#codeclassoptiondesc]|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPClassOptions]
 [REGION:plain_list]
 * **Create Blueprint...**
@@ -137,7 +101,8 @@ The context menu is opened by clicking on ![Context Menu Button](ContextMenuButt
 * Opens the [](Programming\Development\ManagingGameCode\CppClassWizard) to create a new class with the selected class as the Parent class.
 [/REGION]
 [/EXCERPT:CodeClassOptionDesc]
--->
+
+[/COMMENT]
 
 ## Drag & Dropping
 Dropping a Blueprint class Actor into a viewport will add the Actor to the scene. When successfully dragging a Class, the mouse will show what class is in hand. Only one class can be dragged at a time.

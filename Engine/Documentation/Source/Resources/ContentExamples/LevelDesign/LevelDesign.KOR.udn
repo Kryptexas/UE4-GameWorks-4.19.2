@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:레벨 디자인 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -8,42 +8,12 @@ Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
 Version: 4.9
+topic-image:LD_Topic.png
 
 
 [REGION:banner]
 ![](leveldesign_header.png)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelDesign:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelDesign:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/LevelDesign]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelDesign:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/LevelDesign]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -70,10 +40,10 @@ Version: 4.9
 
 | 예제 | 데모 내용 |
 | ------- | ------------ |
-| **[1.1 Prototype Pass](Resources\ContentExamples\LevelDesign\1)** | 프로토타입 패스 - **스태틱 메시 액터** 또는 **지오메트리 프리미티브** 에 기초적인 라이팅을 사용하여 플레이가능한 레벨 윤곽을 빠르게 만들어 봅니다. |
-| **[1.2 Meshing Pass](Resources\ContentExamples\LevelDesign\2)** | 메싱 패스 - 프로토타입 단계에서의 기본적인 메시나 프리미티브를 거의 최종 단계의 애셋으로 대체하고 기본적인 머티리얼을 적용합니다. |
-| **[1.3 Lighting Pass](Resources\ContentExamples\LevelDesign\3)** | 라이팅 패스 - 라이팅 개선, **포스트 프로세스** 이펙트 추가, 머티리얼 업데이트에 초점을 맞춥니다. |
-| **[1.4 Polish Pass](Resources\ContentExamples\LevelDesign\4)** | 폴리시 패스 - 이펙트, 오디오, 볼륨을 추가시키고, 최종 애셋과 디테일 트윅 작업을 합니다. |
+| **[1.1 Prototype Pass](Resources/ContentExamples/LevelDesign/1)** | 프로토타입 패스 - **스태틱 메시 액터** 또는 **지오메트리 프리미티브** 에 기초적인 라이팅을 사용하여 플레이가능한 레벨 윤곽을 빠르게 만들어 봅니다. |
+| **[1.2 Meshing Pass](Resources/ContentExamples/LevelDesign/2)** | 메싱 패스 - 프로토타입 단계에서의 기본적인 메시나 프리미티브를 거의 최종 단계의 애셋으로 대체하고 기본적인 머티리얼을 적용합니다. |
+| **[1.3 Lighting Pass](Resources/ContentExamples/LevelDesign/3)** | 라이팅 패스 - 라이팅 개선, **포스트 프로세스** 이펙트 추가, 머티리얼 업데이트에 초점을 맞춥니다. |
+| **[1.4 Polish Pass](Resources/ContentExamples/LevelDesign/4)** | 폴리시 패스 - 이펙트, 오디오, 볼륨을 추가시키고, 최종 애셋과 디테일 트윅 작업을 합니다. |
 
 
 

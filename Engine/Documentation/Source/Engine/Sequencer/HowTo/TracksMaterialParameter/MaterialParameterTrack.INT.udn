@@ -14,6 +14,7 @@ topic-image: EndResult.png
 Related: Engine/Rendering/Materials/ParameterCollections
 Related: Engine/Rendering/Materials
 Related: Engine/Sequencer/Overview
+type:how-to
 
 **Sequencer** provides a special track for working with and animating [](Engine/Rendering/Materials/ParameterCollections) called the **Material Parameter Collection** track. 
 This is extremely useful if you have several **Materials** that you need to update as you no longer have to animate individual parameter values on each material instance in order to share animation updates. 

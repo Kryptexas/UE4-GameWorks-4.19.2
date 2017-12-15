@@ -41,7 +41,9 @@ Description:虚幻引擎 4 中碰撞和碰撞响应的操作方式总览。
 * 在物体 **阻挡** 其他物体时，仍然 **可以** 产生重叠，尤其是在高速运动状态下。
 	* 不推荐为物体同时设置碰撞和重叠事件。但可以进行手动调整。
 * 如一个物体设为无视，另一个设为重叠，将不会产生重叠事件。
-<!--* 所列出的 **Object Responses** 仅为默认项，并未指定物体究竟 _为何种_。在下文中查阅设置自定义 [物体类型和轨迹通道](#customobjectchannelsandtracechannels) 的更多内容。-->
+[COMMENT:none]
+* 所列出的 **Object Responses** 仅为默认项，并未指定物体究竟 _为何种_。在下文中查阅设置自定义 [物体类型和轨迹通道](#customobjectchannelsandtracechannels) 的更多内容。
+[/COMMENT]
 
 测试关卡并在世界场景中进行环视：
 

@@ -19,7 +19,7 @@ Description:绑定输入到C++代码
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 在 **Visual Studio** 中，打开`MyPawn.h`并添加如下代码到MyPawn的类定义的底部位置： 
 
@@ -262,4 +262,4 @@ Description:绑定输入到C++代码
 	[/PARAM]
 [/OBJECT]
 
-%Steps%
+

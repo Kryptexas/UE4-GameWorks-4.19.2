@@ -181,7 +181,7 @@ windows
 [/PARAMLITERAL]
 [PARAM:content]
 [REGION:lightbox]
-[![](ProjectHierarchy_Windows.png)](ProjectHierarchy_Windows.png)
+[![](ProjectHierarchy_Windows.png)(w:480)](ProjectHierarchy_Windows.png)
 [/REGION]
 [/PARAM]
 [/OBJECT]
@@ -204,7 +204,7 @@ mac
 
 _Click image for full view._
 
- Although a Project is often referenced by the .uproject file associated with it, they are two separate files that exist alongside each other. The .uproject is a reference file used to create, open, or save a file, whereas the Project contains all of the files and folders associated with it.
+ Although a Project is often referenced by the `.uproject` file associated with it, they are two separate files that exist alongside each other. The `.uproject` is a reference file used to create, open, or save a file, whereas the Project contains all of the files and folders associated with it.
 
 You can create any number of different Projects which can all be maintained and developed in parallel. Both the Engine (and Editor) can easily switch between them which will allow you to work on multiple games at once or have several test projects in addition to your main game Project.
 [/EXCERPT:Glossary_project]

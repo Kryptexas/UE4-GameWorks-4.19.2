@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654592
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:11.FindPlayer EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:レベル内でプレイヤーの TopDownCharacter のすべてのインスタンスを見つける環境クエリを作成します。
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,17 +21,17 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-これは 2 つある **Environment Queries(環境クエリ)** の中でより単純なものです。AI の 1500 ユニット内ですべての TopDownCharacters のリストを戻して、次に AI が TopDownCharacters を見ることができるかをテストします。AI が TopDownCharacters を見ることができれば、ビヘイビア ツリーのために ActorToFleeFrom を取得します。
 
-このプロセスを実現するには多くの方法があります。それぞれ長所と短所があります。この場合 EQS を使用すると、後でさらにテストを追加して、そこから実行する _一番良い_ 敵 (TopDownCharacter) を選ぶことができます。
+これは 2 つある **Environment Queries(環境クエリ)** の単純な方です。AI の 1500 ユニット内にあるすべての TopDownCharacters のリストを戻して、次に AI が TopDownCharacters が見えるかをテストするだけだからです。AI が TopDownCharacters を見ることができれば、ビヘイビア ツリーで ActorToFleeFrom が得られます。
+
+このプロセスを実現するには多くの方法があり、それぞれ長所と短所があります。この場合 EQS を使用すると、後でさらにテストを追加して、そこから実行する _ベストな_ 敵 (TopDownCharacter) を選ぶことができます。
 
 以下は簡単な用語集です。
 
-* Generator は、Context に関連して Items を作成します。
-* Items は多くの場合、 Context (Item X は Context Y からどれくらい離れているか) に関連して Tests で使用されます。
-* Items は Tests 結果に基づき選別またはスコアリングされます。
+* Generator は、Context に関連して Item を作成します。
+* Item は多くの場合、 Context (Item X は Context Y からどれくらい離れているか) に関連して Test で使用されます。
+* Item は Test 結果に基づき選別またはスコアリングされます。
 
 ## ステップ
 
@@ -45,7 +45,7 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 
 	Environment Query エディタは、ビヘイビア ツリー エディタとほぼ同じように機能します。
 
-1. **Update Graph** エリアで右クリックして、コンテキスト メニューから **ActorsOfClass** を選択します。
+1. **Update Graph** エリアで右クリックして、**コンテキスト** メニューから **ActorsOfClass** を選択します。
 
 	![](createGetActors.png)
 
@@ -53,26 +53,26 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 
 	![](cga_made.png)
 
-1. Environment Query エディタでノードを接続するには、**Behavior Tree** エディタで行ったのと同じように、Root ノードの下から ActorsOfClass ノードの上にドラックします。
+1. Environment Query エディタでノードを接続するには、Behavior Tree エディタで行ったのと同じように、Root ノードの下から ActorsOfClass ノードの上にドラックします。
 
 	![](connected.png)
 
-	Environment Query 毎にひとつの Generator だけが存在できます。
+	ひとつの Environment Query に対してひとつの Generator だけが存在できます。
 
-1. 次に **ActorsOfClass** ノードを選択して設定し、その **Search Radius** と **Searched Actor Class** のプロパティを変更します。
+1. 次に **ActorsOfClass** ノードを選択して設定し、**[Search Radius]** と **[Searched Actor Class]** のプロパティを変更します。
 
 	![](aoc_details.png)
 
 	* **Search Radius** = 1500
 	* **Searched Actor Class** = TopDownCharacter
 
-	この Generator は、この半径内で、特定クラスのすべてのアクタを見つけて、そこから Items を作成します。
+	この Generator は、この半径内で、特定クラスのすべてのアクタを見つけて、そこから Item を作成します。
 
-1. **Trace** テストを **ActorsOfClass** ノードに追加します。
+1. **トレース** テストを **ActorsOfClass** ノードに追加します。
 
 	![](addTraceTest.png)
 
-	トレース テストはコンテキストがアイテムに対して視線を持っているかをチェックするのに役立ちます。この場合、AI から Item (この場合 TopDownCharacters/Players )です。
+	トレース テストはコンテキストがアイテムに対する視線 (line of sight ) があるかをチェックするのに役立ちます。この場合、AI から Item (この場合 TopDownCharacters/Players )です。
 
 1. **ActorsOfClass** ノードを左クリックして Trace Test を選択します。[Details] パネルで、 **Bool Match** プロパティを false に変更します (チェックを外す)。
 
@@ -82,4 +82,4 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 以上です！
 
 
-%Steps%
+

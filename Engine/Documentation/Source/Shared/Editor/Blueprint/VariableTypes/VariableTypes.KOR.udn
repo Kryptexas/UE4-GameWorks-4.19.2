@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3780178
 Availability:NoPublish
 Title:변수 유형
 Crumbs:
@@ -70,3 +70,26 @@ Engine/Blueprints/UserGuide/Variables
 [EXCERPT:Array]
 배열(Array)은 순서가 있는 시리즈입니다. 어떤 유형 변수의 배열도 만들 수 있습니다. 배열은 어떤 것이 하나 이상 필요할 때 좋습니다. 배열 내 항목은 인덱스로 접근할 수 있습니다.
 [/EXCERPT:Array]
+[EXCERPT:Object]
+강 애셋 레퍼런스입니다. 레퍼런싱된 애셋이:
+- 이 애셋인 경우 로드합니다. 
+- 이 애셋인 경우 쿠킹합니다.
+[/EXCERPT:Object]
+
+[EXCERPT:Class]
+강 클래스 레퍼런스입니다. 레퍼런싱된 애셋이:
+- 이 애셋인 경우 로드합니다.
+- 이 애셋인 경우 쿠킹합니다.
+[/EXCERPT:Class]
+
+[EXCERPT:SoftObject]
+약 애셋 레퍼런스입니다. 레퍼런싱된 애셋이:
+- 이 애셋인 경우 자동 로드하지 않습니다.
+- 이 애셋인 경우 쿠킹합니다.
+[/EXCERPT:SoftObject]
+
+[EXCERPT:SoftClass]
+약 클래스 레퍼런스입니다. 레퍼런싱된 애셋이:
+- 이 애셋인 경우 자동 로드하지 않습니다.
+- 이 애셋인 경우 쿠킹합니다.
+[/EXCERPT:SoftClass]

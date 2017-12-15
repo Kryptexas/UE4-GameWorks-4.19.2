@@ -1,65 +1,32 @@
-Title: Samsung Gear VR Development
+Title: Developing for Samsung Gear VR
 Description:Instructions on how to get the Samsung Gear VR Headset to work with UE4.
 Availability:Public
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.17
-prereq: Engine\Blueprints\GettingStarted
 Crumbs:%ROOT%, Platforms
-type:landing
-parent:Platforms/VR
+type: landing
+Parent: Platforms/VR
 tags:VR
+Tags: Mobile VR
 tags:GearVR
 tags:Platform
 Topic-image:SamsungGearVRDevelopment_topic.png
 
+![](SamsungGearVR.png)(w:1000)
 
-## Prerequisites 
-
-[DIR(end:"1" output:"topic" type:"reference" tags:"Basics" parent:"Platforms/GearVR")]
-
-
-## Quick Start
+## Starting Out 
 
 [DIR(end:"1" output:"topic" type:"quick start" parent:"Platforms/GearVR")]
 
-## Best Practices
+## Samsung Gear VR Development
 
-[DIR(end:"1" output:"topic" type:"reference" tags:"GearVR" parent:"Platforms/GearVR")]
+[DIR(end:"1" output:"topic" type:"reference,overview" parent:"Platforms/GearVR")]
 
-## How To
+## Guides
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
-
-## Gear VR Command Reference
-
-
-
-## Gear VR Profiling & Performance
-
-
-<!--
-## Starting Out
-
-
-
-## GearVR Topics
-
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
-
-## Training Streams
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-rNjDsNYvgfk
-[/PARAMLITERAL]
-[/OBJECT]
-
--->
+[DIR(output:"fancy" type:"how-to" skilllevel:"Beginner" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Intermediate" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Advanced" parent:"Platforms/GearVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Expert" parent:"Platforms/GearVR" org:"flat")]

@@ -23,7 +23,8 @@ The Blackboard node will check to see if a value is set on the given Blackboard 
 | **Blackboard Key**| The key to check. This is most useful for data types that can return `None` such as Objects, as other types may return their initialized values (0, false, {0,0,0}, etc...). |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop2]
 | --- | --- |
 | **On Result Change** | Reevaluate only when the condition has changed. |
@@ -43,7 +44,8 @@ The Blackboard node will check to see if a value is set on the given Blackboard 
 | **Is Set** | Is the value set? |
 | **Is Not Set** | Is the value not set? |
 [/EXCERPT:subprop4]
--->
+
+[/COMMENT]
 
 ## Compare Blackboard Entries
 
@@ -59,13 +61,15 @@ The Compare Blackboard Entries nodes will compare the values of two Blackboard k
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop5]
 | --- | --- |
 | **Is Equal To** | Are the two keys equal to each other? |
 | **Is Not Equal To** | Are the two keys different to each other? |
 [/EXCERPT:subprop5]
--->
+
+[/COMMENT]
 
 ## Composite
 
@@ -137,14 +141,16 @@ The **Does Path Exist** node checks to see if a path can be made from the two ve
 | **Filter Class** | Which navigation data should be used? If set to None the default navigation data will be used. |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop6]
 | --- | --- |
 | **NavMesh Raycast 2D** | Really Fast. |
 | **Hierarchical Query** | Fast. |
 | **Regular Path Finding** | Slow. |
 [/EXCERPT:subprop6]
--->
+
+[/COMMENT]
 
 ## Force Success
 

@@ -5,25 +5,7 @@ Description:An overview of the Matinee example level, example 1.2: Tracks and Ke
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/1_2:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 Tracks and Keys are what matinee is about. Your main window is track view and each track has key frames on a time line.
 

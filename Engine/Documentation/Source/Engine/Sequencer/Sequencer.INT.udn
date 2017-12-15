@@ -25,11 +25,7 @@ The Sequencer Subway example project, available from the Learn tab in the Epic G
 
 ## Starting Out
 
-[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" tags:"Getting Started")]
-
-## Essentials
-
-[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" tags:"!Getting Started" path:"!Engine/Sequencer/HowTo")]
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" type:"landing,overview,reference,quick start")]
 
 ## Guides
 
@@ -42,8 +38,5 @@ The Sequencer Subway example project, available from the Learn tab in the Epic G
 
 [DIR(output:"topiccompact" parent:"Resources/Showcases" tags:"Sequencer")]
 
-<!-- Killing this for now while the current does get updates instead.
-* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
--->
 
 

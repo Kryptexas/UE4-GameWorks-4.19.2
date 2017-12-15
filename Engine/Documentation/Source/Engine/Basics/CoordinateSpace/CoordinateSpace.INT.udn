@@ -21,7 +21,8 @@ order:23
 | **Viewport** | **ViewportCoordinates**, **WindowCoordinates** | [INCLUDE:#Viewport] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TranslatedWorld]
 [REGION:simpletable]
 | ------ | ------ |
@@ -48,7 +49,8 @@ In pixels :
 | top/bottom | 0, height-1 |
 [/REGION]
 [/EXCERPT:Viewport]
--->
+
+[/COMMENT]
 
 ## Space Transformations
 

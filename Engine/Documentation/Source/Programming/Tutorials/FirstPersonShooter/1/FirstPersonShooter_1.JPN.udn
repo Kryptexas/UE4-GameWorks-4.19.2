@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1 - プロジェクトを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
@@ -23,20 +23,12 @@ _このセクションの最後まで終了すると、上の画面のように�
 * 初めての C++ Class のコンパイル
 * デフォルトのゲーム モードの設定
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Tutorials/FirstPersonShooter/1/1 "%Programming/Tutorials/FirstPersonShooter/1/1:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/1/2 "%Programming/Tutorials/FirstPersonShooter/1/2:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/1/3 "%Programming/Tutorials/FirstPersonShooter/1/3:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/1/4 "%Programming/Tutorials/FirstPersonShooter/1/4:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/1/5 "%Programming/Tutorials/FirstPersonShooter/1/5:description%")
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Programming/Tutorials/FirstPersonShooter/1/1 "%Programming/Tutorials/FirstPersonShooter/1/1:description%")
+* [](Programming/Tutorials/FirstPersonShooter/1/2 "%Programming/Tutorials/FirstPersonShooter/1/2:description%")
+* [](Programming/Tutorials/FirstPersonShooter/1/3 "%Programming/Tutorials/FirstPersonShooter/1/3:description%")
+* [](Programming/Tutorials/FirstPersonShooter/1/4 "%Programming/Tutorials/FirstPersonShooter/1/4:description%")
+* [](Programming/Tutorials/FirstPersonShooter/1/5 "%Programming/Tutorials/FirstPersonShooter/1/5:description%")
+[/REGION]

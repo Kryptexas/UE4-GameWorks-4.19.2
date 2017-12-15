@@ -1,0 +1,148 @@
+﻿INTSourceChangelist:3669916
+Availability:Docs
+Crumbs: %ROOT%, 
+Title:Niagara を使ってリボン ベースのエフェクトを作る
+Description:Niagara を使ってリボン ベースの視覚効果を作る方法を説明します。
+Type: how-to
+SkillLevel:Beginner
+Version:4.17
+parent:Engine/Niagara/HowTo
+order:5
+tags:Niagara
+topic-image:
+
+たなびく煙や蒸気のような自然現象を表現するのは、スプライトやメッシュベースのパーティクルでは非常に難しいです。この種の現象を表現する適切なアプローチとしては、**Ribbon** エミッターの使用が考えられます。以下の操作ガイドでは、Niagara Emitter をセットアップして、リボン スタイルのパーティクルエフェクトを連続してワールドに放出する方法を説明します。 
+
+![](HeroImage_00.png)
+
+## ステップ
+
+1. まず、リボン エミッターに色を付ける新規マテリアルを作成します。**コンテンツ ブラウザ** で右クリックして表示されるリストから **[Material]** オプションを選択し、マテリアルに **MAT_Ribbon** と名前を付けます。
+
+    ![](RE_01.png)
+
+1. MAT_Ribbon マテリアル上でダブルクリックして開きます。次に、**3** キーを押しながらマテリアル グラフで左クリックして、**Constant 3 Vector** マテリアル式ノードを追加します。
+
+    [REGION:lightbox]
+    [![](RE_02.png)(w:639)](RE_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. まず Constant 3 Vector を **Base Color** と **Emissive Color** の入力に接続します。次に、色を赤に設定します。
+
+    [REGION:lightbox]
+    [![](RE_03.png)(w:639)](RE_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. 最後に **[Details]** パネルの **[Usage]** で **[Used with Niagara Ribbons]** にチェックを入れるようにします。次に、**[Compile]** ボタンと **[Save]** ボタンを押して作業を保存します。
+
+    [REGION:lightbox]
+    [![](RE_04.png)(w:639)](RE_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. Niagara Emitter を作成するには、**コンテンツ ブラウザ** で右クリックして、表示されるメニューから、 ** [FX]** に進み、**[Niagara Emitter]** をクリックします。
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_01.png)
+
+1. 新規作成したNiagara エミッターに **FX_Ribbon** という名前を付けて、その上でダブルクリックして開きます。
+
+    ![](RE_05.png)
+
+1. FX_Ribbon エミッターの **[Emitter Spawn]** セクションに進み、**[Render]** セクションで、**[Niagara Sprite Render Properties]** 上でクリックして表示されるリストから、**[Niagara Ribbon Render Properties]** オプションを選択します。
+
+    ![](RE_06.png)
+
+1. 次に小さな白いトライアングルをクリックして、**[Ribbon Rendering]** セクションを展開します。**[Material]** セクションで、作成した MAT_Ribbon マテリアルを入力します。
+
+    ![](RE_11.png)
+
+1. **[Emitter Update]** セクションで、**[Spawn Rate]** セクションに進み、**[Spawn Rate]** を値 **20** に設定します。
+
+    ![](RE_07.png)
+
+1. 次に **[Particle Spawn]** セクションで、**ゴミ箱** アイコンを押して以下のモジュールを削除します。 
+
+    ![](RE_08.png)
+
+    * **Add Velocity**
+    * **Sphere Location**
+    * **Set Particle Sprite Size**
+    * **Set Particle Sprite Rotation**
+
+1. Particle Spawn 下部にある **プラス** 記号を押して、表示されるリストから以下のモジュールを追加します。 
+
+    ![](RE_09.png)
+
+    * **Set Particle Ribbon Width**
+    * **Set Particles Velocity**
+    * **Point Spiral Location** 
+
+1. リボン エフェクトに必要なモジュールを追加した状態で、以下の値を以下のモジュールに入力します。
+
+    ![](RE_09.png)
+
+    |モジュール名|値|
+    |----|---|
+    |Set Particle Lifetime| Min と Max を 10 に設定|
+    |Set Particle Ribbon Width| 32|
+    |Set Particles Velocity| X:1 y:0 Z:1|
+    |Point Spiral Location | Speed:500, RotSpeed:1|
+
+1. **[Particle Update]** セクションで、**[Acceleration Force]** の **Z** 値を **-100** に設定します。
+
+    ![](RE_12.png)
+
+1. すべてが完了したら、**[Compile]**、**[Apply]** ボタンと **[Save]** ボタンを押して、作業をコンパイルおよび保存します。
+
+    ![](RE_13.png)
+
+1. コンテンツ ブラウザで右クリックして、表示されるリストから **[FX]** に進み、**[Niagara System]** オプションを選択し、**リボン** の名前を付けます。
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_16.png)
+
+1. [Ribon Niagara System] 上でダブルクリックして開きます。開いたら、コンテンツ ブラウザから **FX_Ribon** を **タイムライン** にドラッグします。
+
+    ![](RE_14.png)
+
+1. **[Compile]** ボタンと **[Save]** ボタンを押して、Mesh Niagara System を閉じて、コンテンツ ブラウザで Mesh Niagara System をレベル ビューポートにドラッグします。
+
+    [REGION:lightbox]
+    [![](RE_15.png)(w:834)](RE_15.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+## 最終結果
+
+完了すると、以下の動画のようになります。Niagara System をレベルに配置すると Niagara Emitter が再生されます。
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    wSRBBGirYig
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]

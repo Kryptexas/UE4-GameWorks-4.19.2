@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 일인칭 슈팅 C++ 튜토리얼
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
@@ -27,19 +27,11 @@ _이 튜토리얼을 마치면 이와 같은 화면을 보게 됩니다._
 * 프로젝타일 구현
 * 캐릭터 애니메이션
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		섹션
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
-	[/PARAM]
-[/OBJECT]
+## 섹션
+
+[REGION:buttonlist]
+* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
+* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
+* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
+[/REGION]

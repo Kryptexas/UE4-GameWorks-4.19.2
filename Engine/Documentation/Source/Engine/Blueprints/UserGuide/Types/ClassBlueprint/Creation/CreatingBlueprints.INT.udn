@@ -91,7 +91,8 @@ Alternatively:
 
 [/EXCERPT:CreateBP3]
 
-<!--
+[COMMENT:none]
+
 1.	In the **Content Browser**, right-click and choose the option for the type of Blueprint you wish to 
 create. In the example, a normal Blueprint is created by choosing **New Blueprint**:
 
@@ -182,7 +183,8 @@ The Blueprint creation process is the same as if you used the ![Down Arrow Icon]
 
 	![](rename_blueprint.png)
 
--->
+
+[/COMMENT]
 
 
 

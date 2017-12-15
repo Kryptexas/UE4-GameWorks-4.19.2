@@ -1,6 +1,6 @@
 Availability: Public
 Title: Linux Game Development
-Crumbs:
+Crumbs:%ROOT%
 Description:Developing games for the Linux platform.
 Platform:Linux
 Navigation:platform
@@ -19,7 +19,7 @@ you'll want to work your way through the Quick Start Guide before moving onto mo
 ## Getting Started
 
 %Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:topic%
-%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%
+%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpQtCreator:topic%
 %Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux:topic%
 
 ## Advanced Topics

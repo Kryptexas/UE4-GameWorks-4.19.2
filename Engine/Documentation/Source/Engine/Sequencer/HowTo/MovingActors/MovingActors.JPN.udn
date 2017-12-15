@@ -1,0 +1,128 @@
+﻿INTSourceChangelist:3741733
+Availability:Docs
+Title:シーケンサーでアクタを動かす
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:シーケンサーを使ってレベル内でアクタを移動させる様々な方法について説明します。
+Version:4.18
+SkillLevel:Beginner
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+Related:Engine\Sequencer\HowTo\MultipleTransforms
+tags:Sequencer
+type:how-to
+
+シネマティックスを作成する場合、シーン内でオブジェクトを動かすことがあるかもしれません (例、撮影に使うカメラを動かす、ドアを開ける、路上で車を下り方向に動かす)。 
+シーケンサーに加えられるアクタの **[Transform]** トラックを使って、開始位置をキーフレーム化し、タイムラインを前方にスクラブしてから、アクタを新しい位置に動かし、それをキーフレーム化して時間の経過に伴いキーフレーム間でアクタを移動させます。 
+
+この例では、**Transform** トラックを使ってシーン内でボックスを動かします。 
+
+![](MovingActors_06.png)
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** を使います。 
+[/REGION]
+
+1.	プロジェクト内で、**[Modes]** パネルの **[Basic]** で、**Cube** アセットをレベルにドラッグします。 
+
+	![](MovingActors_01.png)
+
+1.	メイン ツールバーから **[Cinematics (シネマティックス)]** ボタンをクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** を選択します。 
+
+	![](MovingActors_02.png)
+
+1.	**[Save Asset As]** ウィンドウで、保存場所と保存名を選び、**[Save]** ボタンをクリックします。 
+
+	![](MovingActors_02b.png)
+
+1.	レベル内でキューブを選択し、**シーケンサー** 内で **[Track]** ボタンをクリックし、**[Actor To Sequencer]** で **[Add Cube]** を選択します。 
+
+	![](MovingActors_03.png)
+
+	これで、キューブが追加されて、シーケンサー エディタで制御できるようになります。 
+
+1.	キューブの **Transform** トラックで、 **+** 記号をクリックして、フレーム **0** にキーを追加します。 
+
+	![](MovingActors_04.png)
+
+	これにより、キューブの現在のトランスフォームのキーフレームをシーケンサーに追加します。 
+
+1.	タイムライン マーカーを前方にフレーム **100** までスクラブします。次に、レベル内のキューブを **Y** 軸に沿って動かし、それに対するキーを **+** 記号をクリックして追加します。
+
+	![](MovingActors_05.png)
+
+	フレーム 100 にキーフレームを追加した後、キューブの移動パスを示す点線がビューポート内に表示されます。 
+
+	![](MovingActors_06.png)
+
+	[REGION:tip]
+	**Transform** トラックの **+** 記号をクリックする代わりに、アクタを選択した状態で **S** キーを押します。 
+	[/REGION]
+
+1.	ビューポートまたはシーケンサー内で **[Preview Play]** ボタンをクリックします。
+
+	![](PreviewPlayButton.png)
+
+## 最終結果
+
+シーケンスを再生すると、指定したキーフレーム パスに沿ってキューブが動きます。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+z8OFi2bE5q4
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+このやり方でアクタに動きを加えるのは、変わることがない指定した開始、終了位置で移動させたいオブジェクトがある場合に最適です。 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

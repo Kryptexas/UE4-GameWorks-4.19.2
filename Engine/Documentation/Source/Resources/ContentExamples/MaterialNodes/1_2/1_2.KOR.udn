@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.2 - 메탈릭
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -11,65 +11,8 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Version: 4.9
+topc-image:Resources\ContentExamples\MaterialNodes\Topic_1_2_Metallic.png
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/MaterialNodes/1_1 "%Resources/ContentExamples/MaterialNodes/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[머티리얼 노드 홈](Resources/ContentExamples/MaterialNodes)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/MaterialNodes/1_3 "%Resources/ContentExamples/MaterialNodes/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_2:title%](Resources\ContentExamples\MaterialNodes\Topic_1_2_Metallic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_2:title%](Resources\ContentExamples\MaterialNodes\Topic_1_2_Metallic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 ![](1_2_Metallic.png)

@@ -3,45 +3,7 @@ Title:Editor Preferences
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Settings for configuring general editor behavior for controls, viewports, source control, and much more.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Editor Settings
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/EditorSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/EditorSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Editor Settings
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/EditorSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/EditorSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/UI/EditorSettings_topic.png
 
 [REGION:fullwidth]
 ![](Preferences01.png)
@@ -148,7 +110,8 @@ yvwZUtmW12I
 | **Warning in Seconds** | The number of seconds the warning is displayed before an auto-save is performed. ![](autosave_warning.png) |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CameraControls]
 [REGION:simpletable]
 | Option | Description |
@@ -200,4 +163,5 @@ yvwZUtmW12I
 | **0.2** | **1.0** |
 [/REGION]
 [/EXCERPT:SelectionHighlight]
--->
+
+[/COMMENT]

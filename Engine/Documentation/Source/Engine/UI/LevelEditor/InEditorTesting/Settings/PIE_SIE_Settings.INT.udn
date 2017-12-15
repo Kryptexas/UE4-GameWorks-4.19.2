@@ -60,7 +60,8 @@ As a result, there are no default window sizes to set.
 | Show Mouse Control Label |%doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
 | Mouse Control Label Position |%doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GameGetsMouseControl]
 %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% 
 [/EXCERPT]
@@ -73,7 +74,8 @@ As a result, there are no default window sizes to set.
 %doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## Play in New Window
 
@@ -85,7 +87,8 @@ When starting a _Play In Editor_ session that displays in a new window, these se
 | New Window Position (in pixels) | [INCLUDE:#NewWindowPosition] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NewWindowSize]
 Sets the width and height of floating Play in Editor windows (in pixels):
 * %doxygen:ULevelEditorPlaySettings::NewWindowWidth% 
@@ -99,7 +102,8 @@ Sets the screen coordinates for the top-left corner of floating Play In Editor w
 * %doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 ## Play in Standalone Game
@@ -112,7 +116,8 @@ to pass additional command line settings on to the game client.
 | Standalone Window Size (in pixels) | [INCLUDE:#StandaloneWindowSize] |
 | Client Command Line Options | [INCLUDE:#ClientCommandLineOptions]| 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:StandaloneWindowSize]
 Sets the width and height of standalone game windows (in pixels):
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
@@ -125,7 +130,8 @@ Generates a command line for additional settings that will be passed to the game
 * %doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## Multiplayer Options
 
@@ -141,7 +147,8 @@ from the **Play In** dropdown menu, there are settings for URL parameters, gamep
 | Route 1st Gamepad to 2nd Client | [INCLUDE:#RouteGamepadToSecondWindow]|
 | Use Single Process |[INCLUDE:#RunUnderOneProcess] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PlayNumberOfClients]
 %doxygen:ULevelEditorPlaySettings::PlayNumberOfClients% 
 [/EXCERPT:PlayNumberOfClients]
@@ -165,6 +172,7 @@ from the **Play In** dropdown menu, there are settings for URL parameters, gamep
 %doxygen:ULevelEditorPlaySettings::RunUnderOneProcess% 
 [/EXCERPT:RunUnderOneProcess]
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:NetworkPIESettings]

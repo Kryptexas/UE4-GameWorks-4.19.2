@@ -1,0 +1,326 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 메시 디스턴스 필드
+Description: 메시 디스턴스 필드와 게임 개발 시 사용할 수 있는 피처에 대한 개요입니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:
+Tags:Lighting
+Tags:Distance Fields
+
+
+[REGION:banner]
+![](DistanceFieldsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+
+언리얼 엔진 4 (UE4) 는 **디스턴스 필드** 를 활용하여 게임의 스태틱 메시 액터에 대한 다이내믹 앰비언트 오클루전이나 섀도잉을 처리합니다. 그에 더해 액터의 메시 디스턴스 필드 표현은 
+GPU 파티클 콜리전과 같은 다른 피처나 심지어 머티리얼 에디터에서 다이내믹 플로우 맵과 같은 것들을 만드는 데도 사용할 수 있습니다.
+
+여기서는 UE4 에서의 메시 디스턴스 필드 작동 방식 및 게임에서 사용할 수 있는 방법 몇 가지를 알아보실 수 있습니다.
+
+## 작동 방식
+
+스태틱 메시의 표면을 표현하기 위해 **Signed Distance Field** (부호화 디스턴스 필드, SDF) 가 사용됩니다. 가장 가까운 표면까지의 거리를 볼륨 텍스처에 저장하는 식으로 작동합니다. 
+메시 외부에 있는 모든 점은 양수 거리로 간주하고 메시 안에 있는 점은 음수 거리를 저장합니다. 아래 예제에서는, 양수 거리를 트레이싱 및 저장하여 
+나중에 나무를 표현하고 있습니다.
+
+![](DistanceField.jpg)(w:400)
+
+SDF 를 유용하게 만드는 첫 번째 속성은, 근처 표면까지의 거리를 이미 알고있기 때문에 레이 트레이싱을 할 때 빈 공간을 안전하게 건너뛸 수 있다는 점입니다 (이를 구체(Sphere) 트레이싱이라고도 합니다). 
+그 덕에 교차를 더욱 간단히 알아낼 수 있습니다. 디스턴스 필드를 레이 트레이싱하여, 비저빌리티 결과를 알아내고,
+그렇다는 것은 광선이 메시에 교차하면, 라이트가 그늘진다는 뜻입니다.
+
+![](RayTrace.jpg)(w:400)
+
+SDF 를 유용하게 만드는 두 번째 속성은, 레이 트레이싱을 할 때, 오브젝트 차폐로 인해 광선이 통과한 가장 가까운 거리를 트래킹하는 것으로, 별도의 비용 없이 원뿔 교차 추정을 계산해낼 수 있다는 점입니다.
+이 추정치를 통해 디스턴스 필드를 사용하는 스카이 오클루전이나 매우 부드러운 에리어 섀도우같은 것이 가능합니다. 이 속성은 
+[디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 같은 피처의 핵심적인 부분인데, 소수의 원뿔로 한 수신 지점의 
+전체 반구에 대한 부드러운 비저빌리티 계산이 가능하기 때문입니다.
+
+![](ConeTrace.jpg)(w:400)
+
+[COMMENT:none]
+--
+
+레벨 전체를 볼륨 텍스처에 저장된 인스턴스드 디스턴스 필드로 표현한 것입니다. 랜드스케이프에는 하이트 필드를 통한 별도의 표현이 있으며, 이것이 디스턴스 필드 앰비언트 오클루전에 사용되지만, 
+레이 트레이스 디스턴스 필드 소프트 섀도우에는 영향을 주지 않습니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![씬 뷰](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![메시 디스턴스 필드 뷰](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+-
+[/COMMENT]
+
+
+[REGION:note]
+[라이팅에 디스턴스 필드를 사용하는 방법](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm) 관련 자세한 내용은 원문을 참고하세요.
+[/REGION]
+
+[EXCERPT:scenerepresentation]
+### 씬 표현
+
+생성하는 각 레벨은 배치된 액터에 대한 모든 메시 디스턴스 필드로 구성됩니다. 메시 디스턴스 필드가 생성될 때, 결과를 볼륨 텍스처에 저장하는 트라이앵글 레이트레이싱을 사용하여 
+"오프라인" 처리됩니다. 그때문에 디스턴스 필드는 런타임에 생성할 수 없습니다. 이 메소드는 
+모든 방향으로 부호화 디스턴스 필드 레이를 계산하여 가장 가까운 표면을 찾아 그 정보를 저장합니다.
+
+뷰포트에서 **표시** > **시각화** > **Mesh Distance Fields** (메시 디스턴스 필드)를 사용하여 씬을 나타내는 메시 디스턴스 필드를 시각화시켜 볼 수 있습니다.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](EnableMDFViewMode.png)(w:400 h:450)](EnableMDFViewMode.png) [/REGION] | [REGION:lightbox] [![](VisualizeMeshDistanceFields.jpg)(w:750 h:450)](VisualizeMeshDistanceFields.jpg) [/REGION] |
+| --- | --- |
+| 시각화 표시 메뉴 | 메시 디스턴스 필드 시각화 |
+| _이미지를 클릭하면 원본을 확인합니다._ | _이미지를 클릭하면 원본을 확인합니다._ |
+[/REGION]
+
+회색보다는 흰색에 가까운 영역이 보이면, 메시 표면의 교차를 찾아내는 데 몇 단계가 더 필요하다는 뜻입니다. 표면에 대한 극한 각도의 광선은 교차를 알아내는 데 
+단순한 메시보다 여러 단계가 더 필요했습니다.
+[/EXCERPT:scenerepresentation]
+
+#### 퀄리티
+
+메시 디스턴스 필드 표현의 퀄리티는 볼륨 텍스처 해상도로 제어됩니다. 이는 **스태틱 메시 에디터** 의 [빌드 세팅](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 중 
+**Distance Field Resolution Scale** (디스턴스 필드 스케일) 이라는 옵션으로 가능합니다.
+
+![](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\BuildSettings.png)(w:400)
+
+
+메시 디스턴스 필드 퀄리티는 크기가 비슷한 메시로 구성된 레벨에서 가장 좋은데, 커다란 메시는 오차가 많이 발생하는 경향이 있기 때문입니다. 예를 들어 [포트나이트](https://www.epicgames.com/fortnite) 의 메시는 
+그리드에 맞는 형태이거나 레벨 일부에 배치된 소품이므로, 오차가 적은 최고의 결과를 냅니다. 랜드스케이프는 [하이트 필드](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 로 별도 처리되며 디스턴스 필드 해상도에 영향받지 않습니다.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](Mesh.jpg)(w:375)](Mesh.jpg) [/REGION] | [REGION:lightbox] [![](LowResDistanceField.jpg)(w:375)](LowResDistanceField.jpg) [/REGION] | [REGION:lightbox] [![](HighResDistanceField.jpg)(w:375)](HighResDistanceField.jpg) [/REGION] |
+| --- | --- | --- |
+| 원본 메시 | 해상도가 너무 낮아, 중요한 특징을 잃어버렸습니다. | 해상도를 높였더니 중요한 특징이 살아났습니다. |
+| 이미지를 클릭하면 원본을 확인합니다. | 이미지를 클릭하면 원본을 확인합니다. | 이미지를 클릭하면 원본을 확인합니다. |
+[/REGION]
+
+메시 디스턴스 필드의 해상도는 중요한 특징을 캡처하기 충분할 만큼 조정해야 합니다. 메시 해상도를 높이면 메시 디스턴스 필드가 차지하는 메모리 양도 늘어납니다.
+스태틱 메시 에디터의 뷰포트 좌상단에서 메시 디스턴스 필드 크기를 볼 수 있습니다.
+
+[REGION:lightbox]
+[![](SMEditorDFSize.png)(w:500)](SMEditorDFSize.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+메시 디스턴스 필드를 생성할 때, 코너 부분은 해상도에 따라 다듬습니다. 해상도를 높여 상쇄할 수 있는 부분이지만, 대부분의 경우 메시의 복잡도에 따라 문제가 되지는 않습니다.
+하나의 메시가 가질 수 있는 볼륨 텍스처 최대 크기는 128x128x128 해상도로 8 메가바이트 입니다.
+
+[REGION:imagetable]
+| ![](QualityCorners1.png)(h:250) | ![](QualityCorners2.png)(h:250) | ![](QualityCorners4.png)(h:250) |
+| --- | --- | --- |
+|  |  |  |
+[/REGION]
+
+얇은 표면의 경우, 메시 안쪽은 음수 텍셀로만 표현 가능한데, 루트를 찾기 위해서는 필수입니다. 해상도를 높이면 여기서 보다 큰 디테일을 정확히 잡아낼 수 있지만, 
+[디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 을 사용하여 표면이 제대로 표현되지 않을 경우에만입니다. 표면보다 
+먼 부분의 오클루전은 정확해서, 종종 스카이 오클루전에는 눈에 띄지 않습니다.
+
+![](QualityCorners3.png)(w:400)
+
+
+#### 글로벌 디스턴스 필드
+
+[EXCERPT:visualizeGlobalDF1]
+글로벌 디스턴스 필드는 레벨에서 카메라를 따라다니는 도중 부호화 디스턴스 필드 오클루전을 사용하는 저해상도 디스턴스 필드입니다. 오브젝트 단위로 메시 디스턴스 필드 캐시를 생성하여 
+카메라를 중심으로 한 소수의 볼륨 텍스처에 합성해 넣습니다. 이를 클립맵이라 합니다. 새롭게 보이는 영역 또는 씬 변경에 영향받은 부분만 업데이트가 필요하므로, 합성 비용은 
+많이 들지 않습니다.
+[/EXCERPT:visualizeGlobalDF1]
+
+
+[EXCERPT:visualizeGlobalDF2]
+오브젝트 디스턴스 필드의 저해상도라는 것은 모든 것에 사용할 수는 있지만, 스카이 오클루전에 대한 원뿔 트레이스를 계산할 때는 셰이딩이 일어나는 지점 근처에서 샘플링을 하는 반면 
+글로벌 디스턴스 필드는 샘플링을 더욱 멀리서 합니다.
+
+뷰포트에서 **표시** > **시각화** > **Global Distance Field** (글로벌 디스턴스 필드)로 시각화시켜 볼 수 있습니다.
+
+[REGION:lightbox] 
+[![](EnableGDFViewMode.png)(w:400 h:485)](EnableGDFViewMode.png) 
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+아래는 오브젝트 별 메시 디스턴스 필드 시각화와 글로벌 디스턴스 필드 시각화를 비교하여 카메라 시야와 거리에 따라 클립맵 속에 합쳐 넣은 것입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![메시 디스턴스 필드 시각화](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/ODFVisualization.png)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![글로벌 디스턴스 필드 시각화](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/GDFVisualization.png)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:visualizeGlobalDF2]
+
+[REGION:note]
+자세한 정보는, [](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 문서를 참고하세요.
+[/REGION]
+
+#### 폴리지
+
+폴리지 애셋 역시 디스턴스 필드를 활용하여 다이내믹 오클루전을 표현하거나 심지어 캐스케이드 섀도우 맵이 커버할 수 있는 거리 이상의 섀도잉도 가능합니다.
+
+아래는 게임에서 폴리지 옵션을 사용할 때 최고의 퍼포먼스와 퀄리티를 내기 위해 고려해야하는 몇 가지 옵션입니다.
+
+#### 양면 디스턴스 필드
+
+밀도가 높은 (나무같은) 메시에는 보통 잎이나 줄기에 있는 많은 구멍 표면을 위해 마스크 머티리얼로 구성된 표면이 있는데, 이는 입체 표면으로는 제대로 표현할 수 없습니다.
+그런 이유로, **스태틱 메시 에디터** 에서 [빌드 세팅](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 중 
+**Two-Sided Distance Field Generation** (양면 디스턴스 필드 생성) 옵션이 있습니다. 이 옵션은 폴리지에 좋지만 광선 진행 비용이 높아집니다.
+
+[REGION:imagetable]
+| ![](BuildSettings_TwoSided.png) | | | | [INCLUDE:#twosided] |
+| ---- | ---- | ---- | --- | --- |
+|  |  |  |  |  |
+[/REGION]
+
+이 예제에서, 왼쪽의 나무는 기본 불투명 메시 디스턴스 필드 표현을 사용하고 있습니다. 오른쪽의 것은 **Two-Sided Distance Field Generation** (양면 디스턴스 필드 생성) 옵션을 켠 것입니다. 양면 메시 디스턴스 필드가 
+회색이라기 보단 흰색에 가깝고 표면이 반투명인 것이 보일 것입니다. 즉 불투명한 것보다 볼륨 텍스처를 생성할 때 메시의 교차 부분을 찾기 위해 필요한 단계 수가 많으며 
+비용도 높아진다는 뜻입니다.
+
+
+[COMMENT:none]
+[EXCERPT:twosided]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![오파크 메시 디스턴스 필드](DFTwoSided1.png)(h:404)
+	[/PARAM]
+	[PARAM:after]
+	![양면 메시 디스턴스 필드](DFTwoSided2.png)(h:404)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:twosided]
+[/COMMENT]
+
+##### 폴리지 툴 세팅
+
+[폴리지 툴](Engine/Foliage) 에서, 앰비언트 오클루전과 섀도잉에 대해 디스턴스 필드 라이팅 피처를 사용하고자 하는 폴리지 유형 각각을 켜줘야 합니다. 기본적으로 이 세팅은 꺼져있는데, 
+(그래스 같은) 일부 폴리지 애셋은 인스턴스 수가 수천 수만에 달해 타일 컬링 버퍼에 오버플로우를 발생시킬 것이기 때문입니다. 그러면 보기 흉한 부작용이 생깁니다. 그러므로 꼭 필요한 폴리지 
+애셋에 대해서만 **Affect Distance Field Lighting** (디스턴스 필드 라이팅에 영향) 옵션을 켜야 합니다.
+
+![](FoliageToolSettings.png)
+
+[COMMENT:none]
+#### 랜드스케이프
+
+랜드스케이프는 그 표현을 위해 메시 디스턴스 필드가 아닌 하이트 필드를 사용합니다. 이 하이트 필드에 대해 추정 원뿔 교차를 계산하므로 디스턴스 필드 표현이 없는 픽셀도 오클루전을 받을 수 있게 되었지만, 
+셀프 섀도잉이나 디스턴스 필드 섀도잉도 없습니다. 그 대신, 랜드스케이프는 **Far Shadows** (파 섀도우)를 사용하여 매우 먼 거리 섀도잉을 처리합니다.
+
+![](Landscape.png)(w:700)
+[REGION:caption] 랜드스케이프 하이트 필드 표현을 디스턴스 필드 앰비언트 오클루전 뷰 모드로 본 것입니다. [/REGION]
+[/COMMENT]
+
+[COMMENT:none]
+### 컬링
+
+씬을 구성하는 오브젝트는 전적으로 GPU 에서 관리하는데, 뷰에서 이러한 오브젝트를 컬링하는 작업이 CPU 에서 할 때보다 100 배는 빠릅니다.
+
+
+* 씬 오브젝트는 GPU 에서 전적으로 관리합니다.
+	- CPU 는 업데이트 델타를 전송합니다.
+	- 오브젝트 이동은 매트릭스 업데이트만 요합니다.
+* 뷰의 오브젝트 컬링이 CPU 에서보다 100 배 빠릅니다.
+	- 소년과 연 데모에서 2 백만 트리 인스턴스가 화면상에 5 만으로 줄고, PS4 에서 .1ms 에 가능합니다.
+	- 파이프라인 상의 오브젝트에 대한 모든 연산이 GPU 에 있어서 가능합니다.
+	- 오브젝트에 그래픽스 API 호출이 사용되지 않습니다. SDF 광선 진행 시 관여되는 트라이앵글이 없기 때문입니다. 이를 통해 오브젝트 관리와 컬링을 (나머지 기법과 아울러) 
+	GPU 에서 처리하는 것이 가능합니다.
+[/COMMENT]
+
+
+### 디스턴스 필드 활성화
+
+프로젝트에 메시 디스턴스 필드를 켜는 방법은, **편집** > **프로젝트 세팅** 에서 **Rendering** (렌더링) 섹션으로 갑니다.
+
+[REGION:lightbox]
+[![](ProjectSettingsWindow.png)(w:450)](ProjectSettingsWindow.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+**Lighting** (라이팅) 카테고리 아래, **Generate Mesh Distance Fields** (메시 디스턴스 필드 생성) 옆 박스를 체크합니다. 
+
+![](GeneratedMeshDF.png)(w:450)
+
+이 옵션을 켜면, 프로젝트를 재시작하라는 창이 뜹니다.
+
+![](RestartEditorButton.png)(w:450)
+
+다음 번 프로젝트가 로드될 때, 우하단 구석에 메시 디스턴스 필드가 생성중이라는 팝업 창이 뜹니다.
+
+![](BuildingMeshDFs.png)(w:450)
+
+완료되면, 뷰포트에서 **표시** > **시각화** > **Mesh Distance Fields** (메시 디스턴스 필드)를 클릭하여 메시 디스턴스 필드를 시각화시켜 볼 수 있습니다. 다음과 같은 화면일 것입니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![씬 뷰](TriangleScene.jpg)(w:750)
+	[/PARAM]
+	[PARAM:after]
+	![메시 디스턴스 필드 시각화](MeshDistanceFieldScene.jpg)(w:750)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:caption] 이 레벨 전체는 볼륨 텍스처에 저장된 인스턴스드 디스턴스 필드로 표현되었습니다. [/REGION]
+
+
+### 메모리 사용량 및 최적화
+
+* **r.AOListMeshDistanceFields** 는 메모리 크기별로 정렬하여 출력 로그에 메시 디스턴스 필드 메모리를 덤핑합니다. 콘텐츠 최적화에 좋습니다.
+[EXCERPT:optimizations]
+* **프로젝트 세팅** > **Rendering** (렌더링) 에서 다음 옵션을 켭니다: 
+	[REGION:lightbox]
+	[![](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\ProjectSettings.png)(w:500 h:250)](Engine\Rendering\LightingAndShadows\MeshDistanceFields\Reference\ProjectSettings.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+	* **Compress Mesh Distance Fields** (메시 디스턴스 필드 압축)을 켜면 디스턴스 필드 볼륨 텍스처를 메모리에 압축 저장합니다. 
+		메모리 사용량이 줄지만, 레벨 스트리밍을 사용하는 경우 이 레벨을 스트림 인 할 때 버벅임이 발생할 것입니다.
+	* **Eight Bit Mesh Distance Fields** (8비트 메시 디스턴스 필드)를 켜면 디스턴스 필드 볼륨 텍스처를 기본 16비트 부동 소수점이 아닌 8비트 고정 소수점 포맷으로 저장합니다.
+		기존에 비해 메모리 사용량이 절반으로 줄지만 크거나 얇은 메시에 부작용이 생길 수 있습니다.
+[/EXCERPT:optimizations]
+* 글로벌 디스턴스 필드는 대부분 모빌리티가 스태틱 또는 스테이셔너리로 설정된 스태틱 프리미티브를 캐시에 담습니다. 글로벌 디스턴스 필드 전체는 거의 스태틱 캐시에서 상속받으므로, 무버블 프리미티브를 변경하면 
+근처의 다른 무버블 프리미티브만 글로벌 디스턴스 필드에 다시 합성해 넣으면 됩니다.
+
+
+### 한계
+
+**디스턴스 필드 기법의 한계점:**
+* 피처 레벨 5 (DX-11 이상) 플랫폼만 지원합니다.
+* 스태틱 메시에서만 그림자를 드리웁니다. 스켈레탈 메시의 경우, 간접광 영역에는 [캡슐 섀도우](Engine/Rendering/LightingAndShadows/CapsuleShadows) 를, 디스턴스 필드 앰비언트 오클루전(DFAO)과 부드러운 직접 그림자를 함께 사용하면 됩니다.
+* World Position Offset 또는 디스플레이스먼트를 통해 메시를 변형(deform)하는 머티리얼은 셀프 섀도잉 부작용이 생길 수 있습니다. 디스턴스 필드 표현은 오프라인 생성되고 이러한 변형에 대해 알지 못하기 때문입니다.
+
+**현재 구현에서는 한계가 있지만 앞으로 개선의 여지가 있는 부분:**
+* 비균등 스케일을 제대로 처리하지 못하니다 (미러링은 괜찮습니다). 메시의 스케일을 두 배 정도 늘리는 것은 보통 눈에 띄지 않습니다.
+* 스태틱 메시, 인스턴스드 스태틱 메시, 폴리지, 랜드스케이프 (하이트필드) 만 지원합니다. 폴리지는 폴리지 툴 세팅에서 **Affect Distance Field Lighting** (디스턴스 필드 라이팅에 영향) 옵션이 켜져있어야 합니다.
+
+**하드웨어 한계:**
+* 인텔 카드에서는 모든 메시 디스턴스 필드 피처가 꺼져있습니다. 커다란 아틀라스 할당을 위한 RHICreateTexture3D 호출 시 HD 4000 이 멈추기 때문입니다.
+
+
+### 참고서
+
+* [Quilez,Inigo. "Raymarching Distance Fields." N.p, 2008](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+
+
+
+## 필독서
+
+[DIR(output:"topiccompact" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields" org:"hierarchy" end:"1")]
+
+
+

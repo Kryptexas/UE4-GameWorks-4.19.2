@@ -6,11 +6,14 @@ Navigation:platform
 Version: 4.17
 Skilllevel: Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:4
 Checkpoint:GearVRQS
+Related: Platforms\GearVR\Prerequisites
+Related: Platforms\GearVR\BestPractices
+Related: Platforms\GearVR\Debugging
 
 [nav]
 

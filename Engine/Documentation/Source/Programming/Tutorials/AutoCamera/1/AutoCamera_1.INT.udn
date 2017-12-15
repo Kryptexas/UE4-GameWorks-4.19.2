@@ -19,7 +19,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]If you are new to **Unreal Engine 4** (UE4), you might want to read our [%Programming\QuickStart:title% tutorial](Programming\QuickStart) first. For this tutorial, we will assume you are familiar with creating a project, adding C++ code to it, compiling your code, and adding **Components** to **Actors** in UE4[/REGION]
 
@@ -50,4 +50,4 @@ version: 4.9
 
 With our world set up, we're now ready to create the class that will control our camera view.
 
-%Steps%
+

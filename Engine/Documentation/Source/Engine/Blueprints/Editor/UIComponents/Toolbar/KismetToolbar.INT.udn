@@ -41,7 +41,8 @@ The Toolbar contains two sections:
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:#debugobject]			| 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompileSuccessful]
 Compilation was successful. Clicking the button compiles the Blueprint being edited. Output from the compiling process is displayed in the Blueprint Log of the Message Log. This button will be inactive during debugging.
 [/EXCERPT:CompileSuccessful]
@@ -124,4 +125,5 @@ Next to the menu in the Blueprint editor tab is the Info Panel. This displays th
 
 $ Name : Displays the name of the Blueprint being edited. Not displayed for Level Blueprints.
 $ Parent : Displays the parent class of the Blueprint. Not displayed for Level Blueprints.
--->
+
+[/COMMENT]

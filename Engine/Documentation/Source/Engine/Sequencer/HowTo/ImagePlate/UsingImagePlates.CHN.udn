@@ -1,0 +1,171 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Using Image Plate Actors & Image Plate Tracks
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:In this example, we use the Image Plate Actor and Image Plate Track in Sequencer to place a 3D character in a 2D video environment. 
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine/MediaFramework
+tags:Sequencer
+tags:MediaFramework
+tags:Composure
+type:how-to
+
+[REGION:warning]
+This feature is currently in the experimental stages of development and some aspects of the feature may not work as expected. 
+[/REGION]
+
+During the development of your own projects, you may want to use an image sequence as a backdrop for your 3D characters. 
+Maybe you want to have a menu with a 3D character in front of a 2D background containing moving images or you want to superimpose a 3D character over a 2D background giving the illusion that the character is in that environment. 
+
+Using the **Image Plate** Actor enables the display of frame-accurate image sequences in fullscreen when it is attached to a camera. 
+When using the accompanying **Image Plate Track** in Sequencer, it enables you to playback those images within the context of your cinematic that you can play during gameplay or render out as a movie. 
+You can also use the [Composure Editor](https://docs.unrealengine.com/latest/INT/Engine/Composure/) to fine-tune and improve the quality of the final render. 
+
+In this example, we focus on setting up an Image Plate Actor and Image Plate Track in Sequencer to playback an image Sequence with a 3D character in the foreground. 
+
+![](EndResultImage.png)
+
+[REGION:note]
+For this how-to guide, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+[/REGION]
+
+## Steps
+
+1.	Download and extract the [Example Image Sequence](https://epicgames.box.com/s/l2xuneahxy1cfq3yn3jd4hysr83lkr8d) assets to your computer or generate your own Image Sequence assets outside the editor. 
+
+1.	Inside your project, select the **Edit** option from the Menu Toolbar and select **Plugins**. 
+
+	![](ImagePlate_01.png)
+
+	In order to access and work with the Image Plate Actor and Image Plate Track, we must first enable the associated plugin.
+
+1.	In the Plugins menu, search for and select the **Image Plate** then click the **Enabled** check box and accept the confirmation then **Restart Now** to restart the editor. 
+
+	![](ImagePlate_02.png)
+
+1.	In the **Content Browser** of your project, create a **Cinematics** folder then inside it, create a new Level Sequence called **Master**. 
+
+	![](ImagePlate_03.png)
+
+1.	From the **Modes** panel, search for and drag an **Image Plate** Actor into the level viewport. 
+
+	![](ImagePlate_04.png)
+
+1.	From the **Modes** panel drag a **CineCameraActor** into the level, then in the **World Outliner** drag-and-drop the **ImagePlate** onto the **CineCameraActor** to attach it. 
+
+	![](ImagePlate_05.png)
+
+	This will enable us to scale the Image Plate Actor while keeping it attached to the Cine Camera Actor. 
+
+1.	Select the **ImagePlate** in the **World Outliner**, then in the level use the translation widget to move the Image Plate away from the camera to increase its size. 
+
+	![](ImagePlate_07.png)
+
+	This will enable us to add content that will fit within the Cine Camera's view frustum (you can increase or decrease the size of the Image Plate based on your own content). 
+
+1.	In the **Content Browser**, drag your **Master** Level Sequence into the level viewport and in the **Details** panel, check the **Auto Play** option. 
+
+	![](ImagePlate_08.png)
+
+	If we play our game, this will enable us to automatically playback our Level Sequence. 
+
+1.	Open your **Master** Level Sequence and add the Cine Camera and Image Plate Actors from the level, then add a **Camera Cuts** track and assigned to the Cine Camera Actor. 
+
+	![](ImagePlate_09.png)
+
+1.	In the **Content Browser**, right-click on the **Cinematics** folder and choose **Show in Explorer**. 
+
+	![](ShowInExplorer.png)
+
+1.	Inside the **Cinematics** folder in explorer, create a folder called **footage** then inside it, add your Image Sequence assets (from Step 1). 
+
+	![](ImagePlate_10.png)
+
+	You may see an import message prompt when returning to the editor, you can choose **Don't Import**. 
+
+	![](ImagePlate_10b.png)
+
+	We have created a folder with our content which we will point to a little later in this guide and do not need to, therefore, import all that content into our project. 
+
+1.	**Save** all your content, then close and re-open your project to refresh the project's folder structure and assets. 
+
+1.	Inside your project inside the **Cinematics** folder, select **Add New** then under **Media** select **Image Plate File Sequence** and call it **MyImagePlate**. 
+
+	![](ImagePlate_11.png)
+
+1.	Open the **MyImagePlate** asset and point the **Sequence Path** to your **footage** folder, change the **File Wildcard** to **.png** and **Framerate** to **30**. 
+
+	![](ImagePlate_12.png)
+
+	If you are using the Example Image Sequence assets, we are using .PNG files however you can use .EXR or other [supported image file formats](Engine/Content/Types/Textures/Importing) based on your setup. 
+
+1.	Inside your **Master** Level Sequence, on the **ImagePlate** Track, click the **+Track** button and select **Image Plate**. 
+
+	![](ImagePlate_14.png)
+
+1.	Click the **+Image Sequence** on the **Render Texture** Track and select your **MyImagePlate** Image Plate File Sequence asset. 
+
+	![](ImagePlate_15.png)
+
+	You will now see your Image Sequence appear on the Image Plate in the level as well as within Sequencer. 
+	
+	![](ImagePlate_16.png)
+	
+1.	In the **Content/Mannequin/Animations** folder, drag the **ThirdPersonWalk** animation into the level and place it within the camera's viewpoint facing away from the camera. 
+
+	![](ImagePlate_17.png)
+
+	Optionally for the Cine Camera Actor, you may need to adjust the focus settings by clicking the eye-dropper icon then selecting the Image Plate Actor in the level. 
+
+	![](ImagePlate_20.png)
+
+1.	From the Sequencer toolbar, click the **Render Movie** button to render out the sequence. 
+
+	![](ImagePlate_18.png)
+
+1.	Choose an **Output Directory** then click the **Capture Movie** to render out the movie. 
+
+	![](ImagePlate_19.png)	
+
+	
+## End Result
+
+You will now have a 3D character that appears to be walking in the 2D background image sequence. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	NNJIJHc90e0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+This example focuses on setting up the Image Plate Actor and using the Image Plate Track and getting image sequences to playback using the Image Plate File Sequence asset. 
+If you would like to learn more about lighting techniques and (or) more advanced compositing features, on the **Learn** tab of the Epic Games Launcher, the **Composure Compositing Framework** project offers a more advanced use case of Image Plates and uses the Compositing Framework to provide a more stylized version of this guide. 
+
+![](ComposureFramework.png)
+
+[REGION:note]
+If you would like to learn more about compositing and more advanced compositing techniques, please see also the [Composure Editor](https://docs.unrealengine.com/latest/INT/Engine/Composure/) documentation. 
+[/REGION]
+
+
+
+
+
+

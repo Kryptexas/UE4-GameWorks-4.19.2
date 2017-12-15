@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3736300
 Availability:Public
 Title:4. 레벨 디플로이
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:원클릭 디플로이로 레벨을 실행시킵니다.
-version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -28,58 +28,80 @@ Checkpoint:AndroidQS
 
 [INCLUDE:Platforms/Android/Reference#androidformats]
 
-[REGION:tip]
-	어떤 텍스처 포맷을 사용해야 하는지 불확실하거나 디바이스가 지원하는 것이 무엇인지 모르겠는 경우, 게임 실행 후 다음과 같은 작업을 통해 알 수 있습니다.
-
-	1. 화면을 네 손가락으로 한 번에 터치하면 대화창이 뜹니다.
-	1. 이 대화창은 보통 (`stat fps` 같은) 콘솔 명령을 입력하는 데 사용되나, 디바이스가 지원하는 포맷을 표시해 주기도 합니다.
-	1. 그 목록을 확인했으면, 그를 통해 디플로이/패키징시 보다 이상적인 유형을 선택할 수 있습니다.
-
-	![](Available_Texture_Formats.png)
-
-[/REGION:tip]
-
 ## 단계
 
-1.	안드로이드 기반 디바이스에서 현재 레벨을 테스트하기 위해서는 먼저 테스트하고자 하는 레벨을 열어야 합니다.
-	이 예제에서는 지난 단계에서 생성한 블루프린트 기반 프로젝트의 **ThirdPersonExampleMap** 레벨을 사용하겠습니다.
-	
-	![](Correct_Level_Open.png)
+1.    안드로이드 기반 디바이스에서 현재 레벨을 테스트하기 위해서는 먼저 테스트하고자 하는 레벨을 열어야 합니다.
+    이 예제에서는 지난 단계에서 생성한 블루프린트 기반 프로젝트의 **ThirdPersonExampleMap** 레벨을 사용하겠습니다.
+    
+    ![](Correct_Level_Open.png)
 
-1.	**ThirdPersonExampleMap** 을 연 채로 **메인 툴바** 로 이동한 뒤 **실행** 아이콘 옆의 작은 삼각형을 클릭하면 추가 옵션이 표시됩니다.
+    [region:note]
+	UE4.18 에서 Gradle 빌드 시스템이 기본으로 켜집니다. 하지만 그러기 위해서는 **프로젝트 세팅** > **안드로이드** 에서 SDK 라이선스를 수락해야 합니다 (기존에 수락한 경우 버튼이 비활성화되어 있습니다). 버튼을 누르고, 계약서를 읽고, 수락해 주세요. 그러면 버튼이 회색으로 비활성화될 것입니다. **Enable Gradle instead of Ant** (Ant 대신 Gradle 활성화) 옵션 체크를 해제하면 4.18 에서도 여전히 Ant 를 사용할 수는 있습니다.
 
-	![](Level_Deploy_Options.png)
+    [REGION:lightbox]
+    [![](Gradle_418_Update.png)(w:519)](Gradle_418_Update.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+    4.19 부터 이 옵션을 제거하고 Gradle 만 사용하도록 할 것입니다.
+
+    [/region]
+
+1.    **ThirdPersonExampleMap** 을 연 채로 **메인 툴바** 로 이동한 뒤 **실행** 아이콘 옆의 작은 삼각형을 클릭하면 추가 옵션이 표시됩니다.
+
+    ![](Level_Deploy_Options.png)
 
 1. **디바이스** 섹션 아래 **실행** 메뉴에서 목록의 안드로이드 디바이스를 클릭하여 선택합니다.
 
-	![](launch_rightformat.png)
+    ![](launch_rightformat.png)
 
 1. 디바이스에서 레벨이 실행되는 도중 그 진행상황이 화면 우하단 구석에 표시됩니다.
 프로젝트가 디바이스에 성공적으로 디플로이되면 알림창이 뜹니다.
-	
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		afagQeEvf4Q
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		640
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		360
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		px
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+    
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:videoid]
+        afagQeEvf4Q
+        [/PARAMLITERAL]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:units]
+        px
+        [/PARAMLITERAL]
+        [PARAMLITERAL:type]
+        simple
+        [/PARAMLITERAL]
+    [/OBJECT]
 
-1.	쿠킹 및 실행 프로세스가 완료된 후, 게임이 자동으로 디바이스에 뜨며, 앱 드로어에서도 접근할 수 있습니다.
 
-	![](Deployed_Project_Android.png)
+
+[REGION:tip]
+    어떤 텍스처 포맷을 사용해야 하는지 불확실하거나 디바이스가 지원하는 것이 무엇인지 모르겠는 경우, 게임 실행 후 다음과 같은 작업을 통해 알 수 있습니다.
+
+    1. 화면을 네 손가락으로 한 번에 터치하면 대화창이 뜹니다.
+    1. 이 대화창은 보통 (`stat fps` 같은) 콘솔 명령을 입력하는 데 사용되나, 디바이스가 지원하는 포맷을 표시해 주기도 합니다.
+    1. 그 목록을 확인했으면, 그를 통해 디플로이/패키징시 보다 이상적인 유형을 선택할 수 있습니다.
+
+    ![](Available_Texture_Formats.png)
+[/REGION:tip]
 
 ## 최종 결과
-완료되면 생성된 UE4 프로젝트가 이제 안드로이드 기반 스마트폰에서 작동할 것입니다.
+
+쿠킹 및 실행 프로세스가 완료된 후, 게임이 자동으로 디바이스에 뜨며, 앱 드로어에서도 접근할 수 있습니다.
+
+[REGION:lightbox]
+[![](Deployed_Project_Android.png)(w:500)](Deployed_Project_Android.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
 
 [nav]
+

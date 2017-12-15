@@ -1,66 +1,68 @@
-﻿INTSourceChangelist:2667895
-Title:1. SteamVR の初期設定
-Crumbs:%ROOT%, Platforms
-Description:SteamVR に必要なハードウェアとソフトウェアの設定
+﻿INTSourceChangelist:3622880
 Availability:Public
+Title:1. SteamVR の初期設定
+Crumbs:%ROOT%, Platforms/SteamVR
+Description:SteamVR に必要なハードウェアとソフトウェアの設定
 Navigation:platform
+Version:4.17
+Skilllevel:Intermediate
 Platform:SteamVR
+type:multi-step
+parent:Platforms/SteamVR/QuickStart
+order:1
+Checkpoint:SteamVRQS
+tags:Steam VR
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタートのホーム](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/SteamVR/QuickStart/2 "%Platforms/SteamVR/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-%Steps%
+次のセクションでは、アンリアル エンジン (UE4) で使えるように SteamVR を設定する方法を説明します。
 
-SteamVR ハードウェアがアンリアル エンジン 4 で正確に動くようにするためには、SteamVR ハードウェアが適切に設定され、正しいソフトウェアが開発 PC 上にインストールされていることを確認することが非常に重要です。 
-以下のセクションでは、UE4 で使用するために必要な SteamVR ソフトウェアとハードウェアの設定をする際に特別に考慮する点について説明します。
+## ステップ
 
 [region:note]
 SteamVR 開発キット Valve には、正しい設定方法を説明した [Detailed instructions (詳しい説明)(http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) が入っています。 
 今から説明する情報の中には Valve で作成したドキュメントに含まれていませんので、この文書を読んでいない場合は是非読ご一読ください。
 [/region]
 
-1. SteamVR の使用中につまずいたり当たったりするすべてのオブジェクトの 12 x 9ft / 4 x 3M エリアを開けておくようにしてください。
-
-1. **[Tools]** オプションの **[Library]** セクションの Steam Client の中に、**SteamVR** と **VRMonitor** を両方ともダウンロードします。
-
-	![](T_SteamTools_Software.png)
-
 1. Vive HMD (ヘッドマウント ディスプレイ)、Steam コントローラ、Breakout box、Lighthouse ベースステーションがすべて展開され、電源がオンで、接続されて、Valve の [インストラクション](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) に従って設定されていることを確認します。
 
-1. すべて接続して電源を入れたら、レンズが自分に向くように Vive HMD を手に取ります。
-Vive HMD の **左側** に上に小さなライトが付いている小さな **黒いボタン** があります。 
-今ライトは **赤** のはずです。これは Vive HMD がスタンバイ モードであることを意味します。 
-**黒いボタン** を **5 秒** 長押しして、赤いライトが **緑** に変わったら Vive HMD の使用が可能という意味です。
+1. まだの場合は、ダウンロードしていない場合は、開発端末に [Steam Client](http://store.steampowered.com/about/) を必ずダウンロードおよびインストールしてください。
 
-	![](T_Vive_Standby_Mode.png)
+1. **SteamVR** ツールをインストールするには、マウスを Steam の **[Library]** オプションに当てて、表示されたメニューから **[Tools]** オプションを選択します。 
 
-	[region:note]
-	Vive HMD を正しく使えるようにするには、**[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** を開発 PC 上で使えるように開けておく必要があります。 
-	[/region]
+    ![](T_Launch_SteamVR_Tools.png)
 
-1. Steam クライアントから **Steam VR** アプリケーションを起動すると、以下のウィンドウが表示されます。
+1. [Tools] セクションで上部の検索バーを使って **[SteamVR]** を検索します。Once SteamVR が見つかったら、ダブルクリックしてダウンロード / インストールします。
 
-	![](T_Steam_VR_App.png)
+    [REGION:lightbox]
+    [![](T_SteamTools_Software.png)(w:568)](T_SteamTools_Software.png)
+    [/REGION]
 
-1. **「設定」** セクションの最初の 3 ステップを行って、すべて完了したら **[Run your first VR app! (初めて VR アプリケーションを実行!)]** をクリックして HMD を装着します。 
-   すべて問題なく設定されると、HMD の中に次のような画像が表示されます。
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
-	![](T_FirstVRApp.png)
+    [region:note]
+    SteamVR は、Steam Client の右上端の **[VR]** アイコンをクリックしインストラクションに従うことでもインストールすることができます。
+    ![](T_SteamVR_Icon_Install.png)
+    [/region]
 
+1. [Tools] メニューの **[SteamVR]** オプションをダブルクリックして、以下の画像のように SteamVR ツールを起動します。
 
+    ![](T_Steam_VR_Ready.png)
+    [region:note]
+    以下の画像のように、SteamVR にすべてのデバイスが緑で表示されたら、すべて正常に動ているという意味です。 
+    デバイスがグレーアウト表示された場合、そのデバイスに問題があります。
+    SteamVR は、グレーアウトされたデバイスの問題の原因と可能な修正方法を提示します。修正方法を表示するには、グレーアウト表示のデバイス上にマウスオーバーします。
+    [/region]
 
+1. SteamVR を UE4 で使う前に、SteamVR インタラクション エリアを設定しなければなりません。 
+手順は、[SteamVR] ウィンドウを **右クリック** して、**[Run Room Setup]** を選択したら、インストラクションに従って SteamVR インタラクション エリアを設定します。
 
+    ![](T_Steam_VR_App.png)
 
-%Steps%
+## 結果
+
+完了すれば SteamVR が設定され UE4 で使用することができます。
+
+[nav]

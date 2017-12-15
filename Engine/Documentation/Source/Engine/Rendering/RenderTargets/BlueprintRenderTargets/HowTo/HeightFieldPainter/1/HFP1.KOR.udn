@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3259022
+﻿INTSourceChangelist:3782314
 availability:Public
 title:1. 프로젝트 구성
 description:하이트 맵 페인터 제작을 위한 프로젝트 구성 방법입니다.
@@ -82,7 +82,8 @@ checkpoint:HFP
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HUD]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -232,4 +233,5 @@ checkpoint:HFP
 [/EXCERPT:HUD]
 
 
--->
+
+[/COMMENT]

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3588288
-Availability:Docs
+﻿INTSourceChangelist:3717095
+Availability:Public
 Crumbs: %ROOT%
 Title:クックとチャンキング
 Description:コンテンツをクックし、配布のために .pak ファイルをビルドします。
@@ -16,7 +16,7 @@ Related:Engine/Basics/AssetsAndPackages/AssetManagement
 
 [TOC (start:2 end:3)]
 
-リリースに向けてゲームをクックする場合や、エディタ外のプラットフォームでテストする場合、**チャンキング** を使ってデータをいくつかの .pak ファイルに分割してから、個別にデプロイすることができます。チャンキングはアセット マネージャに統合されました。**Primary Asset Labels (プライマリ アセット ラベル)** または **Rules Overrides (ルールのオーバーライド)** を使ってセットアップすることができます。チャンキングの最適な例としては、ShooterGame サンプル プロジェクトがあります。ShooterGame では、以下の 3 つのチャンクを設定しています。チャンク 1 は "Sanctuary" マップ、チャンク 2 は "Highrise" マップ、チャンク 0 は他の全てのデータ用です。[ShooterGame (Resources/SampleGames/ShooterGame)] では、プライマリ アセット ラベルが選択されますが、両方の方法について説明します。
+リリースに向けてゲームをクックする場合や、エディタ外のプラットフォームでテストする場合、**チャンキング** を使ってデータをいくつかの .pak ファイルに分割してから、個別にデプロイすることができます。チャンキングはアセット マネージャに統合されました。**Primary Asset Labels (プライマリ アセット ラベル)** または **Rules Overrides (ルールのオーバーライド)** を使ってセットアップすることができます。チャンキングの最適な例として、ShooterGame サンプル プロジェクトがあります。ShooterGame では、以下の 3 つのチャンクを設定しています。チャンク 1 は "Sanctuary" マップ、チャンク 2 は "Highrise" マップ、チャンク 0 は他の全てのデータ用です。[ShooterGame (Resources/SampleGames/ShooterGame)] では、プライマリ アセット ラベルが選択されますが、両方の方法について説明します。
 
 ## プライマリ アセットのルール
 

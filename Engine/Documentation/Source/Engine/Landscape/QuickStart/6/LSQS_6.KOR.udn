@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6. 랜드스케이프 팁과 정보
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -21,16 +21,18 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 이전까지의 랜드스케이프 퀵스타트 튜토리얼로 랜드스케이프를 가동시킬 수야 있겠지만, 랜드스케이프 툴로 실제 할 수 있는 작업에 비하면 수박 겉핥기 수준입니다. 여기서는 랜드스케이프 툴 사용에 있어서의 팁과 정보는 물론 랜드스케이프 생성시 사용할 수 있는 외부 툴에 대해서도 다뤄보겠습니다.
 
 ##팁과 정보
 
-<!--Before choosing the size of your Landscape there are many things that you need to consider first like target platform and performance impact. To make things a little easier for you, here is a chart of recommended Landscape component counts and sizes that might help in choosing the best size for your Landscape. 
+[COMMENT:none]
+Before choosing the size of your Landscape there are many things that you need to consider first like target platform and performance impact. To make things a little easier for you, here is a chart of recommended Landscape component counts and sizes that might help in choosing the best size for your Landscape. 
 
-[INCLUDE:Engine/Landscape/Creation#RecommendedLSS]-->
+[INCLUDE:Engine/Landscape/Creation#RecommendedLSS]
+[/COMMENT]
 
 * **페인트 툴** 사용시에는 지우고자 하는 것에 **Shift** + **좌클릭** 으로 지우는 것이 더욱 쉬울 것입니다.
 * **알파 브러시** 사용시 **텍스처 채널** 드롭다운 메뉴에서 다른 RGB 채널을 선택하는 것으로 브러시가 사용하는 패턴을 바꿀 수 있다는 점 기억하세요. 하나의 텍스처에 세 가지 다른 알파 패턴을 꾸려넣을 수 있으니 매우 편리합니다.
@@ -77,4 +79,4 @@ Zbrush 역시도 랜드스케이프의 하이트맵 데이터 생성에 사용�
 
 
 
-%Steps%
+

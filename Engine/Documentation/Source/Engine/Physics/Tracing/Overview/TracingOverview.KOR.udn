@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3348587
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:트레이스 개요
 Crumbs:
@@ -16,13 +16,17 @@ related:Engine/Physics/Tracing/HowTo
 
 [TOC(start:1 end:4)]
 
-<!-- Common Variables -->
+[COMMENT:none]
+ Common Variables 
+[/COMMENT]
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!-- Overview -->
+[COMMENT:none]
+ Overview 
+[/COMMENT]
 
 [REGION:fullwidth]
 ![](traceTitle.png)(convert:false)
@@ -57,7 +61,8 @@ related:Engine/Physics/Tracing/HowTo
 | --- | --- |
 | ![](BP_HitStruct.png) | [INCLUDE:#ts1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ts1]
 | **멤버** || **정의** |
 | --- | :---: | :--- |
@@ -77,7 +82,8 @@ related:Engine/Physics/Tracing/HowTo
 | **Trace Start** || 트레이스 시작 - 트레이스 시작 위치입니다. |
 | **Trace End** || 트레이스 끝 - 트레이스 끝 위치입니다. |
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## 셰이프 트레이스 사용
 
@@ -127,4 +133,6 @@ Line Trace (라인 트레이스)가 충분치 않은 경우, Shape Trace (셰이
 
 트레이스에는 디버깅 편의를 위해 반환되는 값을 제한시킬 수 있는 자잘한 기능이 여럿 있습니다. 스태틱 메시나 프로시저럴 메시에 **Complex Collision** (복합 콜리전) 옵션이 켜져있는 경우, 그를 대상으로 트레이스를 하는 기능이 있습니다. **액터** 에서 호출된 경우 **액터** 스스로를 통해 트레이스하도록 하는 기능을 켜면 붙어있는 컴포넌트 전부를 무시하도록 할 수 있습니다. 마지막으로 트레이스를 빨강 및 초록색 선으로, 히트는 커다란 박스로 나타내는 옵션이 있습니다.
 
-<!-- Draw Debug Type, Trace Complex, Ignore Self -->
+[COMMENT:none]
+ Draw Debug Type, Trace Complex, Ignore Self 
+[/COMMENT]

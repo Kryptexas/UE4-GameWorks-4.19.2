@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3360829
+﻿INTSourceChangelist:3746532
 Title: GitHub 에서 VR 에디터 구성
 Description: GitHub 에서 언리얼 엔진 VR 에디터 프리뷰 버전을 다운로드하고 구성하는 방법입니다.
 Crumbs:
-Availability: public
+Availability: docs
 parent: Engine/Editor/VR
 type:how-to
 order: 2

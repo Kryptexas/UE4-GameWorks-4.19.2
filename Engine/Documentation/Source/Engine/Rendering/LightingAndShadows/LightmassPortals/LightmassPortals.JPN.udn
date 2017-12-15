@@ -1,0 +1,114 @@
+﻿INTSourceChangelist:3750366
+Availability:Public
+Crumbs: %ROOT%
+Title:Lightmass Portal
+Description:ベイクした屋内ライティングの品質を高める方法  
+Type:Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:LMP_TopicImage.png
+Social-image:LMP_TopicImage.png
+
+![](LMPortal_On.png)
+
+[TOC(start:2 end:2)]
+
+Skylight や HDR イメージを使ってアンリアル エンジン 4 (UE4) レベルを照らす場合、シーンのライトがどこから入射しているのかを Lightmass が理解していない問題に直面します。ライトが入射する場所を Lightmass が理解しやすくするために、ライティングにとって致命的となるエリアの周りに Lightmass Portal アクタを配置することができます。アンリアル エンジン 4 (UE4) プロジェクトにおいて、Lightmass Portal の設定および使用方法を説明します。
+
+## 機能の説明 
+
+概略を述べると、Lightmass Portal は以下のように機能します。
+
+* Lightmass Portals は、[スカイライト](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight/)、HDR 画像、[Static Lighting にエミッシブを使用](Engine/Rendering/Materials/HowTo/EmissiveGlow/#エミッシブマテリアルを使ってワールドを照らす) する設定のスタティックメッシュを使ってシーンを照らす場合に最も便利です。 
+
+    [REGION:lightbox]
+    [![](LMP_SkylightSetup.png)(w:500)](LMP_SkylightSetup.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+* Lightmass Portal をレベルに配置し、最終的なライティングに大切なオープン エリアに合うようにスケールします。
+
+    ![](LMPortals.png)(w:800)
+
+* Lightmass がライトをビルドしている間、Lightmass Portal は Lightmass にライトとシャドウの質を高めるために、この領域から入射光が必要であることを伝えます。  
+
+    [OBJECT:ComparisonSlider]
+        [PARAM:before]
+        ![Without Portals](LMPortal_Results_00.png)
+        [/PARAM]
+        [PARAM:after]
+        ![With Portals](LMPortal_Results_01.png)
+        [/PARAM]
+    [/OBJECT]
+
+## ステップ 
+
+アンリアル エンジン (UE4) プロジェクトで Lighting Scenarios を使用する手順を説明します。
+
+1. まず **[Modes]** パネルを開き、検索欄に **[Lightmass Portal]** と入力します。見つかったら、それをレベルにドラッグします。
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_01.png)(w:500)](LMPortal_Step_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **[Move]**、**[Rotate]**、**[Scale]** ツールを使って、Lightmass にもっと光線をフォーカスしてもらいたい光が入射する場所と同じか、若干小さくなるように Lightmass Portal の位置とスケールを調整します。
+
+    [REGION:lightbox]
+    [![](LMPortal_Step_02.png)(w:500)](LMPortal_Step_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. メイン ツールバーの **[Launch]** アイコンの横の小さな白い三角印をクリックして、**[Build]** を開き、表示されたメニューの **[Lighting Quality]** を **[Production]** に変更します。
+
+    ![](LMPortal_Step_03.png)
+
+1. これがすべて完了したら、**[Build]** ボタンを押して Lightmass ライティングのビルドを開始します。
+
+    ![](LMPortal_Step_04.png)
+
+## 最終結果
+
+Lightmass のビルドが完了すると、以下の画像のようになります。
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Without Portals](LMPortal_Off.png)(w:1000)
+    [/PARAM]
+    [PARAM:after]
+    ![With Portals](LMPortal_On.png)
+    [/PARAM]
+[/OBJECT]
+
+**Lightmass Portal のない** 画像をよく見ると、画像にたくさんのノイズがある事がわかります。**Lightmass Portal がある** 画像と比べると、暗いエリアでは特に目立ちます。 
+
+## 既知の問題 / 制約
+
+* Lightmass Portal は Lightmass にポータルに向けて光線を送ることを強制します。このため、Lightmass Portal はシーンに重要な小さなレベル上のライティングに対してのみ使用します。これを守らずに Lightmass Portal を多く追加してしまうと、Lightmass のビルド回数が急激に増加します。
+
+* Lightmass Portal には遮蔽物が何も存在しないので、とても小さいレベルでのみ Lightmass Portal を使用してください。広大なオープン ワールドで Lightmass Portal を使用すると、必要なライトのベイク時間が長くかかってしまいます。
+
+* Lightmass によるシーンのライティングの計算時間が増えてしまうので、Lightmass Portal は必要な時だけ使用します。
+
+* エミッシブのライト キャスターにスタティックメッシュを使う場合は、入射することになるスタティックメッシュ上のエリアの周りに Lightmass Portal を配置するようにしてください。
+
+
+
+
+
+
+
+

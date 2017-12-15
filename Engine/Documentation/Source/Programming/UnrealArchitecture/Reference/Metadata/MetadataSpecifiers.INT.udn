@@ -1,40 +1,167 @@
-Title: Metadata Specifiers
-Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
-Description: Metadata keywords used when declaring classes, functions, and interfaces to specify how they behave with various aspects of the engine and editor.
 Availability:Public
-Version: 4.9
+Title: Metadata Specifiers
+Crumbs:%ROOT%
+Description: Metadata keywords used when declaring UClasses, UFunctions, UProperties, UEnums, and UInterfaces to specify how they behave with various aspects of the Engine and Editor.
+type:reference
+Version: 4.18
+parent:Programming/UnrealArchitecture/Reference
+order:0
+tags:UCLASS
+tags:UENUM
+tags:UFUNCTION
+tags:UINTERFACE
+tags:UPROPERTY
+tags:Specifiers
+tags:Metadata
+topic-image:components_topic.png
 
-When declaring classes, functions, and interfaces, metadata specifiers can be added to the declaration to control how they behave with various
-aspects of the engine and editor.
+When declaring classes, enums, enum values, functions, structs, properties, and interfaces, **Metadata Specifiers** can be added to the declaration to control how they behave with various aspects of the Engine and Editor.
 
 [EXCERPT:MetadataUsage]
-The usage of metadata specifiers differs between regular classes, functions, and interfaces.
+The usage of Metadata Specifiers differs between regular classes, functions, and interfaces.
 [/EXCERPT:MetadataUsage]
 
-To use metadata specifies, use the meta specifier in a `UCLASS`, `UINTERFACE`, or `UFUNCTION` macro:
+When declaring classes, interfaces, functions, or properties, Specifiers can be added to the declaration to its behavior with various aspects of the Engine and Editor. To use Metadata Specifies, use the word `meta` in a `UCLASS`, `UINTERFACE`, `UFUNCTION`, or `UPROPERTY` macro as follows:
 
-    UCLASS(meta=(BlueprintSpawnableComponent))
+    {UCLASS/UINTERFACE/USTRUCT/UFUNCTION/UPROPERTY}(meta=(MetaTag1="Value1", MetaTag2, ..))
+	
+[REGION:Note]Metadata can be accessed by C++ code when running Editor builds, but it will not be present in shipped products. Game logic should not use metadata.[/REGION]
+
 
 ## Class Metadata Specifiers
+
 [EXCERPT:ClassMetadata]
-Classes can use the following metatag specifier:
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintSpawnableComponent)
+Classes can use the following Metatag Specifier:
+
+| Class Meta Tag | Effect |
+| --- | --- |
+| `BlueprintSpawnableComponent` | If present, the Component class can be spawned by a Blueprint. |
+| `BlueprintThreadSafe` | Only valid on Blueprint Function Libraries. This specifier marks the functions in this class as callable on non-game threads in Animation Blueprints. |
+| `ChildCannotTick` | Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can never tick, even if `bCanBlueprintsTickByDefault` is true. |
+| `ChildCanTick` | Used for Actor and Component classes. If the native class cannot tick, Blueprint-generated classes based this Actor or Component can have the `bCanEverTick` flag overridden, even if `bCanBlueprintsTickByDefault` is false. |
+| `DeprecatedNode` | For Behavior Tree nodes, indicates that the class is deprecated and will display a warning when compiled. |
+| `DeprecationMessage="Message Text"` | If the class is deprecated, this message will be added to the standard deprecation warning when trying to compile a Blueprint that uses it. |
+| `DisplayName="Blueprint Node Name"` | The name of this node in a Blueprint will be replaced with the value provided here, instead of the code-generated name. |
+| `DontUseGenericSpawnObject` | Do not spawn an object of the class using Generic Create Object node in Blueprint. This specifier makes sense only for BluprintType classes that are neither Actors nor ActorComponents. |
+| `ExposedAsyncProxy` | Expose a proxy object of this class in **Async Task** nodes. |
+| `IgnoreCategoryKeywordsInSubclasses` | Used to make the first subclass of a class ignore all inherited `ShowCategories` and `HideCategories` specifiers. |
+| `IsBlueprintBase="true/false"` | States that this class is (or is not) an acceptable base class for creating Blueprints, similar to the `UCLASS` specifiers, `Blueprintable` or 'NotBlueprintable`. |
+| `KismetHideOverrides="Event1, Event2, .."` | List of Blueprint events that are not be allowed to be overridden. |
+| `ProhibitedInterfaces="Interface1, Interface2, .."` | Lists Interfaces that are not compatible with the class. |
+| `RestrictedToClasses="Class1, Class2, .."` | Used by Blueprint Function Library classes to restrict usage to the classes named in the list. |
+| `ShortToolTip` | A short tooltip that is used in some contexts where the full tooltip might be overwhelming, such as the parent class picker dialog. |
+| `ShowWorldContextPin` | Indicates that Blueprint nodes placed in graphs owned by this class must show their World context pins, even if they are normally hidden, because Objects of this class cannot be used as World context. |
+| `UsesHierarchy` | Indicates the class uses hierarchical data. Used to instantiate hierarchical editing features in Details panels. |
+| `ToolTip` | Overrides the automatically generated tooltip from code comments. |
+
 [/EXCERPT:ClassMetadata]
 
 
-## Function Metadata Specifiers
-[EXCERPT:FunctionMetadata]
-Functions can use the following metatag specifiers:
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintInternalUseOnly)
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintProtected)
-* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecatedFunction)
-* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecationMessage)
-* [](Programming\UnrealArchitecture\Reference\Metadata\UnsafeDuringActorConstruction)
-[/EXCERPT:FunctionMetadata]
-
+## Enum Value Metadata Specifiers
 
 ## Interface Metadata Specifiers
 [EXCERPT:InterfaceMetadata]
-Interfaces can use the following metatag specifier:
-* [](Programming\UnrealArchitecture\Reference\Metadata\CannotImplementInterfaceBlueprint)
+Interfaces can use the following Metatag Specifier:
+
+| Interface Meta Tag | Effect |
+| --- | --- |
+| `CannotImplementInterfaceInBlueprint` | This Interface cannot be implemented by a Blueprint (e.g., it has only non-exposed C++ member methods). Any Interfaces that define a function that isn't a [`BlueprintImplementableEvent` or `BlueprintNativeEvent`](Programming/UnrealArchitecture/Reference/Functions/Specifiers) must be declared as `CannotImplementInterfaceInBlueprint`. |
+
 [/EXCERPT:InterfaceMetadata]
+
+
+## Struct Metadata Specifiers
+[EXCERPT:StructMetadata]
+Structs can use the following Metatag Specifiers:
+
+| Struct Meta Tag | Effect |
+| --- | --- |
+| `HasNativeBreak="Module.Class.Function"` | Indicates that this struct has a custom Break Struct node. The module, class, and function name must be provided. |
+| `HasNativeMake="Module.Class.Function"` | Indicates that this struct has a custom Make Struct node. The module, class, and function name must be provided. |
+| `HiddenByDefault` | Pins in Make Struct and Break Struct nodes are hidden by default. |
+| `ShortToolTip` | A short tooltip that is used in some contexts where the full tooltip might be overwhelming, such as the parent class picker dialog. |
+| `ToolTip` | Overrides the automatically generated tooltip from code comments. |
+
+[/EXCERPT:StructMetadata]
+
+
+## Function Metadata Specifiers
+
+[EXCERPT:FunctionMetadata]
+
+| Function Meta Tag | Effect |
+| --- | --- |
+| `AdvancedDisplay="Parameter1, Parameter2, .."` | The comma-separated list of parameters will show up as advanced pins (requiring UI expansion). |
+| `AdvancedDisplay=N` | Replace `N` with a number, and all parameters after the Nth will show up as advanced pins (requiring UI expansion). E.g. 'AdvancedDisplay=2' will mark all but the first two parameters as advanced). |
+| `ArrayParm="Parameter1, Parameter2, .."` | Indicates that a `BlueprintCallable` function should use a Call Array Function node and that the listed parameters should be treated as wild card array properties. |
+| `ArrayTypeDependentParams="Parameter"` | When `ArrayParm` is used, this specifier indicates one parameter which will determine the types of all parameters in the `ArrayParm` list. |
+| `AutoCreateRefTerm="Parameter1, Parameter2, .."` | The listed parameters, although passed by reference, will have an automatically-created default if their pins are left disconnected. This is a convenience feature for Blueprints. |
+| `BlueprintAutocast` | Used only by static `BlueprintPure` functions from a Blueprint Function Library. A Cast node will be automatically added for the return type and the type of the first parameter of the function. |
+| `BlueprintInternalUseOnly` | This function is an internal implementation detail, used to implement another function or node. It is never directly exposed in a Blueprint Graph. |
+| `BlueprintProtected` | This function can only be called on the owning Object in a Blueprint. It cannot be called on another instance. |
+| `CallableWithoutWorldContext` | Used for `BlueprintCallable` functions that have a `WorldContext` pin to indicate that the function can be called even if its class does not implement the `GetWorld` function. |
+| `CommutativeAssociativeBinaryOperator` | Indicates that a `BlueprintCallable` function should use the Commutative Associative Binary node. This node lacks pin names, but features an "Add Pin" button that creates additional input pins. |
+| `CompactNodeTitle="Name"` | Indicates that a `BlueprintCallable` function should display in the compact display mode, and provides the name to display in that mode. |
+| `CustomStructureParam="Parameter1, Parameter2, ..")` | The listed parameters are all treated as wildcards. This specifier requires the `UFUNCTION`-level specifier, `CustomThunk`, which will require the user to provide a custom `exec` function. In this function, the parameter types can be checked and the appropriate function calls can be made based on those parameter types. The base `UFUNCTION` should never be called, and should assert or log an error if it is. |
+| `DefaultToSelf` | For `BlueprintCallable` functions, this indicates that the Object property's named default value should be the self context of the node. |
+| `DeprecatedFunction` | Any Blueprint references to this function will cause compilation warnings telling the user that the function is deprecated. You can add to the deprecation warning message (e.g. to provide instructions on replacing the deprecated function) using the `DeprecationMessage` metadata specifier. |
+| `DeprecationMessage`="Message Text" | If the function is deprecated, this message will be added to the standard deprecation warning when trying to compile a Blueprint that uses it. |
+| `DevelopmentOnly` | Functions marked as `DevelopmentOnly` will only run in Development mode. This is useful for functionality like debug output, which is expected not to exist in shipped products. |
+| `DisplayName="Blueprint Node Name"` | The name of this node in a Blueprint will be replaced with the value provided here, instead of the code-generated name. |
+| `ExpandEnumAsExecs="Parameter"` | For `BlueprintCallable` functions, this indicates that one input execution pin should be created for each entry in the `enum` used by the parameter. That the named parameter must be of an enumerated type recognized by the Engine via the `UENUM` tag. |
+| `HidePin="Parameter"` | For `BlueprintCallable` functions, this indicates that the parameter pin should be hidden from the user's view. Note that only one parameter pin per function can be hidden in this manner. |
+| `HideSelfPin` | Hides the "self" pin, which is used to indicate the object on which the function is being called. The "self" pin is automatically hidden on `BlueprintPure` functions that are compatible with the calling Blueprint's class. This is generally used with the `DefaultToSelf` specifier. |
+| `InternalUseParam="Parameter"` | Similar to `HidePin`, this hides the named parameter's pin from the user's view, and can only be used for one parameter per function. |
+| `KeyWords="Set Of Keywords"` | Specifies a set of keywords that can be used when searching for this function, such as when placing a node to call the function in a Blueprint Graph. |
+| `Latent` | Indicates a latent action. Latent actions have one parameter of type `FLatentActionInfo`, and this parameter is named by the `LatentInfo` specifier. |
+| `LatentInfo="Parameter"` | For Latent `BlueprintCallable` functions indicates which parameter is the LatentInfo parameter. |
+| `MaterialParameterCollectionFunction` | For `BlueprintCallable` functions, indicates that the material override node should be used. |
+| `NativeBreakFunc` | For `BlueprintCallable` functions, indicates that the function should be displayed the same way as a standard Break Struct node. |
+| `NotBlueprintThreadSafe` | Only valid in Blueprint Function Libraries. This function will be treated as an exception to the owning class's general `BlueprintThreadSafe` metadata. |
+| `ShortToolTip` | A short tooltip that is used in some contexts where the full tooltip might be overwhelming, such as the parent class picker dialog. |
+| `ToolTip` | Overrides the automatically generated tooltip from code comments. |
+| `UnsafeDuringActorConstruction` | This function is not safe to call during Actor construction. |
+| `WorldContext="Parameter"` | Used by `BlueprintCallable` functions to indicate which parameter determines the World that the operation is occurring within. |
+
+[COMMENT:none]
+- Undocumented: HideSpawnParams -
+[/COMMENT]
+
+[/EXCERPT:FunctionMetadata]
+
+## Property Metadata Specifiers
+
+[EXCERPT:PropertyMetadata]
+| Property Meta Tag | Effect |
+| --- | --- |
+| `AllowAbstract="true/false"` | Used for `Subclass` and `SoftClass` properties. Indicates whether abstract class types should be shown in the class picker. |
+| `AllowedClasses="Class1, Class2, .."` | Used for `FSoftObjectPath` properties. Comma delimited list that indicates the class type(s) of assets to be displayed in the Asset picker. |
+| `AllowPreserveRatio` | Used for `FVector` properties. It causes a ratio lock to be added when displaying this property in details panels. |
+| `ArrayClamp="ArrayProperty"` | Used for integer properties. Clamps the valid values that can be entered in the UI to be between 0 and the length of the array property named. |
+| `AssetBundles` | Used for `SoftObjectPtr` or `SoftObjectPath` properties. List of Bundle names used inside Primary Data Assets to specify which Bundles this reference is part of. |
+| `BlueprintBaseOnly` | Used for `Subclass` and `SoftClass` properties. Indicates whether only Blueprint classes should be shown in the class picker. |
+| `BlueprintCompilerGeneratedDefaults` | Property defaults are generated by the Blueprint compiler and will not be copied when the `CopyPropertiesForUnrelatedObjects` function is called post-compile. |
+| `ClampMin="N"` | Used for float and integer properties.  Specifies the minimum value `N` that may be entered for the property. |
+| `ClampMax="N"` | Used for float and integer properties.  Specifies the maximum value `N` that may be entered for the property. |
+| `ConfigHierarchyEditable` | This property is serialized to a config (`.ini`) file, and can be set anywhere in the config hierarchy. |
+| `ContentDir` | Used by `FDirectoryPath` properties. Indicates that the path will be picked using the Slate-style directory picker inside the `Content` folder. |
+| `DisplayName="Property Name"` | The name to display for this property, instead of the code-generated name. |
+| `DisplayThumbnail="true"` | Indicates that the property is an Asset type and it should display the thumbnail of the selected Asset. |
+| `EditCondition="BooleanPropertyName"` | Names a boolean property that is used to indicate whether editing of this property is disabled. Putting "!" before the property name inverts the test. |
+| `EditFixedOrder` | Keeps the elements of an array from being reordered by dragging. |
+| `ExactClass="true"` | Used for `FSoftObjectPath` properties in conjunction with `AllowedClasses`. Indicates whether only the exact classes specified in `AllowedClasses` can be used, or if subclasses are also valid. |
+| `ExposeFunctionCategories="Category1, Category2, .."` | Specifies a list of categories whose functions should be exposed when building a function list in the Blueprint Editor. |
+| `ExposeOnSpawn="true"` | Specifies whether the property should be exposed on a Spawn Actor node for this class type. |
+| `FilePathFilter="filetype"` | Used by `FFilePath` properties. Indicates the path filter to display in the file picker. Common values include "uasset" and "umap", but these are not the only possible values. |
+| `HideAlphaChannel` | Used for `FColor` and `FLinearColor` properties. Indicates that the `Alpha` property should be hidden when displaying the property widget in the details. |
+| `HideViewOptions` | Used for `Subclass` and `SoftClass` properties. Hides the ability to change view options in the class picker. |
+| `InlineEditConditionToggle` | Signifies that the boolean property is only displayed inline as an edit condition toggle in other properties, and should not be shown on its own row. |
+| `LongPackageName` | Used by `FDirectoryPath` properties. Converts the path to a long package name. |
+| `MakeEditWidget` | Used for Transform or Rotator properties, or Arrays of Transforms or Rotators. Indicates that the property should be exposed in the viewport as a movable widget. |
+
+
+[COMMENT:none]
+- Undocumented: FixedIncrement (deprecated) -
+[/COMMENT]
+
+[/EXCERPT:PropertyMetadata]

@@ -30,40 +30,33 @@ to pages with overviews of each class and information about how they can be set 
 
 [EXCERPT:LandingBoxes]
 [DIR(output:"topic" parent:"Gameplay/Framework" org:"hierarchy" end:"1")]
-<!--
+[COMMENT:none]
+
 %Gameplay/Framework/GameFlow:topic%
 %Gameplay/Framework/GameMode:topic%
 %Gameplay/Framework/Pawn:topic%
 %Gameplay/Framework/Controller:topic%
 %Gameplay/Framework/Camera:topic%
 %Gameplay/Framework/UIAndHUD:topic%
--->
+
+[/COMMENT]
 [/EXCERPT:LandingBoxes]
 
 
-<!--
+[COMMENT:none]
+
 
 * [](Programming/UnrealArchitecture/Actors/Components) - %Programming/UnrealArchitecture/Actors/Components:Description%
 * [](Programming/UnrealArchitecture) - %Programming/UnrealArchitecture:Description%
 
 [EXCERPT:Systems]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-	![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	[](Gameplay/Framework)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:Gameplay/Framework#Intro]
-	[INCLUDE:Gameplay/Framework#LandingBoxes]
-	[/PARAM]
-	[PARAM:links]
-	[/PARAM]
-[/OBJECT]
+## [](Gameplay/Framework)
 
+[INCLUDE:Gameplay/Framework#Intro]
+[INCLUDE:Gameplay/Framework#LandingBoxes]
 
 [/EXCERPT:Systems]
--->
+
+[/COMMENT]
 

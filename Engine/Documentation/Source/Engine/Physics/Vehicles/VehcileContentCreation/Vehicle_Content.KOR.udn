@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:비히클 아트 셋업
 Crumbs:%ROOT%
@@ -6,29 +6,7 @@ Description:언리얼 엔진 4 에서 비히클에 쓸 아트 애셋을 구성�
 Navigation:topic
 SkillLevel: Advanced
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:title%](vehicleArt_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Gameplay/Framework/Vehicle/Vehicle_Content]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+topic-image:vehicleArt_topic.png
 
 비히클용으로 아주 기본적인 최소한의 아트 셋업은, **스켈레탈 메시** 입니다. 비히클 유형에 따라 얼마나 복잡한 아트 셋업이 필요할 것인지가 결정되며, 
 서스펜션에 특별한 관심을 쏟아야 할 수 있습니다. 탱크라면 서스펜션이 거의 항상 보이지 않을 테니 별달리 신경쓸 필요가 없겠지만, 

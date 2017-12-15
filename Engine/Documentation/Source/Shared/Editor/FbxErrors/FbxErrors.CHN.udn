@@ -88,7 +88,9 @@ Version:4.9
 
 ---
 
-<!-- 它完全不含基础层。  -->
+[COMMENT:none]
+ 它完全不含基础层。  
+[/COMMENT]
 
 (#Generic_Mesh_TriangulationFailed)
 [EXCERPT:Generic_Mesh_TriangulationFailed]

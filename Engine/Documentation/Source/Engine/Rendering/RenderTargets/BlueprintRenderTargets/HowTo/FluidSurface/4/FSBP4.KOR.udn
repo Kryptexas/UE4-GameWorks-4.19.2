@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3259022
+﻿INTSourceChangelist:3782314
 availability:Public
 title:4. 최종 결과
 description:플루이드 서피스 블루프린트 사용법을 다룹니다.
@@ -53,7 +53,8 @@ checkpoint:FSB
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompBP]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -1156,4 +1157,5 @@ checkpoint:FSB
 [/OBJECT]
 [/EXCERPT:CompBP]
 
--->
+
+[/COMMENT]

@@ -10,7 +10,9 @@ related:Engine/Physics/PhAT/HowTo/EditPhATPhysicsConstraints
 skilllevel:Beginner
 topic-image:Engine/Physics/physics_topic.png
 
-<!-- Overview Text -->
+[COMMENT:none]
+ Overview Text 
+[/COMMENT]
 
 ## Steps
 
@@ -25,4 +27,6 @@ topic-image:Engine/Physics/physics_topic.png
 
 ## Result
 
-<!-- Result Text -->
+[COMMENT:none]
+ Result Text 
+[/COMMENT]

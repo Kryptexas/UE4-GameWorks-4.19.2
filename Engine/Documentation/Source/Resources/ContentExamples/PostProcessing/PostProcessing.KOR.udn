@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:포스트 프로세싱 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -8,42 +8,11 @@ Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 Related: Resources/Showcases/Stylized
 Version: 4.9
+topic-image:postprocessing_compact.png
 
 [REGION:banner]
 ![](PostProcessing_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing:title%](postprocessing_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PostProcessing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/PostProcessing:title%](postprocessing_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PostProcessing:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/PostProcessing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 **PostProcessing** 맵에 제공된 콘텐츠 예제는 **Post Processing Volume** 안팎에서 스크린 이펙트를 추가하는 법을 보여줍니다. **Post Processing Volume** 의 프로퍼티를 조정하여 렌즈 플레어, 화면 색조 및 블러링같은 효과를 낼 수도 있고, 볼륨끼리 또는 플레이어와의 상호작용 방식을 정의하기도 합니다.

@@ -1,32 +1,27 @@
-Availability:Public
-Title:Indirect Lighting Cache
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:Cached indirect lighting samples used for global illumination of dynamic objects and unbuilt scene preview.
-Versinon: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IndirectLightingCache:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IndirectLightingCache/indirectcache_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IndirectLightingCache:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IndirectLightingCache:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IndirectLightingCache]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Availability: Public
+Crumbs: %ROOT%
+Title: Indirect Lighting Cache
+Description: Cached indirect lighting samples used for global illumination of dynamic objects and unbuilt scene preview.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/VolumetricLightmaps
+Order:
+Tags:lighting
+topic-image:indirectcache_topic.png
 
 [REGION:banner]
 ![](indirectcache_banner.png)
 [/REGION]
+
+[REGION:warning]
+With the release of Unreal Engine version 4.18, [Volumetric Lightmap](Engine/Rendering/LightingAndShadows/VolumetricLightmaps) has replaced the Indirect Lighting Cache as the default method.
+
+To re-enable the Indirect Lighting Cache, open the **World Settings** > **Lightmass Settings** > **Volume Lighting Method** and set **VLM Sparse Volume Lighting Samples**.
+[/REGION]
+
 
 [EXCERPT:LightCache001]
 [**Lightmass**](Engine/Rendering/LightingAndShadows/Lightmass) generates lightmaps for indirect lighting on static objects, but dynamic objects like characters 

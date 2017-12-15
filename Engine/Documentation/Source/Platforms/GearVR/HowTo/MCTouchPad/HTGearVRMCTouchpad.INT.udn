@@ -3,9 +3,9 @@ Crumbs: %ROOT%
 Title: Use the Gear VR Touchpad 
 Description: Setting up the Gear VR Motion Controller Touchpad 
 Type: how-to
-SkillLevel: Intermidate
+SkillLevel: Intermediate
 Version: 4.17
-Parent: Platforms/GearVR/HowTo
+Parent: Platforms/GearVR
 Order: 3
 Tags: GearVR
 topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
@@ -14,13 +14,17 @@ prereq: Platforms\GearVR\QuickStart
 prereq: Platforms\GearVR\HowTo\CameraSetup
 prereq: Platforms\GearVR\HowTo\MotionController
 
+![](HTGVRMCTouchpad_Here_Image.png)
+
 Due to the highly precise nature of the Gear VR Motion Controller (MC) Touchpad, it can be used to perform all kinds of different interactions that require high precision. From scrolling through a series of menu options or trying to plot your precise location on a map, there is an almost endless amount of ways to use the Touchpad to interact with the virtual world. In the following How - To we will take a look at how to get and then display the current location that is being touched on the Gear VR Motion Controller Touchpad.
 
 [region:note]
 In this How - To we will be starting with a Pawn that already has a VR Camera and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
 [/region]
 
-## Gear VR Touchpad Setup
+## Steps
+
+Below you will find information on how to setup your GearVR Motoin Controller Touchpad to display the location the user is touch it.
 
 1. First, open up your player Pawn Blueprint and from the **Component** tab, add two new **Text Render** component, called **X_Position** and **Y_Position**.  Make sure that both are parented to the **Motion Controller** component like in the image below.
 
@@ -90,25 +94,27 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click image to copy Blueprint code. 
     [/REGION]
 
-1. Once the Blueprint has been compiled and saved, deployed the project to your smartphone, and pick up your GearVR HMD and Motion Controller. Now, when you touch the Touchpad, you should see the numbers update with the location that you are currently touching like in the following video.
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        O2TZ4zTQQCU
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Once the Blueprint has been compiled and saved, deploy the project to your smartphone, and pick up your GearVR HMD and Motion Controller. Now, when you touch the Touchpad, you should see the numbers update with the location that you are currently touching like in the following video.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    O2TZ4zTQQCU
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 
@@ -116,7 +122,8 @@ Below you will find a link to where you can download the UE4 project that was us
 
 * [**Gear VR Motion Controller Touchpad Input Example Project**](https://epicgames.box.com/s/9024yg9aldpvpckncw1c80876ztoxhf9)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:MCInput01]    
 [OBJECT:Snippet]
     [PARAMLITERAL:id]
@@ -232,9 +239,11 @@ Below you will find a link to where you can download the UE4 project that was us
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:MCInput01]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:MCInput02]    
 [OBJECT:Snippet]
     [PARAMLITERAL:id]
@@ -467,7 +476,8 @@ Below you will find a link to where you can download the UE4 project that was us
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:MCInput02]
--->
+
+[/COMMENT]
 
 
 

@@ -37,7 +37,8 @@ Navigation:topic
 | **Clutch Strength** | %doxygen:FVehicleTransmissionData::ClutchStrength% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gearData]
 
 各ギアには 3 つのプロパティがあります。
@@ -50,7 +51,8 @@ Navigation:topic
 | **Up Ratio** | %doxygen:FVehicleGearData::UpRatio% |
 [/REGION]
 [/EXCERPT:gearData]
--->
+
+[/COMMENT]
 
 ## ステアリングのセットアップ
 
@@ -77,7 +79,8 @@ Navigation:topic
 | **MaxNormalizedTireLoadFiltered** | %doxygen:UWheeledVehicleMovementComponent::MaxNormalizedTireLoadFiltered% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:wheelTable]
 [REGION:simpletable]
 | 車輪のプロパティ | 説明 |
@@ -87,7 +90,8 @@ Navigation:topic
 | **AdditionalOffset** | %doxygen:FWheelSetup::AdditionalOffset% |
 [/REGION]
 [/EXCERPT:wheelTable]
--->
+
+[/COMMENT]
 
 ## ビークルの入力
 
@@ -103,7 +107,8 @@ Navigation:topic
 | **Steering Input** | %in4% [INCLUDE:#risefall] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:riseFall]
 [REGION:simpletable]
 | 入力プロパティ | 説明 |
@@ -128,12 +133,15 @@ Navigation:topic
 [VAR:in4]
 ステアリングの入力が、上昇、下降が可能な割合。
 [/VAR]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 | **FVehicle Input Rate** | %doxygen:FVehicleInputRate::FVehicleInputRate% |
 | **Interp Input Value** | %doxygen:FVehicleInputRate::InterpInputValue% |
--->
+
+[/COMMENT]
 
 
 

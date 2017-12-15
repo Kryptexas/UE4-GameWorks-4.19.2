@@ -29,7 +29,8 @@ order:8
 | **Xbox One** | April 2015 XDK (Requires Visual Studio 2012) |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 [REGION:plainlist]
 * QA_APPROVED_UE4_BUILD_4.8.0_Release
@@ -37,7 +38,8 @@ order:8
 * QA_APPROVED_UE4_BUILD_MINIMUM
 [/REGION]
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 此次发布包括了189项重大变更，它们都是由虚幻引擎的杰出开发者社区提交的。  感谢所有虚幻引擎4.8版本的贡献者们：

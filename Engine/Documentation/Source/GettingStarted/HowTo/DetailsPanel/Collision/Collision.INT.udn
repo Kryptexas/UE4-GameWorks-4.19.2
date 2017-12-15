@@ -26,7 +26,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Here we will adjust the [](Engine/Physics) for our Actor as well as the [Collision](Engine/Physics/Collision/Overview) properties inside the **Details** panel. 
 By adjusting these settings we can define how an Actor responds to other Actors in the game world. 
@@ -93,4 +93,3 @@ When you play in the Editor now, you can use **WASD** to move the character arou
 
 This should give you a brief understanding of how to edit the properites of Actors through the **Details** panel of the main Level Editor. For more information, please see the related topics below. 
 
-%Steps%

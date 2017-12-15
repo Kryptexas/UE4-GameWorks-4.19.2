@@ -25,7 +25,8 @@ Note that you can click the Swap button ![](button_swap.png) between _Paint text
 
 
 
-<!--Includes--
+[COMMENT:none]
+Includes--
 
 
 [EXCERPT:TextureCount]
@@ -45,4 +46,5 @@ Note that you can click the Swap button ![](button_swap.png) between _Paint text
 
 
 
---End Includes-->
+--End Includes
+[/COMMENT]

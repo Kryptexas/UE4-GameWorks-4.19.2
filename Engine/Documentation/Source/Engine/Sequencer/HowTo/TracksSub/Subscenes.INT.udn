@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 Often times in film, you will have several people working on different facets of a scene at the same time. 
 Sequencer supports this type of workflow through the **Subscenes Track** which allows you to layer **Level Sequences** on top of each other to produce a final sequence. 

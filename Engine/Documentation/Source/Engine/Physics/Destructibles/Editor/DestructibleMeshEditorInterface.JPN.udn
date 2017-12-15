@@ -22,7 +22,9 @@ Description:被破壊メッシュ アセットの外観、プレビュー深度�
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
-<!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
+[COMMENT:none]
+ For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). 
+[/COMMENT]
 
 ## メニューバー
 

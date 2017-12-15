@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:3.公開されたシネマティックスの変数を使用する
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:公開されたシネマティックスの変数をシーケンスに追加して、シーケンスの再生をトリガーするようにセットアップします。 
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:3
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ゲームプレイ アニメーションのブレンドのホーム](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine\Sequencer\HowTo\GameplayAnimBlending\04_LevelBlueprintSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+float 変数、**Default Slot Interp** を追加します。これは、Animation ブループリントの interp に送られ、ゲームプレイ ポーズから Slot アニメーションにいつブレンドするかを決定します。 
+次のステップで使うトリガー ボックスもレベルに追加し、プレイヤーがそのボリュームに入るとレベル シーケンスの再生をトリガーできるようにします。 
+
+1.	**Ue4ASP_Character** のレベル シーケンス内で、**[Track]** ボタンをクリックし、新しい **[Default Slot Interp]** プロパティを割り当てます。 
+
+	![](GameBlend_13.png)
+
+1.	タイムラインをフレーム **25** (または任意の値) まで前方にスクラブして、値 **1.0** の **Default Slot Interp** のキーを追加します。 
+
+	![](GameBlend_14.png)
+
+1.	メイン レベル エディタの **[Modes (モード)]** パネルから **Triggerbox** をレベルにドラッグして、サイズ変更して必要な場所に配置します。 
+
+	![](GameBlend_15.png)
+
+	再生中にトリガー ボリュームを表示するために、オプションで **Actor Hidden In Game** を false に設定することができます。 
+
+このガイドの次のステップと最終ステップでは、Trigger Box のボリュームに入るとレベル シーケンスを再生するように Level ブループリントをセットアップします。 
+
+[nav]

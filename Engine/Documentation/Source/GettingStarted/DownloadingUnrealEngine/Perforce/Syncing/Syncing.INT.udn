@@ -19,7 +19,7 @@ The two main ways sets of file revisions are identified are through labels and c
 
 The tree pane in P4V contains your Workspace and the Depot Tree. In the Depot Tree view, click the Depot node to expand and see the available directories.
 
-![p4v_depot_tree.jpg](p4v_depot_tree.jpg)(w:374 h:307)
+![p4v_depot_tree.jpg](p4v_depot_tree.jpg)(w:374)
 
 
 * CodeDrop - Contains various snapshots of games created by Epic that can be used as examples.
@@ -32,7 +32,7 @@ For more information, see the [directory layout](Engine/Basics/DirectoryStructur
 
 In the UnrealEngine3 directory are several subdirectories: Binaries, Development, and Engine; and two game directories: ExampleGame and UDKGame.
 
-![p4v_depot_tree_ue3.jpg](p4v_depot_tree_ue3.jpg)(w:374 h:307)
+![p4v_depot_tree_ue3.jpg](p4v_depot_tree_ue3.jpg)(w:374)
 
 ExampleGame is the most minimal game implementation offered by Epic, and can be a good place for getting started in creating your own game project if your game is not very similar to Unreal Tournament.  
 
@@ -40,7 +40,7 @@ UDKGame is Epic's current Unreal Engine 4 usage demo based off of Unreal Tournam
 
 For UnrealEngine3, most of Epic's content is located in the game-specific directories, so if all you want is the engine source, you can simply sync to the //depot/UnrealEngine3/Development directory. You can highlight specific directories as desired, for example, to grab the latest content for ExampleGame without updating UDKGame content.
 
-![p4v_depot_tree_ue3_examplegame.jpg](p4v_depot_tree_ue3_examplegame.jpg)(w:374 h:307)
+![p4v_depot_tree_ue3_examplegame.jpg](p4v_depot_tree_ue3_examplegame.jpg)(w:374)
 
 When getting a revision, lots of downloading will progress in the log window. "Sync completed with no warnings or errors" is what you are looking for when it is done.
 
@@ -53,37 +53,37 @@ To sync to a QA-approved build, follow the step below:
 
 1. Run the P4V client application.
 
-	![p4v_small.jpg](p4v_small.jpg)(w:800 h:525)
+	![p4v_small.jpg](p4v_small.jpg)(w:800)
 
 1. In the Depot Tree, **right-click** on the UnrealEngine3 directory and then choose **Get Revision...** from the context menu. Alternatively, you can select the UnrealEngine3 directory and choose **Get Revision...** from the **Actions** menu.
 
-	![p4v_depot_menu.jpg](p4v_depot_menu.jpg)(w:304 h:650)
+	![p4v_depot_menu.jpg](p4v_depot_menu.jpg)(w:304)
 
 1. The **Get Revision** window will open.
 
-	![p4v_get_revision.jpg](p4v_get_revision.jpg)(w:634 h:488)
+	![p4v_get_revision.jpg](p4v_get_revision.jpg)(w:634)
 
 	Select the **Specify revision using** radio button to enable the combobox and text field.
 
-	![p4v_specify_revision.jpg](p4v_specify_revision.jpg)(w:513 h:63)
+	![p4v_specify_revision.jpg](p4v_specify_revision.jpg)(w:513)
 
 1. Select **label** from the combobox.
 
-	![p4v_revision_label.jpg](p4v_revision_label.jpg)(w:100 h:103)
+	![p4v_revision_label.jpg](p4v_revision_label.jpg)(w:100)
 
 	Press the **Browse...** button to open the **Select Label** window.
 
-	![p4v_select_label.jpg](p4v_select_label.jpg)(w:800 h:526)
+	![p4v_select_label.jpg](p4v_select_label.jpg)(w:800)
 
 1. Select the label you want to sync to. Usually this is the latest QA-approved build, designated by a label in the form of **QA_APPROVED_BUILD_[Month]_[Year]**. You may need to scroll down in the list a few times for all the labels to be loaded.
 
-	![p4v_label_build.jpg](p4v_label_build.jpg)(w:800 h:526)
+	![p4v_label_build.jpg](p4v_label_build.jpg)(w:800)
 
 	Press the **Ok** button to select the label and close the window.
 
 1. Press the **Get Revision** button to close the **Get Revision** window and begin the sync. The Log should show the progress of the sync.
 
-	![p4v_sync_progress.jpg](p4v_sync_progress.jpg)(w:800 h:117)
+	![p4v_sync_progress.jpg](p4v_sync_progress.jpg)(w:800)
 
 
 

@@ -3,41 +3,8 @@ Title:Copy Bone
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Describes the Copy Bone node which copies the Transform data or any component of it from one bone to another. 
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%](Engine\Animation\NodeReference\SkeletalControls\CopyBone\node_copybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\CopyBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%](Engine\Animation\NodeReference\SkeletalControls\CopyBone\node_copybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\CopyBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:node_copybone.png
+s
 
 
 The **Copy Bone** control copies the Transform data or any component(s) of it - Translation, Rotation, amd/or 

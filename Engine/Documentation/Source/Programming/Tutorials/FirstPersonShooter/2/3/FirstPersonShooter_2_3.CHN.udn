@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将设置角色输入组件并在 `FPSCharacter` 类中实现以下函数：
 
@@ -196,4 +196,4 @@ Version:4.11
 
 1.	按下 Esc 键或点击关卡编辑器中的 **Stop** 按钮即可退出 Play in Editor（PIE）模式。
 
-%Steps%
+

@@ -361,7 +361,8 @@ Version:4.9
 
 
 
-<!-------------Random Seed Includes----------------
+[COMMENT:none]
+-----------Random Seed Includes----------------
 #### Includes
 
 [EXCERPT:RandomSeedInfo]
@@ -377,5 +378,6 @@ Version:4.9
 [/EXCERPT:RandomSeedInfo]
 
 
--------------Random Seed Includes--------------->
+-------------Random Seed Includes-------------
+[/COMMENT]
 

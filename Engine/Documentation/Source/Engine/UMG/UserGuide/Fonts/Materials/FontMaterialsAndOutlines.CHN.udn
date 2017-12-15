@@ -52,7 +52,8 @@ tags:UMG UI Designer
 
 ![](UI.png)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BaseColorGraph]
 [REGION:lightbox]
 [![](BaseColorMatGraph.png)(w:400)](BaseColorMatGraph.png)
@@ -64,7 +65,8 @@ tags:UMG UI Designer
 [![](VertexColorMatGraph.png)(w:400)](VertexColorMatGraph.png)
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 ## 字体外框
 
 您可指定字体外框使用不同的 **外框颜色** 及材质。 

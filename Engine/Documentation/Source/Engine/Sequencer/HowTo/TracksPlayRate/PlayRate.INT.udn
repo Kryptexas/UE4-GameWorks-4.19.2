@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 The **Play Rate Track** will allow you to speed up or slow down sections of your Level Sequence. 
 You can add keyframes at any point in your scene where you want a shift in Play Rate to occur (maybe you want to slow down time to show off an important moment or increase the playback rate to heighten certain scenes). 

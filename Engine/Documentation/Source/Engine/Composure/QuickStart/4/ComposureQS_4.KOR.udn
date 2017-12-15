@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:4 - Composure Level Sequence Setup
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:4 - 컴포셔 레벨 시퀀스 구성
 Crumbs:%ROOT%
-Description:In this step, we will setup the level Sequence that Composure will use. 
+Description:이번 단계에서는 컴포셔가 사용할 레벨 시퀀스를 구성하겠습니다.
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,61 +13,61 @@ tags:Composure
 
 [NAV]
 
-In the last section, we created the needed Level Sequence need for Composure to work. In the following section, we will set this Level Sequence up so that it will work with Composure when played.
+전 단계에서는 컴포셔 작업에 필요한 레벨 시퀀스를 만들었습니다. 여기서는 레벨 시퀀스를 재생할 때 컴포셔와 작동되도록 구성해 주겠습니다.
 
-## Steps
+## 단계
 
-1. First, in the **Sequencer** tab add a new **Camera Cut** track by pressing the green **+Track** button and selecting **Camera Cut** from the displayed list.
+1. 먼저 **시퀀서** 탭에서 새로운 **Camera Cut** (카메라 컷) 트랙을 추가합니다. 초록 **트랙** 버튼을 클릭하면 표시되는 목록에서 **Camera Cut** (카메라 컷)을 선택하면 됩니다.
 
     ![](ComposureQS_S4_1.png)
 
-1. Over in the **World Outliner**, select the **Cine Camera Actor** and then drag it from the World Outliner to the Sequencer window to add it to the timeline.
+1. **월드 아웃라이너** 에서 **Cine Camera Actor** 를 선택하고 시퀀서 창으로 끌어 놓아 타임라인에 추가합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S4_2.png)(w:857)](ComposureQS_S4_2.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
 	[region:note]
-	When adding any content over the next few steps, make sure that the timeline is on frame 1098 or things will not match up correctly.
+	다음 단계에서 콘텐츠를 추가할 때, 타임라인이 1098 프레임에 있는지 확인해야합니다. 그렇지 않으면 제대로 맞아 떨어지지 않습니다.
 	[/region]
 
-1. Then in the Camera Cut track, press the **+Camera** button and select the Cine Camera Actor that was just added to Sequencer.
+1. 그리고서 카메라 컷 트랙에서, **+Camera** 버튼을 누르고 방금 시퀀서에 추가된 Cine Camera Actor 를 선택합니다.
 
     ![](ComposureQS_S4_3.png)
 
-1. Next, add the following Blueprints to Sequencer by selecting them in the World Outliner and then dragging them into Sequencer tracks, just like with the Cine Camera Actor and when completed your Track view should look like the following image:
+1. 다음 블루프린트를 시퀀서에 추가합니다. 씨네 카메라 액터와 마찬가지로 월드 아웃라이너에서 블루프린트를 선택한 다음 시퀀서 트랙에 끌어 놓으면 트랙 뷰는 그림과 같아 보일 것입니다.
 
     * **BP_AdvancedCompositingSkeletalMesh**
     * **BP_AdvancedCompositing Blueprints**
 
     ![](ComposureQS_S4_4.png)
 
-1. In the Track list, under the BP_AdvancedCompositingSkeletalMesh Blueprint press the **Plus** sign next to the **Animation** section and from the displayed list, select the **mocap_patio_walk** animation.
+1. 트랙 리스트에서 BP_AdvancedCompositingSkeletalMesh 블루프린트 아래 **Animation** (애니메이션) 섹션 옆 **더하기** 부호를 클릭하면 표시되는 목록에서 **mocap_patio_walk** 애니메이션을 선택합니다.
 
     ![](ComposureQS_S4_5.png)
 
-1. Make sure that the timeline is on frame **1098** and then in the **Transform** section of the BP_AdvancedCompositingSkeletalMesh, set the **Location** and **Rotation** to the following values:
+1. 타임라인이 **1098** 프레임에 맞춰져 있는지 확인한 후 BP_AdvancedCompositingSkeletalMesh 의 **Transform** (트랜스폼) 섹션에서 **위치** 와 **회전** 을 다음 값으로 설정합니다:
 
-    *    **Location:** -20, -140, 0
-    *    **Rotation:** 0, 0, 5 
+    *    **위치:** -20, -140, 0
+    *    **회전:** 0, 0, 5 
 
     [REGION:lightbox]
     [![](ComposureQS_S4_6.png)(w:857)](ComposureQS_S4_6.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. Next, right - click on the **CineCameraActor1** in the Track list and from the menu select the **Import** option. From the displayed window, navigate to the **shot0030_camera_export.fbx** file that was download in the first section of this Quick Start select it and then press the **Open** button to import it.
+1. 트랙 리스트의 **CineCameraActor1** 우클릭 메뉴에서 **Import** (임포트) 옵션을 선택합니다. 표시되는 창에서 퀵 스타트 첫 단계에서 다운로드한 **shot0030_camera_export.fbx** 파일을 찾은 뒤 **Open** (열기) 버튼을 눌러 임포트합니다.
 
     ![](ComposureQS_S4_7.png)
 
-1. In the **Camera Cut** track, click on the **Camera** icon to see through the camera and then scrub the timeline to see the camera and mannequin move in relation to one another.
+1. **카메라 컷** 트랙에서 **카메라** 아이콘을 클릭하여 카메라 시야로 설정한 뒤 타임라인을 문질러 카메라와 마네킹이 사이좋게 잘 움직이는지 확인합니다.
 
     [OBJECT:EmbeddedVideo]
         [PARAMLITERAL:videoid]
@@ -87,13 +87,13 @@ In the last section, we created the needed Level Sequence need for Composure to 
         [/PARAMLITERAL]
     [/OBJECT]
 
-1. Now, we need to add the following Composure specific inputs  by clicking on the **Plus** icon on the right hand side of the BP_AdvancedCompositing Blueprint and selecting the following items from the list:
+1. 이제 다음 컴포셔 전용 입력을 추가해야 합니다. BP_AdvancedCompositing 블루프린트 오른편의 **더하기** 아이콘을 클릭하고 목록에서 다음 항목을 선택합니다:
 
     *    **Input 0**
     *    **Input 1**
     *    **Distortion Displacement Map**
 		[region:note]
-		The Distortion Displacement Map track will look empty after adding the image Sequence due to the Image Plate asset having a frame rate of 0. 
+		Distortion Displacement Map (디스토션 디스플레이스먼트 트랙)은 이미지 플레이트 애셋의 프레임 레이트가 0 이라 이미지 시퀀스를 추가한 뒤에도 공백으로 보일 것입니다.
 		[/region]
     *    **Overscan Sensor Width**
     *    **Overscan Sensor Height**
@@ -105,10 +105,9 @@ In the last section, we created the needed Level Sequence need for Composure to 
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
-
-1. With the required Composure tracks now added, make sure that the timeline is set to frame 1098 and then enter the following data by pressing the **Plus** sign next to each track and selecting the data or by inputting a number in the number input:
+1. 필수 컴포셔 트랙이 추가되었으니, 타임라인이 1098 프레임으로 설정되었는지 확인한 뒤 각 트랙 옆 **더하기** 부호를 누르고 데이터를 선택하거나 숫자 입력 칸에 숫자를 입력하여 다음 데이터를 입력합니다.
 
     *    **Input 0** shot0030_background
     *    **Input 1** shot0030_matte
@@ -123,12 +122,12 @@ In the last section, we created the needed Level Sequence need for Composure to 
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-## End Result
+## 최종 결과
 
-With Sequencer and Composure now setup to be used together, in the next section we will take a look at setting up the needed Game Mode and Level Blueprint Logic that will help all of this work together when the Play or Simulate button is pressed.
+시퀀서와 컴포셔를 같이 사용하도록 구성했으니, 다음 섹션에서는 이 모든 것이 플레이 또는 시뮬레이트 버튼을 눌렀을 때 작동하도록 도와줄 게임 모드 및 레벨 블루프린트 로직을 구성하도록 하겠습니다.
 
 
 [NAV]

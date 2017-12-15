@@ -21,7 +21,9 @@ Sends a request to begin uploading a replay stream.
 
 #### Syntax
 
-<!-- From StartStreaming(): -->
+[COMMENT:none]
+ From StartStreaming(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name Override>?app=<Replay Version AppString>&version=<Replay Network Version>&cl=<Replay CL>&friendlyName=<Platform Friendly Name>
 	
@@ -59,7 +61,9 @@ Sends a request to upload the binary data constituting the archive header, which
 
 #### Syntax
 
-<!-- From UploadHeader(): -->
+[COMMENT:none]
+ From UploadHeader(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/replay.header?numChunks=<Stream Chunk Index>&time=<Total Demo Time In MS>
 	
@@ -95,7 +99,9 @@ To enable compression, three functions must be overridden in a child class of `F
 
 #### Syntax
 
-<!-- From FlushStream(): -->
+[COMMENT:none]
+ From FlushStream(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>?numChunks=<Total Chunks>&time=<Total Demo Time In MS>&mTime1=<Start Time In MS>&mTime2=<End Time In MS>&absSize=<Total Uploaded Bytes>
 
@@ -131,7 +137,9 @@ Note that events are meant to be stored separately from replays, which is why ev
 
 #### Syntax
 
-<!-- From AddOrUpdateEvent(): -->
+[COMMENT:none]
+ From AddOrUpdateEvent(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/event?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
 ~~~
@@ -163,7 +171,9 @@ Sends a request to indicate that the replay is done uploading.
 
 #### Syntax
 
-<!-- From StopUploading(): -->
+[COMMENT:none]
+ From StopUploading(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/stopUploading?numChunks=<Total Num Chunks>&time=<Total Time In MS>&absSize=<Total Bytes Uploaded>
 	
@@ -194,7 +204,9 @@ The purpose of this request is to start downloading a replay from the replay ser
 
 #### Syntax
 
-<!-- From StartStreaming(): -->
+[COMMENT:none]
+ From StartStreaming(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/startDownloading?user=<User Name>
 			
@@ -230,7 +242,9 @@ The expected response to this request is of type `FNetworkReplayStartDownloading
 
 #### Syntax
 
-<!-- From DownloadHeader(): -->
+[COMMENT:none]
+ From DownloadHeader(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/replay.header
 				
@@ -258,7 +272,9 @@ Expects a response with the replay's header in the content portion, as binary da
 
 #### Syntax
 
-<!-- From EnumerateCheckpoints(): -->
+[COMMENT:none]
+ From EnumerateCheckpoints(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/event?group=checkpoint
 				
@@ -301,7 +317,9 @@ This is a request for a specific stream chunk, named by the viewer. This request
 
 #### Syntax
 
-<!-- From ConditionallyDownloadNextChunk(): -->
+[COMMENT:none]
+ From ConditionallyDownloadNextChunk(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>
 					
@@ -348,7 +366,9 @@ Can be called directly from DemoNetDriver, meaning your game project can do this
 
 #### Syntax
 
-<!-- From EnumerateEvents(): -->
+[COMMENT:none]
+ From EnumerateEvents(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/event?group=<Group Name>"
 						
@@ -380,7 +400,9 @@ This request is a heartbeat, sent every ten seconds. This frequency is currently
 
 #### Syntax
 
-<!-- From RefreshViewer(): -->
+[COMMENT:none]
+ From RefreshViewer(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/viewer/<Viewer Name>
 ~~~
@@ -410,7 +432,9 @@ Request a list of all replays that the replay server can send. These replays are
 
 #### Syntax
 
-<!-- From EnumerateStreams(): -->
+[COMMENT:none]
+ From EnumerateStreams(): 
+[/COMMENT]
 
 	<Server URL>replay?app=<Replay Version AppString>&cl=<Replay CL>&version=<Replay Network Version>&meta=<Meta Tag>&user=<User Name>&recent=<In Recent Viewer>"
 								
@@ -459,7 +483,9 @@ Sends a request for a list of replays from the server. These replays are expecte
 
 #### Syntax
 
-<!-- From SearchEvents(): -->
+[COMMENT:none]
+ From SearchEvents(): 
+[/COMMENT]
 
 	<ServerURL>event?group=<Event Group>
 								
@@ -503,7 +529,9 @@ This is called directly from the DemoNetDriver, so it can be done from the game 
 
 #### Syntax
 
-<!-- From RequestEventData(): -->
+[COMMENT:none]
+ From RequestEventData(): 
+[/COMMENT]
 	
 	<Server URL>event/<Event Name>
 								

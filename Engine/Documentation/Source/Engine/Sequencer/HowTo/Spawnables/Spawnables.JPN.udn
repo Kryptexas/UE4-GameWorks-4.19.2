@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:Spawnables （スポーン可能なもの）を作成する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **マチネ** では、シネマティックスのすべてのコンテンツは、レベル内に存在し、マチネが所有 ("possessed") しなければなりません。マチネが制御し、各アクタに指示するためです。 
 所有したものはシーケンサー内にありますが、**Spawnables (スポーン可能なもの)** というコンセプトもあります。この場合、シーケンサーが所有する必要はないが、代わりに必要なときにスポーンするものにアクタを変えます。 

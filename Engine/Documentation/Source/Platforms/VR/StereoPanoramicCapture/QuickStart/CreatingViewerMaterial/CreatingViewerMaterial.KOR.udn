@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3340158
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3. 스테레오 이미지 확인용 머티리얼 제작
 Crumbs: 
@@ -97,7 +97,8 @@ Tags:Sequencer
 
 [NAV]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SPMaterial]    
 [OBJECT:Snippet]
     [PARAMLITERAL:id]
@@ -326,4 +327,5 @@ Tags:Sequencer
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SPMaterial]
--->
+
+[/COMMENT]

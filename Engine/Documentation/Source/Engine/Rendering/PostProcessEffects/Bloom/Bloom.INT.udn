@@ -9,9 +9,6 @@ Order:1
 Tags:Post Process
 Topic-image:bloom_Topic.png
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
 [TOC(start:2 end:2)]
 
 
@@ -34,15 +31,16 @@ We combine the blurs differently to get more control and higher quality. For bes
 use of the low resolution blurs (large number).
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| -------- | --------- | ----------- |
-| **Intensity** || Scales the color of the whole bloom effect (linear). Possible uses: fade in or out over time, darken. [INCLUDE:#Intensity] |
-| **Threshold** || Defines how many luminance units a color needs to have to affect bloom. In addition to the threshold, there is a linear part (one unit wide) where the color only partly affects the bloom. To have all scene colors contributing to the bloom, a volume of -1 needs to be used. Possible uses: tweak for some not real HDR content, dream sequence. [INCLUDE:#Threshold] |
-| **#1/#2/#3/#4/#5 Tint** || Modifies the brightness and color of each bloom. Using a black color will not make this pass faster but that can be done. |
-| **#1/#2/#3/#4/#5 Size** || The size in percent of the screen width. Is clamped by some number. If you need a larger number, use the next lower resolution blur instead (higher number). [INCLUDE:#Size] |
+| Property | Description |
+| -------- | ----------- |
+| **Intensity** | Scales the color of the whole bloom effect (linear). Possible uses: fade in or out over time, darken. [INCLUDE:#Intensity] |
+| **Threshold** | Defines how many luminance units a color needs to have to affect bloom. In addition to the threshold, there is a linear part (one unit wide) where the color only partly affects the bloom. To have all scene colors contributing to the bloom, a volume of -1 needs to be used. Possible uses: tweak for some not real HDR content, dream sequence. [INCLUDE:#Threshold] |
+| **#1/#2/#3/#4/#5 Tint** | Modifies the brightness and color of each bloom. Using a black color will not make this pass faster but that can be done. |
+| **#1/#2/#3/#4/#5 Size** | The size in percent of the screen width. Is clamped by some number. If you need a larger number, use the next lower resolution blur instead (higher number). [INCLUDE:#Size] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
@@ -69,7 +67,8 @@ use of the low resolution blurs (large number).
 | #1 | #2 | #3 | #4 | #5 |
 [/REGION]
 [/EXCERPT:Size]
--->
+
+[/COMMENT]
 
 ## Bloom Convolution
 
@@ -105,14 +104,14 @@ To enable Bloom Convolution, navigate to the **Lens** section of the Post Proces
 ![](ConvolutionBloomSettings.png)(w:450)
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| -------- | --------- | ----------- |
-| **Convolution Kernel** || Use this to select the texture that defines the kernel.  |
-| [REGION:tablesection] Advanced Properties [/REGION] |||
-| **Convolution Scale**  || This indicates the relative size of the Convolution Kernel image in units of the viewport, defaults to 1. Primarily used to decrease the size of the bloom. |
-| **Convolution Center** || In UV coordinates, defaults to (1/2, 1/2). Ideally the Convolution Kernel image is a perfectly centered response to a brighter source, but generally small tweaks will be required. Offsets here will result in full offsets of the bloom image. |
-| **Convolution Boost** || Boosts the intensity of select pixels prior to applying the convolution bloom filter. This consists of a minimum value, a maximum value and a multiplier. The brightness delta above the minimum value will be amplified by the multiplier. By default this boost is disabled and should be used with caution. |
-| **Convolution Buffer** || Implicit buffer region as a fraction of screen size to insure the bloom does not wrap around the image. Increasing this value has adverse performance impact. |
+| Property | Description |
+| -------- | ----------- |
+| **Convolution Kernel** | Use this to select the texture that defines the kernel.  |
+| [REGION:tablesection] Advanced Properties [/REGION] ||
+| **Convolution Scale**  | This indicates the relative size of the Convolution Kernel image in units of the viewport, defaults to 1. Primarily used to decrease the size of the bloom. |
+| **Convolution Center** | In UV coordinates, defaults to (1/2, 1/2). Ideally the Convolution Kernel image is a perfectly centered response to a brighter source, but generally small tweaks will be required. Offsets here will result in full offsets of the bloom image. |
+| **Convolution Boost** | Boosts the intensity of select pixels prior to applying the convolution bloom filter. This consists of a minimum value, a maximum value and a multiplier. The brightness delta above the minimum value will be amplified by the multiplier. By default this boost is disabled and should be used with caution. |
+| **Convolution Buffer** | Implicit buffer region as a fraction of screen size to insure the bloom does not wrap around the image. Increasing this value has adverse performance impact. |
 [/REGION]
 
 ### Kernel Image Best Practices
@@ -138,11 +137,12 @@ for a considerable amount of the image.
 	[/OBJECT]
 * Large changes in the Convolution behavior should be done by changing the kernel image with minor tweaks done using the Bloom Convolution Advanced properties.
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:cbtextureproperties]
 [REGION:simpletable]
-|||
+||
 |---|---|
 |  [INCLUDE:#cbtexturepropertiesimage] | [INCLUDE:#cbtexturepropertieslist] |
 [/REGION]
@@ -157,7 +157,8 @@ for a considerable amount of the image.
 * Never Stream:  **Enabled**
 [/EXCERPT:cbtexturepropertieslist]
 
------>
+---
+[/COMMENT]
 
 ## Bloom Dirt Mask
 
@@ -178,11 +179,11 @@ To enable Bloom Dirt Mask, navigate to the **Lens** section of the Post Process 
 ![](DirtMaskProperties.png)(w:450)
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| -------- | --------- | ----------- |
-| **Dirt Mask Texture** || Use the selection box to assign a Texture2D to be used for your Dirt Mask. Keep in mind that this property cannot be blended with other Post Process Volumes. |
-| **Dirt Mask Intensity** || Scales the color of the bloom dirt mask effect (linear). This property is used to tweak dirt mask brightness. |
-| **Dirt Mask Tint Color** || Used to darken or color tint the dirt mask texture. This can be used to tweak the dirt mask brightness and color. |
+| Property | Description |
+| -------- | ----------- |
+| **Dirt Mask Texture** | Use the selection box to assign a Texture2D to be used for your Dirt Mask. Keep in mind that this property cannot be blended with other Post Process Volumes. |
+| **Dirt Mask Intensity** | Scales the color of the bloom dirt mask effect (linear). This property is used to tweak dirt mask brightness. |
+| **Dirt Mask Tint Color** | Used to darken or color tint the dirt mask texture. This can be used to tweak the dirt mask brightness and color. |
 [/REGION]
 
 ### Dirt Mask Image Best Practices
@@ -200,11 +201,12 @@ When creating your Dirt Mask textures and setting them up for use with Bloom Dir
 	* Use chromatic aberration (color fringe), in the texture, to help improve the look of the dirt mask.
 
 
-<!--- Excerpt ----
+[COMMENT:none]
+- Excerpt ----
 
 [EXCERPT:dirtmasktextureproperty]
 [REGION:simpletable]
-|||
+||
 |---|---|
 |  [INCLUDE:#dirtmasktexturepropertyimage] | [INCLUDE:#dirtmasktexturepropertylist] |
 [/REGION]
@@ -226,7 +228,8 @@ When creating your Dirt Mask textures and setting them up for use with Bloom Dir
 [REGION:caption] Example Dirt Mask Texture used in Vehicle Game.[/REGION]
 [/EXCERPT:dirtmaskexample]
 
------>
+---
+[/COMMENT]
 
 
 ## Training Streams

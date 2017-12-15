@@ -29,7 +29,8 @@ Version:4.9
 | **Delete** | 現在の要素を削除します。 [INCLUDE:#ArrayDelete] |
 | **Duplicate** | 現在の要素の後に新規の要素を配列に挿入します。 [INCLUDE:#ArrayDuplicate] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ArrayInsert]
 [REGION:imagetable]
 | ![](array.png) | ![Array with inserted element](array_insert.png) |
@@ -53,4 +54,5 @@ Version:4.9
 | 前 | 後 |
 [/REGION]
 [/EXCERPT:ArrayDuplicate]
--->
+
+[/COMMENT]

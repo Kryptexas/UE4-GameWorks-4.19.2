@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:컴포넌트 창
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -11,44 +11,8 @@ version: 4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Components
 tags:Blueprints
+topic-image:Engine/Blueprints/UserGuide/Components/componentslist_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Components:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Components:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Components:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Components:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2 end:2)]
 
@@ -268,6 +232,7 @@ _블루프린트_ 의 **컴포넌트** 리스트에 컴포넌트를 추가하려
 	[/REGION:raw]
 
 [/EXCERPT:Main]
+
 
 
 

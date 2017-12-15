@@ -53,24 +53,18 @@ version:4.9
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\Components\1 "%Programming\Tutorials\Components\1:description%")
 	* [](Programming\Tutorials\Components\2 "%Programming\Tutorials\Components\2:description%")
 	* [](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:description%")
 	* [](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:description%")
 	* [](Programming\Tutorials\Components\5 "%Programming\Tutorials\Components\5:description%")
 	* [](Programming\Tutorials\Components\6 "%Programming\Tutorials\Components\6:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

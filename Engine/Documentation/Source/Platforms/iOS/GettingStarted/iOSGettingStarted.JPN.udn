@@ -59,7 +59,8 @@ UE4 は iPhone4 / iPad2 とその後継機種、および iOS 6.0 以上のバ�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsConfig]
 
 Windows のシステム要件の詳細については、[推奨される仕様](GettingStarted/RecommendedSpecifications) を参照してください。
@@ -73,7 +74,8 @@ Mac のシステム要件の詳細については、[推奨される仕様](Gett
 Xcode は App Store で [無料でダウンロードできます](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
 
 [/EXCERPT:MacOSConfig]
--->
+
+[/COMMENT]
 
 
 
@@ -126,7 +128,8 @@ Apple developer アカウントの作成時には、以下の作業が必須で�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 Windows で証明書を取得するには、`Engine\Binaries\DotNET\IOS` にある iPhone Packager を使う必要があります。
@@ -185,7 +188,8 @@ Edit Info.plist ウィンドウを開くオプションは、いまや不要と�
 
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 最後は、全ての人がログイン キーチェーンで同じ "iPhone Developer:" 認証書を持っていることが重要です。
 

@@ -24,7 +24,7 @@ Order: 3
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this final section, we add our Widget Blueprints as **Widget** Components to our Actors and define what happens when the player clicks on the **Enter** Button, checking to see if the entered text is the same as our **GoalText**. 
 With everything in place, we give it a test to see the end result which prints **Success** to the screen if the code is correct or **Wrong Code** if the code is incorrect.  

@@ -12,14 +12,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee Actor、道具和 Matinee 中的轨迹
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee Actor**，添加场景中使用的一些道具，以及在 **Matinee** 中使用的轨迹。
-	[/PARAM]
-[/OBJECT]
+## 添加 Matinee Actor、道具和 Matinee 中的轨迹
+
+在这步中，我们将添加 **Matinee Actor**，添加场景中使用的一些道具，以及在 **Matinee** 中使用的轨迹。
 
 1. 在 **工具栏** 菜单中选择 Matinee 并点击 **Add Matinee** 按钮。 
 
@@ -82,14 +77,9 @@ SkillLevel:Intermediate
 	![](MHT6_AddFloatMaterialTrack.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		矢量材质参数 Matinee
-	[/PARAM]
-	[PARAM:description]
-	在以下步骤中，我们将在 **Matinee** 中通过 **矢量材质参数（Vector Material Parameter）** 轨迹改变玩家角色靠近时椅子的颜色。 
-	[/PARAM]
-[/OBJECT]
+## 矢量材质参数 Matinee
+
+在以下步骤中，我们将在 **Matinee** 中通过 **矢量材质参数（Vector Material Parameter）** 轨迹改变玩家角色靠近时椅子的颜色。
 
 1. 选择关卡中的椅子，然后在 **Materials** 下的 Details 面板中点击 Browse To（放大镜）图表。 
 
@@ -208,14 +198,9 @@ SkillLevel:Intermediate
 	_玩家角色离开椅子后，它将变回默认颜色。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Float 材质参数 Matinee
-	[/PARAM]
-	[PARAM:description]
-	在下列步骤中，我们将使用 **Matinee** 中的 **Float 材质参数** 轨迹创建应用在台阶阶梯上闪烁变化的 **材质**。 
-	[/PARAM]
-[/OBJECT]
+## Float 材质参数 Matinee
+
+在下列步骤中，我们将使用 **Matinee** 中的 **Float 材质参数** 轨迹创建应用在台阶阶梯上闪烁变化的 **材质**。
 
 1. 在 Content Browser 的 **Game/Materials** 文件夹下，在 **M_Basic_Wall Material** 上 **单击右键**，选择 **Create Copy** 并为其命名。
 

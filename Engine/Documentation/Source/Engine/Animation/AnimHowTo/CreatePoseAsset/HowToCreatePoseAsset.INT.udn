@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:How to use the Animation Editor to generate a single frame Pose Asset.
 version: 4.14
 skilllevel: Intermediate
+tags:Pose Assets
 
 While you've been able to extract single frames of animation from an Animation Sequence for some time, you've been left to set up blends on your own. 
 This changes with the use of **Pose Assets** which were implemented to support facial animation where either FACS (Facial Action Coding System) or viseme curves can drive poses. 

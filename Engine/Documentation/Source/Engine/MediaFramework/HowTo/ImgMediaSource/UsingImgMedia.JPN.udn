@@ -1,0 +1,185 @@
+﻿INTSourceChangelist:3678517
+Availability:Public
+Title:Image Sequence の再生
+Crumbs:%ROOT%, Engine
+Description: Image Media Source セットで Image Sequence を再生する方法のサンプル 
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/MediaFramework/HowTo
+Order:3
+Tags:Media Framework
+Tags:Video Playback
+Tags:Image Sequences
+Related:Engine\MediaFramework
+Related:Engine\MediaFramework\TechReference
+Related:Engine\MediaFramework\MediaEditorReference
+
+**Image Media Source** アセットを使って、アンリアル エンジン 4 の中で画像のシーケンスを Media Framework ツールの一部としてプレイすることができます。 
+パスを Image Sequence ファイルに指定するので画像の場所と再生可能な場所が分かるという点で、Image Media Source アセットは **File Media Source** と似ています。 
+命名規則は重要ですので、連番の使用を推奨します。例えば _Image_01_、_Image_02_、_Image_03_ とすれば、順番で正しく再生されます。 
+
+この操作ガイドでは、 Image Media Source を使ってレベル内のスタティックメッシュ上で画像のシーケンスをプレイします。 
+
+![](ImageMediaHero.png)
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
+[/REGION]
+
+1.	**[コンテンツ ブラウザ]** の **[Sources Panel]** を展開、**「Content」** フォルダ内に **「Movies」** という名前のフォルダを新規作成します。
+
+	![](IMGSequence_01.png)
+
+1.	「Movies」 フォルダを **右クリック** して **[Show in Explorer (エクスプローラーで表示)]** を選択します。 
+
+	![](IMGSequence_02.png)
+
+	保存場所は **「Content/Movies」** フォルダを推奨します。プロジェクトで正しくメディアをパッケージ化およびデプロイすることができます。 
+
+1.	 Image Sequence の画像を **「Content/Movies」** フォルダに置きます。 
+
+	![](IMGSequence_03.png)
+
+	**「Content/Movies」** フォルダ内には、上の画像のように **「UE4_Images」** という名前の新規フォルダが作成され、中に PNG の画像が入っています。 
+	さらに、シーケンス画像の低解像度版が入っている **「lowres」** という名前のフォルダも作成します。 
+	Media Framework ツールを使えば、メディア ソース プロキシを使って開発中に低解像度の画像で作業することができます。 
+	作業する画像のシーケンスやファイル サイズが増えてきた場合は、低解像度の画像で作業した方が効率的であり、かつパフォーマンス問題の発生も最小限に抑えることができます。 
+
+	[REGION:note]
+	チュートリアル用の画像シーケンスがない場合は、[Sample Image Sequence](UE4_Images.rar) からもダウンロードが可能です。 
+	[/REGION]
+
+1.	アンリアル エンジン 4 の **[Auto-Import (自動インポート)]** ダイアログ ウィンドウにある **[Don't Import (インポートしない)]** をクリックします。 
+
+	![](IMGSequence_03b.png)
+
+	プロジェクト ディレクトリの保存場所への参照だけが必要なので、ここでは画像のインポートは行いません。 
+
+1.	**「Content/Movies」** フォルダを右クリックして **[Media]** から **[Img Media Source]** を選択して **[MyImageSequence]** と名前を付けます。 
+
+	![](IMGSequence_04.png)
+
+1.	作成された **MyImageSequence** アセット中の **[Sequence Path]** ボタンの横にある **[...]** ボタンをクリックして、画像シーケンスの中の最初の画像に指定します。 
+
+	![](IMGSequence_05.png)
+
+1.	**[Advanced Options (詳細オプション)]** をクリックして **[Sequence]** オプションを展開し、**[Proxy Override]** に **「lowres」** と入力します。 
+
+	![](IMGSequence_06.png)
+
+	開発で使用する低解像版の画像が入っている **「lowres」** フォルダを指定しています。 
+
+	[REGION:warning]
+	Proxy Override パスをオリジナルのフル解像度画像と同じディレクトリ構造で、同じ名前のフォルダに指定して、見つけられるようにしておきます。 
+	[/REGION]
+
+1.	**「Content/Movies」** フォルダを右クリックして **[Media]** から **[Media Player]** を選択します。 
+
+	![](IMGSequence_07.png)
+
+	Media Player アセットを使用して、さきほど作成した画像シーケンスを再生します。 
+
+1.	**[Create Media Player]** ウィンドウで **[Video output Media Texture asset]** オプションを有効にして **[OK]** ボタンをクリックします。 
+
+	![](IMGSequence_08.png)
+
+	すると、画像シーケンスに使用する Media Player に関連する **Media Texture** アセットが自動的に作成および割り当てられます。 
+
+1.	(自動的に Media Texture という名前になっている) **Media Player** アセット名を **「MyPlayer」** に変更して、ダブルクリックして開きます。 
+
+	![](IMGSequence_09.png)
+
+1.	**メディア エディタ** の **[Details]** パネルで、**[Loop]** オプションを有効にします。 
+
+	![](IMGSequence_09b.png)
+
+	このオプションを有効にすると、Media Player が画像シーケンスの再生をループし続けます。 
+
+1.	**MyImageSequence** アセットをダブルクリックして、画像シーケンスのプレイを開始します。 
+
+	![](IMGSequence_10.png)
+
+	画像シーケンスはメディア エディタでプレイを開始します。**[Info]** タブをクリックすると、プレイ中の画像シーケンスの情報が表示されます。 
+	サンプルでは、**低解像度** の画像を使っているので、画像シーケンスの **Dimension** は **640 x 360** と表示されています。 
+
+1.	**コンテンツ ブラウザ** で **MyImageSequence** アセットを開き、**[Proxy Override]** セクションをクリアします。 
+
+	![](IMGSequence_11.png)
+
+	これでフル解像度の画像への切り替えが可能になります。Media Player アセットを開いて画像シーケンスを再度プレイすると **[Dimension]** 値は異なります。 
+
+	![](IMGSequence_12.png)
+
+	[REGION:note]
+	プレイヤー ウィンドウの下部にある **[Image Cache]** プログレス バーはメモリへキャッシュされたコンテンツ量を表します (緑はずべてロード済み、黄色はロード中、グレイはロードをスケジュール中)。 
+	使用しているシステム ハードウェアによって、キャッシュの量と表示カラーは異なることがあります。詳細は [](Engine\MediaFramework\Overview\) の 『Media』 セクションをご覧ください。 
+	[/REGION]
+
+1.	メイン エディタの **[Modes]** パネルの **[Basic]** から、**[Plane]** をレベルにドラッグし、自由にサイズ変更および配置します。 
+
+	![](IMGSequence_14.png)
+
+	[Transform ツール](GettingStarted/HowTo/ManipulatingActors) を使って、プレーンを自由に移動、回転、スケーリングすることができます。 
+
+1.	**コンテンツ ブラウザ** から、**MyPlayer_Video** Media Texture アセットをレベルの中の **Plane** 上にドラッグします。 
+
+	![](IMGSequence_14b.png)
+
+	すると、メディア テクスチャを使って **マテリアル** がレベルのプレーンに自動的に作成および適用され、画像シーケンスが再度プレイされます。 
+
+1.	メイン ツールバーで **[Blueprints]** ボタンをクリックし **[Open Level Blueprint]** を選択します。 
+
+	![](IMGSequence_15.png)
+
+	テストする前に、[ブループリント](Engine/Blueprints) を使って、メディア プレイヤーにゲームプレイの開始時に Image Media Source アセットを開いてプレイが開始されるように指示します。 
+
+1.	**[MyBlueprint]** パネルで **Media Player Reference** というタイプの **[MediaPlayer]** という変数を作成し **Media Player** として **MyPlayer** に割り当てます。 
+
+	![](IMGSequence_16.png)
+
+	[REGION:note]
+	**[Default Value]** を **メディア プレイヤー** に割り当てるためには、変数を作成した後に **[Compile]** をクリックする必要があります。 
+	[/REGION]
+
+1.	**Ctrl** を押しながら **MediaPlayer** 変数をグラフへドラッグし、右クリックして **Event Begin Play** ノードを追加します。 
+
+	![](IMGSequence_17.png)
+
+1.	**MediaPlayer** 変数を引き出して **Open Source** ノードを使って**Media Source** を **MediaStream** に設定し、以下のように接続します。 
+
+	![](IMGSequence_18.png)
+
+1.	**コンパイル** および **保存** し、メイン エディタから **[Play]** ボタンをクリックしてエディタ内でプレイします。 
+
+
+## 結果
+
+エディタでプレイした後、画像シーケンスはレベル内およびプレイ中スタティックメッシュ上で連続再生を開始します。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	kNImb7wzVZQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+このサンプルは PNG 形式ですが、Image Media Source で [サポートされている種類](Engine\MediaFramework\TechReference) であればどれでも使用することができます。 
+
+
+
+
+

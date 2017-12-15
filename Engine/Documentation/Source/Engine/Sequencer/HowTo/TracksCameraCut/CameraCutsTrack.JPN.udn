@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:カメラ カットの作業
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 シネマティックスでコンテンツの用意ができたら、異なるカメラ視点からそのコンテンツを撮影することがあります。 
 シーケンサーでこれを行うには、 **Camera Cuts トラック** を使用し、シーン内の任意の時間にどのカメラを使用するかを選択します。 

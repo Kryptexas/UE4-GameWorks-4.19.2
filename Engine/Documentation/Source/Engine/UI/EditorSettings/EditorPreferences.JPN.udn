@@ -149,7 +149,8 @@ yvwZUtmW12I
 | **Warning in Seconds** | 自動保存が実行される前に警告が表示される秒数です。 []!(autosave_warning.png) |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CameraControls]
 [REGION:simpletable]
 | オプション| 説明 |
@@ -201,4 +202,5 @@ yvwZUtmW12I
 | **0.2** | **1.0** |
 [/REGION]
 [/EXCERPT:SelectionHighlight]
--->
+
+[/COMMENT]

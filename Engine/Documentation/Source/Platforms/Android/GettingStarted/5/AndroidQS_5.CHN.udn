@@ -52,7 +52,8 @@ Checkpoint:AndroidQS
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [region:note]
@@ -130,7 +131,8 @@ Checkpoint:AndroidQS
 1.您的游戏现已安装完毕，您可以从应用抽屉中打开它。
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 ## 最终结果
 当完成后，将会得到一个 .APK 的文件，其中包含了 UE4 的项目，并能够通过另一个 .BAT 的文件部署到任意安卓的智能手机上。

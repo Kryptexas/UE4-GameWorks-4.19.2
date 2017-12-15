@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:3.メインメニューを作成する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -23,7 +23,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 
@@ -121,7 +121,7 @@ tags:UMG UI Designer
 
 ---
 
-%Steps%
+
 
 
 

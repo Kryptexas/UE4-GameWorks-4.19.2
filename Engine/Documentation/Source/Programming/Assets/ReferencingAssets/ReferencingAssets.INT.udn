@@ -81,7 +81,7 @@ Is the same as
 
 	DefaultPreviewPawnClass = LoadObject<UClass>(NULL, *PreviewPawnName, NULL, LOAD_None, NULL);
 
-	if (!DefaultPreviewPawnClass->IsA(APawn::StaticClass()))
+	if (!DefaultPreviewPawnClass->IsChildOf(APawn::StaticClass()))
 	{
 		DefaultPreviewPawnClass = nullptr;
 	}

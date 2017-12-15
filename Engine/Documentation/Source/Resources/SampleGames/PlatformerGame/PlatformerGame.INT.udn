@@ -3,48 +3,7 @@ Title:Platformer Game Sample
 Crumbs:%ROOT%, Resources
 Description:Overview of the Platformer Sample Game.
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/PlatformerGame:title%](Platformer_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/PlatformerGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/PlatformerGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/PlatformerGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/PlatformerGame:title%](Platformer_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/PlatformerGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/PlatformerGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/PlatformerGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Platformer_Topic.png
 
 
 [REGION:fullwidth]

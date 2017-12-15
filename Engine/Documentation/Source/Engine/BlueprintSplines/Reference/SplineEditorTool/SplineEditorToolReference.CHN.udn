@@ -94,7 +94,8 @@ tags:Splines
 | **Allow Discontinous Splines** | 切换显示是否允许单独设置 **Arrive** 和 **Leave** 切线。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SplinePointType]
 
 修改选中样条点的插值样式。与样条曲线点相关的样条曲线显示为红色（默认）。修改此项将对曲线构成影响。默认 **点类型** 为 **Curve**。下图为各种类型的示例：
@@ -121,7 +122,8 @@ tags:Splines
 | **Clamped Tangent** | 将选中 **曲线点** 的切线设为其 **Clamped Tangent** 数值。|
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ### 在样条曲线上单击右键
 

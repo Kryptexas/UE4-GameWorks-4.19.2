@@ -26,7 +26,8 @@ Version:4.9
 
 
 
-<!-------------Axis Lock Includes----------------
+[COMMENT:none]
+-----------Axis Lock Includes----------------
 #### Includes
 
 
@@ -48,4 +49,5 @@ Version:4.9
 [/EXCERPT:LockAxisFlags]
 
 
-------------Axis Lock Includes--------------->
+------------Axis Lock Includes-------------
+[/COMMENT]

@@ -1,30 +1,18 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4 - 마무리
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:마지막 단계에서는 캐릭터 블루프린트를 업데이트하여 콘트롤러 로테이션 처리 방식 변경이나 테스트 전 사소한 문제를 몇 가지 해결해 봅니다.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:4
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전](Engine\Animation\AnimHowTo\AimOffset\03_ImplementingAimOffset)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[에임 오프셋 생성 - 홈](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 마지막 단계에서는 캐릭터 블루프린트를 업데이트하여 콘트롤러 로테이션 처리 방식 변경이나 테스트 전 사소한 문제를 몇 가지 해결해 봅니다.
 
@@ -64,69 +52,19 @@ tags:Aim Offset
 ## 최종 결과
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-CEIeNE9lKxI
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	CEIeNE9lKxI
+	[/PARAMLITERAL]
 [/OBJECT]
 
 에디터에서 플레이해 보면, 캐릭터가 이제 가만히 있을 때 마우스 이동에 반응하여 조준, 마우스 방향을 가리킵니다. 마우스가 뒤에 있으면 캐릭터가 뒤쪽을 향하지는 못하게끔 제약되어 있으며, 캐릭터가 뛰어다닐 때 마우스를 움직이면 캐릭터의 몸통도 가리키는 방향으로 돌아갑니다.
 
 여기서 조금 더 나아가자면, 캐릭터가 한 방향으로 조준을 하면서 그 방향으로 발사 애니메이션을 재생한다거나, 기존 애니메이션 위에 [레이어 애니메이션](Engine\Animation\AnimHowTo\AdditiveAnimations) 을 놓는 방식으로 웅크린 상태 또는 한 방향으로 이동하는 상태에서 캐릭터에 발사 애니메이션을 재생하도록 할 수도 있습니다. 또는 이제 조준이 가능해 졌으니, [스켈레탈 메시 소켓](Engine\Content\Types\SkeletalMeshes\Sockets) 을 살펴보면 캐릭터의 손에 무기를 붙이는 법에 대한 예제를 찾아볼 수 있을 것입니다.
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

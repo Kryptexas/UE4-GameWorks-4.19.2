@@ -274,7 +274,7 @@ SubUV_Function is perfect for handling animation across a sprite sheet or textur
 | **Frame (Scalar)** | The current frame of the animation. This is zero-based and will blend on decimal values. For instance, a value of 2.35 would produce a 35% blend between the third and fourth frame.|
 
 
-![SubUV_Function](SubUV_Function_Demo.png)(w:800 h:375)
+![SubUV_Function](SubUV_Function_Demo.png)(w:800)
 
 ### TwoSidedTexturing
 
@@ -322,7 +322,8 @@ The WorldCoordinate3Way function projects a texture onto the surface of an objec
 
 
 ![WorldCoordinate3Way](WorldCoordinate3Way_Demo.png)
-<!---
+[COMMENT:none]
+-
 ### MF_TerrainHeightLerp
 
 The MF_TerrainHeightLerp is similar to the HeightLerp function, in that it allows you to blend between two textures based on a heightmap value. It differs, however, in that it is specifically set up to aid in blending terrain layers. You can choose which texture will be placed at the base, which will be layered on top, and establish a height map for both, in effect controlling where each texture will be placed.
@@ -346,9 +347,10 @@ The MF_TerrainHeightLerp is similar to the HeightLerp function, in that it allow
 | **Lerp Alpha No Contrast** | The alpha channel used to drive the lerp, with no contrast boosting applied.|
 
 
-![MF_TerrainHeightLerp](MF_TerrainHeightLerp_Demo.png)(w:600 h:543)
+![MF_TerrainHeightLerp](MF_TerrainHeightLerp_Demo.png)(w:600)
 
  TODO
 ### WorldAlignedStain
 
--->
+
+[/COMMENT]

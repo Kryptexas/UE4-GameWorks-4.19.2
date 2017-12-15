@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Crumbs: %ROOT%, 
+Title:Create a Sprite Based Effect with Niagara
+Description:Describes how you can create a sprite-based visual effect using Niagara.
+Type: how-to
+SkillLevel:Beginner
+Version: 4.17
+parent:Engine/Niagara/HowTo
+order:2
+tags:Niagara
+topic-image:
+
+One of the most used visual effects techniques is to render Texture and Materials to a 2D camera facing plans, called sprites. In the following How - to we will take a look setting up a Niagara Emitter to work with sprites so that when the effect is placed in a level, it will work and be displayed correctly. 
+
+![](HeroImage_00.png)
+
+## Steps
+
+[region:note]
+This How - to will make use of the **M_smoke_subUV** Material that can be found with the **Starter Content**. If you have not done so already, make sure that this Material or the Starter Content has been added to your project.
+[/region]
+
+
+1. First, we will need to create a **Niagara Emitter** by right-clicking in the **Content Browser** and from the displayed menu go to **FX** and then click on the **Niagara Emitter**. 
+
+    ![](SE_01.png)
+
+1. Name the newly created Niagara Emitter, **FX_Smoke** and then double - click on it to open it up.
+
+    ![](SE_02.png)
+
+1. With the Niagara Editor now open, go to the **Selected Emitter** panel and look for the **Render** section.
+
+	![](SE_03.png)
+
+1. Expand the **Sprite Render** section and set the following properties with the following options.
+
+    ![](SE_04.png)
+
+    |Property Name| Value|
+    |------|-----|
+    |**Material**|M_smoke_subUV|
+    |**Sub Image Size**| X: 8, Y: 8|
+    |**Sub UV Blending Enabled**| Checked|
+
+1. Now under **Emitter Update** in the **Spawn Rate** section, change the **Spawn Rate*** to a value of **50**.
+
+    ![](SE_05.png)
+
+1. Next, under **Particle Spawn** section go to the **Add Velocity** section and set the **Minimum** and **Maximum** to the following.
+
+    ![](SE_06.png)
+
+    |Property Name| Value|
+    |------|-----|
+    |**Minimum**|0,0,50|
+    |**Maximum**|0,0,200|
+
+1. Over in the **Sphere Location** set the **Sphere Radius** to **64** and then click on the **Expand** icon and make sure that **Surface Only** has been enabled.
+
+    ![](SE_07.png)
+
+    [region:note]
+    If you do not see the Surface Only option, press the small white triangle to expand more options.
+    [/region]
+
+1. Next, in the **Set Particles.Lifetime** section, click on the small white triangle next to **Lifetime** and from the drop-down list select the **Uniform Ranged Float** option and then input **2** into the **Minimum** lifetime and **5** into the **Maximum** lifetime.
+
+    ![](SE_08.png)
+
+1. In the **Set Particles. Sprite Size** set the **Minimum** value to **200** and set the **Maximum** value to **700**.
+
+    ![](SE_09.png)
+
+1. Go to the bottom of the Particle Update section and press the **Plus** sign icon to add a new module to the list. From the displayed list select the **Set Particles.SubImageIndex** option.
+
+    ![](SE_11.png)
+
+1. In the Set Particles.SubImageIndex section, press the white triangle next to the **SubImagIndex** option and from the displayed list, select the **Float From Curve** option.
+
+    ![](SE_12.png)
+
+1. In the **Curve** input window, select the first key and make sure that its **Time** and **Value** are both set to 0. Then select 2nd key and make sure that it's Time is set to **1** and the Value is set to **64**. 
+
+    ![](SE_13.png)
+
+1. Next, at the bottom of the Set Particles.SubImageIndex section, press the small grey triangle next to **CurveIndex** and from the dropdown list select **Normalized Age** option.
+
+    ![](SE_14.png)
+
+1. Then press the **Compile**, ** to Apply** and **Save** buttons to apply and save the changes and then close the **FX_Smoke** emitter.
+
+    ![](SE_15.png)
+
+1. Now over in the Content Browser, right - click and from the displayed list, go to **FX**  and then select the **Niagara System** option, giving it a name of **Smoke**.
+
+    ![](SE_16.png)
+
+1. Double - click on the Smoke Niagara System to open it up and when open, drag the **FX_Smoke** from the Content Browser to the **Timeline**.
+
+    ![](SE_17.png)
+
+1. Press the **Compile** and **Save** buttons and then close the Smoke Niagara System down. Then, over in the Content Browser, drag the Smoke Niagara System into the level viewport.
+
+    [REGION:lightbox]
+    [![](SE_18.png)(w:834)](SE_18.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+## End Result
+
+When completed you will now have a Niagara System that will play your Niagara Emitter when the Niagara System is placed in a level like in the following video.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    h_3CVsDqKBc
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+

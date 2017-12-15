@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3473611
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs:
 Title: 하이 다이내믹 레인지 디스플레이 출력
@@ -28,10 +28,12 @@ Social-image:HDRDisplayOutput_Social.png
 	![다이 다이내믹 레인지 (HDR) ](HDR.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-[REGION:caption] <!--- Spacer --->
+[REGION:caption] [COMMENT:none]
+- Spacer -
+[/COMMENT]
 [/REGION]
-REGION:caption]
-_이는 순전히 데모용 시뮬레이션 이미지입니다. LDR 화면에 HDR 차이를 나타내는 것은 불가능합니다.
+[REGION:caption]
+이는 순전히 데모용 시뮬레이션 이미지입니다. LDR 화면에 HDR 차이를 나타내는 것은 불가능합니다.
 [/REGION]
 
 현재 구현을 통해서는, 렌더링된 씬의 전체 처리는 **ACES Viewing Transform** 이라 알려진 방식을 통해 처리합니다. 이 프로세스 작동방식은 씬 참조 이미지와 디스플레이 참조 이미지를 사용하는 것입니다.
@@ -71,7 +73,8 @@ HDR 출력은 런타임에 콘솔 변수 토글 또는 블루프린트의 **Game
 | **r.HDR.Display.ColorGamut** | 출력 디스플레이의 색 공간입니다. [INCLUDE:#colorGamut] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
@@ -93,7 +96,8 @@ HDR 출력은 런타임에 콘솔 변수 토글 또는 블루프린트의 **Game
 | **3** | ACES, D60 |
 | **4** | ACEScg, D60 |
 [/EXCERPT:colorGamut]
---->
+-
+[/COMMENT]
 
 GameUserSettings 에 대한 블루프린트 또는 C++ 호출을 구성한 이후에는, 쿠킹된 프로젝트 실행, 명령줄 인수 `-game mode` 사용, 독립형 게임 모드 사용, 새 창에서 독점 전체화면 에디터에서 플레이 (PIE)
 등을 실행하면 됩니다 (**Alt** + **Enter** 또는 콘솔 창에 `fullscreen` 명령 사용). 

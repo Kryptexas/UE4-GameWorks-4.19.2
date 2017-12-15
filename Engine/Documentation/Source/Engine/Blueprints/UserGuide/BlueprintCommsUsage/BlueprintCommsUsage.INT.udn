@@ -2,7 +2,7 @@ Availability:Public
 Title:Blueprint Communication Usage
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Overview of when to use different methods of Blueprint Communications. 
-Related: Engine\Blueprints\UserGuide\BlueprintComms
+Related: Engine/Blueprints/UserGuide/BlueprintComms
 Related: Engine/Blueprints/UserGuide/EventDispatcher
 Related: Engine/Blueprints/UserGuide/CastNodes
 Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
@@ -11,43 +11,9 @@ parent:Engine/Blueprints
 order:4
 type:how-to
 tags:Blueprints
+topic-image:Engine/Blueprints/UserGuide/bp_comms_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 
 [TOC(start:2 end:2)]
@@ -56,12 +22,12 @@ When working with Blueprints, in order to pass or share of information between y
 
 ## Direct Blueprint Communication
 
-![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\2_9.png)
+![](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo/2_9.png)
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintComms#intro]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintComms#intro]
 
 [REGION:note]
-Please see **[](Engine\Blueprints\UserGuide\BlueprintComms)** for more information. 
+Please see **[](Engine/Blueprints/UserGuide/BlueprintComms)** for more information. 
 [/REGION]
 
 ### When to Use It...
@@ -72,7 +38,7 @@ Below is an example of when you might use **Direct Blueprint Communication**:
 	*	Interacting with a switch in your level opens a specific door or turns on a specific light (each of which are separate Blueprints). 
 
 [REGION:note]
-Please see [**Setting Up Direct Blueprint Communications**](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) for a walk through of how to set one up. 
+Please see [**Setting Up Direct Blueprint Communications**](Engine/Blueprints/BP_HowTo/DirectBlueprintComs) for a walk through of how to set one up. 
 [/REGION]
 
 	
@@ -100,7 +66,7 @@ Some examples where an **Event Dispatcher** could be used:
 	*	You spawn an item in your level (weapon, health, etc.) and notify the item and character when it is picked up.
 
 [REGION:note]
-Please see [**Setting Up Event Dispatchers**](Engine\Blueprints\BP_HowTo\EventDispatcher) for a walk through of how to set one up. 
+Please see [**Setting Up Event Dispatchers**](Engine/Blueprints/BP_HowTo/EventDispatcher) for a walk through of how to set one up. 
 [/REGION]
 
 
@@ -131,13 +97,13 @@ Each of the examples below are scenarios where a **Blueprint Interface** might b
 	*	Enemy has a special ability that changes and performs differently based on player health. 
 
 [REGION:note]
-Please see [**Setting Up Blueprint Interfaces**](Engine\Blueprints\BP_HowTo\Interfaces) for a walkthrough of how to set one up. 
+Please see [**Setting Up Blueprint Interfaces**](Engine/Blueprints/BP_HowTo/Interfaces) for a walkthrough of how to set one up. 
 [/REGION]
 
 
 ## Blueprint Casting
 
-![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\Event6.png)
+![](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo/Event6.png)
 
 [EXCERPT:CastDesc]
 Another common form of Blueprint Communication is through the use of **Cast** nodes. When using a Cast node, put simply you are asking the object "are you a special version of that object" and if so let me access you, if not then disregard my request. 
@@ -170,7 +136,7 @@ Here are a few examples when you could use **Blueprint Casting**:
 [/EXCERPT:Castusage]
 
 [REGION:note]
-Please see [**Setting Up Blueprint Casts**](Engine\Blueprints\BP_HowTo\Casting) for a walk through of how to set one up. 
+Please see [**Setting Up Blueprint Casts**](Engine/Blueprints/BP_HowTo/Casting) for a walk through of how to set one up. 
 [/REGION]
 
 

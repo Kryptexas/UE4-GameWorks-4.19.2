@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 메뉴
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -127,7 +127,8 @@ tags:Blueprints
 
 [/EXCERPT:Main]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:devtools]
 [REGION:simpletable]
 | 서브메뉴 항목 | 설명 |
@@ -145,4 +146,5 @@ tags:Blueprints
 | **위젯 리플렉터** | 위젯 리플렉터를 엽니다. 에디터 인터페이스 안에 인터페이스를 이루는 다양한 슬레이트 요소를 확인할 수 있습니다. |
 [/REGION]
 [/EXCERPT:devtools]
--->
+
+[/COMMENT]

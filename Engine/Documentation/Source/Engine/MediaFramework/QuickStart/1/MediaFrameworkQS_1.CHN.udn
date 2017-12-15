@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:1 - Required Setup
+Description:In this step we import the required contenet and set up the assets we will use in this guide. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:1
+tags:Media Framework
+ 
+[NAV]
+
+In this step we do a bit of project preperation and import and create some of the assets that we will use during this guide. 
+
+[REGION:note]
+For this guide, we are using the **Blueprint Third Person Template** project. You will also need to download/extract these [Sample Assets](Sample_Content.rar) for use with this tutorial.
+[/REGION]
+
+## Steps
+
+1. Inside your project in the **Content Browser**, expand the **Sources** panel then right-click on the **Content** folder and create a new folder called **Movies**. 
+
+	![](Setup_01.png)
+
+	In order to package or deploy your project and any media files, you **MUST** place your media inside the **Content/Movies** folder of your project. 
+
+1. Right-click on the **Movies** folder then select the **Show in Explorer** option. 
+
+	![](Setup_02.png)
+
+1. Place the sample video inside the **Content/Movies** folder on your computer. 
+
+	![](Setup_03.png)
+
+	[REGION:warning]
+	If you are using your own video, please visit the [](Engine\MediaFramework\TechReference\) page to ensure it is in the supported video file format. 
+	[/REGION]
+
+1. Right-click in the **Movies** folder, then under **Media**, choose **File Media Source** and name it **Video_01**. 
+
+	![](Setup_04.png)
+
+	The **File Media Source** asset is used to point to video files that are stored locally on a device (which we will point to our sample file). 
+
+1. Open the **File Media Source** asset, then click the **...** symbol and point to the sample video file on your computer. 
+
+	![](Setup_05.png)
+
+	While we have created a source for playback, we need a **Media Player** asset to actually play our video. 
+
+1. Right-click in the **Movies** folder, then under **Media**, choose **Media Player**. 
+
+	![](Setup_06.png)
+
+1. In the **Create Media Player** dialogue window, enable **Video output Media Texture asset** then click the **OK** button and name it **MediaPlayer_01**. 
+
+	![](Setup_07.png)
+
+	This will automatically create and assign a **Media Texture** to the Media Player asset which is needed for playing back our video. 
+
+	![](Setup_08.png)
+
+1. Open the **MediaPlayer_01** asset, then in the **Details** panel of the **Media Editor**, enable the **Loop** option. 
+
+	![](Setup_09.png)
+
+	Inside the [Media Editor](Engine\MediaFramework\MediaEditorReference\), if you double-click on the **Video_01** file, playback will occur. 
+	In the **Detials** panel we have options to determine how we want to handle playback (in this case, we are setting this video to loop playback). 
+	Another option that is enabled by default is the **Play on Open** which will tell our video to start playing as soon as we open it through Blueprint or C++. 
+
+1. Inside the **Content Browser**, create a new folder called **TV** and drag the **SM_TV** and **T_TV_M2** files from the Sample Content into your project to **Import All**. 
+
+	![](Setup_10.png)	
+		
+
+## End Result
+
+The assets needed for our set up are ready and we have created our first few Media Framework assets (the File Media Source, Media Player, and Media Texture assets) which are needed to play back our video.
+We also imported a Static Mesh TV that we will play our video on inside our level and a texture that we will use in setting up our Material for our TV which we will do in the next step.
+
+[NAV]
+
+

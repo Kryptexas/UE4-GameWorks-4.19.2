@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:1 - Composure Level Setup
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:1 - 컴포셔 필수 구성
 Crumbs:%ROOT%
-Description:In this step we will set up our Project and Editor Layout for Composure Authoring. 
+Description:여기서는 컴포셔 저작을 위한 프로젝트 및 에디터 레이아웃 구성 작업을 합니다.
 SkillLevel:Beginner
 Version:4.17
-checkpoint:ComposureQS
+checkpoint: ComposureQS
 parent:Engine/Composure/QuickStart
 type:multi-step
 order:1
@@ -13,93 +13,69 @@ tags:Composure
  
 [NAV]
 
-For this Quick Start we are going to be re-creating the third shot that comes with the Composure content sample that you will find on the Epic Games Launcher. However before we can start to do this we are going to need to download a few additional files, create a new level, and make sure that we have the needed Actors and Blueprints. After completing this section, your project will be ready to start compositing computer generated footage with real world footage.
+이번 퀵 스타트에서는, 에픽게임즈 런처에서 찾을 수 있는 컴포셔 콘텐츠 샘플에 포함된 세 번째 샷을 재현해 보겠습니다. 시작하기에 앞서, 몇 가지 파일을 다운로드하고 새 레벨을 생성하여 필수 액터와 블루프린트가 있는지 확인해야 합니다. 이 섹션을 마치고나면 컴퓨터 생성 영상과 현실의 실제 영상 합성을 시작할 수 있는 프로젝트 준비가 될 것입니다.
 
 [region:note]
-To fully follow along with this Quick Start you will need to download and create a new UE4 project that uses the Composure sample. You can the Composure sample on the learn tab of the Epic Games Launcher. 
+이 퀵 스타트를 완전히 따라하기 위해서는, 컴포셔 샘플을 다운로드하고 새 UE4 프로젝트를 만들어야 합니다. 컴포셔 샘플은 에픽게임즈 런처의 학습 탭에서 다운로드할 수 있습니다.
 [/region]
 
 
-## Steps
+## 단계
 
-1. First, download and extract the following .FBX file which contains the camera animation used for the third shot and nothing else.
-*	**[Shot Three Undistorted Camera](https://epicgames.box.com/s/uymjfebmm2xw85tche0u2e60wqte58n3)**
+1. 먼저 다음 파일을 다운로드하여 .FBX 압축을 풉니다. 세 번째 샷에 사용된 카메라 애니메이션이 들어있습니다.
+*    **[Shot Three Undistorted Camera](https://epicgames.box.com/s/m5of0mecoeia10bqnmppjp8kuydq0fup)**
 
-1. From the Epic Games launcher, make sure you have downloaded and installed the Composure Sample project. If you already have the Composure sample, go ahead and launch it now.
+1. 에픽게임즈 런처에서, 컴포셔 샘플 프로젝트를 다운로드하여 설치했는지 확인합니다. 컴포셔 샘플이 이미 있는 경우, 바로 실행합니다.
 
-1. Once the Composure sample has loaded go to **Edit** > **Plugins** and then in the **Compositing** section, make sure the following two plugins are enabled:
-* **Composure**
-* **Lense Distortion**
+1. 컴포셔 샘플 로드가 완료되면 **편집** > **Plugins** (플러그인)으로 가서 **Compositing** (합성) 섹션의 **Composure** (컴포셔) 플러그인이 활성화되었는지 확인합니다:
 
-	[REGION:lightbox]
-	[![](ComposureQS_S1_1.png)(w:568)](ComposureQS_S1_1.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S1_1.png)(w:568)](ComposureQS_S1_1.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-	[region:note]
-	If the Composure and or Lens Distortion Plugins have not been enabled, enabling them will require that you restart the UE4 Editor before you can use them.
-	[/region]
+    [region:note]
+    컴포셔 플러그인이 활성화되지 않은 상태에서 활성화시키면, UE4 를 재시작해야 사용할 수 있습니다.
+    [/region]
 
-1. Next, over in the **Content Browser** create a new folder called **ComposureQS** and then from the Main toolbar go **File** > **New Level** and select the **Empty Level** option. When the level loads, save the new  level in the ComposureQS folder with a name of **CQS_Shot_03_Remake**.
+1. 다음, **콘텐츠 브라우저** 에서 새 폴더를 만들고 **ComposureQS** 라 한 뒤, 메인 툴바의 **파일** > **새 레벨** 에서 **공백 레벨** 옵션을 선택합니다. 레벨이 로드되면, 새 레벨을 ComposureQS 폴더에 **CQS_Shot_03_Remake** 라는 이름으로 저장합니다.
 
-	[![](ComposureQS_S1_2.png)(w:946)](ComposureQS_S1_2.png)
+    [![](ComposureQS_S1_2.png)(w:946)](ComposureQS_S1_2.png)
 
-1.  Now, locate and open the **Advanced Compositing** map in the Content Browser and double - click on it to open it up.
+1.  이제 콘텐츠 브라우저에서 **Advanced Compositing** 맵을 찾아 더블클릭하여 엽니다.
 
-1. Select the following assets that have been placed in the level and when completed, press **CTRL + C** to copy the assets to the clipboard.
+1. 레벨에 배치된 다음 애셋을 선택하고 **CTRL + C** 키를 눌러 클립보드에 복사합니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S1_3.png)(w:857)](ComposureQS_S1_3.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S1_3.png)(w:857)](ComposureQS_S1_3.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-	* **Directional Light**
-	* **Post Process Volume**
-	* **SkyLight**
-	* **CompositingStaticMesh_PatioGround**
-	* **Patio Columns Railings Walls**
-	** Patio Roof**
+    * **Directional Light**
+    * **Post Process Volume**
+    * **SkyLight**
+    * **CompositingStaticMesh_PatioGround**
+    * **Patio Columns Railings Walls**
+    * **Patio Roof**
 
-1. Open up the ComposureQS level that was saved previously and then press **CTRL+V** to paste the copied Actors into the level. 
+1. 기존에 저장된 ComposureQS 레벨을 열고 **CTRL+V** 를 눌러 복사한 액터를 레벨에 붙여넣습니다.
 
-1. Over in the **World Outliner**, click on the  **Lighting_capture** Static Mesh and in the **Detail** panel under **Materials** press the magnifying glass to locate the Material, **M_sky** in the Content Browser.
+1. **월드 아웃라이너** 에서 **Sky Light** 에 클릭하고 **디테일** 패널의 **Light** (라이트) 아래 **Source Type** (소스 유형)을 **SLS Specified Cubemap** (SLS 지정 큐브맵)으로, **Cubemap** (큐브맵) 입력에는 **3D5A2486_Panorama_hdr_orient_CC** .HDR Cubemap 을 선택합니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S1_4.png)(w:203)](ComposureQS_S1_4.png)
-	[/REGION]
+    ![](ComposureQS_S1_4.png)
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+## 최종 결과
 
-1. Double - click on the M_sky Material to open it up and then connect the **Texture Sample** that uses texture **3D5A2486_Panorama_hdr_orient_CC** to the **Emissive Color** input on the main material node, pressing **Apply** and **Save** when you are done.
+레벨 라이팅 구성이 완료되고 레벨에 필수 액터를 전부 추가했으니, 다음에는 액터와 블루프린트 컴포셔에 해줘야 하는 작업을 살펴보겠습니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S1_5.png)(w:846)](ComposureQS_S1_5.png)
-	[/REGION]
+![](ComposureQS_S1_7.png)
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
 
-1. Now,over in the World Outliner, select the **Sky Light** actor and in the Details panel under the **Sky light** category, press the **Recapture** button to update the levels lighting and reflections to use the new HDR map.  
-
-	[REGION:lightbox]
-	[![](ComposureQS_S1_6.png)(w:203)](ComposureQS_S1_6.png)
-	[/REGION]
-
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
-
-## End Result
-
-With the level lighting now setup and all of the needed Actors added to the level, in the next part of this Quick Start we will take a look at adding and setting up the rest of the needed Actors and Blueprints Composure requires to work.
 
 [NAV]

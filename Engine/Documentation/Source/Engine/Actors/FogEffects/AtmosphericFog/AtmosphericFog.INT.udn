@@ -3,46 +3,7 @@ Title:Atmospheric Fog User Guide
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:Atmospheric Fog Actors provide a realistic sense of atmosphere, air density, and light scattering through atmospheric media.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:atmofog_topic.png
 
 [REGION:banner]
 ![Atmospheric Fog](atmofog_banner.png)
@@ -104,7 +65,8 @@ The Atmospheric Fog Actor contains the following properties:
 | Density Decay Height of 1.0 (64 km) and Max Scattering of 4 | Density Decay Height of 1.0 (64 km) and Max Scattering of 1 |
 [/REGION]
 [/EXCERPT:examples]
-<!---Includes
+[COMMENT:none]
+-Includes
 [EXCERPT:PrecomputeParams]
 [REGION:simpletable]
 	|**Property** | **Description** |
@@ -114,4 +76,5 @@ The Atmospheric Fog Actor contains the following properties:
 	| **Inscatter Altitude Sample** | Number of different altitudes at which to sample inscatter color (Size of 3d texture dimension; 1-32). |
 [/REGION]
 [/EXCERPT:PrecomputeParams]
-End Includes----->
+End Includes---
+[/COMMENT]

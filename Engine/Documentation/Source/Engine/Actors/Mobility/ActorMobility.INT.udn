@@ -24,7 +24,8 @@ When available, the Mobility property has 3 states:
 
 
 
-<!-----
+[COMMENT:none]
+---
 
 [EXCERPT:Static]
 * **Static Mesh Actors** with a Mobility of Static will have their shadows contribute to pre-calculated light maps (Lightmass baked lighting). This makes them ideal for structural or decorative meshes that never need to relocate during gameplay. Note, however, that their Materials can still be animated.
@@ -44,4 +45,5 @@ Stationary is used for **Light Actors** that do not move, but may update in some
 * **Light Actors** with a Mobility of Movable can only cast dynamic shadows. Because of this, care must be taken when making these lights cast shadows, as their shadowing method is the most performance intensive. 	It should be noted, however, that non-shadowing Movable lights are very inexpensive to calculate due to Unreal Engine's deferred rendering system.
 [/EXCERPT:Movable]
 
--->
+
+[/COMMENT]

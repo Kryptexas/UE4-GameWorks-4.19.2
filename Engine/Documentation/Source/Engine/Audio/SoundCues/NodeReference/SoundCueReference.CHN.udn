@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title: Sound Cue参考指南
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description: 介绍了SoundCue中可以使用的节点及其属性。
@@ -106,14 +106,16 @@ Continuous Modulator (持续调制器节点)允许游戏参数实时地控制音
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:ParamMode]
 应用参数的模式： 
 * **MPM_Normal** - 区间限定输入值到(MinOutput, MaxOutput)范围之间，然后映射到范围 (MinOutput, MaxOutput)。
 * **MPM_Abs** - 和 **MPM_Normal** 一样，但输入值被作为绝对值处理。
 * **MPM_Direct** - 直接使用输入值，而不必缩放或参照Min（最小）或Max（最大）输入值或Min（最小）或Max（最大）输出值。
 [/EXCERPT:ParamMode]
---->
+-
+[/COMMENT]
 
 
 
@@ -244,7 +246,9 @@ Enveloper 节点的  **Details（详细信息）** 面板包含了各种用于�
 | [REGION:tablesection]音效节点 -  Group Control（组控制）[/REGION] ||
 | **Group Sizes（组大小）** | 组中的Sound Wave节点的数量减去1 (第一个Sound Wave节点时"0")。|
 
-<!-- 从这里获得更多信息 -->
+[COMMENT:none]
+ 从这里获得更多信息 
+[/COMMENT]
 
 
 ## Looping（循环）节点
@@ -329,7 +333,9 @@ Modulator(调制器)节点用于添加随机音量和音高调制。每项都有
 | **Preselect at Level Load（在关卡加载时预先选择）** | 一个在加载关卡时随机选择的Sound Wave节点，在游戏会话中将总是使用该节点。注意，这个设置在 Play In Editor(在编辑器中运行)或Simulate(模拟)时并不会应用；它应用于虚幻编辑器之外的游戏版本中。|
 | **Randomize Without Replacement（无重复的随机化）** | 如果为 _true_, 则防止在所有输入Sound Wave节点播放完之前再次重复播放该输入Sound Wave(音频波形)。这保证了在重复播放音效之前先播放完所有音效。|
 
-<!-- 获得更多信息 -->
+[COMMENT:none]
+ 获得更多信息 
+[/COMMENT]
 
 ## SoundClass 节点
 
@@ -343,7 +349,9 @@ Modulator(调制器)节点用于添加随机音量和音高调制。每项都有
 | **Sound Class Override（音效类覆盖）** | 一个Sound Class，它将会覆盖Sound Wave输入节点当前的Sound Class。|
 
 
-<!-- 获得更多信息 -->
+[COMMENT:none]
+ 获得更多信息 
+[/COMMENT]
 
 
 ## Switch (开关)节点
@@ -357,7 +365,9 @@ Modulator(调制器)节点用于添加随机音量和音高调制。每项都有
 | [REGION:tablesection]音效节点 - Switch（开关）[/REGION] ||
 | **Int Parameter Name（整型参数名称）** | 用于决定使用哪个输入的整形参数的名称。|
 
-<!-- 获得更多信息 -->
+[COMMENT:none]
+ 获得更多信息 
+[/COMMENT]
 
 
 
@@ -378,7 +388,9 @@ Modulator(调制器)节点用于添加随机音量和音高调制。每项都有
 | [REGION:tablesection]音效节点- Wave Param（波形参数）[/REGION] ||
 | **Wave Parameter Name（波形参数名称）** | 用于决定播放哪个Sound Wave的参数。如果该参数不存在或者指向了一个无效的Sound Wave，那么则计算由连接到输入节点的树指定的Sound Wave 来决定播放哪个Sound Wave以代之。|
 
-<!-- 获得更多信息 -->
+[COMMENT:none]
+ 获得更多信息 
+[/COMMENT]
 
 
 

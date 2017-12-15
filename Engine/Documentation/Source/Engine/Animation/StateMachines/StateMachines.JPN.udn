@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429233
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ステートマシン
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -6,13 +6,15 @@ Description:ステートマシンは、ステートの変化過程で発生す�
 version:4.12
 tags:Assets
 topic-image:Engine/Animation/Overview/StateMachineTopic.png
-
+related:Gameplay/HowTo/CharacterMovement/Blueprints
+related:Gameplay/HowTo/CharacterMovement/Blueprints
 
 [REGION:banner]
 ![](StateMachineImage.png)
 [/REGION]
 
-<!--
+[COMMENT]
+
 [EXCERPT:Intro]
 **ステートマシン** は、スケルタルメッシュのアニメーションを一連のステートへ分割するグラフィカルな手法です。こうしたステートは、あるステートから別のステートにブレンドする方法を制御する 遷移ルールによって管理されます。ひとつのツールとして、ステートマシンはスケルタルメッシュのアニメーションのデザイン プロセスを非常に単純化します。すなわち、複雑なブループリント ネットワークを作成する必要なく、アニメーションのタイプによってキャラクターがどのように動くかを簡単に制御するグラフを作成できます。
 
@@ -21,7 +23,8 @@ topic-image:Engine/Animation/Overview/StateMachineTopic.png
 例えば、キャラクターが動いていない時はステートが「待機状態」になります。キャラクターの移動速度が一定の速度を超えると、キャラクターは別の「動き」のステートへブレンドします。落下、ジャンプ、かがみ込み、ダッシュなど、その他のステートがいくらでも考えられます。アニメーターやアーティストは、ステートマシンを利用することによりデータがアニメーション ネットワークへ流れ込んでいく様子を素早く視覚化することが出来ます。
 [/EXCERPT:Intro]
 
--->
+
+[/COMMENT]
 
 [EXCERPT:Overview]
 **ステートマシン** は、スケルタルメッシュのアニメーションを一連のステートへ分割するグラフィカルな手法です。こうしたステートは、あるステートから別のステートにブレンドする方法を制御する  **遷移ルール** によって管理されます。ひとつのツールとして、ステートマシンはスケルタルメッシュのアニメーションのデザイン プロセスを非常に単純化します。すなわち、複雑なブループリント ネットワークを作成する必要なく、アニメーションのタイプによってキャラクターがどのように動くかを簡単に制御するグラフを作成できます。
@@ -29,32 +32,10 @@ topic-image:Engine/Animation/Overview/StateMachineTopic.png
 
 以下は、UE4 でステートマシンを使って作業するための情報とチュートリアルです。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		基本
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Animation\StateMachines\Overview "%Engine\Animation\StateMachines\Overview:description%")
-		* [](Engine\Animation\StateMachines\CreatingStateMachines\ "%Engine\Animation\StateMachines\CreatingStateMachines:description%")
-		* [](Engine\Animation\StateMachines\EditingStateMachines\ "%Engine\Animation\StateMachines\EditingStateMachines:description%")		
-	[/PARAM]
-[/OBJECT]
+## はじめよう
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related
-	[/PARAM]
-	[PARAM:links]
-		* [](Gameplay/HowTo/CharacterMovement/Blueprints "%Gameplay/HowTo/CharacterMovement/Blueprints:description%")
-		* [Setting Up Paper 2D State Machines](Engine/Paper2D/HowTo/Animation/ "%Engine/Paper2D/HowTo/Animation/:description%")		
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Animation/StateMachines" type:"overview")]
 
+## ガイド
 
-
+[DIR(output:"fancy" parent:"Engine/Animation/StateMachines" type:"how-to")]

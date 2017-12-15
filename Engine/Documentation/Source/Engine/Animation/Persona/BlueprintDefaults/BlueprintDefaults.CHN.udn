@@ -54,8 +54,10 @@ Description: 关于角色动画编辑器中的动画蓝图编辑器的用户指�
 | **编辑预览** | 在 **动画蓝图编辑器** 中对变量做的修改将仅影响视口预览效果，不会进行保存。当重新编译蓝图时，对变量所做的修改将恢复为默认值。| ![](EditPreview.png) |
 | **编辑默认值** | 在 **动画蓝图编辑器** 中对变量做的修改将既影响视口预览效果又变量的默认值，且会保存修改。<br>[INCLUDE:#publicview]| ![](EditDefaults.png) |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:publicview]
 * **Public View(公开查看)** - 一个用于切换是否仅显示标记为Public的变量的选项。在切换 **Public View** 的打开或关闭状态后，必须重新编译该蓝图才能看到修改。仅在 **编辑默认值** 模式中可用。
 [/EXCERPT:publicview]
--->
+
+[/COMMENT]

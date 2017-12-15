@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149199
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 스플라인 메시 컴포넌트 프로퍼티 참고서
 Crumbs: %ROOT%, Engine
@@ -10,49 +10,8 @@ social-image:Splines_social.png
 version:4.13
 type:reference
 tags:Splines
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Reference/MeshComponent:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Reference/MeshComponent:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Reference/MeshComponent:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Reference/MeshComponent]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Reference/MeshComponent:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Reference/MeshComponent:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Reference/MeshComponent:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Reference/MeshComponent]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
 **Blueprint Spline Mesh Components** (블루프린트 스플라인 메시 컴포넌트)에서 사용할 수 있는 프로퍼티 참고서입니다. 표시되는 프로퍼티는 **블루프린트 에디터** 에 선택된 **블루프린트 스플라인 메시 컴포넌트** 가 **루트 컴포넌트** 냐, **레벨 에디터** 에 선택된 컴포넌트냐에 따라 조금씩 달라집니다.
 
@@ -65,19 +24,7 @@ tags:Splines
 
 
 [EXCERPT:PropStaticMeshCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		StaticMeshCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Static Mesh 스태틱 메시
-	[/PARAM]
-	[PARAM:content]
-		%spm1%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:spm1]
+### Static Mesh
 
 ![](StaticMeshCatRef.png)
 
@@ -97,26 +44,12 @@ tags:Splines
 | --- | :---: | :--- |
 | **Element #** || 엘리먼트 # - **스태틱 메시 프로퍼티** 에 **스태틱 메시** 가 지정되면, 다수의 **머티리얼 프로퍼티** 가 추가로 나타납니다. 그 이름은 **스태틱 메시** 에 적용된 **Material IDs** 에 따라 달라집니다.
 [/REGION]
-
-[/VAR]
 [/EXCERPT]
 
 
 
 [EXCERPT:PropSplineMeshCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		SplineMeshCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Spline Mesh 스플라인 메시
-	[/PARAM]
-	[PARAM:content]
-		%spm2%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:spm2]
+### Spline Mesh
 
 ![](SplineMeshCat.png)
 
@@ -131,7 +64,7 @@ tags:Splines
 | **Forward Axis** || %doxygen:USplineMeshComponent::ForwardAxis% |
 [/REGION]
 
-###고급
+#### 고급
 
 ![](SplineMeshCatAdv.png)
 
@@ -148,26 +81,12 @@ tags:Splines
 | **Spline Boundary Min** || %doxygen:USplineMeshComponent::SplineBoundaryMin% |
 | **Spline Boundary Max** || %doxygen:USplineMeshComponent::SplineBoundaryMax% |
 [/REGION]
-
-[/VAR]
 [/EXCERPT]
 
 
 
 [EXCERPT:PropSplineCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		SplineCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Spline 스플라인
-	[/PARAM]
-	[PARAM:content]
-		%spm3%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:spm3]
+### Spline
 
 ![](BPSM_SplineCatRef.png)
 
@@ -176,53 +95,18 @@ tags:Splines
 | --- | :---: | :--- |
 | **Allow Spline Editing Per Instance** || %doxygen:USplineMeshComponent::bAllowSplineEditingPerInstance% |
 [/REGION]
-
-[/VAR]
 [/EXCERPT]
 
+### Physics
 
+[INCLUDE:Engine/Physics/PhysicsBodies/Reference#PropPhysicsCat]
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		PhysicsCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Physics 피직스
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:c3%
-	[/PARAM]
-[/OBJECT]
+### Collision
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		CollisionCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision 콜리전
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:p2%
-	[/PARAM]
-[/OBJECT]
-
-
-
+[INCLUDE:Engine/Physics/PhysicsBodies/Reference#PropColCat]
 
 [EXCERPT:PropLightingCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		LightingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Lighting 라이팅
-	[/PARAM]
-	[PARAM:content]
-		%c5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c5]
+### Lighting
 
 ![](LightingCatRef.png)
 
@@ -232,7 +116,7 @@ tags:Splines
 | **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
 [/REGION]
 
-### 고급
+#### Advanced
 
 ![](LightingCatRefAdv.png)
 
@@ -256,26 +140,12 @@ tags:Splines
 | **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
 | **Lighting Channels** || %doxygen:UPrimitiveComponent::LightingChannels% |
 [/REGION]
-
-[/VAR]
 [/EXCERPT]
 
 
 
 [EXCERPT:PropRenderingCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		RenderingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Rendering 렌더링
-	[/PARAM]
-	[PARAM:content]
-		%c6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c6]
+### Rendering
 
 ![](RenderingCatRef.png)
 
@@ -286,7 +156,7 @@ tags:Splines
 | **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
 [/REGION]
 
-### 고급
+#### Advanced
 
 ![](RenderingCatRefAdv.png)
 
@@ -308,13 +178,12 @@ tags:Splines
 | **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
 | **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
 [/REGION]
-
-[/VAR]
 [/EXCERPT]
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TextureStreamingProp]
 
 [REGION:raw]
@@ -338,7 +207,8 @@ tags:Splines
 [/REGION]
 
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 
@@ -350,19 +220,7 @@ tags:Splines
 [INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropEventsCat]
 
 [EXCERPT:PropMobileCat]
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		MobileCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Mobile 모바일
-	[/PARAM]
-	[PARAM:content]
-		%c10%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c10]
+### Mobile
 
 ![](MobileCatRef.png)
 
@@ -371,6 +229,4 @@ tags:Splines
 | --- | :---: | :--- |
 | **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
 [/REGION]
-
-[/VAR]
 [/EXCERPT]

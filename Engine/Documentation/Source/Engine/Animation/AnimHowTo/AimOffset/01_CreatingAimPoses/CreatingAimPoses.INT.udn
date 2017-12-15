@@ -1,33 +1,21 @@
 Availability: Public
 Title:1 - Creating Aim Poses
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo
 Description:In this step, we update our default playable character and create all the poses that will be needed for the Aim Offset. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:1
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Creating an Aim Offset - Home ](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this step, we update our default playable character and create all the poses that will be needed for the Aim Offset. 
 
-[INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup#intro]
+[INCLUDE:Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup#intro]
 
 ## Steps
 
@@ -137,4 +125,4 @@ In this step, we update our default playable character and create all the poses 
 
 With each of our pose assets created, in the next step, we will the poses to create our Aim Offset. 
 
-%Steps%
+[NAV]

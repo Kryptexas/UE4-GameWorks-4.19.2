@@ -157,7 +157,8 @@ Description:物理ボディ、ボディ インスタンス、プロパティ リ
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:lockpos]
 
 [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockTranslation" output:"block")]
@@ -200,4 +201,5 @@ Description:物理ボディ、ボディ インスタンス、プロパティ リ
 | **None** || コンストレイントなし |
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]

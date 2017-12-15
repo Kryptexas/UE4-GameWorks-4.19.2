@@ -47,7 +47,8 @@ SkillLevel:Beginner
 [/REGION]
 [/EXCERPT]
 
-<!--
+[COMMENT:none]
+
 ## ジョイント プリセット
 
 [EXCERPT:p3]
@@ -61,7 +62,8 @@ SkillLevel:Beginner
 | **Ball and Socket** | ジョイントをボール アンド ソケット (玉継手) として設定します。ボール アンド ソケットを使用したジョイントでは、共通の中心軸を持つ無数の軸周りの動作が可能になります。 |
 [/REGION]
 [/EXCERPT:p3]
--->
+
+[/COMMENT]
 
 ## Linear Limits
 
@@ -195,7 +197,8 @@ SkillLevel:Beginner
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:AngMotorMode]
 
@@ -327,7 +330,8 @@ SkillLevel:Beginner
 | **Locked** | 軸周囲で完全に制約があります。 |
 [/EXCERPT:angularMotionEnum]
 
--->
+
+[/COMMENT]
 
 ## 詳しい情報
 
@@ -357,7 +361,9 @@ _左から右に以下のようになります。Hinge、 Prismatic、 Ball、�
 
 _左から右に以下のようになります。(物理コンストレイントのスケールは 4x):Linear Motions は 15 ユニットに制限されています。Linear Motions は free に設定されています。_
 
-<!-- For information on all the properties relating to Linear Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ For information on all the properties relating to Linear Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### Angular Freedom and Limits
 
@@ -379,7 +385,9 @@ _左から右に以下のようになります。Swing 1 は 45 度、Swing 2 �
 [![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
 [/REGION]
 
-<!-- For information on all the properties relating to Angular Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ For information on all the properties relating to Angular Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### 方向
 
@@ -397,7 +405,9 @@ Linear Motion では、制約されたアクタを重力が下に引っ張りま
 [![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
 [/REGION]
 
-角度の制限を使う場合、Twist Axis (positive X) は青の制約されたアクタＶ(Constrained Actor 2) をポイントするようにアライメントされます。<!---This is really important because the ---> 
+角度の制限を使う場合、Twist Axis (positive X) は青の制約されたアクタＶ(Constrained Actor 2) をポイントするようにアライメントされます。[COMMENT:none]
+-This is really important because the -
+[/COMMENT] 
 
 [REGION:lightbox]
 [![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
@@ -407,7 +417,8 @@ Linear Motion では、制約されたアクタを重力が下に引っ張りま
 
 ![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
 
-<!--
+[COMMENT:none]
+
 
 ### ボール アンド ソケット
 ボール アンド ソケットのジョイントはすべての線形部分がロックされ、角度部分がすべて自由になります。
@@ -428,7 +439,8 @@ Drive 設定を使ってジョイントの摩擦をシミュレーションす�
 ### サンドバッグ
 最初にボールとソケットのジョイントを作成して、ジョイントでサンドバッグ (垂直ポール上に叩くことができるボールがある) のようなものをシミュレーションできます。次にスイング位置駆動をオンにし、押されると垂直位置周辺でうまく跳ね返るようになるまで **AngularDriveSpring** と **AngularDriveDamping** を調整します。スイングの制限もオンにして、曲がり過ぎないようにすることができます。
 
--->
+
+[/COMMENT]
 -->
 
 

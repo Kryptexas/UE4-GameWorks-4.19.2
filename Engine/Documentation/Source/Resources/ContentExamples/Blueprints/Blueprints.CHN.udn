@@ -171,7 +171,9 @@ Version:4.9
 
 可在此处查阅该页面的详细信息： 
 
-<!---* [1.1 蓝图鼠标互动](Resources\ContentExamples\MouseInterface)--->
+[COMMENT:none]
+-* [1.1 蓝图鼠标互动](Resources\ContentExamples\MouseInterface)-
+[/COMMENT]
 
 | 范例 | 展示内容 |
 | ------- | ------------ |
@@ -185,7 +187,9 @@ Version:4.9
 
 可在此处查阅该页面的详细信息： 
 
-<!---* [1.1 蓝图 HUD 范例](Resources\ContentExamples\Blueprints_HUD\1_1)--->
+[COMMENT:none]
+-* [1.1 蓝图 HUD 范例](Resources\ContentExamples\Blueprints_HUD\1_1)-
+[/COMMENT]
 
 | 范例 | 展示内容 |
 | ------- | ------------ |
@@ -225,9 +229,11 @@ Version:4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlueprintsCEInstructions]
 可在内容范例中 [打开蓝图](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening)，确定创建每个蓝图需要进行的 [默认](Engine/Blueprints/Editor\Modes\Defaults)、[组件](Engine/Blueprints/UserGuide\Components) 和 [图表](Engine/Blueprints/Editor\Modes\GraphPanel) 设置。
 [/EXCERPT:BlueprintsCEInstructions]
 
--->
+
+[/COMMENT]

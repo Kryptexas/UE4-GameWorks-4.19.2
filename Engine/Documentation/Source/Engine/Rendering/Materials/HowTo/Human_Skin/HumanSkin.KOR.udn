@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:사람 피부 제작
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -25,11 +25,13 @@ tags:Materials
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
 [/REGION]
---->
+-
+[/COMMENT]
 
 
 제대로 된 사람 피부를 렌더링하는 방법은 매우 복잡한 주제라, 모든 것에 통하는 단 하나의 완벽한 솔루션은 없습니다.

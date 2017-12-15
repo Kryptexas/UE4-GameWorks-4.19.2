@@ -1,48 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:0
 Availability: Docs
 Title: Visibility Culling Best Practices
 Crumbs: %ROOT%, Engine, 
 Description: Visibility Culling Strategies and Best Practices
 Version: 4.13
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

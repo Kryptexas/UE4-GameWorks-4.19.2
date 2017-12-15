@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429247
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 핵심 파티클 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -30,22 +30,17 @@ topic-image:Engine/Rendering/ParticleSystems/particles_topic.png
 
 ### 기본 모듈
 
-[OBJECT:topiclistnotitlealt]
-	[PARAM:icon]
-		![DefaultEmitter.png](DefaultEmitter.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:#Modules]
-	[/PARAM]
-[/OBJECT]
+![DefaultEmitter.png](DefaultEmitter.png)(convert:false)
 
+[INCLUDE:#Modules]
 
 [REGION:raw]
 ![](Engine\Rendering\LightingAndShadows\LightTypes\Point\spacer.png)
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Modules]
 어떤 모듈은 파티클 이미터에 기본적으로 존재합니다. 어떤 파티클 시스템에도 핵심 개념이 되는 '스프라이트 이미터' 가 파티클 시스템에 새로 추가될 때마다 항상 다음과 같은 **디폴트** 모듈이 포함된 상태로 생성됩니다:
 
@@ -56,7 +51,8 @@ topic-image:Engine/Rendering/ParticleSystems/particles_topic.png
 * **Initial Velocity** 초기 속도 - 파티클 생성 시점에서의 운동을 제어합니다.
 * **Color Over Life** 수명에 따른 색 - 각 파티클의 수명에 따른 색을 조절하는 모듈입니다.
 [/EXCERPT:Modules]
--->
+
+[/COMMENT]
 
 [REGION:note]
 	*Required* 와 *Spawn* 모듈은 영구적인 것으로 이미터에서 제거할 수 없습니다. 그 외 다른 모듈은 뜻대로 제거할 수 있습니다.

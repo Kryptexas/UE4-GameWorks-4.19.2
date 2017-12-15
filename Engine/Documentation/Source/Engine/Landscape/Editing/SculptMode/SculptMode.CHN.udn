@@ -82,13 +82,15 @@ version:4.9
 | **Filter Kernel Scale** | 设定平滑滤波核的标度乘数。|
 | **Detail Smooth** | 勾选后，使用指定的细节平滑值进行保留细节的平滑。较大的细节平滑值将移除更多细节，而较小的数值将保留更多细节。[INCLUDE:#DetailSmooth] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:DetailSmooth]
 ![Landscape_Smooth_After_LowDetail.jpg](Landscape_Smooth_After_LowDetail.jpg)(w:720)
 
 ![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:720)
 [/EXCERPT:DetailSmooth]
--->
+
+[/COMMENT]
 
 
 ### 扁平

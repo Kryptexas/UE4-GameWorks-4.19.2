@@ -18,12 +18,12 @@ SkillLevel:Intermediate
 		[クイック スタートのホーム](Platforms/iOS/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[前のステップ](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
+		[次のステップ](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 この時点でこの手順は必ずしも必要ではありませんが、デプロイのテストを行うためにプロジェクトの準備ができているのは良いことです。[プロジェクトの準備ができていれば、このセクションはスキップできます。](Platforms/iOS/QuickStart/3)
@@ -66,7 +66,8 @@ SkillLevel:Intermediate
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [REGION:warning]
@@ -77,6 +78,7 @@ SkillLevel:Intermediate
 [/EXCERPT:windows]
 [EXCERPT:macos]
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

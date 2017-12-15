@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:랜드스케이프 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -294,11 +294,13 @@ Landscape **Layer Blend** 머티리얼 노드에는 세 가지 블렌드 모드 
 
 	![](Landscape_BaseNodeOpacity.png)
 
-	<!--
+	[COMMENT:none]
+
 	[REGION:tip]
 	랜드스케이프 홀에 별도의 머티리얼을 사용한다면, 베이스 컬러 슬롯에 텍스처를 물려줬는지 확인하기도 해야 하는데, 그러지 않으면 랜드스케이프 일부를 보이지 않게 만들려 할 때 까맣게 변해버릴 수 있기 때문입니다.
 	[/REGION]
-	-->
+	
+[/COMMENT]
 
 1. 다음, 머티리얼 그래프에 **LandscapeVisibilityMask** 를 검색 추가한 다음 그 출력을 **오파시티 마스크** 입력에 연결합니다.
 
@@ -359,11 +361,13 @@ Landscape **Layer Blend** 머티리얼 노드에는 세 가지 블렌드 모드 
 랜드스케이프 홀 머티리얼 사용법 관련 정보는, [오파시티 마스크를 사용해서 홀 만들기](Engine\Landscape\Editing\SculptMode\#오파시티마스크를사용해서구멍만들기) 부분을 참고하세요.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 ![Landscape_Material_Default.png](Landscape_Material_Default.png)(w:900 h:327)
 
 ![Landscape_Material_Viewport.png](Landscape_Material_Viewport.png)(w:900 h:327)
--->
+
+[/COMMENT]
 
 ## Tessellation 과 Displacement
 

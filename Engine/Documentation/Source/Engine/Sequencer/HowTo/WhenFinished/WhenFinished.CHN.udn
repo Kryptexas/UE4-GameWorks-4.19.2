@@ -1,129 +1,127 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3683933
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Title: Keeping or Restoring Changes Made by Sequencer
-Description: Describes how to keep any changes made through Sequencer when it has completed or restore changes back to their original state.
+Title:保留或存储通过 Sequencer 进行的修改
+Description:说明如何保存通过 Sequencer 进行的修改，以及如何将修改复原回初始状态。
 Type: how-to
 SkillLevel: intermediate
-Version: 4.16
-Parent: Engine/Sequencer/HowTo
-Order: 1
-Tags: Sequencer
+Version:4.16
+Parent:Engine/Sequencer/HowTo
+Order:1
+Tags:Sequencer
 Tags: how-to
 topic-image:WhenFinishedTopicImage.png
+type:how-to
 
-When working with Sequencer, there may be instances where you are affecting the properties of Actors in your cinematic that you want to persist for a particular shot or when the cinematic completes. 
-For example, you create a cinematic where a player unlocks and opens a door where (once the cinematic finishes) the door remains in the open state. 
-In a film production environment, however, you may want animated values in a shot to return to their pre-animated state so they don't bleed into the next shot. 
-With the **When Finished** property, you can determine on a per-track basis whether tracks should return to their pre-animated state or keep them when the sequence finishes. 
+在 Sequencer 中进行操作时，用户可修改 Actor 状态，并在过场动画结束后将状态保留。举例而言，创建一个过场动画，角色解锁并打开一扇门，之后这扇门仍然保持打开状态。然而在影片制作环境中，用户可能需要在镜头中设置动画数值，使其及时返回设置动画之前的状态，避免渗入到下个镜头中。用户可通过 **When Finished** 属性以每个轨道为基础来确定轨道应返回设置动画之前的状态，或在序列播放完成后保留修改。
 
-In this how-to guide, you will use the When Finished property to restore the color change of a light but keep the changes made to the movement of a door. 
+在此指南中，您将使用 When Finished 属性保留一个光照的颜色变化，同时保留对门运动所进行的修改。 
 
 ![](HeroImage.png)
 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+在此指南中，我们使用的是启用了 **Starter Content** 的 **Blueprint Third Person Template** 项目。 
 [/REGION]
 
-1.	From the **Content/StarterContent/Props** folder, drag an **SM_Door** and **SM_DoorFrame** into the **Level Viewport** and position the door inside the frame. 
+1.	从 **Content/StarterContent/Props** 文件夹将一个 **SM_Door** 和 **SM_DoorFrame** 拖入 **关卡视口**，并将门放置在门框中。 
 
 	![](WhenFinished_01.png)
 
-	Press the **W** key to enter translation mode and if needed, disable grid snapping (pictured below) to fine tune the position of the door in the frame. 
+	按下 **W** 键进入平移模式，如有必要可禁用网格对齐（下图所示），在门框中对门的位置进行微调。 
 
 	![](WhenFinished_02.png)
 
-1.	From the **Modes** panel under **Lights**, drag a **Point Light** into the **Level Viewport** and position it in front of the door. 
+1.	在 **Modes** 面板下的 **Lights** 部分中，将一个 **Point Light** 拖入 **关卡视口** 并将其放置在门前。 
 
 	![](WhenFinished_03.png)
 
-1.	Position the **ThirdPersonCharacter** in the **Level Viewport** in front of the door. 
+1.	在 **关卡视口** 中将 **ThirdPersonCharacter** 放置到门前。 
 
 	![](WhenFinished_04.png)
 
-1.	From the **Main Toolbar**, click the **Cinematics** button and select **Add Level Sequence**. 
+1.	点击 **主工具栏** 中的 **Cinematics** 按钮并选择 **Add Level Sequence**。 
 
 	![](WhenFinished_05.png)
 
-1.	In the **Save Asset As** window, select a **Name** and save location, then click **Save**. 
+1.	在 **Save Asset As** 窗口中选择一个 **命名** 和保存路径，然后点击 **Save**。 
 
 	![](WhenFinished_06.png)
 
-1.	In the **Sequencer** window, click the **Add** button and select **Shot Track**. 
+1.	在 **Sequencer** 窗口中，点击 **Add** 按钮并选择 **Shot Track**。 
 
 	![](WhenFinished_07.png)
 
-	This will create a [Shot Track](Engine/Sequencer/HowTo/TracksShot) which enables you to section off parts of your cinematic into self-contained "shots" that you can arrange and re-arrange. 
+	此操作将创建一个 [镜头轨道（Shot Track）](Engine/Sequencer/HowTo/TracksShot)，用于将过场动画切分为自含式的“镜头”，以便进行整理和二次整理。 
 
-1.	On the **Shot Track**, click the **+ Shot** button and **Insert Shot** and use the default naming convention when prompted. 
+1.	在 **镜头轨道** 上，点击 **+ Shot** 按钮和 **Insert Shot**，弹出提示后使用默认命名规则。 
 
 	![](WhenFinished_08.png)
 
-1.	Grab the end of the shot and pull it back to **Frame 75** so the shot is half the length of the entire sequence. 
+1.	选取镜头末尾，将其拉回至 **第 75 帧**，使镜头的长度是整个序列的一半。 
 
 	![](WhenFinished_09.png)
 
-	We are going to use the shot to affect the light in our scene but restore those changes once the shot is over.
+	我们将使用镜头来影响场景中的光照，并在镜头结束后保留这些修改。
 
-1.	With the **Timeline** at **Frame 0** and the **SM_Door** selected in the level, add the **Actor To Sequencer** from the **+ Add** button. 
+1.	将 **时间轴** 调至 **第 0 帧**、并在关卡中选择 **SM_Door**，然后通过 **+ Add** 按钮添加 **Actor To Sequencer**。 
 
 	![](WhenFinished_10.png)
 
-	We will affect the door on the master level and keep the state of the changes we are going to apply. 
+	我们将对主关卡中的门产生影响，并保留即将应用的修改。 
 
-1.	Click the **+** button on the **Transform** track of **SM_Door**. 
+1.	点击 **SM_Door** **Transform** 轨道上的 **+** 按钮。 
 
 	![](WhenFinished_11.png)
 
-1.	Move the **Timeline** marker to **Frame 150**, then rotate the door (**E** key) in the level so it is open and press the **S** key to add its transform while open. 
+1.	将 **时间轴** 标记移动至 **第 150 帧**，然后旋转关卡中的门（**E** 键）将其打开，然后按下 **S** 键添加其打开时的变形。 
 
 	![](WhenFinished_12.png)
 
-	This will cause the door to go from closed to open once we reach the end of the cinematic. 
+	完成此设置后，过场动画播放完成后门将从关闭状态变为打开。 
 
-1.	Double-click on the shot in the **Shot Track** to open it, then in the level select the **Point Light** and add it to the shot. 
+1.	双击 **镜头轨道** 中的镜头将其打开，然后在关卡中选择 **Point Light** 并将其添加至镜头。 
 
 	![](WhenFinished_13.png)
 
-1.	On the **Light Color** track, click the **+** sign to assign the default color to use at **Frame 0** of the shot. 
+1.	在 **Light Color** 轨道上点击 **+** 符号指定镜头 **第 0 帧** 处使用的默认颜色。 
 
 	![](WhenFinished_14.png)
 
-1.	Move the **Timeline** marker to **Frame 75** and change the **Light Color** to **Green** (or any color you desire) adding keys for the new values. 
+1.	将 **时间轴** 标记移至 **第 75 帧** 并将 **Light Color** 改为 **Green**（或其他任意颜色），为新值添加键。 
 
 	![](WhenFinished_15.png)
 
-1.	Right-click on the **Light Color** track in the tracks window and select **Properties** to view the **When Finished** state. 
+1.	在轨道窗口中右键点击 **Light Color** 轨道，并选择 **Properties** 查看 **When Finished** 状态。 
 
 	![](WhenFinished_16.png)
 
-	By default, **When Finished** states that this track will **Restore State** or return to its original state when the section is completed. 
+	**When Finished** 默认状态是分段动画完成后此轨道将 **Restore State**（恢复其原始状态）。 
 
-1.	Exit the **Shot** and return to the **Master Sequence** level by clicking the breadcrumb buttons in the upper-right of the **Sequencer** window. 
+1.	退出 **镜头** 并点击 **Sequencer** 窗口右上角的导览列按钮返回 **Master Sequence** 关卡。 
 
 	![](WhenFinished_17.png)
 
-1.	Right-click on the **Transform** track of the **SM_Door** and select **Properties**, then change the **When Finished** property to **Keep State**. 
+1.	右键点击 **SM_Door** 的 **Transform** 轨道并选择 **Properties**，然后将 **When Finished** 属性改为 **Keep State**。 
 
 	![](WhenFinished_18.png)
 
-	We are now stating that we want to **Keep State** and keep the changes that we apply through Sequencer when the cinematic is complete. 
+	此操作将宣称要 **保留状态（Keep State）**，代表动画结束时我们将保留通过 Sequencer 进行的修改。 
 
-1.	Select the **Level Sequence** Actor in the level, then in the **Details** panel set the **Auto Play** option to **True**. 
+1.	在关卡中选择 **Level Sequence** Actor，然后在 **Details** 面板中将 **Auto Play** 选项设为 **True**。 
 
 	![](WhenFinished_19.png)
 
-1.	From the **Main Toolbar** click the **Build** button and select **Build Lighting Only**, then (after lighting has built) click the **Play** button. 
+1.	在 **Main Toolbar** 中点击 **Build** 按钮并选择 **Build Lighting Only**，然后（在构建光照后）点击 **Play** 按钮。 
 
 	![](WhenFinished_20.png)
 
 
-## End Result
+## 最终结果
 
-When you play in the level, the light will change colors before returning to white however our door will remain in the opened state. 
+在关卡中进行游戏时，光线将改变颜色，然后重新变为白色。而门此时仍为开启状态。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -143,43 +141,10 @@ When you play in the level, the light will change colors before returning to whi
 	[/PARAMLITERAL]
 [/OBJECT]
 
-For the light inside our shot, we used the default **When Finished** property value of **Restore State** which will restore it back to its original state when the shot is finished. 
-The door, however, we changed the When Finished property to **Keep State** preserving our changes and keeping the door in the open state when the cinematic completes. 
+对于镜头中的光照，我们使用的是 **Restore State** 默认的 **When Finished** 属性值，将在镜头播放完毕后返回其原始状态。而对于门来说，我们将 When Finished 属性改为了 **Keep State**，动画播放完毕后将保留修改，使门保持为开启状态。 
 
-One thing to consider is that while Keep State has a local effect, there is a global **Restore State** option contained within the **Level Sequence** actor: 
+需要考虑的一点是，Keep State 是本地效果，**Level Sequence** actor 中有一个全局 **Restore State** 选项： 
 
 ![](WhenFinished_21.png)
 
-The Restore State option in the **Details** panel of a Level Sequence actor will restore all states when the Level Sequence stops. 
-If you want to keep the state of a track after the sequence has completely finished, you will need to make sure that both your section is set to Keep State and the Level Sequence actor is **not** set to Restore State otherwise the global value will override your local settings. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Level Sequence actor 的 **Details** 面板中的 Restore State 选项将在关卡序列停止播放时保存所有状态。如要在序列完全结束后保持轨道的状态，则需要将动画分段设为 Keep State，且 Level Sequence actor **并非** 设为 Restore State，否则全局值将覆盖本地设置。

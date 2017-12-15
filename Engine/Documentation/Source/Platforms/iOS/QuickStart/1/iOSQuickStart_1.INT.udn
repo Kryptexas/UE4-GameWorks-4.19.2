@@ -2,92 +2,100 @@ Title:1. Install Prerequisites
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:Acquire and install all software necessary to develop games for iOS devices.
 Availability:Public
-Version:4.9
+Version:4.18
 SkillLevel:Intermediate
+Checkpoint:iOSQS
+order:1
 
 [VAR:Steps]
 [OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/iOS/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:title%")
-	[/PARAM]
+    [PARAM:previous]
+    [/PARAM]
+    [PARAM:current]
+    [/PARAM]
+    [PARAM:home]
+        [Quick Start Home](Platforms/iOS/QuickStart)
+    [/PARAM]
+    [PARAM:next]
+        [Next Step](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:title%")
+    [/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 
 %Globals:OSSelect%
 
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%windows%
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    %windows%
+    [/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%macos%
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    %macos%
+    [/PARAM]
 [/OBJECT]
 
 
 
 
 [VAR:windows]
-
+## Steps
 [REGION:note]
 Already have iTunes installed? [You can skip this section.](Platforms/iOS/QuickStart/2)
 [/REGION]
 
-You must have **iTunes** installed in order to package and deploy your iOS projects to your device on Windows.
+When using Windows, you must have **iTunes** installed to package and deploy your iOS projects to your device. You can install iTunes from Apple using the following link: 
 
-You can install iTunes from Apple using the following link: [Install iTunes](http://www.apple.com/itunes/)
+* [**Install iTunes**](http://www.apple.com/itunes/)
 
-[![](itunes.png)](http://www.apple.com/itunes/)
+    [![](itunes.png)](http://www.apple.com/itunes/)
 
 Run **iTunes** after it finishes installing.
+
+## End Result
+When completed you will now have iTunes installed and be able to deploy UE4 projects to your iOS devices.
 
 [/VAR]
 
 [VAR:macos]
-
+## Steps
 [REGION:note]
 Already have Xcode installed? [You can skip this section.](Platforms/iOS/QuickStart/2)
 [/REGION]
 
-You must have **Xcode** installed in order to package and deploy your iOS projects to your device on Mac OS.
+You must have the latest version of **Xcode** installed to package and deploy your iOS projects to your device on Mac OS.  You can install XCode from Apple using the following link: 
 
-You can install XCode from Apple using the following link: [Install XCode](https://developer.apple.com/xcode/)
+* [**Install XCode**](https://developer.apple.com/xcode/)
 
-[![](DownloadXCode.png)](https://developer.apple.com/xcode/)
+    [![](DownloadXCode.png)](https://developer.apple.com/xcode/)
 
 Run **Xcode** after it finishes installing.
+
+## End Result
+When completed you will now have xCode installed and be able to deploy UE4 projects to your iOS devices.
 
 [/VAR]
 
 
-%Steps%
+

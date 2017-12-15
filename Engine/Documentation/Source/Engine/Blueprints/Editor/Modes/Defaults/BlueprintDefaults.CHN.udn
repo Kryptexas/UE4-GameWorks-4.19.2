@@ -5,7 +5,8 @@ Description:The Defaults Mode allows you to edit all the default values of the p
 
 [INCLUDE:Globals#bpmodesremoved]
 
-<!--
+[COMMENT:none]
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -77,7 +78,8 @@ See the [](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) documentation fo
 [EXCERPT:Invisible]
 * [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 [REGION:note]
 **Defaults** can also be accessed from the **Components** mode or the **Graph** mode, by opening the **Window** menu and selecting **Class Defaults**. Alternatively, you can access **Class Defaults**

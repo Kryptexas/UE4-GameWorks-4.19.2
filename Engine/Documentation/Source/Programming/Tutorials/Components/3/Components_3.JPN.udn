@@ -20,7 +20,7 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための **TickComponent** 関数です（ **アクタ** のTick 関数と類似）「CollidingPawnMovementComponent.h」ファイルのクラス定義で TickComponent をオーバーライドしなくてはいけません：
 
@@ -235,4 +235,4 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

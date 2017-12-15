@@ -3,26 +3,6 @@ Title:Persona Explorer
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Explorer panel in the Persona animation editor.
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Explorer:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Explorer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Explorer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Explorer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [EXCERPT:Overview]
 ![](PersonaExplorer.png)
 

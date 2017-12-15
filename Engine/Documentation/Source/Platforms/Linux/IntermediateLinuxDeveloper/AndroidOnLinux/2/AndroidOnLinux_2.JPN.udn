@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3457813
+﻿INTSourceChangelist:3736300
 Availability:Public
 Title:2 - Android デバイスを設定する
 Crumbs:%ROOT%
 Description:Android の開発環境を有効にする方法を説明します。
-Version:4.14
+Version:4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order:2

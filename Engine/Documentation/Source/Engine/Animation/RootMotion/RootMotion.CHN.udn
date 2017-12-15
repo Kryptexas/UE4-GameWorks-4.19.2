@@ -183,7 +183,8 @@ YuD29-Xr7Oc
 在根运动中，角色的物理状态将纳入计算。举例而言，如果角色物理为行走或倒下，则 Z 轴根运动将被无视，将应用重力。角色将倒下、走下斜坡或走上台阶。如角色物理为飞行，则会应用完整根运动并无视重力。
 
 
-<!-- This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
+[COMMENT:none]
+ This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
 ## 设置根运动
 
 在 UE4 中进行根运动设置十分简单，然而不同 UE4 版本的设置步骤将稍有不同。4.6 版本之前的流程包括：
@@ -286,7 +287,8 @@ PWB_mqjz3iA
 [/PARAMLITERAL]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

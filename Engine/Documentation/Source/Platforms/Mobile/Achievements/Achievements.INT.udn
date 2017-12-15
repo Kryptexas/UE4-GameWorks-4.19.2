@@ -6,40 +6,7 @@ Parent:Platforms/Mobile
 order:2
 type:how-to
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 Whether you are using them as goals to strive for, badges of honor, or simple story mile markers, **Achievements** are a great way to keep players engaged with your game.
 

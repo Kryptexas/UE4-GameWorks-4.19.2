@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3514777
+﻿INTSourceChangelist:3801260
 Availability:Public
 Crumbs: %ROOT%
 Title:モバイル プレビュア
@@ -14,9 +14,6 @@ Order:7
 Tags:Mobile
 Topic-image:MobilePreview_topic.png
 Social-Image:T_Rendering_Level_Examples.png
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -103,6 +100,7 @@ Android OPENGLES 3.1、Android Vulkan、iOS Metal 向けハイエンド デバ�
 	[/REGION]
 	[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
 
+
 	**Android OPENGLES 3.1** および **VULKAN** をプレビューする場合は、**[Android]** セクションの **[Build]** で **[Support OpenGLES 3.1]** または **[Support Vulkan]** のサポート オプションを設定します。 
 	![](AndroidTarget.png)(w:650)
 
@@ -138,17 +136,17 @@ Android OPENGLES 3.1、Android Vulkan、iOS Metal 向けハイエンド デバ�
 Preview Rendering Level を選択すると、いくつかのオプションが表示されます。以下の表を参照して、ターゲット デバイスに最も適したオプションを選択してください。 
 
 [REGION:raw]
-| デバイス ターゲット | %spacer% | 説明 |
-| --- | --- | --- |
-| [REGION:tablesection] ハイエンド モバイル / メタル [/REGION] |||
-| **Default High-End Mobile** || [Project Settings] で指定したマテリアルをオーバーライドせずに、デフォルトのハイエンド モバイル マテリアル品質設定をエミュレートします。 |
-| **Android GLES 3.1** || サポート対象の Android OpenGL ES3.1 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - ES31]** セクションで行うことができます。  |
-| **Android Vulkan** || サポート対象の Android Vulkan 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - Vulkan]** セクションで行うことができます。 |
-| **iOS Metal** || サポート対象の iOS Metal 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[iOS Material Quality - Metal]** セクションで行うことができます。 |
-| [REGION:tablesection] モバイル / HTML5 [/REGION] |||
-| **Default Mobile / HTML5** || [Project Settings] で指定したマテリアルをオーバーライドせずに、デフォルトのモバイル マテリアル品質設定をエミュレートします。 |
-| **Android** || サポート対象の Android OpenGL ES2 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - ES2]** セクションで行うことができます。 |
-| **iOS ES2** || サポート対象の iOS OpenGL ES2 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[iOS Material Quality - ES2]** セクションで行うことができます。 |
+| デバイス ターゲット | 説明 |
+| --- | --- |
+| [REGION:tablesection] ハイエンド モバイル / メタル [/REGION] ||
+| **Default High-End Mobile** | [Project Settings] で指定したマテリアルをオーバーライドせずに、デフォルトのハイエンド モバイル マテリアル品質設定をエミュレートします。 |
+| **Android GLES 3.1** | サポート対象の Android OpenGL ES3.1 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - ES31]** セクションで行うことができます。  |
+| **Android Vulkan** | サポート対象の Android Vulkan 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - Vulkan]** セクションで行うことができます。 |
+| **iOS Metal** | サポート対象の iOS Metal 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[iOS Material Quality - Metal]** セクションで行うことができます。 |
+| [REGION:tablesection] モバイル / HTML5 [/REGION] ||
+| **Default Mobile / HTML5** | [Project Settings] で指定したマテリアルをオーバーライドせずに、デフォルトのモバイル マテリアル品質設定をエミュレートします。 |
+| **Android** | サポート対象の Android OpenGL ES2 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[Android Material Quality - ES2]** セクションで行うことができます。 |
+| **iOS ES2** | サポート対象の iOS OpenGL ES2 品質設定のプレビューをエミュレートします。マテリアル品質設定は **[Project Settings]** > **[iOS Material Quality - ES2]** セクションで行うことができます。 |
 [/REGION]
 
 [REGION:note]

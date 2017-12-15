@@ -23,7 +23,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -74,7 +74,8 @@ SkillLevel:Intermediate
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [VAR:windows]
 5\.デバイスへのゲームのインストールが成功するとメッセージが表示されます。
 
@@ -89,6 +90,7 @@ SkillLevel:Intermediate
 [VAR:macos]
 
 [/VAR]
--->
 
-%Steps%
+[/COMMENT]
+
+

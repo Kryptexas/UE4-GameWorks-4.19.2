@@ -23,7 +23,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -90,12 +90,14 @@ SkillLevel:Intermediate
 
 	![](game_device.png)(w:650)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

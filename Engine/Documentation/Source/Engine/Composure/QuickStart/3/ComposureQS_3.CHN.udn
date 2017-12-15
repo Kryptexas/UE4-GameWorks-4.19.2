@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3587677
 Availability:Docs
-Title:3 - Composure Level Sequence Creation
+Title:3 - 创建 Composure 关卡序列
 Crumbs:%ROOT%
-Description:Setting up a Level Sequance for Composure.
+Description:设置 Composure 的关卡序列。
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,31 +13,31 @@ tags:Composure
 
 [NAV]
 
-In this part of the Composure Quick Start, we are going be creating and setting up a new level sequence that will contain all the needed data to re-make the third shot in the demo sequence.
+在这部分中，我们将新建并设置一个关卡序列，其中包括创建 demo 序列中第三个镜头所需要的全部数据。
 
-## Steps
+## 步骤
 
-1. From the **Toolbar** click on the **Cinematics** button and from the displayed list, select the **Add Level Sequence** option.
+1. 点击 **工具栏** 中的 **Cinematics** 按钮，然后从显示的列表中选择 **Add Level Sequence** 选项。
 
     ![](ComposureQS_S3_1.png)
 
-1. Select the **ComposureQS** folder for the location to store the level sequence and name the sequence **shot0030_remake_001**.
+1. 将 **ComposureQS** 文件夹设为保存关卡序列的路径，并将序列命名为 **shot0030_remake_001**。
 
-1. Once the new Level Sequence has been created, the **Sequencer** editor will open automatically and once it does, immediately set the **Time Snapping Interval** to **24 fps (film)**. 
+1. 新的关卡序列创建后，**Sequencer** 编辑器将自动打开。待其打开后，随即将 **Time Snapping Interval** 设为 **24 fps (film)**。 
 
     ![](ComposureQS_S3_2.png)
 
-1. Next, click in the Sequencer timeline and while holding down **CRTL** scroll the mouse wheel to zoom the timeline out so you can see more of the timeline.
+1. 接下来点击 Sequencer 时间轴，长按 **CRTL** 键滚动鼠标滚轮缩小时间轴，显示出更多内容。
 
-1.  Click on the **Play** button icon to display the Playback options and then set the **End** to 1591 and the **Start** to 1098.
+1. 点击 **Play** 按键图标显示 Playback 选项并将 **End** 设为 1591、**Start** 设为 1098。
 
     ![](ComposureQS_S3_3.png)
 
     [region:note]
-    You must set the End frame number first and then the Start frame number in this order to get this to work correctly. Trying this any other way could result in things not working in the desired manner.
+    必须首先设置 End 的帧数，然后再设置 Start 的帧数，方能正常工作。以其他方式进行操作均会导致无法按预定方式执行。
     [/region]
 
-1. Press the **Home** key to zoom the Sequencer view to this new frame range and the **Up** arrow key to set the play head to frame 1098.
+1. 按下 **Home** 将 Sequencer 视图放大到这个新的帧范围，然后按 **Up** 箭头键将播放的开始设为 1098 帧。
 
     [OBJECT:ComparisonSlider]
         [PARAM:before]
@@ -48,8 +48,8 @@ In this part of the Composure Quick Start, we are going be creating and setting 
         [/PARAM]
     [/OBJECT]
 
-## End Result
+## 最终结果
 
-With the Level Sequence now created, in the next section we will take a look at adding and setting up the Actors and Blueprints Composure requires to work correctly. 
+关卡序列创建后，下一部分我们将添加并设置 Composure 所需的 Actor 和蓝图。 
 
 [NAV]

@@ -1,31 +1,35 @@
 Availability: Public
 Crumbs: %ROOT%
-Title: Use the Google VR Touchpad 
-Description: Setting up the Google VR Motion Controller Touchpad 
+Title: Use the GoogleVR Touchpad 
+Description: Setting up the GoogleVR Motion Controller Touchpad 
 Type: how-to
-SkillLevel: Intermidate
+SkillLevel: Intermediate
 Version: 4.16
-Parent: Platforms/GoogleVR
+Parent:Platforms/GoogleVR
 Order: 3
-Tags:Google VR
+Tags:GoogleVR
 topic-image:Platforms\GoogleVR\HowTo\HT_GoogleVR_Camera_Setup_Topic_Image.png
 prereq: Platforms\GoogleVR\QuickStart
 prereq: Platforms\GoogleVR\HowTo\CameraSetup
 prereq: Platforms\GoogleVR\HowTo\MotionController
 
-Due to the highly accurate nature of the Google VR Motion Controller (MC) Touchpad, it can be used to perform all kinds of different interactions that require high precision. From scrolling through a series of menu options or trying to plot your precise location on a map, there is an almost endless amount of ways to use the Touchpad to interact with the virtual world. In the following How - To we will take a look at how to get and then display the current location that is being touched on the Google VR Motion Controller Touchpad.
+![](HTGVRMCTouchpad_Hero_Image.png)
+
+Due to the highly-accurate nature of the GoogleVR Motion Controller (MC) Touchpad, it can be used to perform all kinds of different interactions that require high precision. From scrolling through a series of menu options or trying to plot your precise location on a map, there is an almost endless amount of ways to use the Touchpad to interact with the virtual world. In the following How-To, we will take a look at how to get and then display the current location that is being touched on the GoogleVR Motion Controller Touchpad.
 
 [region:note]
-In this How - To we will be starting with a Pawn that already has a VR Camera and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
+In this How-To we will be starting with a Pawn that already has a VR Camera and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
 [/region]
 
-## Google VR Touchpad Setup
+## Steps
 
-1. First, open up your player Pawn Blueprint and from the **Component** tab, add two new **Text Render** component, called **X_Position** and **Y_Position**.  Make sure that both are parented to the **GoogleVRMotion Controller** component like in the image below.
+In the following section we will take a look at setting up the touchpad on the Google Daydream Motion controller.
+
+1. First, open up your player Pawn Blueprint. From the **Component** tab, add two new **Text Render** components, called **X_Position** and **Y_Position**.  Make sure that both are parented to the **GoogleVRMotion Controller** component like in the image below.
 
     ![](HTGVRMCTouchpad_00.png)
 
-1. Click on the Text Component and then in the **Details** panel set the following properties with the following values for both the X and Y text. 
+1. Click on the Text Component, and then set the following properties with the following values for both the X and Y text in the **Details Panel**:
     
     [REGION:lightbox]
     [![](HTGVRMCTouchpad_01.png)(w:757)](HTGVRMCTouchpad_01.png)
@@ -48,7 +52,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
 
     ![](HTGVRMCTouchpad_02.png)
 
-1. To display the current location that is being pressed on the Touchpad, we will first need to get and then store the X and Y  **Axis Value** of the current touch input. Then, using the **Set Text** node we can display that information via the Text Render Component that we added to our Google VR Motion Controller. To do this in our Blueprint first, add the following nodes and variables to the Event Graph.
+1. To display the current location that is being pressed on the Touchpad, we will first need to get and then store the X and Y **Axis Value** of the current touch input. Then, using the **Set Text** node we can display that information via the Text Render Component that we added to our GoogleVR Motion Controller. To do this in our Blueprint, add the following nodes and variables to the Event Graph:
 
     [REGION:lightbox]
     [![](HTGVRMCTouchpad_03.png)(w:713)](HTGVRMCTouchpad_03.png)
@@ -69,7 +73,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Append**|A Input: X:|
     |**ToText(string)**|N/A|
 
-1. Next, we need to build the logic that will display the input location using the text that was attached to the Motion Controller. To do this, we will need to first get the **Axis Value** of the MotionController (R)Thumbstick X  and store that in the XPositionText variable. Once we have that information, we can then display this value using the X_Postion text. When completed, your Blueprint should look like the following image.
+1. Next, we need to build the logic that will display the input location using the text that was attached to the Motion Controller. To do this, we will need to get the **Axis Value** of the MotionController (R)Thumbstick X and store that in the XPositionText variable. Once we have that information, we can then display this value using the X_Postion text. When completed, your Blueprint should look like the following image:
 
     [REGION:fullwidth]
     [INCLUDE:#MCInput01]
@@ -79,7 +83,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click image to copy Blueprint code. 
     [/REGION]
 
-1. Now that we have the X axis input value, to get the Y axis input value, we can use the same logic, we just need to change the MotionController(R)Thumbstick and variables to use the Y axis. When completed your entire Blueprint should look like the following image.
+1. Now that we have the X axis input value, to get the Y axis input value, we can use the same logic, but we need to change the MotionController(R)Thumbstick and variables to use the Y axis. When completed, your entire Blueprint should look like the following image:
 
     [REGION:fullwidth]
     [INCLUDE:#MCInput02]
@@ -89,7 +93,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click image to copy Blueprint code. 
     [/REGION]
     
-1. Next, we need to attach the two Text Render Components to Google VR MC so that they will follow it when moved. To do this in our Blueprint, add the following nodes to the Event Graph and then connect them to match the following image: 
+1. Next, we need to attach the two Text Render Components to GoogleVR MC so that they will follow it when moved. To do this in our Blueprint, add the following nodes to the Event Graph and then connect them to match the following image: 
 
     |Node / Variable Name| Value|
     |------|-----|
@@ -99,33 +103,36 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Get Motion Controller**|N/A|
     |**Google Motion Controller**|N/A|
 
-1. Once the Blueprint has been compiled and saved, deployed the project to your smartphone, and pick up your Google VR HMD and Motion Controller. Now, when you touch the Touchpad, you should see the numbers update with the location that you are currently touching like in the following video.
+## End Results
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        sr43LB7wSJ8
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Once the Blueprint has been compiled and saved, and the project has been deployed to your smartphone, pick up your GoogleVR HMD and Motion Controller. Now, when you touch the Touchpad, you should see the numbers update with the location that you are currently touching, like in the following video:
 
-## UE4 Project Downloads
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    sr43LB7wSJ8
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
-Below you will find a link to where you can download the UE4 project that was used to create this example. 
+## Unreal Engine Project Downloads
 
-* [**Google VR Motion Controller Touchpad Input Example Project**](https://epicgames.box.com/s/9024yg9aldpvpckncw1c80876ztoxhf9)
+Below, you will find a link to where you can download the Unreal Engine project that was used to create this example.
 
-<!--
+* [**GoogleVR Motion Controller Touchpad Input Example Project**](https://epicgames.box.com/s/9024yg9aldpvpckncw1c80876ztoxhf9)
+
+[COMMENT:none]
+
 [EXCERPT:MCInput01]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -241,9 +248,11 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MCInput01]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:MCInput02]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -476,7 +485,8 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MCInput02]
--->
+
+[/COMMENT]
 
 
 

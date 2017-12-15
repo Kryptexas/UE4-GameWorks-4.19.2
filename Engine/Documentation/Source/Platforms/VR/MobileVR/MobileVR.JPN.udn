@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:3643552
+Availability:Public
+Crumbs: %ROOT%
+Title:モバイル用 VR を開発する
+Description:モバイル用 VR プラットフォームの開発に関する情報
+Type:Landing
+Version:4.16
+Parent:Platforms/VR
+Order:1
+tags:Platform
+tags:VR
+topic-icon:%ROOT%/platform_icon.png
+
+![](Platforms\VR\DesktopVR\Header_00.png)
+
+アンリアル エンジン 4 (UE4) はモバイル ベースの仮想現実 (VR) ヘッドマウント ディスプレイ (HMD) 、モーション コントローラー、対応するソフトウェア開発キットを幅広くサポートしています。以下のリンク先では、UE4 プロジェクトに対応するモバイル VR HMD の取得に役立つ数多くのドキュメントが提供されています。
+
+## サポートされているモバイル VR ヘッドマウント ディスプレイ
+
+UE4 は次のモバイル VR HMD をサポートしています。 
+
+* **Samsung Gear VR**
+* **Google Cardboard & Daydream** 
+
+
+UE4 がもともとサポートしている上記モバイル HMD の場合は、追加のダウンロードやコンパイルを一切行わずに UE4 プロジェクトを VR で表示することができます。以下のリンク先では、UE4 プロジェクトで対応している中から選んだモバイル HMD を使用する方法に関するドキュメントが提供されています。
+
+## Samsung Gear VR
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## Google VR 
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+

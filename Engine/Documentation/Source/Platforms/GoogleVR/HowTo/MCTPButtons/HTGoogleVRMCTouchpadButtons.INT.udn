@@ -3,9 +3,9 @@ Crumbs: %ROOT%
 Title: Use the Google Daydream Touchpad Buttons
 Description: Setting up the Google Daydream Motion Controller Touchpad buttons
 Type: how-to
-SkillLevel: Intermidate
+SkillLevel: Intermediate
 Version: 4.17
-Parent: Platforms/GoogleVR/HowTo
+Parent: Platforms/GoogleVR
 Order: 2
 Tags: GoogleVR
 topic-image:Platforms\GoogleVR\HowTo\HT_GoogleVR_Camera_Setup_Topic_Image.png
@@ -13,20 +13,24 @@ prereq: Platforms\GoogleVR\QuickStart
 prereq: Platforms\GoogleVR\HowTo\CameraSetup
 prereq: Platforms\GoogleVR\HowTo\MotionController
 
-The Google Daydream Motion Controller (MC) has a number of different buttons on the touch pad that can be setup to handle a wide variety of different input tasks in UE4. In the following How - To we will take a look at how to setup and use the Touchpad and the five different buttons that it offers.
+![](HTGVRTouchpad_Hero_Image.png)
+
+The **Google Daydream Motion Controller** (MC) has a number of different buttons on the **Touchpad** that can be setup to handle a wide variety of different input tasks in Unreal Engine. In the following How-To, we will take a look at how to set up and use the Touchpad.
 
 [region:note]
-In this How - To we will be starting with a Pawn that already has a VR Camera and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
+In this How-To, we will be starting with a **Pawn** that already has a **VR Camera** and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
 [/region]
 
 
-## Google VR Motion Controller Touchpad Button Setup
+## Steps
 
-1. First, open up your Player Pawn Blueprint and from the **Component** tab, add a new **Text Render** component, called **FaceButtonPressed** and make sure that it is parented to the **Motion Controller** component like in the image below.
+Below you will find information on how to use the Google Daydream Motion Controller touch pad.
+
+1. First, open up your Player Pawn Blueprint, go to the **Component** tab, add a new **Text Render** Component named **FaceButtonPressed**, and make sure that this Component is parented to the **Motion Controller** Component as shown in the image below.
 
     ![](HTGVRTouchpad_00.png)
 
-1. Click on the Text Component and then in the **Details** panel set the following properties with the following values. 
+1. Click on the Text Render Component and then, in the **Details** panel, set the following properties with the corresponding values from this table:
     
     [REGION:lightbox]
     [![](HTGVRTouchpad_01.png)(w:231)](HTGVRTouchpad_01.png)
@@ -44,7 +48,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Vertical Alignment**| Text Center|
     |**World Size** | 13.0|
 
-1. Next, we need to create a new Text variable that will store and display what button is currently being pressed on the Motion Controller Touchpad. To accomplish this go to the **Variables** list and create a new  **Text** variable called **ButtonText**. 
+1. Next, we need to create a new Text variable that will store and display what button is currently being pressed on the Motion Controller Touchpad. To accomplish this, go to the **Variables** list and create a new **Text** variable called **ButtonText**.
 
     ![](HTGVRTouchpad_02.png)
 
@@ -66,17 +70,17 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Motion Controller (R) FaceButton4**|N/A|
     |**Steam Touch 0**|N/A|
 
-1. Now we are going to setup the logic for displaying which button on the Touchpad was pressed. To accomplish this, first, drag the **ButtonText** variable into the Event Graph and choose the **Set** option as we want to set the text that is displayed.
+1. Now we are going to set up the logic for displaying which button on the Touchpad was pressed. To accomplish this, drag the **ButtonText** variable into the Event Graph and choose the **Set** option, since we want to set the text that is displayed.
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_04.png)(w:579)](HTGVRTouchpad_04.png)
     [/REGION]
 
- ,   [REGION:caption]
+    [REGION:caption]
     Click for full image.
     [/REGION]
 
-1. Connect the **Pressed** output on the **Motion Controller (R) FaceButton1** Event node to the input on the **Set Button Text** node and then in the **Button Text** input the following text.
+1. Connect the **Pressed** output on the **Motion Controller (R) FaceButton1** Event node to the input on the **Set Button Text** node and then, in the **Button Text** field, input the following text:
 
     * **Face Button 1 Touch Pad UP**
 
@@ -88,7 +92,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click for full image.
     [/REGION]
 
-1. If we pressed the Motion Controller Face Button 1 now, nothing would happen as we have the only setup the ability to input the text we want to display. To display the text, you will first need to right-click in the Event Graph and then search for the **Set Text** node as this will set the text to what we input in the Set Button Text variable. When searching for the Set Text node, make sure to select the **SetText(FaceButtonPressed)** option so that it will automatically add a reference to the Face Button Pressed text to render component.
+1. If we pressed the Motion Controller Face Button 1 now, nothing would happen, as we have the only set up the ability to input the text we want to display. To display the text, you will first need to right-click in the Event Graph and then search for the **Set Text** node, as this will set the text to display the value of the Set Button Text variable. When searching for the Set Text node, make sure to select the **SetText(FaceButtonPressed)** option so that it will automatically add a reference to the "Face Button Pressed" Text Render Component.
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_06.png)(w:850)](HTGVRTouchpad_06.png)
@@ -98,7 +102,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click for full image.
     [/REGION]
 
-1. Next, we need to connect the Set Button Text node to the Set Text node so that the text input in the Set Button Text node will be displayed when the Touchpad button is pressed. To accomplish this, connect both outputs on the Set Button Text node to the available inputs on the Set Text node and when completed your Blueprint should look like the following. 
+1. Next, we need to connect the Set Button Text node to the Set Text node so that the text input in the Set Button Text node will be displayed when the Touchpad button is pressed. To accomplish this, connect both outputs on the Set Button Text node to the available inputs on the Set Text node and when completed your Blueprint should look like the following:
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_07.png)(w:850)](HTGVRTouchpad_07.png)
@@ -108,7 +112,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click for full image.
     [/REGION]
 
-1. Repeat this process for the remaining button directions. When doing this, make sure to change the text input into the Set Face Button Text to reflect the button that is being pressed. When completed with this your Blueprint should look like the following image.
+1. Repeat this process for the remaining button directions. When doing this, make sure to change the text input into the Set Face Button Text to reflect the button that is being pressed. When this step is completed, your Blueprint should look like the following image:
 
     [REGION:fullwidth]
     [INCLUDE:#MCButtons]
@@ -118,7 +122,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click for full image.
     [/REGION]
 
-1. Finally, we need to attach the text that tells us which Motion Controller is pressed to the Motion Controller so that when the Motion Controller is moved, the text will move along with it. To get this working first add the following nodes to the Event Graph:
+1. Finally, we need to attach the text that tells us which Motion Controller is pressed to the Motion Controller so that when the Motion Controller is moved, the text will move along with it. To get this working, add the following nodes to the Event Graph:
 
     |Node Name| Default Value|
     |------|-----|
@@ -127,7 +131,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Get Motion Controller**|N/A|
     |**AttachToComponent**|N/A|
 
-    Once the nodes have been added, connect the AttachToComponent node to the output of the SetRelativeLocation node. Then connect the FaceButtonPressed to the **Target** input on the AttachToComponent node. Finally, plug in the GoogleVRMotionController to the GetMotionController node and connect the output of that into the **Parent** input on the AttachToComponent node. When completed this part of your Blueprint should look like the following image.
+    Once the nodes have been added, connect the AttachToComponent node to the output of the SetRelativeLocation node. Then connect the FaceButtonPressed to the **Target** input on the AttachToComponent node. Finally, plug in the GoogleVRMotionController to the GetMotionController node and connect the output of that into the **Parent** input on the AttachToComponent node. When completed, this part of your Blueprint should look like the following image:
 
     [REGION:fullwidth]
     [INCLUDE:#GMCButtonsF]
@@ -136,34 +140,37 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     [REGION:caption]
     Click for full image.
     [/REGION]
-    
-1. Compile and save your Blueprint and then use the Launch On button to deploy and launch the project to your smartphone. When the project is deployed to your phone, put your phone in the Google VR HMD and pick up the Daydream Motion Controller. Now when you press in any of the cardinal directions on the Touchpad, the button you pressed should be displayed like in the following video.
+  
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        ATwfS1e7FG4
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Compile and save your Blueprint and then use the Launch On button to deploy and launch the project to your smartphone. When the project is deployed to your phone, put your phone in the GoogleVR HMD and pick up the Daydream Motion Controller. Now when you press in any of the cardinal directions on the Touchpad, the button you pressed should be displayed, like in the following video:
 
-## UE4 Project Downloads
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    ATwfS1e7FG4
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
-Below you will find a link to where you can download the UE4 project that was used to create this example. 
+## Unreal Engine Project Downloads
 
-* [**Google VR Daydream Motion Controller Touchpad Button Example Project**](https://epicgames.box.com/s/4mpu4ouwfpghkvrp5lm9pvlihn9drzoj)
+Below, you will find a link to where you can download the Unreal Engine project that was used to create this example. 
 
-<!--
+* [**GoogleVR Daydream Motion Controller Touchpad Button Example Project**](https://epicgames.box.com/s/4mpu4ouwfpghkvrp5lm9pvlihn9drzoj)
+
+[COMMENT:none]
+
 [EXCERPT:GMCButtonsF]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -242,7 +249,7 @@ Below you will find a link to where you can download the UE4 project that was us
 			   NodePosX=896
 			   NodePosY=352
 			   NodeGuid=A3A3F3D54784ED6BC88AC8B59DD2B0D2
-			   CustomProperties Pin (PinId=53D2D36A43FC3D303A5AEC908C719807,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nGoogle VRMotion Controller Component Object Reference",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/GoogleVRController.GoogleVRMotionControllerComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_64 9F6C35184E2D14C2FBC81680FE94E15C,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=53D2D36A43FC3D303A5AEC908C719807,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nGoogleVRMotion Controller Component Object Reference",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/GoogleVRController.GoogleVRMotionControllerComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_64 9F6C35184E2D14C2FBC81680FE94E15C,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
 			   CustomProperties Pin (PinId=90076FFD458A1867BB0123A08EE7E4F7,PinName="ReturnValue",PinToolTip="Return Value\nMotion Controller Component Object Reference\n\nmotion controller component",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/HeadMountedDisplay.MotionControllerComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_4529 97A00656447992549C625D8A329A3F4A,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
 			End Object
 			Begin Object Class=/Script/UnrealEd.EdGraphNode_Comment Name="EdGraphNode_Comment_1"
@@ -258,7 +265,7 @@ Below you will find a link to where you can download the UE4 project that was us
 			   NodePosY=144
 			   NodeWidth=848
 			   NodeHeight=416
-			   NodeComment="Attach Text Actors to Google VR Motion Controller"
+			   NodeComment="Attach Text Actors to GoogleVR Motion Controller"
 			   NodeGuid=3EAED41E435013CA9D1D26A2B20F28A3
 			End Object
 			Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_4529"
@@ -290,9 +297,11 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:GMCButtonsF]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:MCButtons]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -502,6 +511,7 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MCButtons]
--->
+
+[/COMMENT]
 
 

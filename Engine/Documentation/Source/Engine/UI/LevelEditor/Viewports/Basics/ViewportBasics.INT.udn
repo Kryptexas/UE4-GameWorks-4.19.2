@@ -4,47 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Basic concepts and features of the Viewports in Unreal Editor.
 Version: 4.9
 SkillLevel: Beginner
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:viewport_topic.png
 
 [TOC(start:2 end:3)]
 
@@ -81,7 +41,8 @@ maximized. The default layout is a 4x4 that consists of one of each type of View
 The Viewports can be minimized and maximized using the ![Minimize Viewport](button_minimize.png) and ![Maximize Viewport](button_maximize.png) 
 buttons located in the top right corner of each Viewport.
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -104,7 +65,8 @@ buttons located in the top right corner of each Viewport.
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 ## View Modes
 

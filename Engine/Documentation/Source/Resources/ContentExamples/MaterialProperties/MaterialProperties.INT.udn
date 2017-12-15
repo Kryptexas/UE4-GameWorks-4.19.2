@@ -2,51 +2,8 @@ Availability: Docs
 Title:Material Properties 
 Crumbs:%ROOT%, Resources
 Description:An overview of the Material Properties example level.
+topic-image:MaterialProperties_Topic.png
 
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties:title%](MaterialProperties_Topic.png) 
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties:title%](MaterialProperties_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!--Insert path when done [RELATIVE:Resources/ContentExamples/MaterialProperties]-->
-
-[REGION:fullwidth]
-
-[/REGION]
 
 Welcome to the **Material Advanced** example level!
 
@@ -55,7 +12,6 @@ Welcome to the **Material Advanced** example level!
 ## Examples
 
 [EXCERPT:MaterialPropertiesContentEX_001]
-[REGION:topics third]
 %Resources/ContentExamples/MaterialProperties/1_1:TopicCompact%
 %Resources/ContentExamples/MaterialProperties/1_2:TopicCompact%
 %Resources/ContentExamples/MaterialProperties/1_3:TopicCompact%
@@ -67,7 +23,6 @@ Welcome to the **Material Advanced** example level!
 %Resources/ContentExamples/MaterialProperties/1_9:TopicCompact%
 %Resources/ContentExamples/MaterialProperties/1_10:TopicCompact%
 %Resources/ContentExamples/MaterialProperties/1_11:TopicCompact%
-[/REGION]
 [/EXCERPT:MaterialPropertiesContentEX_001]
 
 ## Related Topics and Further Reading

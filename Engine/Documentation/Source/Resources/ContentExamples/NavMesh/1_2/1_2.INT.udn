@@ -7,63 +7,7 @@ Related: Gameplay/AI
 Related: Engine/AI/BehaviorTrees/NodeReference
 Related: Engine/Actors/Volumes
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/NavMesh/1_1 "%Resources/ContentExamples/NavMesh/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Navmesh Home](Resources/ContentExamples/NavMesh)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/NavMesh/1_3 "%Resources/ContentExamples/NavMesh/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\NavMesh\1_2:title%](NavMesh_1_2_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\NavMesh\1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\NavMesh\1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\NavMesh\1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\NavMesh\1_2:title%](NavMesh_1_2_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\NavMesh\1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\NavMesh\1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\NavMesh\1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:NavMesh_1_2_topic.png
 
 [REGION:fullwidth]
 ![](Resources\ContentExamples\NavMesh\NavMesh_banner.png)

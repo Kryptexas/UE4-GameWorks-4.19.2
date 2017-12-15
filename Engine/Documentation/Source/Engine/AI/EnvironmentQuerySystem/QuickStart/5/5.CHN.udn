@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 创建已包含一个角色的项目之后，即可访问人形骨骼网格物体及其动画蓝图。我们将在教程中使用这些资源，您可自由使用自己的资源。
 
@@ -72,4 +72,4 @@ version:4.9
 1. **编译** ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) 并 **保存**。![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png)
 
 
-%Steps%
+

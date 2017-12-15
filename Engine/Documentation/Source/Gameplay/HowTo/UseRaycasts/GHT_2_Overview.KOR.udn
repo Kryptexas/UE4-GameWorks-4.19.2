@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:레이캐스트, 트레이스 사용법
 Crumbs: %ROOT%, Gameplay
@@ -20,10 +20,6 @@ order:4
 
 [REGION:buttonlist]
 * [](Engine/Physics/Tracing/HowTo)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\UseRaycasts\Code)
-* [](Gameplay/HowTo/UseRaycasts/UVCoordsFromTrace)
-[/PUBLISH:Docs]
 [/REGION]
 
 

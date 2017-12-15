@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3588288
-Availability:Docs
+﻿INTSourceChangelist:3717092
+Availability:Public
 Crumbs: %ROOT%
-Title:Asset Management
+Title:アセット管理
 Description:Asset Loading and Unloading
 Type:Overview
 SkillLevel:Intermediate
@@ -16,7 +16,7 @@ Related:Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking
 
 [TOC (start:2 end:3)]
 
-UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、アンロードを自動的に処理します。これにより、コーディング システムがエンジンに対していつどのアセットが必要になるかを正確に指示するデベロッパーの負担が軽減します。しかし、いつどのようにアセットを見つけ、ロードし、監査するかについて一段と正確に制御する必要があるかもしれません。こうした場合には、**Asset Manager (アセット マネージャ)** が役立ちます。アセット マネージャはエディタおよびパッケージ化したゲームに存在するユニークでグローバルなオブジェクトであり、どのプロジェクトに対してもオーバーライドおよびカスタマイズが可能です。アセット マネージャはコンテンツを、UE4 の [loose package architecture](Engine/Basics/AssetsAndPackages/) のメリットを失うことなくプロジェクトのコンテキストに応じたチャンクに分けることが可能なアセット管理のためのフレームワークを提供します。アセット マネージャには、ディスクとメモリの使用についての監査に役立つツール一式もあります。ゲームのデプロイ時に [クックとチャンク](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking) のためのアセットの構成を最適化するために必要な情報を示します。
+UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、アンロードを自動的に処理します。これにより、コーディング システムがエンジンに対していつどのアセットが必要になるかを正確に指示するデベロッパーの負担が軽減します。しかし、いつどのようにアセットを見つけ、ロードし、監査するかについて一段と正確に制御する必要があるかもしれません。こうした場合には、**Asset Manager (アセット マネージャ)** が役立ちます。アセット マネージャはエディタおよびパッケージ化したゲームに存在するユニークでグローバルなオブジェクトであり、どのプロジェクトに対してもオーバーライドおよびカスタマイズが可能です。アセット マネージャはコンテンツを、UE4 の [パッケージ アーキテクチャ](Engine/Basics/AssetsAndPackages/) のメリットを失うことなくプロジェクトのコンテキストに応じたチャンクに分けるアセット管理のためのフレームワークを提供します。アセット マネージャには、ディスクとメモリの使用についての監査に役立つツール一式もあります。ゲームのデプロイ時に [クックとチャンク](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking) のためのアセットの構成を最適化するために必要な情報を示します。
 
 
 ## プライマリ アセット、セカンダリ アセット、およびプライマリ アセット ラベル
@@ -42,7 +42,7 @@ UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、ア�
 
 ### プライマリ アセットを登録しディスクからロードする
 
-ほとんどのプライマリ アセットはアーティストやデザイナーが編集できるように **コンテンツ ブラウザ** にあり、ディスク上に保存されるアセット ファイルとして存在します。この方法で使用できるクラスをプログラマーが作成する最も簡単な方法は、`UPrimaryDataAsset` から継承することです。`UPrimaryDataAsset` は、`UDataAsset` のひとつのバージョンであり、ビルトインされてるアセット バンドル データをロードし、保存する機能を持っています。`APawn` など他の基本クラスが必要な場合、クラスに対して機能するアセット バンドルを取得するために追加しなければならない最小限の機能例として `UPrimaryDataAsset` が便利です。以下のクラスは Fortnite の Zone Theme データを格納し、ゲームのマップ選択モードでエリアの視覚表現をビルドするときにどのアート アセットを使うかをゲームに指示します。
+ほとんどのプライマリ アセットはアーティストやデザイナーが編集できるように **コンテンツ ブラウザ** にあり、ディスク上に保存されるアセット ファイルとして存在します。この方法で使用できるクラスをプログラマーが作成する最も簡単な方法は、`UPrimaryDataAsset` から継承することです。`UPrimaryDataAsset` は、`UDataAsset` のひとつのバージョンであり、ビルトインされているアセット バンドル データをロードし、保存する機能を持っています。`APawn` など他の基本クラスが必要な場合、クラスに対して機能するアセット バンドルを取得するために追加しなければならない最小限の機能例として `UPrimaryDataAsset` が便利です。以下のクラスは Fortnite の Zone Theme データを格納し、ゲームのマップ選択モードでエリアの視覚表現をビルドするときにどのアート アセットを使うかをゲームに指示します。
 
 	/** A zone that can be selected by the user from the map screen (マップ画面からユーザーによって選択可能なゾーン) */
 	UCLASS(Blueprintable)
@@ -77,7 +77,6 @@ UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、ア�
 
 1. **プライマリ アセットをアセット マネージャで登録する** これは次の 3 種類の方法で行うことができます。すなわち、**Project Settings** メニューで設定する、アセットの配列のパスを手動で追加して `DefaultGame.ini` でスキャンする、または Asset Manager クラスがスタートアップ中にそれを行うようにプログラミングします。
 	* **Project Settings** (**Game / Asset Manager** セクションの下) による設定は以下のようになります。:
-
 	![](ProjectSettingsAssetManager.png)
 	[REGION:caption]プライマリ アセットのスキャンのパスを設定することができます。[/REGION]
 	[REGION:note]
@@ -88,9 +87,10 @@ UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、ア�
 	| Primary Asset Rules | アセットの処理方法を決める特定のルールのオーバーライドをリスト化します。詳細は [](Engine/Basics/AssetsAndPackages/AssetManagement/CookingAndChunking) をご覧ください。 |
 	| Only Cook Production Assets | DevelopmentCook として指定されるアセットは、これにチェックが入っているとクック プロセス中にエラーが生じます。これは最終的なシッピング ビルドにテスト アセットが含まれないようにするのに適しています。 |
 	| Primary Asset ID Redirects | Asset Manager がリストに ID が表示されている Primary アセットのデータをルックアップする場合、ID は代わりに与えられる ID で置き換えられます。 |
-	| Primary Asset Type Redirects | Asset Manager が、Primary アセットについてのデータをルックアップする場合、このリストにあるタイプ名がネイティブ タイプの変わりに使われます。 |
+	| Primary Asset Type Redirects | Asset Manager が、Primary アセットについてのデータをルックアップする場合、このリストにある型名がネイティブ型の代わりに使われます。 |
 	| Primary Asset Name Redirects | Asset Manager が、Primary アセットについてのデータをルックアップする場合、このリストにあるアセット名がネイティブ名の 代わりに使われます。 |
 	[/REGION]
+
 	* `DefaultGame.ini` を編集するには、`/Script/Engine.AssetManagerSettings` というセクションを見つけ (または作成)し、Primary Asset クラスを手動で追加します。以下のような形式になります。
 
 			[/Script/Engine.AssetManagerSettings]
@@ -99,8 +99,8 @@ UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、ア�
 			+PrimaryAssetTypesToScan=(PrimaryAssetType="PrimaryAssetLabel",AssetBaseClass=/Script/Engine.PrimaryAssetLabel,bHasBlueprintClasses=False,bIsEditorOnly=True,Directories=((Path="/Game")),SpecificAssets=,Rules=(Priority=-1,bApplyRecursively=True,ChunkId=-1,CookRule=Unknown))
 
 	* プライマリ アセットを直接コードで登録する場合、Asset Manager クラスで `StartInitialLoading` 関数をオーバーライドし、そこから `ScanPathsForPrimaryAssets` を呼び出します。この場合、同じタイプのすべてのプライマリ アセットを同じサブフォルダに入れることをお勧めします。これによりアセットの発見と登録が速くなります。
-	1. **アセットのロード** アセット マネージャの関数、`LoadPrimaryAssets`、 `LoadPrimaryAsset`、および `LoadPrimaryAssetsWithType` を使って、適時にプライマリ アセットのロードを開始することができます。アセットは、`UnloadPrimaryAssets`、`UnloadPrimaryAsset`、および `UnloadPrimaryAssetsWithType` を使って後でアンロードすることができます。こうしたロード関数を使用する場合、 Asset Bundle のリストを指定することができます。このやり方でロードすると、上記のように Asset Bundle によって参照される Secondary アセットの参照を Asset Manager がロードします。
 
+1. **アセットのロード** アセット マネージャの関数、`LoadPrimaryAssets`、 `LoadPrimaryAsset`、および `LoadPrimaryAssetsWithType` を使って、適時にプライマリ アセットのロードを開始することができます。アセットは、`UnloadPrimaryAssets`、`UnloadPrimaryAsset`、および `UnloadPrimaryAssetsWithType` を使って後でアンロードすることができます。こうしたロード関数を使用する場合、 Asset Bundle のリストを指定することができます。このやり方でロードすると、上記のように Asset Bundle によって参照される Secondary アセットの参照を Asset Manager がロードします。
 
 
 ### 動的に作成されたプライマリ アセットを登録しロードする
@@ -127,8 +127,7 @@ UE4 では [アセット](Engine/Basics/AssetsAndPackages/) のロード、ア�
 	// Construct the name from the theater ID (theater ID から名前を構築) 
 	UFortAssetManager& AssetManager = UFortAssetManager::Get();
 	FPrimaryAssetId TheaterAssetId = FPrimaryAssetId(UFortAssetManager::FortTheaterInfoType, FName(*TheaterData.UniqueId));
-				TArray<FStringAssetReference> AssetReferences;
-
+	TArray<FStringAssetReference> AssetReferences;
 	AssetManager.ExtractStringAssetReferences(FFortTheaterMapData::StaticStruct(), &TheaterData, AssetReferences);
 
 	FAssetBundleData GameDataBundles;

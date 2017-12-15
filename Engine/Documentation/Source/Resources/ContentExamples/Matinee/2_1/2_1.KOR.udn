@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:2.1 - 라이트 그룹
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,7 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 2.1: Light Group �
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/2_1:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/2_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/2_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/2_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 라이트에 관련되어 흔히 쓰이는 모든 트랙으로 그룹을 생성합니다.
 

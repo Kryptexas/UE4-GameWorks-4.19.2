@@ -60,23 +60,17 @@ tags:Programming
 
 このクイックスタート ガイドでは、アンリアル エンジン 4 (UE4) の開発環境を説明します。UE4 での C++ プロジェクトの設定および開発方法の理解を目標にしています。アンリアル エンジン のプロジェクトの新規作成、新規 C++ クラスのプロジェクトへの追加、プロジェクトのコンパイル、新規クラスのインスタンスのレベルへの追加を行います。ガイドに従ってプログラミングを進めると、最終的にはレベル内のテーブルの上を飛ぶことができる **アクタ** が完成します。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Programming\QuickStart\1 "%Programming\QuickStart\1:description%")
 	* [](Programming\QuickStart\2 "%Programming\QuickStart\2:description%")
 	* [](Programming\QuickStart\3 "%Programming\QuickStart\3:description%")
 	* [](Programming\QuickStart\4 "%Programming\QuickStart\4:description%")
 	* [](Programming\QuickStart\5 "%Programming\QuickStart\5:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

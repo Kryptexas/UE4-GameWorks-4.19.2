@@ -75,7 +75,8 @@ HLOD 等级所需的边界半径：500
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 
 应创建一个关于 HLOD“Simplygon”功能的文档。
 
@@ -83,4 +84,5 @@ HLOD 等级所需的边界半径：500
 
 HLODMesh 剔除体积域可被添加到一个 HLOD 集群，在生成 HLOD 模型前移除源模型的三角面。
 
--->
+
+[/COMMENT]

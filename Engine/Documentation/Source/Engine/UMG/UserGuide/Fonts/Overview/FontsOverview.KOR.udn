@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3401632
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 폰트 애셋 및 에디터
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -44,7 +44,8 @@ SkillLevel:Beginner
 | **Layout Method** | 폰트 레이아웃에 사용할 메소드를 선택합니다. 폰트가 잘리거나 높이 문제가 있는 경우 이 옵션을 변경해 보세요. [INCLUDE:#layoutmethod] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:hinting]
 [REGION:simpletable]
 | 선택 | 설명 |
@@ -75,7 +76,8 @@ SkillLevel:Beginner
 [/REGION] 
 [/EXCERPT:layoutmethod]
 
---->
+-
+[/COMMENT]
 
 ## 폰트 애셋을 4.15 이후로 업그레이드
 

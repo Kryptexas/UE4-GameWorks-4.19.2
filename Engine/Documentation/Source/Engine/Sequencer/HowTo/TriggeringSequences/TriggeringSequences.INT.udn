@@ -2,183 +2,197 @@ Availability: Public
 Title:Triggering Sequences from Gameplay
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:Illustrates how to trigger a Sequence from an in-game event. 
-Version: 4.12
+Version: 4.18
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine/Blueprints
 tags:Sequencer
+type:how-to
 
 Once you have created your cinematic sequence, you may want to have it called and played during gameplay as part of a cutscene. 
-Perhaps a character walks into a room and you initiate a cutscene or maybe there is an ending cinematic you want to play when a character kills an enemy. 
+For example, maybe the player walks into a room and you want to have the camera zoom in on an object. 
+Or perhaps you want to trigger an ending cinematic after the player kills an enemy. 
+By getting a reference to your Level Sequence, you can use [Blueprint](Engine/Blueprints) or C++ code to tell your sequence to start playing. 
 
-In this How-to we use [](Engine/Blueprints) to tell a Level Sequence to play based on an in-game event. 
-We also explore the **Sequence Player** options and how we can use them let our game know that the Level Sequence has ended, at which point we can fire of additional Blueprint script. 
+In this How-to, we create a sample cinematic that turns on a light when the player enters a Trigger Box. 
+When the cinematic finishes playing, we'll instruct Sequencer to apply the changes to the light in the Level so it persists after the cinematic has finished playing. 
+We also allow the player to skip the cinematic while it is playing but still instruct Sequencer to turn and leave the light on after skipping the scene. 
+
+![](HeroImage.png)
+
 
 ## Steps
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with a sample Sequence already created. 
+For this How-to, we are using the **Blueprint Third Person Template** project. 
 [/REGION]
 
-1.	If the Level Sequence you want to play is not inside your level, **Drag-and-drop** it from the **Content Browser** into the level. 
+1.	From the **Modes** panel under **Basic**, drag a **Box Trigger** into the Level and resize and position as desired. 
 
-	![](Trigger01.png)(w:720)
+	![](Trigger01.png)
 
-1.	From the **Modes** panel, drag a **Trigger** into the level and adjust it based on your needs (we used a **Box Trigger** below). 
+	When the player enters our trigger, we will instruct our cinematic to start playing through Blueprint. 
+
+1.	From the Main Toolbar, click the **Cinematics** button then select **Add Level Sequence** and give your cinematic a name. 
 
 	![](Trigger02.png)
 
-	When your player enters this trigger, we will tell our Level Sequence to start playing. 
-
-1.	With the **Trigger** still selected, click the **Blueprints** button from the Main Toolbar then select **Open Level Blueprint**. 
+1.	From the **Modes** panel under **Basic**, drag a **Point Light** into the Level and place the light in the position shown below. 
 
 	![](Trigger03.png)
 
-1.	**Right-click** in the graph and under **Collision**, select **Add On Actor Begin Overlap**. 
+1.	With the **Point Light** selected, in the **Details** panel, change the **Intensity** value to **0.0** and click the **Keyframe** button.
 
 	![](Trigger04.png)
 
-1.	Return to the level and select your **Level Sequence**.
+	This will add the Point Light to Sequencer and keyframe its initial value at the start of the sequence. 
 
-1.  Click the **Blueprints** button from the Main Toolbar and **Open Level Blueprint** again.
+1.	In Sequencer, move the timeline to frame **150** and set the **Intensity** value of your light to **5000*** and keyframe it. 
 
-1.	**Right-click** and select **Create a Reference to...** your Level Sequence. 
+	[REGION:lightbox]
+	[![](Trigger05.png)(w:1000)](Trigger05.png)
+	[/REGION]
 
-	![](Trigger05.png)
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
 
-	Above the Level Sequence we want to play is called **CameraFlyBy**. 
+	Your Point Light will now start in the off position and get brighter as the Sequence plays out. 
 
-1.	**Left-click** and drag off the new node and add the **Get Sequence Player** node. 
+1.	Click the **Add Camera** Button, then move the Camera in the Level to a position near the Character and keyframe it. 
 
-	![](Trigger06.png)
+	[REGION:lightbox]
+	[![](Trigger06.png)(w:900)](Trigger06.png)
+	[/REGION]
 
-1.	Off the **Sequence Player** node, add the **Play** node and connect as shown below. 
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
 
-	![](Trigger07.png)
+1.	Move the Timeline to frame **75**, then in the Level, move the Camera to a new position overlooking the Character and the light and keyframe it. 
 
-	If we were to play our game now, the sequence we created will play when the character enters the trigger. 
+	[REGION:lightbox]
+	[![](Trigger07.png)(w:900)](Trigger07.png)
+	[/REGION]
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	sjsxR2nwcNg
-	[/PARAMLITERAL]
-	[/OBJECT]
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
 
-	With our current setup, our character can still freely move while our cinematic is playing. 
-	While we have managed to successfully playback our cinematic, there may be times where we want to lock our players in place while the cinematic is playing or to **Set Hidden in Game** so they do not appear. 
-	
-1.	**Right-click** in the **Level Blueprint** and add a **Disable Input** node. 
+1.	Move the Timeline to frame **150**, then in the Level, move the Camera to a position focused on the light and keyframe it. 
 
-	![](Trigger08.png)
+	[REGION:lightbox]
+	[![](Trigger08.png)(w:900)](Trigger08.png)
+	[/REGION]
 
-	If you have your Level Sequence still selected in the level, you may see two options (choose the one that is under **Input** by itself. 
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
 
-1.	Connect the node following **Play** then drag off **Player Controller** and add a **Get Player Controller** node. 
+	Our cinematic now has a camera fly-through animation that will show the player where the light is in the Level. 
+
+1.	Select the **Trigger Box** in the Level, then from the Main Toolbar, click the **Blueprints** button and select **Open Level Blueprint**. 
 
 	![](Trigger09.png)
 
-	This will tell the Player Controller associated with your player to stop receiving input. 
-
-1.	Drag off the **Target** pin of the **Disable Input** node and add a **Get Player Character** node. 
+1.	Right-click inside the graph, then select the **Add On Actor Begin Overlap** for the **Trigger Box**. 
 
 	![](Trigger10.png)
 
-	We have disabled input when the sequence starts however we need to enable input once it is over. 
-
-1.	Drag off the **Sequencer Player** node and add a **Get Length** node. 
+1.	Return to the Level and select your Level Sequence, then back inside the **Level Blueprint**, right-click and **Create a Reference** to your Level Sequence. 
 
 	![](Trigger11.png)
 
-1.	**Right-click** in the graph and add a **Set Timer by Event** node. 
+1.	Drag off the Level Sequence reference and select **Play (SequencePlayer)**. 
 
 	![](Trigger12.png)
 
-1.	Connect the **Set Timer by Event** node following **Disable Input** and feed the **Length** into the **Time** pin. 
+1.	Connect the **OnActorBeginOverlap** node to the **Play** node. 
 
 	![](Trigger13.png)
 
-	This will allow us to call an event at the end of our Level Sequence. 
+	When entering the Trigger Box, the **Play** node will be executed and will play your Level Sequence. 
 
-1.	**Right-click** in the graph and create a **Custom Event** called **Sequence End**.  
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		7G2zHwVbmHg
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+	You will notice if you play in the Editor that the sequence plays when entering the Trigger Box, however, it will only play once. 
+	If you want to play the sequence again, you will need to start the sequence over using the **Set Playback Position** node with the Playback Position set to **0** (or the start of the sequence) before telling the sequence to play. 
+
+1.	In the **Level Blueprint**, drag off the **Sequence Player** node and use the **Set Playback Position** node. 
 
 	![](Trigger14.png)
 
-1.	Connect the bind pin to the **Event** pin on the **Set Timer by Event** node. 
+1.	Connect the **Set Playback Position** node between the **OnActorBeginOverlap** and **Play** nodes. 
 
 	![](Trigger15.png)
 
-	Whatever is connected to the **Sequence End** event will now get fired when the Level Sequence completes. 
+	This will set the Level Sequence back to the beginning prior to playing it. 
 
-1.	Add an **Enable Input** node and connect a **Get Player Character** and **Get Player Controller** node. 
+1.	Inside **Sequencer**, right-click on the **Intensity** track, then under **Properties** set **When Finished** to **Keep State**. 
 	
-	[REGION:lightbox]
-	[![](Trigger16.png)](Trigger16.png)
-	[/REGION]
+	![](Trigger16.png)
+	
+	Using the **Keep State** option enables our light Intensity setting to remain after the sequence has ended. 
+	This is useful for situations where you want effects or settings you make in Sequencer to remain after the Sequence has ended. 
+	For example, your cinematic opens a door and you want the door to remain open once the cinematic ends. 
 
-	[REGION:caption]
-	Click for full view. 
-	[/REGION]
+1.	In the **Level Blueprint**, add an **F** keyboard event connected to a **Branch** (with condition **Is Playing**) that is connected to the **Go to End and Stop** node.
 
-	If we play now, our playable character will stop and not receive input while the Level Sequence is active. 
-	Once the sequence completes, the player is able to provide input to the character again. 
+	![](Trigger17.png)
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	nuw87s4vNro
-	[/PARAMLITERAL]
-	[/OBJECT]
+	When pressing the **F** key, if the Level Sequence is currently playing, it will immediately jump to the end and stop playing. 
+	The **Go to End and Stop** node is useful for situations when you want to allow your player to skip your cinematic but continue with any changes that Sequencer would have applied if the Sequence continued playing. 
+	
+	For example, in our cinematic, Sequencer turns on a light in the Level. If the player skips the cutscene of the light being turned on, we still want the light to be on after the cutscene is skipped. 
+	If we were to simply use the **Stop** node to stop playing our cinematic, it would not complete the cinematic and would stop at whatever point in the cinematic we chose to stop (meaning the light would not be fully on or not on at all depending on where we stopped). 
 
-	With our current setup, our cinematic is not re-triggerable. If we want to re-trigger the sequence, we need to add one more node to our existing setup. 
-
-1.	In the **Level Blueprint**, drag off the **Sequence Player** node and add a **Set Playback Position** node before the **Play** node. 
-
-	[REGION:lightbox]
-	[![](Trigger17.png)](Trigger17.png)
-	[/REGION]
-
-	[REGION:caption]
-	Click for full view. 
-	[/REGION]
-
-	With the **Playback Position** defaulting to start **0.0**, the sequence will start from the beginning each time it is played. 
-
-1.	Click the **Play** button to play in the editor. 	
+1.	Return to the Main Editor, then from the Main Toolbar, click the **Play** button to play in the Editor.
 			
 
 ## End Result
 
+When you play in the Editor, you will notice that the light is not on by default.
+When entering the Trigger Box, the cinematic will start playing and the light will turn on and stay on when the cinematic completes. 
+You can re-trigger the cinematic by entering the Trigger Box again, which will play the sequence from the beginning. 
+You can also enter the Trigger Box and press the **F** key to skip the cinematic, which will result in the light automatically turning on. 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-dWCbJb5YJhI
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	BJ2LbTU02iA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-We now have a cinematic sequence that is triggered from gameplay and locks the player in place. Our sequence can also be triggered multiple times and input is granted back to the player after the cinematic plays. 
-
-You can access other information or functions from the **Sequencer Player** node under the **Cinematic** section. 
-
-![](Trigger18.png)
 
 
 

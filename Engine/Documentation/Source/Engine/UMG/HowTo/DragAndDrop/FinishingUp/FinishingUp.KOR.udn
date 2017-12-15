@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:5. 마무리
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 최종 단계에서는, (드래그중인 비주얼 위젯) **DragWidget** 구성을 하겠습니다.
 그리고 캐릭터 블루프린트에게 **HUD** 위젯 블루프린트를 뷰포트에 추가하고 마우스 커서를 활성화시켜 드래그 위치를 확인할 수 있도록 해주겠습니다.
@@ -100,6 +100,6 @@ type:how-to
 이는 드래그 앤 드롭 프로세스를 시작하는 데 필요한 엘리먼트 예제일 뿐입니다.
 플레이어가 위젯을 세이프 존 외부 혹은 다른 위젯 위에 드래그하지는 않았나 추가적인 확인이 필요할 수 있습니다.
 
-%Steps%
+
 
 

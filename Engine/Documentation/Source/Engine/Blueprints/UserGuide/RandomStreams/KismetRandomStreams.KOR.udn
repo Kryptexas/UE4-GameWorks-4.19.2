@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:랜덤 스트림
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,45 +7,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/RandomStreams:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/RandomStreams:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/RandomStreams:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/RandomStreams:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/random_stream.png
 
 
 [TOC (start:2)]
@@ -64,7 +26,7 @@ RandomStream 은 블루프린트에서 특수한 유형의 구조체 변수로 �
 
 ![RandomStream Variable](variable.png)
 
-_블루프린트 클래스_ 나 _레벨 블루프린트_ 안에서 새 변수를 추가하는 법에 대한 상세 정보는 [](Engine/Blueprints/UserGuide\Variables) 문서를 참고하시기 바랍니다.
+_블루프린트 클래스_ 나 _레벨 블루프린트_ 안에서 새 변수를 추가하는 법에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Variables) 문서를 참고하시기 바랍니다.
 
 ## RandomStream 함수
 
@@ -103,7 +65,8 @@ RandomStream 변수를 활용하기 위해서, RandomStream 을 입력으로 받
 **Initial Seed** 는 블루프린트 인스턴스마다 새로 생성됩니다. 즉 블루프린트 인스턴스를 월드에 놓거나 기존 인스턴스를 복제할 때마다, 
 그 블루프린트에 속하는 각 RandomStream 변수에는 새로운 **Initial Seed** 값이 주어집니다. 즉 각 인스턴스는 별개의 것으로, 수정하여 정확히 원하는 결과를 만들어낼 수 있습니다.
 
-<!--
+[COMMENT:none]
+
 같은 블루프린트, 다른 플레이스루:
 
 LogBlueprintUserMessages: HHTTHTHTHH
@@ -127,7 +90,8 @@ LogBlueprintUserMessages: THTHTTTHHH
 LogBlueprintUserMessages: TTTTHTTHTT
 
 LogBlueprintUserMessages: HTHTHTTHTT
--->
+
+[/COMMENT]
 
 
 ### Initial Seed 변경하기
@@ -143,6 +107,8 @@ _블루프린트_ 그래프 안에서 **Initial Seed** 를 특정한 값이나 �
 레벨에 **블루프린트** 를 놓을 때 **Initial Seed** 가 임의 설정되도록 덮어쓰게 됩니다.
 
 
-<!--### Resetting a Random Stream-->
+[COMMENT:none]
+### Resetting a Random Stream
+[/COMMENT]
 
 

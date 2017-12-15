@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3255748
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 컨스트레인트 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:언리얼 에디터의 피직스 컨스트레인트에서 사용할 수 있는 모든 프로퍼티에 대한 참고서입니다.
 parent:Engine/Physics/Constraints
 order:1
-Version: 4.13
+Version: 4.18
 topic-image:Engine/Physics/physics_topic.png
 tags:Physics
 SkillLevel: Beginner
@@ -44,10 +44,12 @@ Physics Constraint (피직스 컨스트레인트)의 프로퍼티를 주요 카�
 | **Enable Projection** | 프로젝션 켜기 - 거리 오차가 **Projection Linear Tolerance** 값을, 또는 회전 오차가 **Projection Angular Tolerance** 값을 초과하는 경우, 이에 대한 프로젝션으로 픽스합니다. 이렇게 하면 개별 체인 링크가 서로 끊어져 보이는 등 시각적으로 단절된 경우를 고칠 수 있습니다. |
 | **Projection Linear Tolerance** | 프로젝션 직선 허용치 - 월드 유닛 단위 거리 오차가 이 값을 넘어가는 경우, 바디를 프로젝션 합니다. |
 | **Projection Angular Tolerance** | 프로젝션 각 허용치 - 각도 단위 각 오차가 이 값을 넘어가는 경우, 바디를 프로젝션 합니다. |
+| **Parent Dominates** | 부모 우세 - 설정하면, 컨스트레인트의 부모 바디는 자식의 모션에 영향받지 않습니다. |
 [/REGION]
 [/EXCERPT]
 
-<!--
+[COMMENT:none]
+
 ## Joint Presets
 
 [EXCERPT:p3]
@@ -61,7 +63,8 @@ Physics Constraint (피직스 컨스트레인트)의 프로퍼티를 주요 카�
 | **Ball and Socket** | 볼과 소켓 - 조인트를 볼과 소켓으로 구성합니다. 볼과 소켓 조인트는 중심을 공유하는 무한개의 축을 중심으로 한 이동이 가능합니다. |
 [/REGION]
 [/EXCERPT:p3]
--->
+
+[/COMMENT]
 
 ## Linear Limits
 
@@ -110,7 +113,6 @@ Physics Constraint (피직스 컨스트레인트)의 프로퍼티를 주요 카�
 | **Swing 1Limit Angle** | 스윙 1 한계 각도 - **XY** 면에서의 이동 각도입니다. |
 | **Twist Limit Angle** | 트위스트 한계 각도 - **XZ** 면에서의 이동 각도입니다. |
 | **Swing 2Limit Angle** | 스위 2 한계 각도 - X 축으로의 대칭형 롤 각도입니다. |
-| **Angular Rotation Offset** | 각 회전 오프셋 - 두 좌표계 사이의 각 오프셋을 지정합니다. 기본적으로 이 한계 범위는 (-Angle, +Angle) 입니다. |
 [/REGION]
 
 ### 고급
@@ -195,7 +197,8 @@ Physics Constraint (피직스 컨스트레인트)의 프로퍼티를 주요 카�
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:AngMotorMode]
 
@@ -327,7 +330,8 @@ Physics Constraint (피직스 컨스트레인트)의 프로퍼티를 주요 카�
 | **Locked** | 잠김 - 이 축에는 완벽 제약됩니다. |
 [/EXCERPT:angularMotionEnum]
 
--->
+
+[/COMMENT]
 
 ## 추가 정보
 
@@ -357,7 +361,9 @@ _왼쪽에서 오른쪽 순으로: 힌지, 프리즈매틱, 볼과 소켓 아이
 
 _왼쪽에서 오른쪽 순 (피직스 컨스트레인트에 4 배 스케일 적용): 직선 운동을 15 유닛으로 제한, 직선 운동을 자유로 설정._
 
-<!-- 직선 자유 및 제한 관련 모든 프로퍼티 정보는 [](Engine/Physics\Constraints\ConstraintsReference) 참고. -->
+[COMMENT:none]
+ For information on all the properties relating to Linear Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### 각 자유 및 제한
 
@@ -379,7 +385,9 @@ _왼쪽에서 오른쪽으로: Swing 1 은 45 도로 제한, Swing 2 는 45 도�
 [![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
 [/REGION]
 
-<!-- 각 자유 및 제한 관련 모든 프로퍼티 정보는 [](Engine/Physics\Constraints\ConstraintsReference) 문서를 참고하세요. -->
+[COMMENT:none]
+ For information on all the properties relating to Angular Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### 방향
 
@@ -397,7 +405,9 @@ _왼쪽에서 오른쪽으로: Swing 1 은 45 도로 제한, Swing 2 는 45 도�
 [![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
 [/REGION]
 
-각 제한 사용시, 트위스트 (양수 X) 축은 파랑 제약 액터 (컨스트레인드 액터 2) 쪽을 향하도록 정렬되어 있다 가정합니다. <!---This is really important because the ---> 
+각 제한 사용시, 트위스트 (양수 X) 축은 파랑 제약 액터 (컨스트레인드 액터 2) 쪽을 향하도록 정렬되어 있다 가정합니다.[COMMENT:none]
+-This is really important because the -
+[/COMMENT] 
 
 [REGION:lightbox]
 [![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
@@ -407,7 +417,8 @@ _왼쪽에서 오른쪽으로: Swing 1 은 45 도로 제한, Swing 2 는 45 도�
 
 ![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
 
-<!--
+[COMMENT:none]
+
 
 ### 볼과 소켓
 볼과 소켓 조인트는 단순히 직선 운동이 잠겨있고 각 운동이 자유로운 조인트를 말합니다.
@@ -428,8 +439,10 @@ _왼쪽에서 오른쪽으로: Swing 1 은 45 도로 제한, Swing 2 는 45 도�
 ### 펀치 백
 볼과 소켓 조인트를 기반으로 펀치백 (세로 막대 위에 달려있어 주먹으로 칠 수 있는 공) 같은 것을 시뮬레이션할 수 있습니다. 먼저 볼과 소켓 조인트를 만들고, 스윙 위치 구동을 켠 뒤 **AngularDriveSpring** 및 **AngularDriveDamping** 옵션을 조절하여 밀었을 때 적당히 흔들리다가 수직 위치로 오도록 만듭니다. 스윙 한계값도 켜서 너무 멀리 굽어지지 않도록 할 수 있습니다.
 
+
+[/COMMENT]
 -->
--->
+
 
 
 

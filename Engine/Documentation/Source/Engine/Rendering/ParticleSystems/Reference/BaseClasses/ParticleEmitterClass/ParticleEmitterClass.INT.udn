@@ -17,8 +17,11 @@ A ParticleEmitter is a single particle effect that can be held in a ParticleSyst
 | **Collapsed** | If _true_, the ParticleEmitter will appear collapsed in the Emitter List in Cascade. Double-clicking the ParticleEmitter block toggles this property. |
 
 
-<!-- Begin ParticleEmitter Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleEmitter Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:RenderMode]
 [REGION:simpletable]
 | Mode | Description |
@@ -29,5 +32,8 @@ A ParticleEmitter is a single particle effect that can be held in a ParticleSyst
 | `ERM_None` | The emitter's particles are not rendered. |
 [/REGION]
 [/EXCERPT:RenderMode]
--->
-<!-- End ParticleEmitter Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleEmitter Includes 
+[/COMMENT]

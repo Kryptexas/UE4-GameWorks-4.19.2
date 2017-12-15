@@ -1,0 +1,184 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title: Media Editor Reference
+Crumbs:%ROOT%, Engine
+Description:Breaks down the interface elements and options within the Media Editor used with Media Framework. 
+Type: Reference
+Version: 4.18
+Parent: Engine/MediaFramework
+Order: 1
+Tags: Media
+Tags: Video Playback
+Related: Engine\MediaFramework\Overview
+Related: Engine\MediaFramework\HowTo
+
+[TOC(start:2 end:2)]
+
+When opening a **Media Player** asset, the **Media Editor** window will open presenting you with options for playing back and controlling different asspects of your **Media Source** assets. 
+In the Media Editor, you can define the player plug-in used for a Media Source, select between different audio/video tracks (if applicable) as well as define settings for the Media Player itself. 
+The **Info** tab inside this editor will also display information about the type of media you are accessing which can be used to debug any potential playback problems. 
+Please refer to each of the sections below for more information and a breakdown of the available options. 
+
+## Toolbar
+
+![](Toolbar.png)
+
+The **Toolbar** section of the Media Editor enables you to control the playback of media. 
+
+[REGION:note]
+You must first select a valid Media Source from the **Media Library** window that you want to play in order for the playback options to become available. 
+[/REGION]
+
+| Option | Description |
+| -------- | ----------- |
+| ![](toolbar_1.png) | Saves this Media Player asset (Ctrl+S). |
+| ![](toolbar_2.png) | Browse to the Media Player asset in the Content Browser (Ctrl+B). |
+| ![](toolbar_3.png) | Jump to previous item in the Playlist (disabled if no Playlist is active). |
+| ![](toolbar_4.png) | Rewind the media source to the beginning. |
+| ![](toolbar_5.png) | Reverse playback of the selected media (clicking multiple times increases the seek speed). |
+| ![](toolbar_6.png) | Start/Resume media playback. |
+| ![](toolbar_7.png) | Pause media playback. |
+| ![](toolbar_8.png) | Fast foward media playback (clicking multiple times increases the seek speed). |
+| ![](toolbar_9.png) | Jump to the next item in the Playlist (disabled if no Playlist is active). |
+| ![](toolbar_10.png) | Close the currently opened media. |
+
+
+## Player Window
+
+![](Player.png)
+
+The **Player Window** enables you to view the playback of your media as well as define **Playback Options**.
+When you open a Media Source and mouse overview this window, you will see text overlays that display the name of the file (upper-left), the current player plugin being used (upper-right), the state of the media (lower-left) and current horizontal and vertical field of view settings and view rotation (lower-right), which are used for 360 videos. 
+
+[REGION:warning]
+As of engine 4.18, there are no player plugins that support 360 videos however future iterations of the Media Framework tools will provide more support for them. 
+[/REGION]
+
+At top of the Player Window, there is a text field that displays the URL path (which you can use to Open directly in Blueprint with the **Open URL** Blueprint node). To the right of the URL field, a reload button can be used to reload the current media (similar to pressing the reload button on most web browsers and can be used to reload external URLs that link to the internet). 
+To the left of the URL field, via the drop-down menu, are the **Capture Devices** options. 
+
+### Capture Devices
+
+![](CaptureDevices.png)
+
+The Capture Devices menu options are available when you have connected and [supported devices](Engine/MediaFramework/TechReference) attached to your computer. 
+These options enable you to test different audio and capture devices where the URL will update with the selected device. Capture Devices are slightly different the other Media Sources as you can have multiple devices connected. 
+You can use Blueprint (or C++) code to enumerate and filter for specific devices. 
+
+![](Enumerate.png)
+
+[REGION:caption]
+Above, in a Blueprint, you can search for enumerate or capture devices to see the list of optional enumerators. 
+[/REGION]
+
+In the example below, a sample setup using the **Enumerate Video Capture Devices** node is shown to filter for specified devices that we can use to obtain the URL to open. 
+
+![](EnumerateExample.png)
+
+[REGION:note]
+Please see the Capturing Video from a Webcam How-to for more information. 
+[/REGION]
+
+### Playback Options
+
+![](PlaybackOptions.png)
+
+Also part of the Player Window is the **Playback Options** menu that contains several different options used to define how your media is played. 
+
+**Player**
+| Option | Description |
+| --- | --- |
+| **Decoder** | This section enables you to define the player plug-in used for media (Automatic is the default which will auto-select the appropriate player plugin based on the type of media).  |
+
+**Tracks**
+| Option | Description |
+| --- | --- |
+| **Audio** | Enables you to set the default audio track associated with a media source (if multiple audio tracks are embedded with the media) or disable the audio track.  |
+| **Captions** | Enables you to define the default caption track for a selected media source (if tracks are embedded with the media). |
+| **Subtitles** | Enables you to define the default subtitles track for a selected media source (if tracks are embedded with the media). |
+| **Text** | Enables you to define the default text track for a selected media source (if tracks are embedded with the media). |
+| **Video** | Enables you to set the default video track associated with a media source (if multiple video tracks are embedded with the media) or disable the video track. |
+
+**Formats**
+| Option | Description |
+| --- | --- |
+| **Audio** | Displays the available audio format tracks which you can select from (if applicable).  |
+| **Captions** | Displays the available caption format tracks which you can select from (if applicable).  |
+| **Subtitles** | Displays the available subtitle format tracks which you can select from (if applicable).  |
+| **Text** | Displays the available text format tracks which you can select from (if applicable).  |
+| **Video** | Displays the available video format tracks which you can select from (if applicable).  |
+
+**View**
+| Option | Description |
+| --- | --- |
+| **Scale** | Change the video size to Fit (fit video in the Player Window), Fill (fill video in the Player Window) or Original Size (to use the original dimensions of the video).  |
+| **Show Text Overlays** | Toggles the display of any associated overlay assets with the selected media. |
+
+
+## Media Library
+
+![](MediaLibrary.png)
+
+The **Media Library** displays all of the Media Source assets within your project that you can open in the Media Editor. 
+You can right-click on a source in this window to open up a context menu that you can use to edit the asset, open in the Media Editor, browse to the asset in the Content Browser or show the location of the Media File on your computer. 
+This window also displays the type of each Media Source as well as their associated URL string. 
+
+## Playlist
+
+![](Playlist.png)
+
+The **Playlist** section of the Media Editor not only displays all of the files contained within a Media Playlist but also enables you to create/save new Media Playlists assets inside your project. 
+The arrows in the upper-right corner of the Playlist window function similar to the Toolbar's **Prev** and **Next** buttons and enable you to cycle through Media Sources in your playlist.
+
+![](ActiveMediaPlaylist.png)
+
+[REGION:caption]
+Above an active Media Playlist displays, each of the Media Sources contained within it, with the arrow marker pointing to the currently playing source. 
+[/REGION]
+
+Each Media Source when active has a local Media Playlist created inside the Media Editor. You can save the local Media Playlist as a new Media Playlist by clicking the **Save** icon. 
+
+![](UnsavedPlaylist.png)
+
+[REGION:warning]
+As of engine 4.18, there currently is no way to add Media Sources to a local Media Playlist, however, support slated for updates in future engine releases. 
+[/REGION]
+
+
+## Details / Info
+
+![](Details.png)
+
+The **Details** panel provides options for controlling playback of the Media Player itself. 
+
+**Playback**
+| Option | Description |
+| -------- | ----------- |
+| **Play on Open** | When enabled will automatically start to play a Media Source when opening the source through Blueprint or C++. |
+| **Shuffle** | When a Playlist is opened, if this option is enabled, the player will randomly select a source within the playlist rather than playback sequentially. |
+| **Loop** | When enabled will loop a single Media Source (this will not loop a playlist, you must set Loop on the playlist if you want to loop a whole playlist). |
+
+**View Settings**
+| Option | Description |
+| -------- | ----------- |
+| **Horizontal Field of View** | Enables you to manually set the Horizontal FOV value for 360 videos.  |
+| **Vertical Field of View** | Enables you to manually set the Vertical FOV value for 360 videos. |
+| **View Rotation** | Enables you to manually set the View Rotation for 360 videos. |
+
+[REGION:warning]
+As cited in the Player Window section, engine 4.18 does not support 360 videos however future iterations of the Media Framework tools will provide support for them. 
+[/REGION]
+
+### Info Panel
+
+![](InfoPanel.png)
+
+The **Info** panel provides information about the selected Media Source that you can use for debugging purposes. 
+This window displays the player plugin associated with the file, the number of video and audio streams and information about video and audio tracks such as the codec being used, sample rate and dimensions. 
+
+Any errors when trying to playback video will be displayed here, for example, if you attempt to load an unsupported format, it will list it in this window as **Not supported**. 
+Additionally, you can use the **Copy to Clipboard** button to copy this information out which you can use to post to our official forums or Answer Hub pages to get help with and troubleshoot any playback issues. 
+
+
+
+

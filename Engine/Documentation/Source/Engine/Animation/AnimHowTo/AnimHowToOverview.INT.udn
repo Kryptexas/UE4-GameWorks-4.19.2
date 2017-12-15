@@ -36,12 +36,14 @@ Refer to the tables below for more information and click each link to view its c
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
-<!-- Convert these to Quick Starts
+[COMMENT:none]
+ Convert these to Quick Starts
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
 
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
--->
+
+[/COMMENT]
 
 
 

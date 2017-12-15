@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 現時点のカウントダウン タイマーは値 3 (秒) にハード コーディングされています。エディタでカウントダウン時間に希望する値を設定できるとより実用的になります。しかもこの変更は簡単にできます。**Visual Studio** で、「Countdown.h」ファイルを開いて以下の行を探します。
 
@@ -198,4 +198,4 @@ CountdownText->SetHorizontalAlignment(EHTA_Center);
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

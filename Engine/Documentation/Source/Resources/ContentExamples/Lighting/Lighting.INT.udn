@@ -12,41 +12,11 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
 Version: 4.9
+topic-image:Lighting_Compact.png
 
 [REGION:banner]
 ![](Lighting_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Lighting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Lighting:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Lighting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Lighting:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Lighting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -122,7 +92,8 @@ Listed below are each of the sections provided inside the **Lighting** map:
 | **[6.1 Shadow Bias](Resources\ContentExamples\Lighting\6_1)** | Shows how an object can cast shadows on itself to help it feel more grounded to a surface. |
 | **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | A setting used to boost the sharpness at the edges of shadows. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:RadiusNote]
 [REGION:note]
 You must select a light to see its radius or shape indicators.
@@ -142,4 +113,5 @@ There are 3 types of mobility available to objects: Static, Stationary, and Mova
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
 
--->
+
+[/COMMENT]

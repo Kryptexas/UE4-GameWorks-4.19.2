@@ -2,46 +2,7 @@
 Title:指数型高度雾用户指南
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:关于在关卡中创建基于高度的、远距离的雾的指南。
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/HeightFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/HeightFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/HeightFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/HeightFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:heightfog_topic.png
 
 
 [REGION:banner]

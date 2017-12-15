@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 조각 모드
@@ -67,7 +67,7 @@ topic-image:Landscape_Sculpt_topic.png
 
 Sculpt (조각) 툴은 랜드스케이프의 모양을 다양한 방법으로 변경하는 데 사용됩니다. 사용할 수 있는 다양한 조각 툴은 다음과 같습니다:
 
-[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"!region" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"sculpting" end:"1")]
 
 (#RegionTools)
 

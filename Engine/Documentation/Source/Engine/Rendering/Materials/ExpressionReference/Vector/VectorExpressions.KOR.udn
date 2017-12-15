@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3474197
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs: %ROOT%
 Title: Vector 표현식
 Description:위치나 노멀같은 벡터값을 출력하는 표현식입니다.
 Type: Reference
 Version:4.16
-Parent:Engine/Rendering/Materials
+Parent:Engine/Rendering/Materials/ExpressionReference
 reference-image:PreSkinnedTriPlanar.gif
 reference-image:TriPlanarMaterial.gif
 reference-image:PS_LocalPositionMaterial.gif
@@ -74,7 +74,8 @@ CameraVector 는 표면에 대한 카메라의 방향, 다른 말로 픽셀에�
 [REGION:warning]
 **언리얼 엔진 4 에서 라이팅 계산이 디퍼드 방식으로 바뀌어서 이 표현식은 폐기상태가 되었습니다.**
 [/REGION:warning]
-<!--
+[COMMENT:none]
+
 LightVector 는 표면에 대한 빛의 방향을 나타내는 3채널 벡터 값 표현식입니다.
 
 **사용 예:** LightVector 는 단순한 램버트(Lambert) 라이팅 모델같은 커스텀 라이팅 알고리즘 계산에 사용 가능합니다.
@@ -84,7 +85,8 @@ LightVector 는 표면에 대한 빛의 방향을 나타내는 3채널 벡터 �
 [REGION:note]
 LightVector 표현식은 Emissive 출력 계산시에는 사용할 수 없으며, LightFunction 이나 DeferredDecal 머티리얼에서만 사용할 수 있습니다.
 [/REGION]
--->
+
+[/COMMENT]
 
 
 ## Object Bounds
@@ -154,7 +156,8 @@ _클릭하면 이미지 원본을 확인합니다._
 | Tri-Planar Pre-Skinned Local Normal Vector Expression | Tri-Planar Material |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalNormal1]
 [REGION:asyncgif]
 ![](PreSkinnedTriPlanar.gif)(w:250)
@@ -166,7 +169,8 @@ _클릭하면 이미지 원본을 확인합니다._
 ![](TriPlanarMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 ## Pre-Skinned Local Position
 
@@ -189,7 +193,8 @@ _클릭하면 이미지 원본을 확인합니다._
 | Pre-Skinned Local Position Vector Expression | Skeletal Mesh's Default UV Layout |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalPos1]
 [REGION:asyncgif]
 ![](PS_LocalPositionMaterial.gif)(w:250)
@@ -201,7 +206,8 @@ _클릭하면 이미지 원본을 확인합니다._
 ![](PS_DefaultMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 
 ## ReflectionVectorWS
@@ -302,7 +308,8 @@ Vector Noise 머티리얼 표현식에서 찾을 수 있는 다양한 노이즈 
 		
 [/EXCERPT:VectorNoiseTest]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorNoiseFunctions]
 
 |함수| 설명 |
@@ -313,4 +320,5 @@ Vector Noise 머티리얼 표현식에서 찾을 수 있는 다양한 노이즈 
 | Perlin Curl | 펄린 컬 - 3D 컬 노이즈를 계산합니다. 출력은 펄린 3D 노이즈의 수학적인 컬이 됩니다. 약 162 인스트럭션 입니다. |
 | Voronoi | 보로노이 - *Noise* 표현식의 Voronoi 함수와 인스트럭션 수나 알고리즘은 같지만, RGB 는 각 Voronoi 셀의 가장 가까운 시드 포인트 위치이며, A 는 그 시드 포인트까지의 거리입니다. |
 [/EXCERPT]
--->
+
+[/COMMENT]

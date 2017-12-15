@@ -11,43 +11,7 @@ Related: Gameplay/Framework/UIAndHUD
 Related: Gameplay/Input
 Related: Engine/Rendering/ParticleSystems
 Version: 4.9
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/StrategyGame:title%](StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/StrategyGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/StrategyGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/StrategyGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/StrategyGame:title%](StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/StrategyGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/StrategyGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/StrategyGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:StrategyGameTopic.png
 
 
 [REGION:fullwidth]
@@ -215,7 +179,9 @@ is defined in the `StrategyMenuHUD`.
 To go back to previous menus, an array of shared pointers to menus is stored in the `MenuHistory` variable. This variable acts like a stack to hold previously viewed menus, so that it is easy to go back while
 also removing the requirement to store the parent of a menu so that menus can be reused in multiple places.
 
-<!-- ![](StrategyGameMainMenu2.png)(w:700) -->
+[COMMENT:none]
+ ![](StrategyGameMainMenu2.png)(w:700) 
+[/COMMENT]
 
 Menu animations use interpolation curves defined in `SStrategyMenuWidget::SetupAnimations`. Each curve has a start time, duration, and interpolation method defined, and can be played forward and in reverse.
 To play animation attributes at a specific time, `GetLerp()` is used, which returns a value between 0.0f and 1.0f.

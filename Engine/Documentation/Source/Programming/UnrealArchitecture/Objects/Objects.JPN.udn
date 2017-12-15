@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:3405846
+﻿INTSourceChangelist:3681055
 Availability:Public
 Title:オブジェクト
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:基本的なゲームプレイ要素であるアクタとオブジェクトの説明
 Version:4.11
+Type:Reference
+Parent:Programming/UnrealArchitecture
+Order:
+Tags:Programming
+Related:Programming/UnrealArchitecture/SmartPointerLibrary
 
 [TOC (start:2 end:3)]
 
@@ -35,12 +40,12 @@ UObjects にはメンバー変数 (プロパティ) または任意の型の関�
 | --- | --- |
 | [`NewObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewObject) |自動生成される名前で新規のインスタンスを作成します。単純なケースで使用するベストプラクティスです。 |
 | [`NewNamedObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewNamedObject) | 指定された名前といくつかのオプションのパラメータを使って新規インスタンスを作成します。新規インスタンスの Outer 内で名前コンフリクトがあればアサートします。 |
-| [`ConstructObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#ConstructObject) | すべての利用可能な作成オプションを提供して新規インスタンスを作成します。フレキシビリティが必要な場合に限り、使用してください。 |
+| [`ConstructObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#ConstructObject) | すべての利用可能な作成オプションを与えて新規インスタンスを作成します。フレキシビリティが必要な場合に限り、使用してください。 |
 | `new` | 一部の低レベルの状況でオブジェクトを構築するために使用します。コンストラクタが引数を必要とする場合などです。 |
 
 ゲームプレイ用に `UObject` クラスのインスタンスを作成する様々な方法の詳細情報については、[](Programming/UnrealArchitecture/Objects/Creation) をご覧ください。
 
-## UObjects が提供する機能
+## UObjects の機能
 
 このシステムをすべてのケースで使用することは必須でもないし、必ずしも適切でもありませんが、使用すると多くのメリットがあります。例えば、以下がその例です。
 
@@ -115,4 +120,8 @@ GENERATED_BODY() マクロは引数を取りませんが、エンジンが必要
 
 ## オブジェクトのデストラクション
 
-オブジェクトがエンジンによって参照されなくなると、オブジェクトのデストラクションは、ガーベジ コレクション システムによって自動的に処理されます。つまり UPROPERTY ポインタ、またはエンジン コンテナやスマート ポインタのクラス インスタンス (例 `TArray<UObject*>` や `TWeakPtr<UObject*>`) はポインタを持ちません。ガーベジ コレクタが実行し、参照されていないオブジェクトが見つかると削除されます。さらに、オブジェクト上で関数 `MarkPendingKill()` を直接呼出しできるようになります。この関数はこのオブジェクトへのすべてのポインタを NULL に設定し、グローバル検索からこのオブジェクトを取り除きます。繰り返しになりますが、このオブジェクトは次のガーベジ コレクション パスでは完全に削除されます。
+[REGION:note]
+オブジェクトがガーベジ コレクションされるかどうかについて、 [弱いポインタ](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer) は何の影響も及ぼしません。
+[/REGION]
+
+オブジェクトが参照されなくなると、オブジェクトの破棄は、ガーベジ コレクション システムによって自動的に処理されます。これは、 UPROPERTY ポインタ、またはエンジン コンテナや [スマート ポインタ](Programming/UnrealArchitecture/SmartPointerLibrary) のクラス インスタンスは、強い参照を持たないことを意味します。ガーベジ コレクタが実行し、参照されていないオブジェクトが見つかると削除されます。さらに、オブジェクト上で関数 `MarkPendingKill()` を直接呼出しできるようになります。この関数はこのオブジェクトへのすべてのポインタを NULL に設定し、グローバル検索からこのオブジェクトを取り除きます。繰り返しになりますが、このオブジェクトは次のガーベジ コレクション パスでは完全に削除されます。

@@ -33,7 +33,8 @@ Related:Engine\Sequencer\HowTo
 有关键插值的更多信息，请参见 [**插值模式**](Engine/UI/CurveEditor)。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AutoKeyMode]
 [REGION:simpletable]
 | 值 | 效果 |
@@ -43,9 +44,11 @@ Related:Engine\Sequencer\HowTo
 | **不建立键（Key None）** | 不对任何属性自动建立键。|
 [/REGION] 
 [/EXCERPT:AutoKeyMode]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:KeyInterp]
 [REGION:simpletable]
 | 值 | 效果 |
@@ -57,7 +60,8 @@ Related:Engine\Sequencer\HowTo
 | **常量（Constant）** | 将键插值设置为“常量”。|
 [/REGION] 
 [/EXCERPT:KeyInterp]
--->
+
+[/COMMENT]
 
 
 ## 常规
@@ -70,7 +74,8 @@ Related:Engine\Sequencer\HowTo
 | **创建可产生摄像机（Create Spawnable Cameras）** | 确定从 Sequencer 工具栏添加的摄像机是否创建为 [**可产生项**](Engine/Sequencer/HowTo/Spawnables)。|
 | **标签浏览器可见（Label Browser Visible）** |显示或隐藏 **标签浏览器（Label Browser）**窗口。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Spawn]
 [REGION:simpletable]
 | 值 | 效果 |
@@ -79,7 +84,8 @@ Related:Engine\Sequencer\HowTo
 | **放置于摄像机前** | 在摄像机透视视口的前方创建。 |
 [/REGION] 
 [/EXCERPT:Spawn]
--->
+
+[/COMMENT]
 
 
 ## 时间轴
@@ -98,7 +104,8 @@ Related:Engine\Sequencer\HowTo
 | **显示组合关键帧（Show Combined Keyframes）** | 如果启用此项，则指示对一个帧指定了多个键的属性。|
 | **显示通道颜色（Show Channel Colors）** | 进行切换，确定是否对“位置”、“旋转”和“比例”的 XYZ 显示彩色线条。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Zoom]
 [REGION:simpletable]
 | 值 | 效果 |
@@ -107,7 +114,8 @@ Related:Engine\Sequencer\HowTo
 | **鼠标位置（Mouse Position）** | 缩放将在时间轴中的鼠标位置处发生。|
 [/REGION] 
 [/EXCERPT:Zoom]
--->
+
+[/COMMENT]
 
 ## 对齐
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 침식
@@ -78,7 +78,8 @@ Topic-image:Erosion_Topic.png
 | **Noise Mode** | 노이즈 모드 - 하이트맵을 높이거나 낮추거나, 혹은 둘 다 할 때 노이즈 적용 여부입니다. [INCLUDE:#noise] |
 | **Noise Scale** | 노이즈 스케일 - 사용된 노이즈 필터 크기입니다. 노이즈 필터는 위치와 스케일에 관련되어 있으며, **Noise Scale** 을 변경하지 않는다면 같은 필터를 같은 위치에 여러 번 적용합니다. | 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:noise]
 |선택 | 설명 |
@@ -88,7 +89,8 @@ Topic-image:Erosion_Topic.png
 | **Lower** | 낮추기 - 하이트맵을 낮추게 되는 침식 효과만 적용합니다. |
 [/EXCERPT:noise]
 
---->
+-
+[/COMMENT]
 
 
 

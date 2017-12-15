@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Camera 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -27,7 +27,8 @@ Camera Offset 모듈을 통해 스프라이트 파티클의 위치를 카메라�
 
 
 
-<!----------------Camera Offset includes----------------
+[COMMENT:none]
+--------------Camera Offset includes----------------
 #### Includes
 
 [EXCERPT:UpdateMethod]
@@ -41,4 +42,5 @@ Camera Offset 모듈을 통해 스프라이트 파티클의 위치를 카메라�
 [/EXCERPT:UpdateMethod]
 
 
-------------------End Camera Offset Includes------------>
+------------------End Camera Offset Includes----------
+[/COMMENT]

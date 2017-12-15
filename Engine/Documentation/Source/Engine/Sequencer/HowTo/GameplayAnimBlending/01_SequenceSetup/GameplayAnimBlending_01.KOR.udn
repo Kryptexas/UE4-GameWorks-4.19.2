@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title:1. 시퀀스 구성
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:여기서는 레벨 시퀀스를 만들어 블렌딩 대상 애니메이션을 시퀀서에 추가하도록 하겠습니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[게임플레이 애니메이션 블렌딩 - 홈](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[다음](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+ Pulling this as we aren't doing it this way anymore. 
+
+
+[/COMMENT]
+
+[nav]
+
+여기서는 레벨 시퀀스를 구성하고 플레이가능 캐릭터와 블렌딩 대상 애니메이션을 추가하도록 하겠습니다.
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 에 에픽 마켓플레이스에서 무료로 받을 수 있는 **Animation Starter Pack** 을 사용하고 있습니다.
+
+![](AnimStarterPack.png)
+
+[/REGION]
+
+1.	프로젝트 안에서, 레벨의 **ThirdPersonCharacter** 를 삭제하고 **Ue4ASP_Character** 를 추가한 뒤, **Auto Possess Player** (플레이어 자동 빙의)를 **Player 0** 으로 설정합니다. 
+
+	![](GameBlend_01.png)
+
+	옵션으로, 캡슐 컴포넌트를 선택한 뒤 **Hidden in Game** (게임에서 숨김) 옵션을 체크하여 캡슐 컴포넌트가 표시되지 않도록 할 수 있습니다.
+
+	![](GameBlend_01b.png)
+
+1.	메인 툴바에서, **시네마틱** 버튼을 클릭한 뒤 **레벨 시퀀스 추가** 를 선택하고 아무 이름으로 저장합니다.
+
+	![](GameBlend_02.png)
+
+1.	레벨 시퀀스에서, **Ue4ASP_Character** 와 **Animation Track** (애니메이션 트랙)을 추가하고 **Death_3** 을 애니메이션으로 할당합니다.
+
+	![](GameBlend_03.png)
+
+1.	키프레임 창에서 애니메이션에 우클릭한 뒤 프로퍼티 아래 **When Finished** (완료 시)를 **Keep State** (상태 유지)로 설정합니다. 
+
+	![](GameBlend_03b.png)
+
+	그러면 레벨 시퀀스가 끝났을 때 애니메이션 상태가 보존됩니다. 그리고, 아래 강조된 **Slot Name** (슬롯 이름) 프로퍼티를 받아 적습니다.
+
+	![](GameBlend_03c.png)
+
+	애니메이션 블루프린트가 스켈레탈 메시를 제어할 때, 시퀀서는 해당 블루프린트 내 슬롯의 애니메이션을 재생하며, 이는 **Slot Name** (슬롯 이름) 프로퍼티를 통해 제어 가능합니다.
+	그 후 애니메이션 블루프린트는 슬롯 애니메이션과 게임 로직으로 구동된 캐릭터의 애니메이션을 블렌딩할 수 있습니다.
+
+다음 단계에서는 애니메이션 블루프린트와 캐릭터 블루프린트를 구성하여 게임플레이 애니메이션을 이번 단계에서 만든 사망 애니메이션으로 블렌딩할 수 있도록 하겠습니다.
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

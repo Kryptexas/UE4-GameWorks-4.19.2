@@ -67,7 +67,7 @@ will be used to download and store the engine builds.
 The P4V client is the current client provided by Perforce. It provides access to versioned files through a 
 graphical interface and also includes tools for merging and visualizing code evolution.
 
-![](P4VUpdated.png)(w:900 h:591)
+![](P4VUpdated.png)(w:900)
 
 The full P4V installer can be downloaded from the [Perforce Downloads: The Essentials](http://www.perforce.com/perforce/downloads/index.html) page.
 

@@ -19,7 +19,7 @@ Description:对类进行编码以变更相机视图
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 我们现在可以创建一个C++类来控制相机视图了。 在这个教程中，我们可以扩展 **Actor** 为新类，我们将其称之为CameraDirector。
 
@@ -171,4 +171,4 @@ Description:对类进行编码以变更相机视图
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

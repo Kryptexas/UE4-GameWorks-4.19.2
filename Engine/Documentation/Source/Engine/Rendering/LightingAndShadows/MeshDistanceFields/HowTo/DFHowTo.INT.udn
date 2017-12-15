@@ -1,0 +1,38 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Distance Field How-To's
+Description: How-to guides for using different aspects of Mesh Distance Fields in Unreal Engine 4.
+Type: how-to
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:
+Tags:Lighting
+topic-image:DFHowTo_topic.png
+
+
+The following step-by-step guies for [Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields) walk you through some of the features of 
+that can be enabled, such as adding a Sky Light to your scene that uses [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion), how
+to enable [RayTraced Distance Field Shadowing](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing) for your lights, setting up Particles visual effects to use your
+Mesh Distance Fields for collision in your scene, and much more.
+
+## Beginner
+
+[DIR(output:"fancy" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo" skill_level:"Beginner" tags:"Lighting")]
+
+## Intermediate
+
+[DIR(output:"fancy" parent:"Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo" skill_level:"Intermediate" tags:"Lighting")]
+
+
+[COMMENT:none]
+-
+## Advanced
+
+[DIR(output:"fancy" parent:"Engine/Rendering/Materials/HowTo" skill_level:"Advanced")]
+
+skill_level:"Intermediate"
+-
+[/COMMENT]

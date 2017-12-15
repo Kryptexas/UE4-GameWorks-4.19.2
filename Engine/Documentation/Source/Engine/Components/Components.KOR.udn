@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429239
+﻿INTSourceChangelist:3680928
 Availability:Public
 Title:컴포넌트
 Crumbs:%ROOT%, Engine
@@ -27,7 +27,7 @@ topic-image:components_topic.png
 그렇게 되지 않는다면, 월드의 Car 하나가 움직인 경우, 모든 Car 의 바퀴가 회전할 텐데, 분명히 바람직한 동작이 아닙니다. 컴포넌트 인스턴싱은 기본적으로 액터에 고유 서브 오브젝트를 빠르게 추가하는 프로세스를 단순화시켜 줍니다.
 
 [REGION:note]
-컴포넌트 인스턴싱이 없다면, [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) 프로퍼티 지정자를 사용하여 모든 컴포넌트 변수를 선언해 줘야 할 것입니다.
+컴포넌트 인스턴싱이 없다면, `Instanced` [프로퍼티 지정자](Programming/UnrealArchitecture/Reference/Properties/Specifiers) 를 사용하여 모든 컴포넌트 변수를 선언해 줘야 할 것입니다.
 [/REGION]
 
 ## 컴포넌트 유형

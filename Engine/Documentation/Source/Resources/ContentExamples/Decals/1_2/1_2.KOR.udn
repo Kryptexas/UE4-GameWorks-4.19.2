@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.2 - 데칼 블렌드 모드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -12,68 +12,14 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Version: 4.9
+topic-image:Resources\ContentExamples\Decals\Decals_2.png
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/Decals/1_1 "%Resources/ContentExamples/Decals/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[데칼 홈](Resources/ContentExamples/Decals)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/Decals/1_3 "%Resources/ContentExamples/Decals/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals/1_2:title%](Resources\ContentExamples\Decals\Decals_2.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Decals/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Decals/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals/1_2:title%](Resources\ContentExamples\Decals\Decals_2.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Decals/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Decals/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_2.png)
 
+[/REGION]
 
 
 데칼이 사용할 수 있는 블렌드 모드에 대한 예제입니다. 여러가지 블렌드 모드는 데칼이 표면에 영향을 끼치는 방식을 변경합니다. 이는 머티리얼에서 찾을 수 있는 **Decal Blend Mode** (데칼 블렌드 모드) 프로퍼티로 설정됩니다.
@@ -97,5 +43,3 @@ DBuffer 데칼을 라이팅과 같이 사용할 수 있습니다. 이는 기본�
 * **DBuffer Translucent Normal, Roughness** DBuffer 반투명 노멀, 러프니스 - 오직 러프니스, 오파시티, 노멀만 구은 라이팅과 함께 사용합니다.
 * **DBuffer Translucent Roughness** DBuffer 반투명 러프니스 - 오직 러프니스와 오파시티만 구은 라이팅과 함께 사용합니다.
 
-
-[/REGION]

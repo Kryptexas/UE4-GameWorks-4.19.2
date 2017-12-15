@@ -60,7 +60,8 @@ tags:Rendering
             ]
         }
 
-<!--
+[COMMENT:none]
+
 次のセクションでは、シェーダーに対応しているプラグインの新規作成方法を説明します。 
 
 1. まず **//Engine/Plugins/Developer/BlankPlugin** をコピーして **「FooPlugin」** と名前を付けます。
@@ -102,7 +103,8 @@ tags:Rendering
                 }
             ]
         }
--->
+
+[/COMMENT]
 ## レンダリング スレッド
 
 ゲーム側の API とは対照的に、RHI レンダー コマンドは専用スレッドのレンダリング スレッドによってキューに加えられます。レンダリング スレッドはゲーム スレッドの従スレッドです。RHI は ENQUEUE_RENDER_COMMAND 経由で API に FIFO コマンドをキューに追加します。レンダリング スレッドは 0 またはゲーム スレッドより 1 フレーム遅くなります。CPU パフォーマンスは、API と RHI 間の同期はプロダクション ランタイムにおいては絶対に避けなければなりません。プラグインの C++ 関数を正しいスレッドで呼び出すために、check (IsInGameThread()); や check (IsInRenderingThread()); などの複数のアサートを追加して、スレッドのロバスト性を改善することができます。

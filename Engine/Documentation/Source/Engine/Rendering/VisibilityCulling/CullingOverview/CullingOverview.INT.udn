@@ -4,45 +4,6 @@ Crumbs: %ROOT%, Engine,
 Description: Visibility Culling Overview
 Version: 4.13
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 [TOC(start:2 end:2)]
 
@@ -143,7 +104,8 @@ elements of the Camera.
 | **3**  | **Camera View Frustum:** The area between the near and far clip planes. Anything within this view is considered for rendering. |
 | **4**  | **Far Clip Plane:** The farthest point from the camera that will render. This is controlled by scene depth instead of a set distance that clips the view. |
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:CameraView1]
 [REGION:lightbox]
 [![](CameraView.png)(w:600)](CameraView.png)
@@ -155,7 +117,8 @@ elements of the Camera.
 [![](FrustumView.png)(w:600)](FrustumView.png)
 [/REGION]
 [/EXCERPT:SceneView1]
---->
+-
+[/COMMENT]
 
 ### Camera Field of View
 The view frustum is controlled by its **Field of View** (FOV). Higher values will give wider viewing angle and a lower value will restrict the available viewing angle.
@@ -201,7 +164,8 @@ enough to block another actor.
 _Click images for full size_
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:OccluderVsOccludee1]
 [REGION:lightbox]
 [![](OccluderVsOccludee.png)(w:450)](OccluderVsOccludee.png)
@@ -213,9 +177,11 @@ _Click images for full size_
 [![](OccluderVsOccludeeCameraView.png)(w:450)](OccluderVsOccludeeCameraView.png)
 [/REGION]
 [/EXCERPT:OccluderVsOccludeeCV]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 ### Visibility Culling
 
 The following types of culling are used to determine the current visibility state of an Actor in the scene.
@@ -228,7 +194,8 @@ The following types of culling are used to determine the current visibility stat
 
 
 For more information on [Buffer Visualizations](Engine/UI/LevelEditor/Viewports/ViewModes#buffervisualization) you can read about them on this page.
---->
+-
+[/COMMENT]
 
 ## Visibility Culling Methods
 
@@ -278,7 +245,8 @@ Note that the **Desired Max Draw Distance** here will override any higher value 
 [/OBJECT]
 
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | [INCLUDE:#Units1500] | [INCLUDE:#Units1000] | [INCLUDE:#Units500] |
 | --- | --- | --- |
@@ -288,12 +256,14 @@ Note that the **Desired Max Draw Distance** here will override any higher value 
 To help illustrate what is happening in the video above, the images here show a top-down view and mark the distance from the **Camera** Actor to the center point of the **Cube** Actor. 
 The image directly below the top-down view shows the camera's view.
 
---->
+-
+[/COMMENT]
 
 Since the **Desired Max Draw Distance** is set to 1000 and the **Min Draw Distance** is set to 500 the cube Actor will only be visible when the Camera moves within this distance from the Actor's bounding box
 center. When the Camera moves outside of this space the Actor will no longer be rendered. 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Units1500]
 [REGION:lightbox]
 [![](1500units.png)(w:300)](1500Units.png)
@@ -311,7 +281,8 @@ center. When the Camera moves outside of this space the Actor will no longer be 
 [![](500units.png)(w:300)](500Units.png)
 [/REGION]
 [/EXCERPT:Units500]
--->
+
+[/COMMENT]
 
 
 ### Cull Distance Volume
@@ -350,7 +321,8 @@ This is a generalized example of how visibility culling works and there is a num
 with visibility culling see the [Culling Strategies for Best Practices](Engine\Rendering\VisibilityCulling\CullingBestPractices) section in this page.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Camera1]
 [REGION:lightbox]
 [![](Camera1.png)(w:215)](Camera1.png)
@@ -374,13 +346,16 @@ with visibility culling see the [Culling Strategies for Best Practices](Engine\R
 [![](Camera4.png)(w:215)](Camera4.png)
 [/REGION]
 [/EXCERPT:Camera4]
--->
+
+[/COMMENT]
 
 [TOC(start:2 end:2)]
 
 ### Precomputed Visibility Volume
 
-<!---![](PrecomputedVisibilityVolume.png)(w:500)--->
+[COMMENT:none]
+-![](PrecomputedVisibilityVolume.png)(w:500)-
+[/COMMENT]
 
 Precomputed Visibility Volumes use visibility cells that are placed on surfaces after a static lighting build. These visibility cells use the Camera view to change the visibility state of an Actor.
 This culling method is good for having visibility culling on mobile devices where hardware occlusion queries cannot be issued to check the visibility state. 

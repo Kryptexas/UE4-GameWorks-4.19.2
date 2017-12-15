@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 트리거 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -51,5 +51,7 @@ Trigger (트리거)는 레벨의 다른 오브젝트와 상호작용이 일어�
 새로운 이벤트 노드의 실행 핀은 지정된 이벤트가 발생할 때마다 발동됩니다. 위의 예제에서는 액터가 트리거를 겹치(거나 관통하)는 
 때마다 발동됩니다:
 
-<!-- Add GIF/slider showing overlap during play and pin firing in graph -->
+[COMMENT:none]
+ Add GIF/slider showing overlap during play and pin firing in graph 
+[/COMMENT]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3462330
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:서브서피스 프로파일 셰이딩 모델
 Crumbs: %ROOT%
@@ -102,7 +102,8 @@ SubsurfaceProfile 이 지정되지 않으면, 기본값인 Caucasian (백인) �
 
 UE4 는 서브서피스 프로파일 셰이딩 모델에 전해상도 스킨 셰이딩을 지원합니다. 그러면 표면에 땀구멍이나 주름같은 디테일을 위한 하이파이 라이팅을 얻을 수 있습니다.
 
-<!--[OBJECT:ComparisonSlider]
+[COMMENT:none]
+[OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard.png)
     [/PARAM]
@@ -110,7 +111,8 @@ UE4 는 서브서피스 프로파일 셰이딩 모델에 전해상도 스킨 셰
     ![Full Resolution Skin](FRSH_FullResolution.png)
     [/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 [OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard_Zoom.png)
@@ -127,9 +129,12 @@ UE4 는 서브서피스 프로파일 셰이딩 모델에 전해상도 스킨 셰
 전해상도 스킨 셰이딩에는 풀 알파 채널 포함 최소 64 비트 씬 컬러 포맷이 필요합니다. 기본 FloatRGBA 씬 컬러 포맷은 괜찮습니다만, FloatRGB 같은 32 비트 표현은 지원되지 않습니다. 씬 컬러 포맷이 전해상도 피부와 호환되지 않는다면, 예비인 체크무늬 기반 라이팅으로 돌아갑니다.
 
 이 방식은 **r.SSS.Checkerboard** 콘솔 변수로 덮어쓸 수 있습니다. 여기에 가능한 값은 다음과 같습니다:
-* 0: 체크무늬 꺼짐 (전해상도)
-* 1: 체크무늬 켜짐 (예전 방식)
-* 2: 자동 (기본) - 씬 컬러 픽셀 포맷이 지원하는 경우 전해상도 라이팅을 사용합니다.
+
+|프로퍼티 이름| 값|설명|
+|-------------|------------|------|
+|**r.SSS.Checkerboard**|0|체크무늬 꺼짐|
+|**r.SSS.Checkerboard**|1|체크무늬 켜짐 (예전 방식)|
+|**r.SSS.Checkerboard**|2|자동 (기본) - 씬 컬러 픽셀 포맷이 지원하는 경우 전해상도 라이팅을 사용합니다.|
 
 ### 한계
 
@@ -237,7 +242,8 @@ _참고로 이 시스템이 개선됨에 따라 이 목록은 바뀔 수 있습�
 두상 모델 제공과 도움을 주신 Lee Perry-Smith 와 그의 회사 [Infinite Realities](http://ir-ltd.net) 에 특별한 감사 말씀 올립니다.
 이 기능에 자신의 작업물을 기반으로 한 구현을 공개해 주신 [Jorge Jimenez](http://www.iryoku.com/) 께도 매우 각별한 감사 말씀 올립니다.
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SSRScale]
 [OBJECT:SliderSequence]
     [PARAMLITERAL:max]
@@ -267,6 +273,7 @@ _참고로 이 시스템이 개선됨에 따라 이 목록은 바뀔 수 있습�
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SSRScale]
--->
+
+[/COMMENT]
 
 

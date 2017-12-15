@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:포그 시트 & 라이트 빔
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -133,7 +133,8 @@ _Size_ (크기) 변수는 3D 위젯이 활성화되어 있다는 점에서 특�
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:FogSheetCS]
 컨스트럭션 스크립트가 하는 일은 다음과 같습니다:
@@ -156,4 +157,5 @@ _Size_ (크기) 변수는 3D 위젯이 활성화되어 있다는 점에서 특�
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

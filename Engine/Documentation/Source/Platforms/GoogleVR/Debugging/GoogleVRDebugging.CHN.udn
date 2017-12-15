@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:3665321
+Availability:Public
+Title:Google VR 调试
+Description:对 Google VR 应用程序进行调试的方法。
+Navigation:platform
+Crumbs:%ROOT%
+Platform:Google VR
+Related:Platforms/Mobile/Performance
+Related:Engine/Performance
+Related:Engine/Performance/StatCommands
+Related:Platforms/Mobile/Textures
+Related:Platforms/Mobile/Materials
+Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related:Engine/Rendering/Materials/CustomizedUVs
+Skilllevel:Intermediate
+Version:4.17
+type:overview
+parent:Platforms/GoogleVR
+tags:VR
+tags:GoogleVR
+
+[TOC(start:1 end:3)]
+
+以下文档中讲述了在 Google VR 项目中追踪性能问题的多种方法。 
+
+## Google Daydream Performance HUD
+
+
+![](GoogleDaydreamPerfHUD.png)
+
+[region:note]
+Daydream Performance HUD 是一个性能显示层，在所有以 Google VR SDK 1.60 及以上版本编译的应用程序中均启用。
+[/region]
+
+Google Daydream 自带内置性能显示层，启用后即可迅速找到性能问题的缘由。启用此显示层后将显示以下数据：
+
+* **应用程序帧提交率，以及帧是否被阻塞在 GPU 上。**
+* **异步二次投影统计数据。**
+* **处理内存使用情况。**
+* **设备距离热量节流的温度（以摄氏度为单位）。**
+
+### 启用 Performance HUD
+
+进行以下操作即可启用 Performance HUD。
+
+1. 运行 Daydream 应用程序后，点击屏幕右上角的齿轮图标打开 VR 设置。
+
+	![](GVDP_00.png)
+
+1. 点击版本号 **6** 次，使 Developer Options 出现。
+
+	[REGION:lightbox]
+	[![](GVDP_01.png)(w:320)](GVDP_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	点击查看全图。
+	[/REGION]
+
+1. 选择 Developer Options > Enable performance heads-up display。启用此项后也将启用 **Enable Performance Monitoring** 选项。
+
+	[REGION:lightbox]
+	[![](GVDP_02.png)(w:320)](GVDP_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	点击查看全图。
+	[/REGION]
+
+1. 下次运行 VR 应用程序时便会显示性能显示层，如下图所示：
+
+	[REGION:lightbox]
+	[![](GoogleDaydreamPerfHUD.png)(w:720)](GoogleDaydreamPerfHUD.png)
+	[/REGION]
+
+	[REGION:caption]
+	点击查看全图。
+	[/REGION]
+
+	[region:note]
+	如需了解 Performance HUD 使用的更多信息，请查阅官方 [Google VR Performance HUD 文档](https://developers.google.com/vr/tools/perfhud)。
+	[/region]

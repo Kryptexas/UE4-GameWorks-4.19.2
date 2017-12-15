@@ -41,7 +41,8 @@ version:4.9
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:#debugobject]			| 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompileSuccessful]
 コンパイルに成功しました。ボタンをクリックすると、編集中のブループリントをコンパイルします。コンパイル処理の出力は、メッセージログのブループリントログに表示されます。デバッグ中はボタンは機能しません。
 [/EXCERPT:CompileSuccessful]
@@ -124,4 +125,5 @@ version:4.9
 
 $ Name :現在編集中のブループリントの名前を表示します。Level ブループリントに対しては表示しません。
 $ Parent :ブループリントの親クラスを表示します。Level ブループリントに対しては表示しません。
--->
+
+[/COMMENT]

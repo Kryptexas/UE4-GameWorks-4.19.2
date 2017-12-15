@@ -21,7 +21,7 @@ SkillLevel: Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在开始前，我们将创建一些人物要用的资源。首先，我们将创建**Animation Blueprint**（稍后在本系列中我们将填充它），这将被用于驱动人物的动画，然后我们将创建**Character Blueprint**，这将控制人物的行动背后的逻辑，以及它如何响应输入。 
 
@@ -97,5 +97,5 @@ SkillLevel: Advanced
 
 1.	**Compile**并**Save**，然后关闭蓝图。 
 
-%Steps%
+
 

@@ -72,23 +72,18 @@ order:8
 [/OBJECT]
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## Related Topics
+
+[REGION:buttonlist]
+
 	* [](Engine/Basics/Projects/CreatingTemplates "%Engine/Basics/Projects/CreatingTemplates:description%")
 	* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
 	* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-<!--
+[COMMENT:none]
+
 项目有两种类型： 
 
 * **Content-Only(仅包含内容的项目)** - 这些项目的所有开发通过使用内容资源在编辑器中完成，这些内容资源包括地图、美术资源、 _Blueprints_ 等。
@@ -99,6 +94,7 @@ order:8
 [/REGION]
 
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:Main]

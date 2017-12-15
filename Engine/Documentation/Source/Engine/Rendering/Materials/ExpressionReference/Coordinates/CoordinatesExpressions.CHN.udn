@@ -94,10 +94,12 @@ Panner（平移）会生成根据“时间”（Time）输入而变化的 UV。�
 
 **ScreenPosition（屏幕位置）**表达式输出当前所渲染像素的屏幕空间位置。  
 
-<!--| 项目 | 说明 |
+[COMMENT:none]
+| 项目 | 说明 |
 | -------- | ----------- |
 | [REGION:tablesection]属性[/REGION] ||
-| **屏幕对齐（Screen Align）** | 如果为 true，那么 ScreenPosition 会将位置除以齐次坐标，并将该位置映射到 [0,0] - [1,1] 以进行屏幕对齐。|-->
+| **屏幕对齐（Screen Align）** | 如果为 true，那么 ScreenPosition 会将位置除以齐次坐标，并将该位置映射到 [0,0] - [1,1] 以进行屏幕对齐。|
+[/COMMENT]
 
 [REGION:fullwidth]
 ![ScreenPositionExample.png](ScreenPositionExample.png)

@@ -10,9 +10,36 @@ version: 4.9
 
 [EXCERPT:Main]
 
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 The instructions on this page are for running the engine with projects compiled in a **Development** build configuration.  You can substitute the `UE4Editor-*.exe` or `UE4-*.exe` that you need
 for opening projects built in other configurations. More information on the binary naming convention can be found on the [Building Unreal Engine](Programming/Development/BuildingUnrealEngine) page.
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+The instructions on this page are for running the engine with projects compiled in a **Development** build configuration.  You can substitute the `UE4Editor-*.app` or `UE4-*.app` that you need
+for opening projects built in other configurations. More information on the binary naming convention can be found on the [Building Unreal Engine](Programming/Development/BuildingUnrealEngine) page.
+[/PARAM]
+[/OBJECT]
+
 
 ## Running the Editor
 [EXCERPT:RunEditor]
@@ -490,7 +517,8 @@ Or
 	travel DM-Deck
 
 
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 ## Running the Game with Cooked Content
 
@@ -515,7 +543,8 @@ The executable for your game requires cooked content to run.
 
 
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 
 

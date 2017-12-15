@@ -149,7 +149,8 @@ The LODDistanceCheckTime is used to set how often (in seconds) each ParticleSyst
 | **LODDistances** | An array of distances for determining which LOD level to utilize. (Only used when LODMethod is set to Automatic.) These numbers recommend the minimum distance away for the LOD level to be selected. For example, consider a system with 3 LOD levels: [INCLUDE:#LODDistance] |
 | **LODSettings** | An array of structs determining specific settings to use for each individual LOD. Currently, the only setting _Lit_ controls whether the ParticleSystem accepts lights when the given LOD is in use. |
 
-<!----
+[COMMENT:none]
+--
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | Value | Range | LOD level selected |
@@ -169,4 +170,5 @@ The LODDistanceCheckTime is used to set how often (in seconds) each ParticleSyst
 [/REGION]
 [/EXCERPT:LODMethod]
 
----->
+--
+[/COMMENT]

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3360829
-Title: 언리얼 엔진 VR 에디터
+﻿INTSourceChangelist:3782314
+Title: 언리얼 엔진 VR 모드
 Description: 에디터 툴세트의 모든 기능을 VR 에 특화된 방식으로 사용하여, 가상현실 안에서 가상현실 월드를 제작합니다.
 Crumbs:
 Availability:public
@@ -7,62 +7,33 @@ parent:Engine/Editor
 type:overview
 order:10
 tags:VR
-version:4.15
+version:4.17
 skilllevel:intermediate
 social-image:vreditor_social.png
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR:title%](Engine/Editor/VR/vreditor.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR:title%](Engine/Editor/VR/vr_editor.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Editor/VR/vreditor.png
 
 [EXCERPT:main]
-VR 에디터는 VR 월드 제작 전용으로 디자인된 특수 상호작용 모델과 결합된 에디터 툴세트의 모든 기능을 활용하여 가상현실 환경에서 월드를 디자인하고 제작할 수 있는 기능입니다.
+VR 모드는 VR 월드 제작 전용으로 디자인된 특수 상호작용 모델과 결합된 에디터 툴세트의 모든 기능을 활용하여 가상현실(VR) 환경에서 월드를 디자인하고 제작할 수 있는 기능입니다.
 
 VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적당한 스케일 감각으로 제작이 가능하며, 모션 컨트롤러 사용을 통해 자연스러운 동작이나 상호작용으로 환경을 제작할 수 있습니다.
 
-[PUBLISH:rocket,licensee]
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
 	JKO9fEjNiio
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
-	930
+	100
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	568
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
 	[/PARAMLITERAL]
 [/OBJECT]
-[/PUBLISH:rocket,licensee]
 
 ## 요구사항
 
@@ -83,7 +54,6 @@ VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적
 ## 시작하기
 
 %Engine/Editor/VR/ActivateVRMode:topic%
-%Engine/Editor/VR/Setup:topic%
 %Engine/Editor/VR/Controls:topic%
 
 ## 가이드
@@ -96,14 +66,15 @@ VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VRHardware]
 [REGION:plainlist]
 * Oculus Rift 와 Oculus Touch 컨트롤러
 * HTC Vive 와 컨트롤러
 [/REGION]
 [REGION:note]
-현재 VR 에디터에는 모션 컨트롤러가 필수입니다. 헤드셋만으로는 이 기능을 사용할 수 없습니다.
+현재 VR 모드에는 모션 컨트롤러가 필수입니다. 헤드셋만으로는 이 기능을 사용할 수 없습니다.
 [/REGION]
 [/EXCERPT:VRHardware] 
 
@@ -113,4 +84,5 @@ VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적
 * **HTC Vive 용:** SteamVR
 [/REGION]
 [/EXCERPT:VRSoftware]
--->
+
+[/COMMENT]

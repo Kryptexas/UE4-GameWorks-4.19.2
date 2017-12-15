@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Once you have an Actor in your level to work with, you can quickly alter the appearance of the Actor by changing its [Material](Engine/Rendering/Materials) through the **Details** panel. 
 In this step we will assign a Material through the Material property in the Details panel as well assign a Material from the **Content Browser**. 
@@ -82,4 +82,3 @@ We learned how to assign a Material to an Actor through the Actor's Material pro
 In the next step we will take a look at the [](Engine/Physics) & [Collision](Engine/Physics/Collision/Overview) properties of an Actor to enable physics simulation on our sphere so when we launch the game, the ball will drop and roll down the stairs and collide with our playable character killing them in the process. 
 
 
-%Steps%

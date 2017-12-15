@@ -175,7 +175,8 @@ checkpoint:FSB
 ブループリントの設定はこれで完了です。次のセクションでは、UE4 で使用する設定について説明します。
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompSurfNorm]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -2003,4 +2004,5 @@ checkpoint:FSB
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ApplySim]
--->
+
+[/COMMENT]

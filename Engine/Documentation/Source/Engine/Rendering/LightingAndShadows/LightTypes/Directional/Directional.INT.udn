@@ -3,45 +3,7 @@ Title:Directional Lights
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:The basics of Directional Lights.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%](DirectionalLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Directional]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%](DirectionalLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Directional]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:DirectionalLight_Topic.png
 
 [REGION:fullwidth raw]
 ![](Directional_LightHeader.png)
@@ -54,26 +16,11 @@ Version: 4.9
 [EXCERPT:Intro]
 The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The Directional Light when placed can be set to one of three **Mobility** settings:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Directional_LightStationary.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
+* **Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
+* **Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
+* **Moveable** - (pictured left) which means the light is totally dynamic and allows for dynamic shadowing. This is the slowest in terms of rendering but allows for the most flexibility during gameplay. 
 
-	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
-	[/PARAM]
-[/OBJECT]
 [/EXCERPT:Intro]
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Directional_LightMove.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**Moveable** - (pictured left) which means the light is totally dynamic and allows for dynamic shadowing. This is the slowest in terms of rendering but allows for the most flexibility during gameplay. 
-	[/PARAM]
-[/OBJECT]
 
 Below you will see a representation of sunlight being cast through an opening in a roof. 
 
@@ -86,23 +33,17 @@ Below you will see a representation of sunlight being cast through an opening in
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 [![](directional_001.png)(w:450)](directional_001.png) [![](directional_002.png)(w:450)](directional_002.png)
 [/REGION]
--->
+
+[/COMMENT]
 
 The left image shows just the light, the right image has its **Shadow Frustum** enabled in order to see that the Directional Light is casting parallel light rays. 
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Light_Direction.png)(w:100 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**Light Direction** (pictured left) is indicated by an arrow that points in the direction the light will emit which is useful for placing and orientating your light as needed.
-	[/PARAM]
-[/OBJECT]
-
+**Light Direction** (pictured left) is indicated by an arrow that points in the direction the light will emit which is useful for placing and orientating your light as needed.
 
 ## Directional Light Properties
 

@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:손 IK 리타게팅
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:IK 본의 리타게팅 처리에 사용되는 Hand IK Retargeting 콘트롤에 대한 설명입니다.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:title%](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting\handIKretargeting.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:title%](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting\handIKretargeting.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:handIKretargeting.png
 
 
 

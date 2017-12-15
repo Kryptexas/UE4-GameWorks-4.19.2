@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429256
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: UE4 시작하기
 Crumbs: %ROOT%
@@ -9,96 +9,43 @@ parent:%ROOT%
 order:1
 tags:Getting Started
 type:landing
+topic-image:gettingstarted_topic.png
+topic-icon:%ROOT%/start_icon.png
 
-[VAR:Params]
-[PARAM:image]
-	![](gettingstarted_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/start_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%GettingStarted:title%
-[/PARAM]
-[PARAM:description]
-	%GettingStarted:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:GettingStarted]
-[/PARAM]
-[/VAR]
 
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
+## 시작하기
 
-[VAR:TopicCompact]
+%Engine/QuickStart:topiccompact%
+%Engine/Content/QuickStart:topiccompact%
+%Programming/QuickStart:topiccompact%
+%GettingStarted/Terminology:topiccompact%
 [OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-gettingstarted
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-
-[OBJECT:TopicButtonList]
+	[PARAM:image]
+		![](GettingStarted/FromUnity/image_0.png)
+	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		시작하기
+		%GettingStarted/FromUnity:title%
 	[/PARAM]
 	[PARAM:description]
-		[REGION:topics third]
-		%Engine/QuickStart:topiccompact%
-		%Engine/Content/QuickStart:topiccompact%
-		%Programming/QuickStart:topiccompact%
-		%GettingStarted/Terminology:topiccompact%
-		[OBJECT:TopicCompact]
-			[PARAM:image]
-				![](GettingStarted/FromUnity/image_0.png)
-			[/PARAM]
-			[PARAM:icon]
-				![](%ROOT%/start_icon.png)(convert:false)
-			[/PARAM]
-			[PARAM:title]
-				%GettingStarted/FromUnity:title%
-			[/PARAM]
-			[PARAM:description]
-				%GettingStarted/FromUnity:description%
-			[/PARAM]
-			[PARAM:path]
-				[RELATIVE:GettingStarted/FromUnity]
-			[/PARAM]
-		[/OBJECT]
-		%GettingStarted/SubEditors:topiccompact%
-		[/REGION]
-		[REGION:section]
-			[REGION:normaltitle]
-			부가 정보
-			[/REGION]
-			* [필수 하드웨어 및 소프트웨어](GettingStarted/RecommendedSpecifications "%GettingStarted/RecommendedSpecifications:description%")		
-			[PUBLISH:Licensee]
-			* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
-			[/PUBLISH:Licensee]
-			[PUBLISH:Docs]
-			* [엔진 설치](GettingStarted/Installation "%GettingStarted/Installation:description%")
-			[/PUBLISH:Docs]
-			* [릴리즈 노트](Support/Builds "%Support/Builds:description%")
-		[/REGION]
+		%GettingStarted/FromUnity:description%
 	[/PARAM]
-	[PARAM:links]
+	[PARAM:path]
+		[RELATIVE:GettingStarted/FromUnity]
 	[/PARAM]
 [/OBJECT]
+%GettingStarted/SubEditors:topiccompact%
+[REGION:section]
+	[REGION:normaltitle]
+	부가 정보
+	[/REGION]
+	* [](GettingStarted/RecommendedSpecifications "%GettingStarted/RecommendedSpecifications:description%")	
+	* [](GettingStarted/Installation "%GettingStarted/Installation:description%")	
+	* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+	* [](Support/Builds "%Support/Builds:description%")
+[/REGION]
 
 ## 에디터 기본
 

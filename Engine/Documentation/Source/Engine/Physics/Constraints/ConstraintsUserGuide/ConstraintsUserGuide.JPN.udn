@@ -101,7 +101,8 @@ _機能的に、これら 2 つのアクタと物理コンストレイントは�
 
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:methods]
 [VAR:methods2]
@@ -118,7 +119,8 @@ _機能的に、これら 2 つのアクタと物理コンストレイントは�
 
 **物理アセットツール** (**PhAT**) の **物理コンストレイント** の使用については、 [**%Engine/Physics\PhAT:title%**](Engine/Physics\PhAT) をご覧ください。
 
--->
+
+[/COMMENT]
 
 
 

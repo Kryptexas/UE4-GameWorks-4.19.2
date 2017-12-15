@@ -1,15 +1,33 @@
-﻿INTSourceChangelist:3606403
+﻿INTSourceChangelist:3735956
 Availability: NoPublish
 Title: 빌드 환경설정 프로퍼티 페이지
 Crumbs:
 Description: 자동 생성되는 마크다운 페이지입니다.
-Version: 4.18
+Version: 4.19
+
+### XboxOnePlatform
+
+$ Compiler : 윈도우 플랫폼에서 사용할 컴파일러 툴체인 버전입니다. "default" 값은 UBT 시작 시 특정 버전으로 변경됩니다.
 
 ### BuildConfiguration
 
 $ bGeneratedSYMFile : 빌드하고자 하는 dSYM 파일 리스트 아키텍처 생성 여부입니다.
 
+$ bEnableAddressSanitizer : 주소 새니타이저(ASan)를 활성화시킵니다.
+
+$ bEnableThreadSanitizer : 스레드 새니타이저(TSan)를 활성화시킵니다.
+
+$ bEnableUndefinedBehaviorSanitizer : 미정의 작동방식 새니타이저(UBSan)를 활성화시킵니다.
+
+$ bAddFastPDBToProjects : 빌드 명령줄에 기본적으로 -FastPDB 옵션 추가 여부입니다.
+
+$ bUsePerFileIntellisense : 파일 별 인텔리센스 데이터 생성 여부입니다.
+
+$ bEditorDependsOnShaderCompileWorker : 에디터용 프로젝트 파일을 생성할 때 ShaderCompileWorker 에 종속성 포함 여부입니다.
+
 $ bDebugBuildsActuallyUseDebugCRT : 디버그 빌드에 C++ 런타임 (CRT) 디버깅을 켭니다. 기본적으로는 항상 릴리즈 런타임을 사용하는데, Debug C++ Runtime 은 언리얼 엔진 프로젝트 디버깅에는 그리 유용하지 않고, Debug CRT 라이브러리에 대한 링크는 강제로 써드 파티 라이브러리 종속성도 Debug CRT 를 사용하여 컴파일하게 되기 (그래서 퍼포먼스가 느려지기) 때문입니다. 종종 프로그램 코드 디버깅만을 위해 써드 파티 스태틱 라이브러리의 디버그 버전 사본이 별도로 필요하다는 것이 불편할 수 있습니다.
+
+$ bUseXGEController : XGE 컨트롤러 워커와 모듈을 엔진 빌드에 포함시킬지 여부입니다. XGE 인터셉션 인터페이스를 사용하는 분산 셰이더 컴파일에 필수입니다.
 
 $ bUseUnityBuild : 빠른 컴파일을 위해 C++ 코드를 커다란 파일로 통합시킬지 여부입니다.
 
@@ -139,17 +157,27 @@ $ ProcessorCountMultiplier : 로컬 실행을 위한 프로세서 수 배수입�
 
 $ MaxProcessorCount : 로컬 실행을 위한 최대 프로세서 수입니다.
 
-$ bAddFastPDBToProjects : 기본으로 빌드 명령줄에 -FastPDB 옵션 추가 여부입니다.
-
-$ bUsePerFileIntellisense : 파일 별 intellisense 데이터 생성 여부입니다.
-
-$ bEditorDependsOnShaderCompileWorker : 에디터용 프로젝트 파일 생성 시 ShaderCompileWorker 에 종속성 포함 여부입니다.
-
-$ bXGENoWatchdogThread : no_watchdog_thread 옵션을 사용하여 VS2015 툴체인 버벅임을 방지할지 여부입니다.
+$ bXGENoWatchdogThread : no_watchdog_thread 옵션을 사용하여 VS2015 툴체인 멈춤 현상을 방지할지 여부입니다.
 
 $ bShowXGEMonitor : XGE 빌드 모니터 표시 여부입니다.
 
 $ bStopXGECompilationAfterErrors : 켜면 XGE 는 컴파일 오류가 발생한 이후 타겟 컴파일을 중지합니다. 추천하는 옵션인데, 다른 데 쓰이는 컴퓨팅 리소스가 절약되기 때문입니다.
+
+### ProjectFileGenerator
+
+$ Format : 생성할 기본 프로젝트 파일 포맷 목록입니다.
+
+### VCProjectFileGenerator
+
+$ Version : 프로젝트 파일 생성을 위한 Visual Studio 버전입니다.
+
+### SourceFileWorkingSet
+
+$ Provider : 워킹 세트 결정에 사용할 프로바이더를 설정합니다.
+
+$ RepositoryPath : 리포지터리에 사용할 경로를 설정합니다. 상대 경로인 경우 UE 루트(Engine 상위) 디렉토리를 기준으로 해석합니다.
+
+$ GitPath : Git 실행파일에 사용할 경로를 설정합니다. 기본값은 "git" 입니다 (PATH 에 있다 가정).
 
 ### IOSToolChain
 
@@ -181,12 +209,6 @@ $ ProcessorCountMultiplier : 로컬 실행을 위한 프로세서 수 배수입�
 
 $ MaxProcessorCount : 로컬 실행을 위한 최대 프로세서 수입니다.
 
-### ProjectFileGenerator
-
-### VCProjectFileGenerator
-
-$ Version : 프로젝트 파일 생성을 위한 Visual Studio 버전입니다.
-
 ### RemoteToolChain
 
 $ RemoteServerName : 이 두 가지 변수가 XmlConfigLoader.Init() 의 XML 컨픽 파일에서 로드됩니다.
@@ -208,5 +230,12 @@ $ RSyncUsername : RSync 로 접속하기 위한 원격 머신의 사용자명입
 ### WindowsPlatform
 
 $ Compiler : 윈도우 플랫폼에서 사용할 컴파일러 툴체인 버전입니다. UBT 시작 시 "default" 값이 특정 버전으로 바뀝니다.
+
 $ StaticAnalyzer : 사용할 정적 분석기입니다.
+
+$ bStrictConformanceMode : VS2017+ 의 엄격한 표준 일치 모드를 활성화시킵니다 (/permissive-).
+
+### WindowsTargetRules
+
+$ ObjSrcMapFile : .obj->소스 파일 매핑이 들어있는 파일 익스포트 여부입니다.
 

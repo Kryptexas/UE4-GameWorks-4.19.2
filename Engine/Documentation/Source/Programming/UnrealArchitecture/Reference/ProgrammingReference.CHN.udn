@@ -17,20 +17,14 @@ Version:4.9
 
 除以上的宏外还有一个 UPARAM() 宏，主要用于将 C++ 代码公开到蓝图。在 [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) 文档中可查看 UPARAM() 的使用范例。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		游戏性编程参考目录
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 游戏性编程参考目录
+
+[REGION:buttonlist]
+
 		* [](Programming\UnrealArchitecture\Reference\Classes "%Programming/UnrealArchitecture/Reference/Classes:Description% ")
 			* [](Programming\UnrealArchitecture\Reference\Functions "%Programming/UnrealArchitecture/Reference/Functions:Description% ")
 			* [](Programming\UnrealArchitecture\Reference\Properties "%Programming/UnrealArchitecture/Reference/Properties:Description% ")
 		* [](Programming\UnrealArchitecture\Reference\Structs "%Programming/UnrealArchitecture/Reference/Structs:Description% ")
 		* [](Programming\UnrealArchitecture\Reference\Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description% ")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

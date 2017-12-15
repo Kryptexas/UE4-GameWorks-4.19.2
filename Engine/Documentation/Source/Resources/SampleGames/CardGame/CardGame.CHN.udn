@@ -116,7 +116,8 @@ Related: Engine/Content/Types/StaticMeshes
 ![](CardGameEndMenu.png)
 [/REGION:fullwidth]
 
-<!--
+[COMMENT:none]
+
 ## Overview
 
 The ShooterGame sample is an example of PC multiplayer first person shooter. It includes basic implementations of 
@@ -288,4 +289,5 @@ The options menu is available as a submenu of both the main menu and in-game men
 
 The settings in the options menu are saved to `GameUserSettings.ini`, and loaded automatically at startup.
 
--->
+
+[/COMMENT]

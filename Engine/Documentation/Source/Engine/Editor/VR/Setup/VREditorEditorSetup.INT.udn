@@ -1,7 +1,7 @@
 Title: Setting Up VR Editor from GitHub
 Description: Download and configure the Unreal Engine VR Editor Preview from GitHub.
 Crumbs:
-Availability: public
+Availability: docs
 parent: Engine/Editor/VR
 type:how-to
 order: 2

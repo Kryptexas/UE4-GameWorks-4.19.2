@@ -21,7 +21,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在此步中，我们将使用引擎的 Character 基类制作一个新角色。Character 类（派生自 Pawn 类）内置有双足移动功能，如行走、奔跑、跳跃。
 
@@ -158,4 +158,4 @@ Version:4.11
 
 1.	按下 Esc 键或点击关卡编辑器中的 **Stop** 按钮退出 Play in Editor（PIE）模式，然后前往下一步。
 
-%Steps%
+

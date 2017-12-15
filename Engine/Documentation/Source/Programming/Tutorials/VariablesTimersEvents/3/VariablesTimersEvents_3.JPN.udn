@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]このチュートリアルでは、 **ブループリント** を使用した C++ クラスの機能拡張方法を紹介します。ブループリントのチュートリアルとしてではなく、C++ コードの記述にミスがないことを確認するテストを目的としています。**ブループリント** の導入に関しては [%Engine\Blueprints\QuickStart:title%](Engine\Blueprints\QuickStart) を一読することをお勧めします。[/REGION]
 
@@ -196,4 +196,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

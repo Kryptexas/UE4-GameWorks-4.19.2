@@ -459,7 +459,8 @@ Or
 	travel DM-Deck
 
 
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 ## 使用烘焙的内容运行游戏
 
@@ -484,7 +485,8 @@ Or
 
 
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 
 

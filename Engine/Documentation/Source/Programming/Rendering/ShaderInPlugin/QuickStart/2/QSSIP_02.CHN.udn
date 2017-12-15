@@ -1,106 +1,91 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3568702
+Availability:Docs 
 Crumbs: %ROOT%
-Title: Creating a New Global Shader in a Plugin
-Description: Desc 2
+Title:在插件 - 蓝图设置中新建一个全局着色器
+Description:设置蓝图测试插件代码中的着色器。
 Type:quick start
 Type:multi-step
 SkillLevel:Intermediate
-Version: 4.17
+Version:4.17
 Parent:Programming/Rendering/ShaderInPlugin/QuickStart
 Order:2
 Tags:Rendering
+Tags:Programming
 Checkpoint:shaderqs
 
 [NAV]
 
-1. To see how this works, right - click in the **Content Browser** and create a new **Blueprint Class** that has **Actor** as its parent class with the name,  **DrawUVDisToRenderTarget**. 
+验证插件正常工作后，以下部分将说明如何使用蓝图调用全局着色器。
+
+1. 如需查看其工作原理，在 **Content Browser** 中点击右键并新建一个 **Blueprint Class**，**Actor** 作为其父类，命名为 **DrawUVDisToRenderTarget**。 
+
+    ![](HT_ShadersInPlugins_11.png)(w:600)
+
+1. 接下来新建一个名为 **RT_00** 的 **渲染目标** 和一个名为 **MAT_RT** 的新材质。
+
+    ![](HT_ShadersInPlugins_12.png)(w:600)
+
+1. 打开 MAT_RT 材质，然后将 RT_00 Render Target 添加到材质图表，将其输出连接到主材质节点上的 Base Color 输入，完成后按下 **Apply** 和 **Save** 按钮。
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_11.png)(w:587)](HT_ShadersInPlugins_11.png)
+    [![](HT_ShadersInPlugins_13.png)(w:600)](HT_ShadersInPlugins_13.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Next, create a new **Render Target** called **RT_00** and a new Material called **MAT_RT**.
+1. 接下来打开 DrawUVDisToRenderTarget 蓝图并将以下变量和节点创建/添加到事件图表。
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_12.png)(w:587)](HT_ShadersInPlugins_12.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
-1. Open up MAT_RT Material and then add the RT_00 Render Target to the Material Graph, connecting its output to the Base Color input on the Main Material Node, pressing the **Apply** and **Save** button when done.
-
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_13.png)(w:564)](HT_ShadersInPlugins_13.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
-1. Next, open up the DrawUVDisToRenderTarget Blueprint and create/add the following variables and nodes to the Event Graph.
-
-    |Variables | Default Value|
+    |变量 | 默认值|
     |----------|--------------|
     |K1  | 1.0 |
     |K2  | 1.0 |
     |inc  | 1.0 |
 
-    |Nodes | Default Value|
+    |节点 | 默认值|
     |----------|--------------|
     |W  | N/A |
     |S  | N/A |
     |Event Tick  | N/A |
-    |Draw UVDisplacement to Render Target | Input **1** into FOV, Aspect Ratio, and Overscan Factor |
+    |Draw UVDisplacement to Render Target | 在视野（FOV）、高宽比（Aspect Ratio）、过扫描因子（Overscan Factor）中输入 **1** |
     |Make FooCameraModel | N/A |
     |Clear Render Target 2D | N/A |
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_14.png)(w:504)](HT_ShadersInPlugins_14.png)
-    [/REGION]
+    ![](HT_ShadersInPlugins_14.png)(w:600)
 
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
-1. To easily demonstrate how the Draw UVDisplacement to Render Target will warp the supplied render target, you will need to setup your up Blueprint so that the values input into the **K1** and **K2** inputs on the Draw UVDisplacement to Render Target node can be increase or decrease by the press of a button. To accomplish, set up the nodes in the Event Graph so that they match the following image: 
+1. 为简单地展示 Draw UVDisplacement to Render Target 节点如何对提供的渲染目标进行变形，用户需要对蓝图进行设置，使此节点上 **K1** 和 **K2** 输入中输入的值能够通过按键进行增加或减少。为完成此操作，需要在事件图表中设置节点，使其与下图相匹配： 
     
     [Include:#DrawDIS]
 
     [REGION:caption]
-    You can copy and paste this Blueprint code directly into your Blueprint.
+    您可直接将此蓝图代码复制粘贴到蓝图中。
     [/REGION]
     [region:note]
-    Do not forget to input your Render Target into the **Output Render Target** or you will not see anything happen.
+    需要将渲染目标输入 **Output Render Target**，否则不会有效果。
     [/region]
 
-1. With the required Blueprint logic now setup, make sure to Compile and Save your Blueprint and then drag your Blueprint from the Content Browser into a level. When completed, select the Blueprint and under **Input** change the **Auto Receive Input** from **Disabled** to **Player 0**.
+1. 所需的蓝图逻辑设置完成后，**编译** 并 **保存** 蓝图，然后将蓝图从 **Content Browser** 拖入 **关卡**。完成后，选择蓝图，然后在 **Input** 下将 **Auto Receive Input** 从 **Disabled** 改为 **Player 0**。
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_16.png)(w:645)](HT_ShadersInPlugins_16.png)
+    [![](HT_ShadersInPlugins_16.png)(w:600)](HT_ShadersInPlugins_16.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Next, select the floor and duplicate it by pressing **CTRL + W** and then rotate it **-90 degrees** in the **X** axis then drag the Material **MAT_RT** on to it so you can see the effect the of the Draw UVDisplacement to Render Target.
+1. 接下来选中地面，按下 **CTRL + W** 复制，然后在 **X** 轴中将其旋转 **-90 度**，然后将材质 **MAT_RT** 拖到其上方，即可看到 Draw UVDisplacement to Render Target 的效果。
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_17.png)(w:645)](HT_ShadersInPlugins_17.png)
+    [![](HT_ShadersInPlugins_17.png)(w:600)](HT_ShadersInPlugins_17.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. With everything now setup, press the **Play** button and then press the **W** and **S** keys to warp the Render Target that was input into the Draw UVDisplacement to Render Target node like in the following video.
+1. 所有内容设置完成后，按下 **Play** 按钮，再按下 **W** 和 **S** 键对输入 Draw UVDisplacement to Render Target 节点的渲染目标执行变形，效果与以下视频相似。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:videoid]
@@ -120,9 +105,14 @@ Checkpoint:shaderqs
 		[/PARAMLITERAL]
 	[/OBJECT]
 
+## 最终结果
+
+此时您便已学习到如何通过蓝图对渲染目标中的内容执行变形，创建各种有趣的形状。下一步可以尝试新建一个插件，或对现有插件进行编辑，看您能创建出什么有趣的图像和效果。
+
 [NAV]
 
-	<!--
+	[COMMENT:none]
+
 [EXCERPT:DrawDIS]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -133,7 +123,7 @@ Checkpoint:shaderqs
 	[/PARAMLITERAL]
 	[PARAM:image]
 		[REGION:lightbox]
-		[![](HT_ShadersInPlugins_15.png)(w:704)](HT_ShadersInPlugins_15.png)
+		[![](HT_ShadersInPlugins_15.png)(w:750)](HT_ShadersInPlugins_15.png)
 		[/REGION]
 	[/PARAM]
 	[PARAM:snippet]
@@ -342,4 +332,5 @@ Checkpoint:shaderqs
 [/OBJECT]
 [/EXCERPT:DrawDIS]
 
--->
+
+[/COMMENT]

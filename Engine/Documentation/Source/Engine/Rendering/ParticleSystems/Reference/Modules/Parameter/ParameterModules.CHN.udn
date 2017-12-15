@@ -21,7 +21,8 @@ Parameter 模块将数据从粒子系统中传出，以便对其他方面（如�
 
 
 
-<!-------------Dynamic Includes----------------
+[COMMENT:none]
+-----------Dynamic Includes----------------
 #### Includes
 
 [EXCERPT:DynamicParams]
@@ -50,7 +51,8 @@ Parameter 模块将数据从粒子系统中传出，以便对其他方面（如�
 [/REGION]
 [/EXCERPT:ValueMethod]
 
--------------Dynamic Includes--------------->
+-------------Dynamic Includes-------------
+[/COMMENT]
 
 
 ## Dynamic (Seed)

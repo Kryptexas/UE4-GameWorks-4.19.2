@@ -26,7 +26,8 @@ The **Camera Offset** module allows the positions of sprite particles to be offs
 
 
 
-<!----------------Camera Offset includes----------------
+[COMMENT:none]
+--------------Camera Offset includes----------------
 #### Includes
 
 [EXCERPT:UpdateMethod]
@@ -40,4 +41,5 @@ The **Camera Offset** module allows the positions of sprite particles to be offs
 [/EXCERPT:UpdateMethod]
 
 
-------------------End Camera Offset Includes------------>
+------------------End Camera Offset Includes----------
+[/COMMENT]

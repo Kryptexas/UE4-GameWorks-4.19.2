@@ -1,0 +1,41 @@
+Availability:Docs
+Title: Niagara - How To's
+Crumbs: %ROOT%, Engine, Engine\Niagara
+Description: A How-To Guide for creating visual effects with the Niagara Editor. 
+Version: 4.17
+tags: Niagara
+
+The **Niagara - How To...** pages provide step-by-step examples on how to work with the **Niagara** Editor in various capacities inside Unreal Engine 4. 
+Whether you would like to learn how to create simple ambient effects for the environment, or setup up complex particle interactions, these pages will guide you each step of the way. Reference links are also included to provide more detailed documentation of the systems and content being outlined in each guide.  Refer to the table below for more information and click each link to view its contents. 
+
+
+## Beginner
+
+[DIR(output:"fancy" type:"how-to" parent:"Engine/Niagara/HowTo" skill_level:"Beginner")]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

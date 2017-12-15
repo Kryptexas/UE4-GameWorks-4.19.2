@@ -122,7 +122,8 @@ Checkpoint:shaderqs
 
 [NAV]
 
-	<!--
+	[COMMENT:none]
+
 [EXCERPT:DrawDIS]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -342,4 +343,5 @@ Checkpoint:shaderqs
 [/OBJECT]
 [/EXCERPT:DrawDIS]
 
--->
+
+[/COMMENT]

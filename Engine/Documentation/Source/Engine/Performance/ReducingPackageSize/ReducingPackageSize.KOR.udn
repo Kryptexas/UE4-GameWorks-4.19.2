@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3528974
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 게임 패키지 크기 줄이기
 Crumbs:%ROOT%, Engine, Engine/Performance
@@ -7,40 +7,7 @@ Skilllevel: Intermediate
 Version: 4.12
 Related:Platforms/Android/ReducingAPKSize
 Parent:Engine/Performance
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Performance/ReducingPackageSize:title%](Engine/Performance/ReducingPackageSize/package_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/ReducingPackageSize:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/ReducingPackageSize:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/ReducingPackageSize]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Performance/ReducingPackageSize:title%](Engine/Performance/ReducingPackageSize/package_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/ReducingPackageSize:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/ReducingPackageSize:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/ReducingPackageSize]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Performance/ReducingPackageSize/package_topic.png
 
 [TOC(start:2 end:3)]
 

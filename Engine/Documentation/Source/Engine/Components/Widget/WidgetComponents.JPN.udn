@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3085383
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Widget コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -21,7 +21,7 @@ Widget コンポーネントを使用すると、[**UMG**](Engine/UMG/UserGuide)
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_21.png)
 
 [REGION:caption]
-この例では、Widget ブループリント を使用してゲームワールド内に現れるインタラクティブ メニューを表示します。
+この例では、Widget ブループリントを使用してゲームワールドにインタラクティブ メニューを表示します。
 [/REGION]
 
 ワールドでの Widget コンポーネントのサイズを、 **[Draw Size]** を変更する、または **[Draw at Desired Size]** を使用して変えることができます。 

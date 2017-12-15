@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 Similar to traditional film editors, the **Shot Track** allows you to add, arrange and re-arrange Level Sequences that will be played back in the order you arrange them.
 Each Level Sequence you add is referred to as a **Shot** and each Shot can have multiple **Takes**. With Takes, you can quickly swap the shot out with an alternate version giving you the ability to quickly experiment with different looks for your cinematic. 

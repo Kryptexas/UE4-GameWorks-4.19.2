@@ -1,0 +1,80 @@
+Availability:Docs
+Crumbs: %ROOT%
+Title: Niagara Key Concepts
+Description:Critical concepts for working with particles in Unreal and the Niagara, particle editor.
+Type: Overview
+SkillLevel:Beginner
+Version: 4.17
+Parent:Engine/Niagara 
+Order: 2
+Tags:Getting Started
+topic-image:Engine\Niagara\NiagaraSocial.png
+
+[TOC(start:2 end:2)]
+
+The Niagara Editor gives the user the ability to create a wide range of visual effects that can meet any Unreal Engine 4 (UE4) projects needs and do so in real-time. From effects for the player to effects for the environment, Niagara is flexible and powerful enough to handle whatever visual effects your project requires. In the following document, we will take a high-level look at how Niagara is different from Cascade and also how all the various pieces that make up the Niagara Editor work together. 
+
+## A Modular Approach to Particle Effects
+
+The primary overreaching concept of Cascade was to incorporate modularity into the creation of effects whenever possible. This was achieved by supplying a default set of modules when any new effect was created and then allowing effect artist to add additional modules or entirely new emitters based on what the effect needed to achieve. While this system works remarkably well for some years, it had a few minor issues that made things like sharing effect data between effects or updating many effects at once a time-consuming task that was prone to error. 
+
+[REGION:lightbox]
+[![](NKC_00.png)(w:764)](NKC_00.png)
+[/REGION]
+
+[REGION:caption]
+This image shows that a **Cascade Particle System** is made up of a collection of emitters.
+[/REGION]
+
+To address these issues, Niagara has fully embraced this idea of modularity by decoupling the individual emitters that make up a particle system. Instead of having the particle system contain each emitter, **Niagara Systems** are comprised of many individual **Niagara Emitters**. Each of these Niagara Emitters contains a single effect that is controlled using the various modules that you are familiar with like **Lifetime**, **Location** and **Size** to adjust how the particles behave and look. However because these Niagara Emitters are independent actors that are saved in the Content Browser, that means they can be updated and shared with any Niagara System that you want to create allowing you to make massive changes to your emitters without having to spend a lot of time doing so.
+
+[REGION:lightbox]
+[![](NKC_01.png)(w:764)](NKC_01.png)
+[/REGION]
+
+[REGION:caption]
+This image shows that a **Niagara System** is made up of a collection of **Niagara Emitters**.
+[/REGION]
+
+## Niagara Emitter
+
+When you create or open up a Niagara Emitter, it will come with some default modules that can be found in the **Selected Emitter** tab. Inside this tab, you will see the following five options that can be expanded and edited. Each of the following section will affect how the emitter spawns and behave's over its lifetime.
+
+[REGION:lightbox]
+[![](NKC_02.png)(w:620)](NKC_02.png)
+[/REGION]
+
+* **Emitter Spawn**
+    * The Emitter Spawn section is run when the emitter starts up. This is similar to a Construction Script for Blueprints in that it does one-time setup that can be used in later scripts. It cannot reference individual particles, but it can be used to set emitter variables, run emitter modules, and set up variables that will be used in the particle scripts.
+* **Emitter Update**
+    * The Emitter Update section is run every frame that the Emitter is active. Users will determine how many particles to spawn, compute constant values for use in particle update scripts, and do other per-frame "tick" logic for the emitter here. It is important to have the Emitter Lifecycle module in this section to ensure that all of the lifecycle logic is executed for each emitter, allowing the system to properly shut down.
+* **Particle Spawn**
+    * The Particle Spawn section is run once every time a particle is born. Users will use this section to set initial state for the particle. If the Emitter is not set to use Interpolated Spawn, the output from this section will define the state of the particle for the first frame it is rendered. If Interpolated Spawning does occur, the particles will be evenly spread out in the time range from the previous frame if not an instantaneous burst and the update script will be run for each particle for the fractional amount of the frame since it was created. This allows users to achieve smooth trails and can also be used to allow the particle update script to define the state of the particle for the first frame that it is rendered. If you need randomness to differentiate each particle, it is best to choose your random values in the spawn script and store that value for use in each subsequent update "tick."
+* **Particle Update**
+    * The Particle Update section controls how an individual particle will behave over its life. Changes to physical simulation attributes, rendering attributes, etc. can all be done within this section. If the user wishes to broadcast data to other emitters, modules that emit events can occur in this section.  It is important to have the Update Age module in this section to ensure that each particle continues to age and eventually die once it has passed its lifetime.
+* **Add Event Handler**
+    * The Add Event Handler section determines how this emitter will respond to incoming events from collision or other emitters. 
+
+## Niagara System 
+
+To use a Niagara Emitter in your project, it will first need to be placed into a **Niagara System**. A Niagara System is a used to display the individual Niagara Emitters that have been created to make an effect. This also makes it very easy to mix and match different Niagara emitters together to create entirely new effects using only the existing emitters.
+
+[REGION:lightbox]
+[![](NKC_08.png)(w:620)](NKC_08.png)
+[/REGION]
+
+ To add a Niagara Emitter to a Niagara System, you will need to drag your Niagara Emitter from the Content Browser onto the **Track** section of the **Timeline**. 
+
+[REGION:lightbox]
+[![](NKC_07.png)(w:600)](NKC_07.png)
+[/REGION]
+
+You can adjust the properties of Niagara Emitters that are placed in the Timeline by selecting one and then go to the **Selected Emitter** panel and adjust the needed property.
+
+[REGION:lightbox]
+[![](NKC_09.png)(w:250)](NKC_09.png)
+[/REGION]
+
+
+
+

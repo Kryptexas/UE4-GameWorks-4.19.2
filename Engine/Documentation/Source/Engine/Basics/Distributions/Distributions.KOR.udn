@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 분포 (Distributions)
 Crumbs: %ROOT%, Engine
@@ -178,11 +178,13 @@ Input(입력)에서 Output(출력)은 선형으로 리매핑됩니다. 따라서
 |DPM_Abs|리매핑 전 입력값 절대치를 사용합니다. |
 |DPM_Direct|입력값을 (리매핑 없이) 직접 사용합니다. |
 
-<!--
+[COMMENT:none]
+
 ### DistributionFloatSoundParameter (플로트 사운드 파라미터)
 
 이 유형은 SoundCue 용이라는 점만 빼고는 플로트 파티클 파라미터와 비슷합니다. 코드에서 SoundCue 의 프로퍼티를 변경하는 데 사용됩니다. 예를 들어 운전을 하면서 높아지는 엔진 소리를 내려 한다면, 그 소리에 대한 SoundCue 를 만든 다음 SoundNodeModulatorContinuous 노드를 추가해야 합니다. 그리고서 PitchModulation 프로퍼티에 DistributionFloatSoundParameter 를 사용하면 됩니다.
--->
+
+[/COMMENT]
 
 ## 벡터 분포
 

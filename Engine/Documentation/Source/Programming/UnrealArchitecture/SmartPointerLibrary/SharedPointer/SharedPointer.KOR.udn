@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3681055
 Availability:Public
 Title:공유 포인터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:공유 소유권, 실효성 자동검증, 약 레퍼런스 등을 지원하는 스마트 포인터 입니다.
+Type:reference
 Version: 4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 

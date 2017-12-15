@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3533392
+﻿INTSourceChangelist:3683933
 Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title:Material Parameter Collection をアニメートする
@@ -15,6 +15,7 @@ topic-image:EndResult.png
 Related:Engine/Rendering/Materials/ParameterCollections
 Related:Engine/Rendering/Materials
 Related:Engine/Sequencer/Overview
+type:how-to
 
 **シーケンサー** には、[](Engine/Rendering/Materials/ParameterCollections) で作業しアニメートするための特別な Material Parameter Collection (マテリアル パラメータ コレクション) トラックがあります。 
 更新する必要がある **マテリアル** がいくつかある場合、これは非常に便利です。アニメーションの更新を共有するために各マテリアル インスタンスで個々のパラメータ値をアニメートする必要がなくなるからです。 

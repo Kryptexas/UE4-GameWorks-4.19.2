@@ -4,44 +4,7 @@ Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
 Description:Blueprint Interfaces allow Blueprints to call functions in different types of targets, if they also implement the interface.
 Version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/using_interface_topic.png
 
 [TOC (start:2)]
 
@@ -77,7 +40,7 @@ Blueprint Interfaces as well as Interfaces defined in native code (C++) can be a
 	![](InterfacesListPopulated.png)
 
 [REGION:tip]
-	Interfaces can be removed by clicking the ![](button_X_Remove.png) button located next to each one on the **Implemented Interfaces** list. You can also migrate from Blueprint Interfaces to normal Blueprint functions. For more information, see [](Engine/Blueprints\UserGuide\BlueprintComms\InterfaceMigration).
+	Interfaces can be removed by clicking the ![](button_X_Remove.png) button located next to each one on the **Implemented Interfaces** list. You can also migrate from Blueprint Interfaces to normal Blueprint functions. For more information, see [](Engine/Blueprints/UserGuide/BlueprintComms/InterfaceMigration).
 [/REGION]
 
 [REGION:note]

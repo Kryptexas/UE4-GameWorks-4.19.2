@@ -19,7 +19,7 @@ Description:使用虚幻引擎来写入C++类并编译它
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 在 **Visual Studio** 中，我们会使用 **Solution Explorer（解决方案浏览器）** 面板来搜寻新建的C++文件。 在我们的示例中，它们被命名为`FloatingActor.cpp`和`FloatingActor.h`，并且将被放置于"QuickStart"项目中。
 
@@ -125,4 +125,4 @@ Description:使用虚幻引擎来写入C++类并编译它
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

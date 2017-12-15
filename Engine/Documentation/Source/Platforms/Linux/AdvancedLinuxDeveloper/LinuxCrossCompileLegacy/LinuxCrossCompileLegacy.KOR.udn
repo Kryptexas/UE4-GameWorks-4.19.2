@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 리눅스용 크로스 컴파일 (레거시)
 Crumbs:%ROOT%
@@ -14,7 +14,9 @@ related:Engine/Basics/Projects/Packaging
 related:Platforms/Linux/GettingStarted
 topic-image:LegacyRef_Topic.png
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:3)]
 
@@ -34,14 +36,18 @@ topic-image:LegacyRef_Topic.png
 
 다음 표를 통해 적합한 툴체인을 다운로드할 수 있습니다:
 
-| 툴체인                                                                                                                           | UE4 버전 | 
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
-| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 4.8 이하 | 
-| **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 와 4.10   | 
-| **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
-| **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 와 4.15  |
+| 툴체인                                                                                                                       | UE4 버전    | 
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 4.8 이전 | 
+| **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 - 4.10   | 
+| **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 - 4.13 | 
+| **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 - 4.15  |
 | **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
+[REGION:note]
+Setup 및 UnSetup 윈도우 배치(\*.bat) 파일은 **-v9** 에 포함되어 있지 않습니다. UE4 용 AutoSDKs 셋업시에만 필요하기 때문입니다.
+`Setup.bat` 및 `Unsetup.bat` 는 (현재 문서화되지 않은) AutoSDKs 시스템의 일부이므로 기존 버전 툴테인에 포함되어 있습니다.
+[/REGION]  
 
 [Linux ARM](https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) (원본 Raspberry Pi 이상) 용 컴파일을 위한 라이브러이와 툴체인도 제공해 드리고 있습니다만, 
 이를 위해서는 [언리얼 빌드 툴](Programming/UnrealBuildSystem) (UBT) 에서 약간의 코드 수정을 가해야 할 것입니다.

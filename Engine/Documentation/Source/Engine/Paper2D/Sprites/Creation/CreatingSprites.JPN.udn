@@ -60,8 +60,10 @@ Availability:Docs
 ![](sprite_create_flipbook.gif)(convert:false)
 [/REGION]
 
-<!-- 
+[COMMENT:none]
+ 
 ## JSON スプライトシートからの一連のスプライト
 
 JSON 形式のスプライト シートの記述をインポートして、これにより付随するテクスチャをインポートし、記述されたフレームに対してスプライトとフリップブックを作成します。
--->
+
+[/COMMENT]

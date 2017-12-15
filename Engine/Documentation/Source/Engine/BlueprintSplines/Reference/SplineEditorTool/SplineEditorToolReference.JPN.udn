@@ -94,7 +94,8 @@ tags:Splines
 | **Allow Discontinous Splines** | 視覚化により **Arrive** と **Leave** タンジェントを別々に設定できるようにするかトグルします。 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SplinePointType]
 
 選択したスプライン ポイントの補間形式を変更します。スプライン カーブ ポイントに関連したスプライン カーブが赤く表示されます (デフォルト設定)。この変更によって影響されるカーブです。デフォルトの **ポイント タイプ** は **Curve** です。各タイプの見え方のサンプルです。
@@ -121,7 +122,8 @@ tags:Splines
 | **Clamped Tangent** | 選択した **Curve Point** を **Clamped Tangent** 値にリセットします。 |
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ### スプライン カーブを右クリック
 

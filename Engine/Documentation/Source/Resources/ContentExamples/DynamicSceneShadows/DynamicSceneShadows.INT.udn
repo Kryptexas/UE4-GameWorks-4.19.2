@@ -7,49 +7,8 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/Directional
 Related: Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights
 Related: Engine/Rendering/LightingAndShadows/Shadows
 Version: 4.9
+topic-image:DynamicSceneShadow_TopicCompact.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/DynamicSceneShadows:title%](DynamicSceneShadow_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/DynamicSceneShadows:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/DynamicSceneShadows:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/DynamicSceneShadows]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/DynamicSceneShadows:title%](DynamicSceneShadow_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/DynamicSceneShadows:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/DynamicSceneShadows:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/DynamicSceneShadows]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!--   Insert path when done [RELATIVE:Resources/ContentExamples/DynamicSceneShadows]--->
 
 [REGION:banner]
 ![](CascadedShadowMapsBanner.png)
@@ -59,6 +18,7 @@ Version: 4.9
 
 [TOC(start:2 end:2)]
 
+[/REGION]
 
 The **Dynamic Scene Shadows** Content Example map illustrates how to create dynamic shadowing effects with baked lighting through the use of **Cascading Shadow Mapping** which is a shadowing method specifically for use with **Directional Light Actors**.
 They are superior to baked shadows in that they allow for shadowing of dynamic objects, such as trees with leaves that sway in the wind creating a much more realistic scene.
@@ -90,4 +50,3 @@ In the **Details** panel for a Directional Light Actor, you will find the **Casc
 | **Shadow Distance Fadeout Fraction** | This softens the transition into cascaded shadow maps as a whole, with 0 being a hard transition and 1 being completely softened. A value of 0.1 is generally good. There is no performance cost to this value. |
 | **Use Inset Shadows for Movable Objects** | This option allows for inset shadows to be used on movable objects lit by stationary lights. This is useful when movable objects move beyond the range of the Dynamic Shadow Distance, particularly when the Dynamic Shadow Distance is set to a low value. When Dynamic Shadow Distance is very large (currently > 8000), this option is forced off. |
 
-[/REGION]

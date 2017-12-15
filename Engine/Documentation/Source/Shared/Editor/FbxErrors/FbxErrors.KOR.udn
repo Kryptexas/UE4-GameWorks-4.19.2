@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:FBX 임포트 오류
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -88,7 +88,9 @@ FBX 씬 로드에 실패했습니다. 파일이 깨졌거나 파일 유형이 �
 
 ---
 
-<!-- It doesn't contain any base layer.  -->
+[COMMENT:none]
+ It doesn't contain any base layer.  
+[/COMMENT]
 
 (#Generic_Mesh_TriangulationFailed)
 [EXCERPT:Generic_Mesh_TriangulationFailed]

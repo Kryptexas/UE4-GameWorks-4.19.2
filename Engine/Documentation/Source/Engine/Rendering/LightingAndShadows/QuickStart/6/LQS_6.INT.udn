@@ -21,7 +21,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 With our apartment almost complete, next we will create a more advanced **Point Light** that uses an **IES Profile** which is a lighting industry standard method of diagramming the brightness and falloff of light as it exits a particular real world light fixture.  
 
@@ -61,7 +61,7 @@ With our apartment almost complete, next we will create a more advanced **Point 
 
 In the **Next Step** and final of this guide, you will see some examples of things to try on your own as well as links to additional lighting documentation, samples and techniques. 
 
-%Steps%
+
 
 
 

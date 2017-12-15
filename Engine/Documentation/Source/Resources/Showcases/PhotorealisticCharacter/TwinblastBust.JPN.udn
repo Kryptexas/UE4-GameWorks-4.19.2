@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3403466
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:フォトリアルなキャラクター
 Crumbs:%ROOT%, Resources
@@ -279,7 +279,7 @@ Pixel Depth Offset (PDO、ピクセル深度オフセット) は、ヘア シェ
 |**Sclera inner color**| 虹彩と接触する場所での強膜の色です。|なし|
 |**Sclera outer color**| 目の外縁の強膜の色です。| なし|
 |**SecondaryEnvBalance**|目の表面で [二次環境](#目のシェーダーの二次環境) がどの程度見えるかを制御します。|0.00 - 0.03|
-|**SecondaryEnvRotationAxis**| [二次環境](#目のシェーダーの二次環境) は、見せかけの反射なので目の周囲で手動で回転させなければなりません。このプロパティは回転する軸を制御します。| <0.0, 0.0, 1.0> (Z-Axis)|
+|**SecondaryEnvRotationAxis**| [二次環境](#目のシェーダーの二次環境) は、見せかけの反射なので目の周囲で手動で回転させなければなりません。このプロパティは回転する軸を制御します。| [0.0, 0.0, 1.0]、(Z-軸)|
 |[REGION:tablesection]Scalar Parameter Values[/REGION]|||
 |**Depth Scale**|角膜の下の虹彩の屈折の深度を制御します。 |1.0-1.4|
 |**Flatten Normal**|この値は目の法線マップを、特に強膜に焦点をあてて、どの程度平らにするかを制御します。|0.9 - 1.1|

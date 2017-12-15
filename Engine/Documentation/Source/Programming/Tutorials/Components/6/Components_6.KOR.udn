@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6. 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 지금까지 배운 것을 토대로, 다음과 같은 것을 해 봅니다:
 
@@ -34,4 +34,3 @@ version:4.9
 * 다른 튜토리얼 관련 정보: [](Programming/Tutorials)
 
 
-%Steps%

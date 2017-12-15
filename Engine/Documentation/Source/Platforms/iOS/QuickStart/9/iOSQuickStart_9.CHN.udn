@@ -19,7 +19,7 @@ Availability:Public
 [/VAR]
 
 
-%Steps%
+
 
 如需阅读更多关于设备兼容性和性能表现的信息：
 * [](Platforms\iOS\DeviceCompatibility)
@@ -36,4 +36,4 @@ Availability:Public
 您还可以使用[](Platforms\Mobile\Previewer)来预览移动平台游戏，而无需将其部署到设备上。
 
 
-%Steps%
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -21,7 +21,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、アンリアル エンジンの Character 基本クラスを使用して新規キャラクターを作成します。Character クラス (Pawn クラスから派生) は、歩く、走る、ジャンプするなどの二足方向の動きのためのビルトイン機能です。
 
@@ -64,15 +64,16 @@ Version:4.15
 1.	`FPSCharacter.cpp` は以下のようになります。
 
 		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
+
 		#include "FPSProject.h"
-
 		#include "FPSCharacter.h"
-				// Sets default values (デフォルト値を設定) 
 
+				// Sets default values (デフォルト値を設定) 
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
+
 		}
 
 		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
@@ -80,18 +81,18 @@ Version:4.15
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			if (GEngine)
 
+			if (GEngine)
 			{
 				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		// Called every frame (フレームごとに呼び出される)
-
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
+
 		}
 
 		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
@@ -99,8 +100,8 @@ Version:4.15
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
 			Super::SetupPlayerInputComponent(PlayerInputComponent);
-		}
 
+		}
 
 1.	Visual Studio に `FPSCharacter` CPP ファイルを保存します。
 
@@ -159,4 +160,3 @@ CPP FPS Character クラスをブループリントに拡張します。C++ ク�
 
 1.	次のステップに進む前に、[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-%Steps%

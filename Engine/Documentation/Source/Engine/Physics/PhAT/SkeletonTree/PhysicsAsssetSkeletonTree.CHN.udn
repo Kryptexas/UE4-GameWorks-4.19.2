@@ -1,0 +1,229 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Physics Asset Editor - Skeleton Tree
+Description: User guide for the Skeleton Tree inside the Physics Asset Editor.
+Type: Reference
+Version:4.18
+Parent:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT
+Related:Engine/Animation/Persona
+Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Animation/Persona/Modes
+Order:
+Tags:Physics
+Tags:Animation
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:10 convert:false)[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+![](SkeletonTree.png)
+
+
+The **Skeleton Tree** panel in the [Physics Asset Editor](Engine/Physics/PhAT) shows the skeletal hierarchy of the current [Skeleton](Engine/Animation/Skeleton) asset, along with
+additional assets like the collision bodies, primitives, and constraints. Within it, you can perform the following actions:
+
+* Select and view specific bones in the skeletal hierarchy with their attached bodies and constraints.
+* Create and edit bodies, primitives, and constraints, which can be simulated in the Viewport to see the results of ragdoll animations, constraints, and collision interaction.
+* Create preview assets, which are temporarily attached assets; these are good for previewing how a weapon will look on a character, for example.
+
+
+## Interface Breakdown
+
+![](SkeletonTreeInterface.png)
+
+1. [Search Line](#searchline)
+1. [Bone Hierarchy List](#bonehierarchylist)
+1. [Skeleton Options](#skeletonshow/hideoptions)
+
+### Search Line
+
+![](SearchLine.png)
+
+The **Search** line allows for quick filtering of the Skeletal hierarchy by filtering out the hierarchy to only include names based on the entered text. 
+
+![](SearchExample.png)
+[REGION:caption] Above, we have filtered the hierarchy to include any Bone Names, Bodies, or Constraints that include the text **Pelvis** in them. [/REGION]
+
+### Bone Hierarchy List
+
+![](BoneHierarchyList.png)
+
+This window shows all the Bones, Bodies, Constraints, Primitives, and Preview Objects currently used by the selected Physics Asset. Inside this window is where you can add and assign collision Bodies, 
+Primitives, Constraints, and Preview Objects. Most of the adjustments made in the Bone Hierarchy list is handled through right-click context menus where the menu options vary based on the object 
+you right-click on (see the context menu sections below).  
+
+
+### Selection Context Menus
+
+Within the Bone Hierarchy list, when you right-click on a Bone, Body, Primitive, or Constraint, you access context menus specific to the selection made.
+
+Below are the available context menus and their relative options.
+
+#### Bone Context Menu
+
+When right-clicking on a Bone, you will see the following context menu:
+
+![](BoneContextMenu.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Copy Selected Bone Names** || Copy the selected bone names to the clipboard. |
+| **Reset Selected Bone Transforms** || Reset the transforms of the selected bones. |
+| **Add Preview Asset** || Opens a menu of all eligible assets that can be temporarily attached to a bone for previewing purposes. For instance, if you want to see what a certain piece of armor would look like attached to a bone, this is the option you would use. Note, however, that this is not a permanent attachment and will only be visible while previewing. |
+| **Remove All Attached Assets** || Removes all attached assets from the Skeleton and the mesh. |
+| **Add/Replace Bodies** || Adds or replaces bodies for the selected bones using the current generation settings found in the [Tools](Engine/Physics/PhAT/ToolsAndProfiles#toolstab) tab. |
+| **Select All Bodies** || Selects all bodies in the Skeleton Tree. |
+| **Select All Constraints** || Selects all constraints in the Skeleton Tree. |
+[/REGION]
+
+
+
+#### Body Context Menu
+
+When right-clicking on a Body, you will see the following context menu:
+
+![](BodyContextMenu.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Regenerate Bodies** || Regenerates the selected bodies using the current generation settings found in the [Tools](Engine/Physics/PhAT/ToolsAndProfiles#toolstab) tab. |
+| **Add Shape** || Adds shapes to this body. A Box, Sphere, or Capsule shape can be selected.  |
+| **Collision** || Adjust collision between bodies. [INCLUDE:#collisionbody] |
+| **Constraints** || Create a constraint between the selected body and one selected from the hierarchy list. |
+| **Physics Type** || The type of physics to use for this body; kinematic or simulated. |
+| **Physical Material** || Select a Physical Material to apply to all bodies. |
+| **Copy Properties** || Copy the properties of the currently selected object to the next selected object. |
+| **Paste Properties** || Past the properties of a previously selected object to the currently selected object. |
+| **Delete** || Delete the currently selected body. |
+| **Delete All Bodies Below** || Delete all bodies below the currently selected body in the Skeleton Hierarchy Tree. |
+| **Mirror** || Find the body on the other side and duplicate its constraints and body. |
+| **Assign** || Assigns the selected bodies to the current physical animation profile.  |
+| **Unassign** || Unassigns the selected bodies from the current physical animation profile.  |
+| **Copy Collision From Static Mesh** || Copy convex collision from a specified Static Mesh. |
+| **Select All Bodies** || Selects all bodies in the Skeleton Tree. |
+| **Select All Constraints** || Selects all constraints in the Skeleton Tree. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#collisionbody]
+[EXCERPT:collisionbody]
+| --- | --- | --- |
+| **Weld** || Weld the currently selected bodies together. |
+| **Enable Collision** || Enable collision between the currently selected bodies. |
+| **Enable Collision All** || Enable collision between the currently selected bodies and all bodies. |
+| **Disable Collision** || Disable collision between the currently selected bodies. |
+| **Disable Collision All** || Disable collision between the currently selected bodies and all bodies. |
+|| %spacer2% |||
+[/EXCERPT:collisionbody]
+
+-
+[/COMMENT]
+
+#### Primitive Context Menu
+
+When right-clicking on a Primitive, you will see the following context menu:
+
+![](PrimitiveContextMenu.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Duplicate** || Duplicate selected primitives. |
+| **Delete** || Delete selected primitives. |
+| **Select All Bodies** || Selects all bodies in the Skeleton Tree. |
+| **Select All Constraints** || Selects all constraints in the Skeleton Tree. |
+[/REGION]
+
+
+#### Constraint Context Menu
+
+When right-clicking on a Constraint, you will see the following context menu:
+
+![](ConstraintContextMenu.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Snap** || Snap the selected constraint to Bone. |
+| **Reset** || Resets the constraint to the default state. |
+| **Axes and Limits** || Edit axes and limits of this constraint. [INCLUDE:#constraint] |
+| **Convert** || Convert constraint to various presets. [INCLUDE:#convert]  |
+| **Copy Properties** || Copy the properties of the currently selected object to the next selected object. |
+| **Paste Properties** || Past the properties of a previously selected object to the currently selected object. |
+| **Delete** || Delete the currently selected constraint. |
+| **Assign** || Assigns the selected constraints to the current physical animation profile.  |
+| **Unassign** || Unassigns the selected constraints from the current physical animation profile.  |
+| **Copy Collision From Static Mesh** || Copy convex collision from a specified Static Mesh. |
+| **Select All Bodies** || Selects all bodies in the Skeleton Tree. |
+| **Select All Constraints** || Selects all constraints in the Skeleton Tree. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#convert]
+[EXCERPT:constraint]
+| --- | --- | --- |
+| **Cycle Constraint Orientation** ||  Cycles constraint orientation between different cardinal axes. |
+| **Cycle Active Constraint** || Cycles whether each constraint axis is active in isolation. |
+| **Lock Swing** || Set swing 1 or 2 to be locked or limited. |
+| **Lock Twist** || Set twist to be locked or limited. |
+|| %spacer2% |||
+[/EXCERPT:constraint]
+
+[EXCERPT:convert]
+* Ball & Socket
+* Hinge
+* Prismatic
+* Skeletal
+[/EXCERPT:convert]
+
+-
+[/COMMENT]
+
+
+#### Preview Asset Context Menu
+
+A **Preview Asset** is an asset, such as a Static Mesh or Skeletal Mesh, that has been temporarily attached to a bone or socket for previewing purposes.
+
+When right-clicking on a Preview Asset, you will see the following context menu:
+
+![](PreviewAssetContextMenu.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Add Preview Asset** || Opens a menu of all eligible assets that can be temporarily attached to a bone for previewing purposes. For instance, if you want to see what a certain piece of armor would look like attached to a bone, this is the option you would use. Note, however, that this is not a permanent attachment and will only be visible while previewing. |
+| **Remove All Attached Assets** || Deletes all Preview Assets currently on the mesh. |
+[/REGION]
+
+### Skeleton Show/Hide Options
+
+The Skeleton Options window enables you to show or hide Bones, Bodies, Constraints, and Primitives. 
+
+![](ShowHideOptions.png)
+
+[REGION:raw]
+| Option | %spacer% | Description |
+| -------- | -------- | ----------- |
+| **Filtering Flattens Hierarchy** || Whether to keep the hierarchy or flatten it when searching for tree items. |
+| **Hide Parents When Filtering** || Whether to show parent items grayed out or hide them entirely when filtering. |
+| **Show Bodies** || Display bodies in the tree view. Bodies are a collection of primitive shapes used for collision. |
+| **Show Constraints** || Display constraints in the tree view. Constraints are used to control how bodies can move in relation to one another. |
+| **Show Primitives** || Display primitive shapes (spheres, boxes, capsules, etc.) in the tree view. |
+| **Show All Bones** || Show every bone in the skeleton. |
+| **Show Mesh Bones** || Show bones that are used in the mesh. |
+| **Show LOD Bones** || Show bones that are used in the LOD (level of detail) being displayed. |
+| **Show Weighted Bones** || Show bones that have vertices weighted to them. |
+| **Hide Bones** || Hide all bones (sockets and attached assets will still be listed). |
+[/REGION]

@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:공상과학 폐허: 머티리얼 인스턴싱
 Description: SciFi Bunk, 공상과학 폐허 프로젝트에서 마스터 머티리얼과 머티리얼 인스턴싱을 사용하여 배경을 제작한 방법에 대해 알아봅니다.
 Version: 4.9
 SkillLevel: Intermediate
-
-[VAR:Params]
-[PARAM:image]
-	![%Resources/Community/SciFiBunk_MaterialInstancing:title%](scifi_bunk_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Community/SciFiBunk_MaterialInstancing:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Community/SciFiBunk_MaterialInstancing:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Community/SciFiBunk_MaterialInstancing]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:scifi_bunk_topic.png
 
 [TOC]
 

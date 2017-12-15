@@ -21,7 +21,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中我们将进行项目准备，将 **控件交互** 组件添加到玩家角色，以便和 3D 控件形成交互。 
 
@@ -52,5 +52,5 @@ SkillLevel:Advanced
 
 项目设置完成，角色可与世界场景中的控件进行交互。下一步我们将设置交互式控件。 
 
-%Steps%
+
 

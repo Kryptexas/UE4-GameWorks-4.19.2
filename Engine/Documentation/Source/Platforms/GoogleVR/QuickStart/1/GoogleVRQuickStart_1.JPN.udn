@@ -1,24 +1,27 @@
-﻿INTSourceChangelist:3451711
+﻿INTSourceChangelist:3723511
 Availability:Public
 Title:1.Google VR プロジェクトの作成方法
 Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Google VR 向け UE4 プロジェクトの作成
 Navigation:platform
 Skilllevel:Intermediate
-Version:4.16
+Version:4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:1
 type:multi-step
 tags:VR
 tags:Google VR
+Checkpoint:GoogleVRQS
 
 [NAV]
 
+ このセクションでは、Google VR 開発に最も適した設定で UE4 プロジェクトを新規作成する方法を説明します。
+
 [region:note]
-Google のマニュアルに Daydream の使用方法に関する詳細な説明があります。[Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) のヘルプサイトをご覧ください。
+Google のマニュアルに Daydream の使用方法に関する詳細な説明があります。[Google Daydream Unreal 公式サイト](https://developers.google.com/vr/unreal/) のヘルプをご覧ください。
 [/region]
 
- このセクションでは、Google VR 開発に最も適した設定で UE4 プロジェクトを新規作成する方法を説明します。
+## ステップ
 
 1. UE ランチャーから UE4 のバージョン **4.12** 以降がダウンロードおよびインストールされていることを確認して、**[Launch]** ボタンを押して **[Unreal Project Browser]** を開きます。
 
@@ -75,6 +78,8 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
 	[REGION:caption]
 	クリックしてフルサイズで表示
 	[/REGION]
+
+## 結果
 
 次のセクションでは、UE4 プロジェクトが Google VR で確実に動くようにプロジェクト設定を行います。
 

@@ -24,7 +24,7 @@ type:multi-step
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 
@@ -79,4 +79,4 @@ Launchpad 使用一个名为 **Launch Character** 的功能工作。**Launch Cha
 
 ---
 
-%Steps%
+

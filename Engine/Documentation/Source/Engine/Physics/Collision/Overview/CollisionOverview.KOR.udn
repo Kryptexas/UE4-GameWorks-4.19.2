@@ -1,28 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:콜리전 개요
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:언리얼 엔진 4 의 콜리전 및 콜리전 반응 작동법 개요입니다.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Collision:title%](physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Collision:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Collision:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:3)]
 
@@ -41,7 +21,9 @@ Description:언리얼 엔진 4 의 콜리전 및 콜리전 반응 작동법 개�
 * 오버랩 이벤트는 한 오브젝트가 다른 것을 **막는** 경우에도 발생 가능한데, 특히나 고속 이동인 경우 좋습니다.
 	* 한 오브젝트가 충돌 및 겹침 이벤트 둘 다 갖는 것은 좋지 않습니다. 가능은 하지만, 수동 처리가 필요한 부분이 많습니다.
 * 한 오브젝트가 무시 설정되어 있고, 다른 것은 겹침 설정된 경우, 겹침 이벤트는 발생하지 않습니다.
-<!--* The **Object Responses** listed are just the defaults and have no actual bearing on what an object _is_. See below for more information on setting up custom [Object Types and Trace Channels](#customobjectchannelsandtracechannels).-->
+[COMMENT:none]
+* The **Object Responses** listed are just the defaults and have no actual bearing on what an object _is_. See below for more information on setting up custom [Object Types and Trace Channels](#customobjectchannelsandtracechannels).
+[/COMMENT]
 
 레벨 테스트나 월드를 둘러보기 위한 목적으로는:
 

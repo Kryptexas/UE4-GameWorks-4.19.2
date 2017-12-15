@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482294
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:모바일 플랫폼용 텍스처 지침서
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -18,7 +18,9 @@ tags:mobile
 
 * 어느 한 쪽의 최대 크기가 2048 입니다. PVR 압축기에 지원되는 최대 크기입니다.
 * 양 쪽의 크기는 2 제곱수여야 합니다 (예: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048).
-* 가급적 메모리 효율이 좋은 정사각 텍스처를 사용하는 것이 좋습니다. <!-- Non-square textures are padded out to be square. (?)  -->
+* 가급적 메모리 효율이 좋은 정사각 텍스처를 사용하는 것이 좋습니다. [COMMENT:none]
+ Non-square textures are padded out to be square. (?)  
+[/COMMENT]
 
 추가적으로 모바일 플랫폼에서의 텍스처 정상 작동을 위해서는 적절한 세팅이 필요합니다:
 

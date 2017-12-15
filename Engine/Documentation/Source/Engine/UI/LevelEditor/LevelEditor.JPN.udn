@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:レベル エディタ
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -197,11 +197,13 @@ mac
 |---|---|---|
 |[INCLUDE:#SourceControlButtons] | **Source Control Status** | ソース コントロールと接続しているか、接続していないかを示します。接続の詳細へマウスをかざして、接続を確立するためにクリックします。Perforce と Subversion をサポートしています。詳細は [ソース コントロールのドキュメント](Engine/UI/SourceControl) を参照してください。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SourceControlButtons]
 ![](button_SourceControl_On.png) = On ![](button_SourceControl_Off.png) = Off
 [/EXCERPT:SourceControlButtons]
--->
+
+[/COMMENT]
 
 ### ツールバー
 

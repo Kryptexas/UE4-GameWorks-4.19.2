@@ -38,7 +38,8 @@ Description:当蓝图编辑器处理类蓝图时所包含的UI元素的详细介
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [菜单](Engine/Blueprints/Editor/UIComponents/Menu)
 1. [工具栏](Engine/Blueprints/Editor/UIComponents/Toolbar)
@@ -55,13 +56,16 @@ Description:当蓝图编辑器处理类蓝图时所包含的UI元素的详细介
 * [搜寻结果](Engine/Blueprints/Editor/UIComponents/FindResults)
 * [视口](Engine/Blueprints/Editor/UIComponents/Viewport)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 ![](ClassBlueprint.png)
 [/REGION]
--->
+
+[/COMMENT]
 
 
 

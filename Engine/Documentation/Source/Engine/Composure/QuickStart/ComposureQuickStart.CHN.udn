@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3580568
 Availability:Docs
 Crumbs: %ROOT%
-Title:Composure Quick Start
-Description: Getting up and running with Composure in UE4.
+Title:Composure 快速入门
+Description:准备在 UE4 中运行 Composure。
 Type:quick start
-SkillLevel: Beginner
+SkillLevel:Beginner
 Version:4.17
 Parent:Engine/Composure
 topic-image:![](Engine\Composure\ComposureTopic.png)
@@ -33,36 +33,26 @@ order:1
 [/OBJECT]
 
 [REGION:caption]
-Please note that the following Quick Start was built around the most simplistic use case for Composure to give a basic overview of how the system works. The above video demonstrates the type of quality and interaction that can be achieved when using Composure in a production environment.  
+请注意，为使用户快速进行基础总览，快速入门将讲述 Composure 最简单的使用范例。以上视频展示了在生产环境中使用 Composure 能够实现的质量与交互类型。  
 [/REGION]
 
-## Goals
+## 目标
 
-The Composure Quick Start Guide aims to quickly get you up and running with the basics to compositing cinematics in Unreal Engine 4. If you are completely new to Composure, this guide is for you! 
+Composure 快速入门指南将指导您在虚幻引擎 4 中快速准备，进行基础的影片合成。如您刚开始使用 Composure，那这篇指南便是一部宝典！
 
-## Objectives
+## 目的
 
-After going through this tutorial, developers will know the following:
+在此教程的学习中，开发者将了解以下内容：
 
-*	How to enable the needed Composure Plugins.
-*	How to setup a scene to be used with Composure.
-*	How to setup the Composure Blueprints.
-* 	How to create a shot that uses Composure. 
+*	如何启用所需的合成插件。
+*	如何设置用于 Composure 的场景。
+*	如何设置 Composure 蓝图。
+*	如何创建使用 Composure 的镜头。 
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 步骤
+
+[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\Composure\QuickStart\1 "%Engine/Composure/QuickStart/1:title%")

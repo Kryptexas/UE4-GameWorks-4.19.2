@@ -69,3 +69,27 @@ Engine/Blueprints/UserGuide/Variables
 [EXCERPT:Array]
 An Array is an ordered series. You can have an array of any type of variable. Arrays are useful when you need more than one of something. You can access an entry in an array by its index.
 [/EXCERPT:Array]
+
+[EXCERPT:Object]
+Hard asset reference. The referenced asset will be:
+- Loaded if this asset is. 
+- Cooked if this asset is.
+[/EXCERPT:Object]
+
+[EXCERPT:Class]
+Hard class reference. The referenced class will be:
+- Loaded if this asset is. 
+- Cooked if this asset is.
+[/EXCERPT:Class]
+
+[EXCERPT:SoftObject]
+Soft asset reference.The referenced asset will be:
+- Not automatically loaded when this asset is.
+- Cooked if this asset is.
+[/EXCERPT:SoftObject]
+
+[EXCERPT:SoftClass]
+Soft class reference.The referenced class will be:
+- Not automatically loaded when this asset is.
+- Cooked if this asset is.
+[/EXCERPT:SoftClass]

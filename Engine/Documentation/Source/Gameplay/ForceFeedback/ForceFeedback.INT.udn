@@ -12,40 +12,6 @@ type:overview
 tags:Gameplay
 topic-image: force_feedback_topic
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Gameplay/ForceFeedback:title%
-	[/PARAM]
-	[PARAM:description]
-		%Gameplay/ForceFeedback:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Gameplay/ForceFeedback]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Gameplay/ForceFeedback:title%](Gameplay/ForceFeedback/force_feedback_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Gameplay/ForceFeedback:title%
-	[/PARAM]
-	[PARAM:description]
-		%Gameplay/ForceFeedback:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Gameplay/ForceFeedback]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [toc(start:1 end:2)]
 
 [EXCERPT:WhatIsForceFeedback]

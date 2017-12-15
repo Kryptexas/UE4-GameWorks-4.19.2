@@ -27,7 +27,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 现在，我们将在 **细节（Details）** 面板内调整 Actor 的 [](Engine/Physics) 以及 [碰撞](Engine/Physics/Collision/Overview) 属性。 
 通过调整这些设置，我们可以定义一个 Actor 如何对游戏环境中的其他 Actor 作出反应。 
@@ -94,4 +94,4 @@ checkpoint: editorqs
 
 通过上述过程，您已初步了解如何通过主关卡编辑器的 **细节（Details）** 面板编辑 Actor 的属性。有关更多信息，请参阅以下相关主题。 
 
-%Steps%
+

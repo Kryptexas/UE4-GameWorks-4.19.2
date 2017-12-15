@@ -37,7 +37,8 @@ Version: 4.9
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Modules]
 有些模块在粒子发射器默认存在。在一个新的面片发射器 - 粒子系统的关键组件 - 被添加到粒子系统中，一下这几个 **默认** 模块都会随之创建：
 
@@ -48,7 +49,8 @@ Version: 4.9
 * **Initial Velocity** - 这里对粒子生成时的移动进行控制。
 * **Color Over Life** - 这个模块用于控制每个粒子的颜色在过程中如何改变。
 [/EXCERPT:Modules]
--->
+
+[/COMMENT]
 
 [REGION:note]
 	*Required* 和 *Spawn* 这两个模块是永久模块，无法从发射器内移除。其他一些模块都可以按需删除。

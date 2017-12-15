@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3189773
+﻿INTSourceChangelist:3782314
 title:계층형 레벨 오브 디테일 개요
 description:언리얼 엔진 4 의 계층형 레벨 오브 디테일 시스템 개요입니다.
 crumbs:%ROOT%
@@ -75,7 +75,8 @@ HLOD 아웃라이너에서 **LOD 액터** 에 우클릭하고 **Select Contained
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 
 HLOD 심플리곤 기능 관련 문서가 추가될 예정입니다.
 
@@ -83,4 +84,5 @@ HLOD 심플리곤 기능 관련 문서가 추가될 예정입니다.
 
 HLODMesh Culling Volume (HLOD 메시 컬링 볼륨)은 HLOD 클러스터에 추가하여 소스 메시에서 불필요한 트라이앵글을 제거한 뒤 HLOD 메시를 생성하도록 하는 데 사용되는 볼륨입니다.
 
--->
+
+[/COMMENT]

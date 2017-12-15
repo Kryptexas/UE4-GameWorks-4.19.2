@@ -85,7 +85,8 @@ LAd89U2b-YY
 
 
 
-<!-------------Bone/Socket Location Includes----------------
+[COMMENT:none]
+-----------Bone/Socket Location Includes----------------
 
 
 [EXCERPT:BoneSelMethod]
@@ -122,7 +123,8 @@ LAd89U2b-YY
 
 
 
--------------End Bone/Socket Location Includes--------------->
+-------------End Bone/Socket Location Includes-------------
+[/COMMENT]
 
 ## Direct Location モジュール
 
@@ -154,7 +156,8 @@ LAd89U2b-YY
 
 
 
-<!-------------Emitter Init Loc Includes----------------
+[COMMENT:none]
+-----------Emitter Init Loc Includes----------------
 #### Includes
 
 [EXCERPT:InitLocSelMethod]
@@ -166,7 +169,8 @@ LAd89U2b-YY
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
 
--------------End Emitter Init Loc Includes--------------->
+-------------End Emitter Init Loc Includes-------------
+[/COMMENT]
 
 
 ## Emitter Direct Locモジュール
@@ -213,7 +217,8 @@ sefKMZtdGR0
 
 
 
-<!-------------Cylinder Includes----------------
+[COMMENT:none]
+-----------Cylinder Includes----------------
 #### Includes
 
 [EXCERPT:CylinderHeightAxis]
@@ -226,7 +231,8 @@ sefKMZtdGR0
 [/REGION]
 [/EXCERPT:CylinderHeightAxis]
 
--------------End Cylinder Includes--------------->
+-------------End Cylinder Includes-------------
+[/COMMENT]
 
 ## Cylinder（Seeded）モジュール
 
@@ -338,7 +344,8 @@ ZM6GkFxO-b0
 |**Valid Material Indices** | パーティクルの放出を有効にするスケルタルメッシュに適用されたマテリアルのリストを提供します。特定のマテリアルがパーティクルを放出している時のみ実用的です。不特定のマテリアルに放出させる場合は値を挿入せずに空欄にします。|
 
 
-<!-------------Vert/Surf Location Includes----------------
+[COMMENT:none]
+-----------Vert/Surf Location Includes----------------
 #### Includes
 
 
@@ -360,7 +367,8 @@ ZM6GkFxO-b0
 [/REGION]
 [/EXCERPT:VertSourceType]
 
--------------End Vert/Surf Location Includes--------------->
+-------------End Vert/Surf Location Includes-------------
+[/COMMENT]
 
 
 

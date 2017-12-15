@@ -4,45 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/B
 Description: Creating events that can be bound and added to the Event Dispatcher's events list.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:title%](Engine\Blueprints\UserGuide\create_eventdispatcher_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:title%](Engine\Blueprints\UserGuide\create_eventdispatcher_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine\Blueprints\UserGuide\create_eventdispatcher_topic.png
 
 
 [TOC(start:2 end:3)]

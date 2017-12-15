@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:11.サービスの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 11サービスの作成
 Version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:11
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/10 "%Engine/AI/BehaviorTrees/QuickStart/10:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/12 "%Engine/AI/BehaviorTrees/QuickStart/12:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 **Services** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。多くの場合、確認してブラックボードを更新するために使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
 
@@ -61,24 +49,24 @@ Version:4.9
 	%vartable1%
 
 [VAR:varTable1]
-| 変数名 | タイプ | 値 |
+| 変数名 | 型 | 値 |
 | --- | --- | --- |
-| **DesiredObjectTypes** | EObjectTypeQuery の **Array** | ひとつのエレメントを Pawn に設定します。 |
+| **DesiredObjectTypes** | EObjectTypeQuery の **Array** | ひとつの要素を Pawn に設定します。 |
 | **MyLocation** | Vector 3 | 0,0,0 |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
+| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンス毎に変更することができます。 |
 | **TargetLocation** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。. |
 [/VAR]
 
 [REGION:note]
-変数 **DesiredObjectTypes** は、単一のエレメントが **Pawn** に設定されたタイプ `EObjectTypeQuery` の配列です。手順は、まず [My Blueprint] パネルで **DesiredObjectTypes** 変数を選び、[Details (詳細)] パネルの Default Value カテゴリで、 ![](plus_button.png) ボタンをクリックしてエレメントを追加します。そのエレメントのプルダウン メニューから **[Pawn]** を選択します。
+変数 **DesiredObjectTypes** は、単一の要素が **Pawn** に設定された型 `EObjectTypeQuery` の配列です。手順は、まず [My Blueprint] パネルで **DesiredObjectTypes** 変数を選び、[Details (詳細)] パネルの Default Value カテゴリで、 ![](plus_button.png) ボタンをクリックして要素を追加します。要素のプルダウン メニューから **[Pawn]** を選択します。
 
 Default Value カテゴリに何も表示されない場合は、ブループリントをコンパイルします。
 [/REGION]
 
 このグラフでは、以下のことが行われています。
 
-1. **Event Tick** は、ビヘイビアツリーで定義されているレートでティックする以外は、アクタ内でさえも同様に動きます。
+1. **Event Tick** は、ビヘイビアツリーで定義されているレートでティックする以外は、アクタ内でも同様に動きます。
 1. 渡された **Owner アクタ** は常にビヘイビアツリーを呼び出すコントローラです。それを格納しましょう。ただしこの作業は、それを格納していない場合のみ行ってください。キャスト ノードからのオーバーヘッドを減らすためです。
 1. 制御されたポーンの位置に応じてオブジェクトに対して Multi Sphere Trace を行い、制御されたポーンを除く全てのポーンを取得します。
 1. それから、プレイヤーがヒットしているかどうかを **For Each** ループが調べます。
@@ -87,7 +75,7 @@ Default Value カテゴリに何も表示されない場合は、ブループリ
 1. 見えない場合、ブラックボード上で **Target to Follow** キーをクリアします。
 
 
-%Steps%
+[NAV]
 
 [VAR:BPCode]
 	Begin Object Class=K2Node_CustomEvent Name="K2Node_CustomEvent_6"

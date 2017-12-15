@@ -19,7 +19,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Creating a **Landscape** inside of Unreal Engine 4 (UE4) can be done in a few simple steps. But before we dive into creating our first Landscape, let us first familiarize ourselves with some of the tools and keyboard inputs that are most commonly used to interact with the Landscape system. 
 
@@ -51,6 +51,6 @@ While each of the three modes for the Landscape tools allows you to interact wit
 | **Ctrl + Y** | Redoes last undone action. |  
 
 
-%Steps%
+
 
 

@@ -1,33 +1,33 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
 Title: 삼성 기어 VR 헤드셋 요구사항
-Description:기어 VR 헤드셋의 필수 초기 구성입니다.
-Availability:Public
-Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Navigation:platform
-Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.16
-prereq: Engine\Blueprints\GettingStarted
-type:overview
+Description: 기어 VR 헤드셋의 필수 초기 구성입니다.
+Type: Reference
+Version: 4.17
 parent:Platforms/GearVR
+Order: 1
 tags:VR
-tags:GearVR
+tags:Gear VR
+tags:Basics
+tags:Getting Started
+prereq: Engine\Blueprints\GettingStarted
+prereq:Platforms/Android/GettingStarted/
+topic-image:Platforms\GearVR\SamsungGearVRDevelopment_topic.png
+
+[TOC(start:1 end:2)]
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
-[REGION:warning]
-기어 VR 헤드셋용 개발을 위해서는 **언리얼 엔진 4.7.4** 이상이 필요합니다. 또한 Codeworks for Android 1R6 가 Android-24 를 지원하기는 하지만, GearVR 을 타겟으로 할 때는 여전히 Android-19 또는 Android-21 을 사용해야 할 것입니다.
-[/REGION]
-
-언리얼 엔진 4 (UE4) 4.7 버전 이후 지원되는 삼성 갤럭시 스마트폰을 몰입형 VR 디바이스로 탈바꿈시킬 수 있는 삼성 기어 VR 헤드셋용 가상현실(VR) 프로젝트를 만들 수 있게 되었습니다.
-여기서는 삼성 기어 VR 헤드셋 작업이 가능하도록 삼성 갤럭시 노트 4, 갤럭시 S6, 갤럭시 S6 엣지 스마트폰을 구성하기 위해 알아야 하는 모든 것에 대해 다루도록 하겠습니다.
+언리얼 엔진 4 (UE4) 에는 삼성 기어 VR 헤드셋용 가상 현실(VR) 프로젝트를 만드는 기능이 지원되어, 삼성 갤럭시 스마트폰을 몰입형 VR 디바이스로 탈바꿈시킬 수 있습니다. 여기서는 삼성 기어 VR 헤드셋 작업이 가능하도록 UE4 프로젝트를 구성하기 위해 알아야 하는 모든 것에 대해 다루도록 하겠습니다.
 
 ## 기어 VR 공식 문서
 
-기어 VR SDK 작동방식에 대한 보다 심도 깊은 내용 또는 오큘러스 모바일 VR 개발 관련 상세 정보는 아래 링크된 공식 오큘러스 문서를 참고하세요.
+기어 VR SDK 작동방식에 대한 깊이있는 내용 또는 오큘러스 모바일 VR 개발 관련 상세 정보는 아래 링크된 공식 오큘러스 문서를 참고하세요.
 
-* **[Oculus Mobile Software Development Kit(SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)**
-* **[Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)**
+* [Oculus Mobile Software Development Kit (SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)
+* [Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)
+
 
 ## 기어 VR 헤드셋 요구사항
 
@@ -36,59 +36,48 @@ UE4 기어 VR 개발에 들어가기 전, 먼저 다음 요구사항이 갖춰�
 * 삼성 갤럭시 스마트폰 충전에 사용되는 USB 코드가 사용가능한지와 개발중인 PC 의 USB 포트에 꽂았는지 확인합니다.
 USB 코드가 정말 중요한데, 개발 PC 와 스마트폰 사이의 데이터 전송을 담당하기 때문입니다.
 
-* 특정 유형의 삼성 갤럭시 스마트폰만 기어 VR 헤드셋에 작동합니다.
-	[Oculus website](https://support.oculus.com/help/oculus/1099393013405406/?ref=hc_fnav) 에 기어 VR 헤드셋과 작동하는 폰 모델 목록이 있습니다.
-	구매하시려는 삼성 갤럭시 스마트폰이 기어 VR 헤드셋과 작동하는 올바른 모델인지 확인하시기 바랍니다.
+* 기어 VR 헤드셋에 작동하는 삼성 갤럭시 스마트폰 유형은 다음과 같습니다.
+    * 갤럭시 노트 8, S8, S8+, S7, S7 엣지, 노트5, S6 엣지+, S6, S6 엣지
+    * 자세한 정보는 [삼성 GearVR 웹사이트](http://www.samsung.com/global/galaxy/gear-vr/) 를 참고하세요.
 
+* [삼성 웹사이트](http://www.samsung.com/us/support/downloads) 에서 갤럭시 스마트폰에 맞는 USB 드라이버를 다운로드한 뒤 설치하세요.
 
-* [Samsung Website](http://www.samsung.com/us/support/downloads) 에서 갤럭시 스마트폰에 맞는 USB 드라이버를 다운로드한 뒤 설치하세요.
-
-* [UE4 런처](https://www.unrealengine.com/) or [Github](https://www.unrealengine.com/ue4-on-github) 에서 언리얼 엔진 버전 **4.16** 이상을 다운로드하세요.
-
-* **Engine\Extras\Android** 에서 찾을 수 있는 **CodeWorks for Android 1R6** 를 설치하세요.
+* **Engine\Extras\Android** 에서 찾을 수 있는 **CodeWorks for Android 1R6u1** 을 설치하세요.
 
 * 삼성 갤럭시 스마트폰에 [개발자 모드](Platforms/Android/GettingStarted/2) 가 활성화되었는지 확인하고, 안되어 있으면 해 줍니다.
-	
-* 또한 **USB Debugging** 옵션이 켜져 있어 PC 에서 스마트폰으로 데이터를 로드할 수 있게 되어있는지 확인합니다.
-	
-	![](USB_Debugging_Enabled.png)(w:350)
-* USB 를 통해 스마트폰을 개발 PC 에 꽂은 상태로, PC 에서 RSA Fingerprint 키를 수락합니다.
-이런 식으로 개발 PC 와 스마트폰 사이의 데이터 송수신이 가능합니다.
-또한 이 스마트폰이 개발 PC 에 꽂힐 때마다 사용할 수 있게 하려면 **Always allow this computer** (이 컴퓨터 항상 허용) 옵션을 체크해 줍니다.
 
-	![](RSA_Check.png)(w:300)
+* PC 에 디바이스를 뽑았다/꽂았다 해도 항상 인식되도록 하려면, 개발자 옵션 중 **USB Debugging** (USB 디버깅)을 켜면 됩니다. 그 때 PC 에서 RSA Fingerprint 키를 수락하지 않으면, 디바이스에 디플로이되지 않습니다.
+
+    ![](USB_Debugging_Enabled.png)(w:350)
 
 * 스마트폰의 디바이스 ID 와 [Oculus](https://developer.oculus.com/tools/osig/) 웹사이트를 통해 삼성 갤럭시 노트 4 스마트폰에 대한 **OSIG** 파일을 생성하고 다운로드합니다.
 스마트폰의 **디바이스 ID** 를 구하는 법을 모르겠는 경우, [Oculus](https://developer.oculus.com/tools/osig/) 웹사이트에 자세히 안내되어 있습니다.
-	
-	![](Platforms\GearVR\GVR_OSIG_Website.png)
+    
+    ![](Platforms\GearVR\GVR_OSIG_Website.png)
 
 * OSIG 파일을 다운로드한 이후, **assets** 이라는 폴더를 만든 다음 그 안에 **OSIG** 파일을 넣습니다.
 그런 다음 그 폴더를 **Engine/Build/Android/Java** 안에 둡니다. 
 
-	[region:warning]
-	**이 작업을 해 주지 않으면 갤럭시 스마트폰에서 프로젝트를 실행할 수 없을 것입니다.**
-	[/region]
-	
-	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
+    [region:warning]
+    **이 작업을 해 주지 않으면 스마트폰에서 프로젝트를 실행할 수 없을 것입니다.**
+    [/region]
+    
+    ![](Platforms\GearVR\GVR_OSIG_File_Location.png)
 
-* 프로젝트의 Engine/Build/Android/Java 가 아닌 **Build/Android/assets** 디렉토리에 OSIG 파일을 넣어도 됩니다. 이런 식으로 OSIG 파일을 추가하면 그 파일은 추가된 프로젝트에만 사용될 뿐, 다른 기어 VR 프로젝트에는 사용되지 않는다는 점 유념해 주세요.
+* 프로젝트의 Engine/Build/Android/Java 가 아닌 **Build/Android/assets** 디렉토리에 OSIG 파일을 넣어도 됩니다. 
+
+    [region:note]
+    이런 식으로 OSIG 파일을 추가하면 그 파일은 추가된 프로젝트에만 사용될 뿐, 다른 기어 VR 프로젝트에는 사용되지 않는다는 점 유념해 주세요.
+    [/region]
+
 
 다음으로 넘어가기 전 기어 VR 요구사항 부분에 나열된 모든 항목이 완료되었는지 확인하는 것이 매우 중요합니다.
 한 단계라도 건너뛰면 프로젝트가 기어 VR 헤드셋에 정상 작동하지 않을 수 있습니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		기어 VR 개발
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
-[/OBJECT]
+## 기어 VR 개발
+
+[REGION:buttonlist]
+* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
+* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
+* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
+[/REGION]

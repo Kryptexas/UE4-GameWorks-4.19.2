@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Parameter 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -253,7 +253,8 @@ TextureSampleParameterMovie 표현식은 TextureSample 과 같지만, 무비 텍
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorParamDefaultItem]
 [REGION:prop_sublist]
 	* **R**
@@ -275,5 +276,6 @@ TextureSampleParameterMovie 표현식은 TextureSample 과 같지만, 무비 텍
 [EXCERPT:GroupDefinition]이 방법을 통해 파라미터 이름을 MaterialInstanceConstant 내 그룹이나 카테고리 별로 정리할 수 있습니다. 머티리얼 내 Group 프로퍼티 이름이 같은 모든 파라미터는 인스턴스에서 해당 카테고리 아래에 나열됩니다.[/EXCERPT:GroupDefinition]
 
 [EXCERPT:ParameterNameDefinition]머티리얼의 인스턴스나 코드를 통해 파라미터를 식별하는 데 사용되는 이름을 나타냅니다.[/EXCERPT:ParameterNameDefinition]
--->
+
+[/COMMENT]
 

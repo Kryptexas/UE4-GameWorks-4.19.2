@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:3472589
+﻿INTSourceChangelist:3726228
 Availability:Public
 Crumbs:%ROOT%
-Title:피벗 페인터 2 머티리얼 함수
+Title:피벗 페인터 2.0 머티리얼 함수
 Description: 언리얼 셰이더 망에서 피벗 페인터 2 MAXScript 를 활용할 수 있도록 해주는 머티리얼 함수입니다.
 Type:reference
 Version:4.16
 Parent:Engine/Rendering/Materials/Functions/Reference
-Related:Engine/Content/Tools/PivotPainter2
-Related:Engine/Content/Tools/PivotPainter2/Reference
+Related:Engine/Content/Tools/PivotPainter/PivotPainter2
+Related:Engine/Content/Tools/PivotPainter/PivotPainter2/Reference
 Order:1
 Topic-image:PivotPainter2MF_Topic.png
 Social-image:PP2MaterialFunction_Social.png
@@ -30,9 +30,7 @@ Tags:Materials
 	[/PARAMLITERAL]
 [/OBJECT]
 
-피벗 페인터 2 머티리얼 함수는 텍스처를 사용해서 피벗 페인터 2 MAXScript 에 저장된 유용한 모델 정보에 접근하고 디코딩할 수 있도록 해줍니다. MAXScript 의 텍스처 출력 각각은 
-머티리얼에서 바로 레퍼런싱 가능하지만, 텍스처 샘플링 이후 적절한 단계를 거치지 않고서는 틀린 값이 나올 것입니다. 이 페이지에서 찾을 수 있는 머티리얼 함수로 텍스처 정보를 빠르게 디코딩하는 작업이 
-쉬워집니다.
+피벗 페인터 2 머티리얼 함수는 텍스처를 사용해서 피벗 페인터 2 MAXScript 에 저장된 유용한 모델 정보에 접근하고 디코딩할 수 있도록 해줍니다. MAXScript 의 텍스처 출력 각각은 머티리얼에서 바로 레퍼런싱 가능하지만, 텍스처 샘플링 이후 적절한 단계를 거치지 않고서는 틀린 값이 나올 것입니다. 이 페이지에서 찾을 수 있는 머티리얼 함수로 텍스처 정보를 빠르게 디코딩하는 작업이 쉬워집니다.
 
 이 페이지에 포함된 여러가지 머티리얼 함수는 피벗 페인터 2 피벗 및 회전 정보를 사용하여 머티리얼을 통한 특정 효과를 낼 수 있도록 해주지만, 피벗 페인터 2 의 커다란 장점 중 하나는 
 제공된 폴리지용 샘플 셰이더 **PivotPainter2FoliageShader** 와 함께 사용하기가 쉽다는 점입니다. 이 머티리얼 함수가 있으면 별도의 머티리얼 망을 만들 필요 없이 순식간에 폴리지에 쓸 모델 및 
@@ -43,7 +41,7 @@ Tags:Materials
 
 ## 피벗 페인터 2 함수
 
-피벗 페인터 2 에 관련된 함수 전체 목록은 다음과 같습니다.
+피벗 페인터 2.0 에 관련된 함수 전체 목록은 다음과 같습니다.
 
 
 ### PivotPainter2FoliageShader
@@ -51,6 +49,10 @@ Tags:Materials
 ![](PP2_FoliageShader.png)
 
 이 머티리얼 함수에는 텍스처 및 수치 파라미터가 들어있어 애셋에 맞게 조정할 수 있습니다.
+
+#### PivotPainter2FoliageShader 작업방식
+
+이 특정 함수의 경우, 머티리얼의 머티리얼 인스턴스를 만들어야 머티리얼 함수에 이미 구성되어 있는 바람과 난기류 파라미터에 접근할 수 있습니다.
 
 또한, 이 함수의 경우, 머티리얼 인스턴스를 만들고, 거기서 머티리얼 함수의 파라미터에 접근하여 피벗 페인터 2 셰이더에 수정을 가할 것을 추천합니다.
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3736300
 Availability:Public
 Title:3. 프로젝트 생성
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:템플릿 프로젝트를 시작합니다.
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -28,7 +28,7 @@ Checkpoint:AndroidQS
 * 시작용 콘텐츠 비포함
 * 프로젝트 이름은 AndroidProject
 
-![](new_android_project.png)
+	![](new_android_project.png)
 
 1. 완료되면 **프로젝트 생성** 버튼을 눌러 프로젝트를 만듭니다.
 

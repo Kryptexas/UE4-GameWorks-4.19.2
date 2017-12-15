@@ -4,45 +4,6 @@ Crumbs: %ROOT%, Engine,
 Description: Visibility Culling Settings and Performance
 Version: 4.13
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 [TOC(start:2 end:2)]
 
@@ -105,7 +66,8 @@ add up the primitives that are processed.
 | **Counters** | [INCLUDE:#counters] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CycleCounter]
 | Stat | Description|
 | --- | --- |
@@ -125,7 +87,8 @@ add up the primitives that are processed.
 | **Visible Dynamic Primitives** | This is the number of dynamic primitives in the scene that have their mobility set to Movable, like Particle Systems and Foliage instances. |
 | **Visible Static Mesh Elements** | This is the number of visible meshes that have their mobility set to Static within the scene. |
 [/EXCERPT:Counters]
--->
+
+[/COMMENT]
 
 ## Useful Console Commands
 

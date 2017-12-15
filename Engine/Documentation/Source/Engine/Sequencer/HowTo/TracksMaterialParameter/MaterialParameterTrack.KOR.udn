@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3533392
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title: 머티리얼 파라미터 컬렉션 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -15,6 +15,7 @@ topic-image: EndResult.png
 Related: Engine/Rendering/Materials/ParameterCollections
 Related: Engine/Rendering/Materials
 Related: Engine/Sequencer/Overview
+type:how-to
 
 시퀀서에는 [](Engine/Rendering/Materials/ParameterCollections) 작업 및 애니메이션을 위한 특수 **Material Parameter Collection** (머티리얼 파라미터 컬렉션) 트랙이 제공됩니다.
 애니메이션 업데이트를 공유시키기 위해 각 머티리얼 인스턴스마다 개별 파라미터 값 애니메이션을 줄 필요 없이 다수의 머티리얼이 있는 경우에 매우 좋습니다.

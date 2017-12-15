@@ -54,7 +54,8 @@ Actor及其层次结构的示例可能如下所示：
 | ------------------| -----------|
 | ![](GoldPickupExampleActor.png)(w:400) | [INCLUDE:#goldhierarchy] | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GoldHierarchy]
 * **Root（根组件） - SceneComponent**: 设置Actor在世界中的基础位置的基本场景组件。
 	* **StaticMeshComponent（静态网格物体组件）**: 代表金矿石的网格物体。
@@ -64,7 +65,8 @@ Actor及其层次结构的示例可能如下所示：
 [/EXCERPT:GoldHierarchy]
 
 要了解更多信息，请参照[](Programming/UnrealArchitecture/Actors/Components) 页面。
--->
+
+[/COMMENT]
 
 ## Ticking（更新）
 

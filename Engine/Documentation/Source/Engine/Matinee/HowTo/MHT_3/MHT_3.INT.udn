@@ -5,20 +5,13 @@ Description:This scene shows how to switch between multiple cameras and apply ca
 Version: 4.9
 SkillLevel: Intermediate
 
-
----
 In the following steps, we are going to create a short sequence that uses multiple camera angles. 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Matinee, Camera and Props
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, our **Cameras** and a prop that will be our subject for the shots. 
-	[/PARAM]
-[/OBJECT]
+## Adding the Matinee, Camera and Props
+
+In this step, we will add our **Matinee Actor**, our **Cameras** and a prop that will be our subject for the shots. 
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -56,15 +49,9 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_ChairRotated.png)
 		
+## Creating the Camera Sequences in Matinee
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Creating the Camera Sequences in Matinee
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will assign movement to each **Camera** and hook them up to our **Matinee**. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will assign movement to each **Camera** and hook them up to our **Matinee**. 
 
 1. Open the Matinee window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
 
@@ -172,15 +159,9 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_CamerasDone.png)
 
+## Creating the Camera Cuts with a Director Track
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Creating the Camera Cuts with a Director Track
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add a **Director Track** which will handle all of our camera cuts. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will add a **Director Track** which will handle all of our camera cuts. 
 
 1. Open the Matinee window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
 
@@ -227,5 +208,3 @@ In the following steps, we are going to create a short sequence that uses multip
 	k3r1aNcbO8Y
 	[/PARAMLITERAL]
 	[/OBJECT]
-
-

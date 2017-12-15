@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:3782314
+Availability:Docs
+Title:Niagara エディタ
+Crumbs: %ROOT%, Engine
+Description:Niagara は UE4 の視覚効果エディタです。パーティクル エフェクトを作成し、リアルタイムでプレビューするために使用します。 
+Navigation:topic
+parent:Engine
+order:4
+topic-image:NiagaraBanner.png
+social-image:NiagaraSocial.png
+related:Engine\Rendering\ParticleSystems
+tags:Niagara
+
+[REGION:banner]
+![](NiagaraBanner.png)(convert:false)
+[/REGION]
+
+**Niagara エディタ** は、アンリアル エンジン 4 (UE4) 内の視覚効果を作成し、調整するために使用する 2 つのツールのうちのひとつです。Niagara 以前は、UE4 で視覚効果を作成し、編集する主要な方法は、 [**カスケード**](Engine\Rendering\ParticleSystems) を使うことでした。Niagara はカスケードと同じようなパーティクル操作を数多く行いますが、Niagara を使った作業の操作や、視覚効果の構築方法はかなり異なります。 
+
+このページでは、Niagara エディタのさまざまな機能に関するドキュメントへのリンクを紹介します。Niagara エディタを初めて使う場合は、まず概要が示されている **[Essentials (基本)]** セクションをご覧いただくことをお勧めします。このセクションには、Niagara エディタのコンポーネントの詳細を示すエディタのリファレンス、迅速に作業を開始するためのクイックスタートガイド、Niagara の各種タスクを手短に説明する操作ガイド、ワークフローのコツが含まれています。 
+
+## はじめよう
+
+[DIR(output:"topic" parent:"Engine/Niagara" org:"hierarchy" end:"1" tags:"Getting Started")]
+
+[COMMENT:none]
+## 基本
+[/COMMENT]
+
+## ガイド
+
+[DIR(output:"fancy" parent:"Engine/Niagara/HowTo" org:"hierarchy" end:"1" )]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

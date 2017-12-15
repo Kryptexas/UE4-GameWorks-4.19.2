@@ -42,7 +42,8 @@ version:4.9
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
@@ -56,7 +57,8 @@ version:4.9
 * [コンパイラの結果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
 * [検索結果パネル](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 このグラフビューは、ブループリント エディタ内で通常利用可能なグラフ エディタとは若干違うということを覚えておくことが重要です。このグラフビューはグレイアウトされ、ナビゲーションやノードの追加はできません。なぜなら、グラフを編集する手段というよりは、ビジュアル化ツールであるためです。インターフェイス内およびインターフェイス自体に機能はありません。したがって、この場合、実際に機能するネットワークを作成する必要はありません。このビューは、単に入出力の結果を示すプレビューとしてお考えください。
 

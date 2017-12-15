@@ -2,23 +2,12 @@ Availability:Public
 Title: 1. Essential Setup
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: Create a new project using the Top Down Template.
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/2 "%Engine/AI/EnvironmentQuerySystem/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 This Quick Start makes some assumptions about what is available in the project, as such, if you aren't comfortable making substitutions or problem solving on the fly, then you should setup the project as follows.
 
@@ -30,4 +19,4 @@ If you have already completed the [Behavior Tree Quick Start](Engine/AI/Behavior
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/1#aiprojectstart]
 
-%Steps%
+[NAV]

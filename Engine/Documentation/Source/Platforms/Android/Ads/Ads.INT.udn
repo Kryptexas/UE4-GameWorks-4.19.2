@@ -7,40 +7,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:ads_topic.png
 
 ![](Platforms/Mobile/Ads/AdMob.png)(w:240)
 

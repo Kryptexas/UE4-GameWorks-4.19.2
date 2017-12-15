@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:게임 프로젝트 컴파일하기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -57,22 +57,26 @@ UnrealBuildTool 은 `*.Build.cs` 와 `*.Target.cs` 파일을 사용하여 게임
 ### 프로젝트 - 환경설정 메뉴
 
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-<!--
+[COMMENT:none]
+
 ### 솔루션 - 환경설정 메뉴
 
 ![UE4 Solution - Configuration Menu](configuration_menu.png)
--->
+
+[/COMMENT]
 ### 솔루션 플랫폼 설정
 
 솔루션 플랫폼 설정은 Visual Studio 툴바에서 가능합니다.
-<!--
+[COMMENT:none]
+
 UE4 currently supports the following platforms:
 
 * **윈도우 64-비트**
 
 ![Project - Platform Menu](rocket_platform_menu.png)
 ![UE4 Solution - Platform Menu](platform_menu.png)
--->
+
+[/COMMENT]
 UE4 에서 지원하는 플랫폼은 다음과 같습니다:
 
 * **윈도우 32-비트**
@@ -87,7 +91,8 @@ UE4 에서 지원하는 플랫폼은 다음과 같습니다:
 윈도우에서는 Visual Studio 2015 이상, 맥에서는 Xcode 8 이상 버전이 설치되었는지 확인해 주시기 바랍니다.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:tip]
 Visual Studio 에서 빌드할 때는, 게임 프로젝트만 컴파일하는 것이지, 언리얼 에디터는 컴파일되지 않습니다.
@@ -105,7 +110,8 @@ Visual Studio 에서 빌드할 때, 게임 프로젝트에 추가로 엔진도 �
 1. 게임 프로젝트에 우클릭한 다음 **Rebuild** 를 선택하여 리컴파일합니다.
 
 	![](rebuild_project_rocket.png)
--->
+
+[/COMMENT]
 1.	**Solution Configuration** 을 빌드하고자 하는 환경설정으로 설정합니다. 이 예제에서는 **Development Editor** 로 설정합니다. 각각의 환경설정에 대한 설명은 [빌드 환경설정](#빌드환경설정) 부분을 참고해 주시기 바랍니다.
 
 	![](rocket_config_development_menu.png)
@@ -162,15 +168,19 @@ Xcode 에서 빌드할 때는, 프로젝트만 컴파일하는 것이지, 에디
 | ----- | -------- |
 | 중단점에 Xcode 가 멈추지 않습니다 | [INCLUDE:#XcodeDebug] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:XcodeDebug]
 Xcode 의 LLDB 디버거 설정을 올바르게 해 줘야 언리얼 엔진 프로젝트의 중단점이 제대로 처리됩니다. 홈 폴더에 .lldbinit 파일을 생성(하거나 이미 있는 경우 편집)하여 다음 줄을 추가해 줘야 합니다:
 
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Xcode]
 
-<!-- The following was deprecated per LaurenR 29.7.15
-| **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | -->
+[COMMENT:none]
+ The following was deprecated per LaurenR 29.7.15
+| **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | 
+[/COMMENT]

@@ -26,7 +26,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在此之前，您已将 Epic Games 账户和 GitHub 用户名绑定，从 GitHub 站点下载了虚幻引擎源代码，并在 Linux 系统上 UE4 的二进制版本。剩下的您只需要运行 UE4 编辑器，即可开始在 Linux 系统上开发游戏。
 
@@ -57,4 +57,4 @@ SkillLevel:Beginner
 
 您准备好自己做一些练习了吗？
 
-%Steps%
+

@@ -2,49 +2,10 @@ Availability:Public
 Title:Function Calls
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: Nodes that execute both code-defined and user-defined functions of a target Actor or Object.
-Related: Engine\Blueprints\UserGuide\Functions
+Related: Engine/Blueprints/UserGuide/Functions
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%](Engine\Blueprints\UserGuide\Functions.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions\FunctionCalls]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%](Engine\Blueprints\UserGuide\Functions.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions\FunctionCalls:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions\FunctionCalls]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
+topic-image:Engine/Blueprints/UserGuide/Functions.png
 
 [EXCERPT:Intro]
 **Function Calls** are actions that can be formed within Blueprints that correspond to functions belonging 

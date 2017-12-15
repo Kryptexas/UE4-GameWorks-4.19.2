@@ -4,8 +4,8 @@ Crumbs:%ROOT%, Engine
 Description:Links to step-by-step guides for working with Media Framework in Unreal Engine 4. 
 Navigation:topic
 parent:Engine/MediaFramework
-order:2
-Version: 4.13
+order:3
+Version: 4.18
 Related: Engine\MediaFramework\Overview
 Related: Engine\MediaFramework\TechReference
 
@@ -18,18 +18,28 @@ Refer to the table below for more information and click each link to view its co
 [REGION:wrapper transparent]
 [](FANCY:Engine\MediaFramework\HowTo\FileMediaSource "%Engine\MediaFramework\HowTo\FileMediaSource:description%")
 [](FANCY:Engine\MediaFramework\HowTo\StreamMediaSource "%Engine\MediaFramework\HowTo\StreamMediaSource:description%")
+[](FANCY:Engine\MediaFramework\HowTo\ImgMediaSource "%Engine\MediaFramework\HowTo\ImgMediaSource:description%")
 [/REGION]
 
 
 ## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine\MediaFramework\HowTo\MediaPlaylists "%Engine\MediaFramework\HowTo\MediaPlaylists:description%")
+[](FANCY:Engine\MediaFramework\HowTo\PlatformMedia "%Engine\MediaFramework\HowTo\PlatformMedia:description%")
 [](FANCY:Engine\MediaFramework\HowTo\ControllingPlayback "%Engine\MediaFramework\HowTo\ControllingPlayback:description%")
 [/REGION]
 
-<!-- To Do
+## Advanced
+[REGION:wrapper transparent]
+[](FANCY:Engine\MediaFramework\HowTo\UsingWebCams "%Engine\MediaFramework\HowTo\UsingWebCams:description%")
+[/REGION]
+
+
+[COMMENT:none]
+ To Do
 ## Advanced
 [REGION:wrapper transparent]
 [/REGION]
--->
+
+[/COMMENT]
 

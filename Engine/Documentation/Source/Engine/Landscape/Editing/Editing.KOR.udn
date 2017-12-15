@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260884
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:랜드스케이프 편집하기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -6,45 +6,7 @@ Description:랜드스케이프 터레인 편집용 툴 사용 안내서입니다
 Version: 4.9
 parent:Engine/Landscape
 order:3
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Editing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Editing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Editing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Editing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Editing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Editing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Landscape/Editing/landscape_editing_topic.png
 
 
 랜드스케이프를 생성한 이후에는, 다음과 같은 작업을 할 수 있습니다:
@@ -144,17 +106,21 @@ order:3
 
 [/REGION]
 
-<!-----
+[COMMENT:none]
+---
 [REGION:banner]
 ![Editing Banner](Engine/Landscape/Landscape_banner.png)
 [/REGION]
------>
+---
+[/COMMENT]
 
-<!-----
+[COMMENT:none]
+---
 [REGION:banner]
 ![Editing Banner](Landscape_Editing_banner.png)
 [/REGION]
----->
+--
+[/COMMENT]
 
 
 

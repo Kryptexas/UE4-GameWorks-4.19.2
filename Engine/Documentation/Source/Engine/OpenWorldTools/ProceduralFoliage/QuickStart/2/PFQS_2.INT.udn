@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 In the following section we will cover how to set up the **Foliage Type Actors** to work with the Procedural Foliage Spawner. 
 We will continue to work with the **PFT_00** level that was created in the last step.
 
@@ -59,4 +59,4 @@ We will continue to work with the **PFT_00** level that was created in the last 
 	![](T_Final_Results.png)
 
 
-%Steps%
+

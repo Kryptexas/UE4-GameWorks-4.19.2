@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2 - 애님 다이내믹스 적용
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:이번 단계에서는 캐릭터가 맨 장비와 풀무에 AnimDynamics 를 적용하여 움직임에 반응하도록 합니다.
 version: 4.12
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order: 2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 캐릭터에 **애니메이션 블루프린트** 와 동적 애니메이션을 적용할 본이 준비되었으니, **애니메이션 블루프린트** 의 **애님 그래프** 에서 **AnimDynamics** 노드 작업을 해 주면 되겠습니다.
 
@@ -69,7 +57,7 @@ Order: 2
 	**Setup** 및 **Constraint** 섹션은 애님 다이내믹스로 구동되는 본의 운동 및 그 범위를 정의하는 곳입니다. **Box Extent** 는 관성을, **Local Joint Offset** 은 피벗 포인트를, **Angular Limits** 는 운동의 회전 범위를 나타냅니다 (각각 프리뷰 시각화 옵션을 켜서 확인할 수 있습니다).
 
 	[REGION:note]
-	Setup 및 Constraint 섹션 관련 상세 정보는 [](Engine\Animation\NodeReference\SkeletalControls) 문서를 참고하세요.
+	Setup 및 Constraint 섹션 관련 상세 정보는 [](Engine/Animation/NodeReference/SkeletalControls) 문서를 참고하세요.
 	[/REGION]
 
 1.	**컴파일** 버튼을 클릭하고 장비가 좌우로 흔들리는 모습을 확인해 보세요.
@@ -104,22 +92,17 @@ Order: 2
 이제 캐릭터가 움직이면 컨스트레인트 세팅에 따라 풀무도 같이 움직이는 것이 보일 것입니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-w7c3i2vpcUc
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	w7c3i2vpcUc
+	[/PARAMLITERAL]
 [/OBJECT]
 
 **Setup** 섹션의 **Box Extent**, **Local Joint Offset** 값은 물론 **Constraints** 섹션의 **Linear** 및 **Angular Limits** 값도 자유롭게 변경하면서 애님 다이내믹스가 본의 운동에 어떤 영향을 끼치는지 실험해 보시기 바랍니다.
 
-
-%Steps%
-
-
-
-
+[NAV]

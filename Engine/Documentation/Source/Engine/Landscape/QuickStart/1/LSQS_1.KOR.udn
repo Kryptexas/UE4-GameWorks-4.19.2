@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 랜드스케이프 툴로 작업하기
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 언리얼 엔진 4 (UE4) 안에서 랜드스케이프를 만드는 것은 간단한 몇 단계면 됩니다. 하지만 첫 랜드스케이프 생성으로 뛰어들기 전, 먼저 랜드스케이프 시스템 조작에 흔히 사용되는 툴과 키보드 단축키를 몇 가지 살펴보도록 하겠습니다.
 
@@ -52,6 +52,6 @@ version: 4.9
 | **Ctrl + Y** | 되돌린 동작을 다시합니다. | 
 
 
-%Steps%
+
 
 

@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3544387
+Availability:Docs
 Crumbs: %ROOT%
-Title: Shaders In Plugins
-Description: Information on creating and useing shaders in plugins in UE4.
-Type: Landing
-Version: 4.17
-Parent: Programming\Rendering\
-Order: 1
-Tags: Rendering
+Title:在插件里写 Shaders
+Description:在虚幻引擎 4 中创建和使用插件中的 Shader。
+Type:Landing
+Version:4.17
+Parent:Programming\Rendering\
+Order:1
+Tags:Rendering
 
 Add Banner Image
 [REGION:note]
@@ -15,9 +15,9 @@ The Banner Image should show the user what the system, feature, or concept looks
 [/REGION]
 
 
-The following documents will go over all of the various items that you need to be aware of when trying to create and use global shaders via a Plugin. 
+以下文档将讲述通过插件创建和使用全局着色器时需要注意的诸多事项。 
 
-## Topic List
+## 要点列表
 
 [DIR(end:"1" output:"topic" parent:"Programming\Rendering\ShaderInPlugin" org:"Hierarchy" end:"1")]
 

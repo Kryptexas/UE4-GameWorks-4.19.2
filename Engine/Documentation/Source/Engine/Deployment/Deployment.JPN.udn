@@ -46,19 +46,15 @@ order:18
 [/OBJECT]
 [/VAR]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/deploy_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	パッケージング＆クック
-	[/PARAM]
-	[PARAM:links]
+## パッケージング＆クック
+
+[REGION:buttonlist]
+
 	* [](Engine/Basics/Projects/Packaging "%Engine/Basics/Projects/Packaging:description%")
 	* [](Engine/Deployment/Launching "%Engine/Deployment/Launching:description%")
 	* [](Engine/Deployment/Cooking "%Engine/Deployment/Cooking:description%")
 	* [](Engine/Deployment/Releasing "/Engine/Deployment/Releasing:description%")
 	* [](Engine/Deployment/Patching "Engine/Deployment/Patching:description%")
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

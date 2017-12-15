@@ -1,29 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:앰비언트 큐브맵
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:씬 라이팅에 적용하여 고품질 라이팅 인바이언먼트를 만드는 큐브맵 텍스처를 말합니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/AmbientCubemap:title%](cubemap2.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/AmbientCubemap:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/AmbientCubemap:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/AmbientCubemap]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:cubemap2.png
 
 [excerpt:AmbientCubemap]
 [EXCERPT:AmbientCubemap_Desc]

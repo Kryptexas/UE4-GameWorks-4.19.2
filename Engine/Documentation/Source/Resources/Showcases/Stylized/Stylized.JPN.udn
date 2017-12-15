@@ -101,11 +101,13 @@ Version:4.9
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:InstanceNote]
 [REGION:note]
 このシーンのために作成したほとんどのマテリアルは、実際に [マテリアル インスタンス定数](Engine/Rendering/Materials/MaterialInstances) を用いて適用されています。マテリアルの再コンパイルを待たずに迅速なプロパティの調整や微調整が可能となります。
 [/REGION]
 [/EXCERPT:InstanceNote]
 
---->
+-
+[/COMMENT]

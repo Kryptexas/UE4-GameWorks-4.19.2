@@ -103,7 +103,8 @@ _就功能而言，这两个 Actors 和物理约束的效果相同；然而在�
 
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:methods]
 [VAR:methods2]
@@ -120,7 +121,8 @@ _就功能而言，这两个 Actors 和物理约束的效果相同；然而在�
 
 如需了解在 **Physics Asset 工具**（**PhAT**）中使用 **物理约束** 的内容，请查阅： [**%Engine/Physics\PhAT:title%**](Engine/Physics\PhAT)
 
--->
+
+[/COMMENT]
 
 
 

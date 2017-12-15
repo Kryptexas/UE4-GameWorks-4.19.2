@@ -11,44 +11,14 @@ tags:Mobile
 tags:iOS
 topic-image:iOSGameDevelopment_topic.png
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Starting Out
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
-	[/PARAM]
-[/OBJECT]
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		iOS How-Tos
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		General iOS Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+## iOS How-Tos
+
+[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
+
+## General iOS Development
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]

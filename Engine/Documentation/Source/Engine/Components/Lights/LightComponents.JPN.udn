@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2775843
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Light コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -8,7 +8,7 @@ Related:Engine/Rendering/LightingAndShadows
 Related:Engine/Blueprints/UserGuide/Components
 version:4.9
 
-様々なタイプの **Light  コンポーネント** では、実現しようとしているエフェクトに応じて光源をアクタのサブ オブジェクトとして追加することができます。どの Light コンポーネント タイプを選ぶかには関係なく、 Light Color や Intensity などすべてに適用するもの、または調整可能な個々の設定があります (具体的な設定については、各ライトを参照してください)。  
+様々なタイプの **Light コンポーネント** では、実現しようとしているエフェクトに応じて光源をアクタのサブ オブジェクトとして追加することができます。どのタイプの Light コンポーネントを選ぶかには関係なく、 Light Color や Intensity などすべてに適用するもの、または調整可能な個々の設定があります (具体的な設定については、各ライトを参照してください)。  
 
 ![](light_component.png)(w:720)
 
@@ -16,7 +16,7 @@ _上の画面では、PointLight コンポーネントをブループリント�
 
 ## Directional Light コンポーネント
 
-**DirectionalLight コンポーネント** は、はるか遠くにある光源から放出される光をシミュレートします。つまりこのライトから投影されるシャドウは全て平行になるため、太陽光のシミュレーションに理想的な選択肢です。 
+**DirectionalLight コンポーネント** は、はるか遠くにある光源から放出される光をシミュレートします。つまりこのライトからキャストされるシャドウは全て平行になるため、太陽光のシミュレーションに理想的な選択肢です。 
 
 詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/Directional) をご覧ください。 
 

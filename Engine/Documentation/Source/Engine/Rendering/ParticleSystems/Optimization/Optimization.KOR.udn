@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:VFX 최적화 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -41,42 +41,18 @@ $ **Render Thread** : 파티클 지오메트리와 관련된 드로 콜을 패�
 문제점이 어디에 있는지 알아차리고 난 후, 다음 명령으로 최적화를 시작하면 됩니다.
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		고민해결 링크
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [GPU 관련 문제를 겪고 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
-		* [게임 스레드 관련 문제를 겪고 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
-		* [렌더 스레드 관련 문제를 겪고 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
-	[/PARAM]
-[/OBJECT]
+## 문제해결 링크
 
- 
+* [GPU 문제가 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
+* [게임 스레드 문제가 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
+* [렌더 스레드 문제가 있습니다.](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
 
+## 파티클 시스템 일반 토픽
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		파티클 시스템 일반 토픽
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Rendering/ParticleSystems/Optimization/Balance)
-		* [](Engine/Rendering/ParticleSystems/Optimization/Concepts)
-		* [](Engine/Rendering/ParticleSystems/Optimization/Results)
-		* [](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
-	[/PARAM]
-[/OBJECT]
-
+* [VFX 최적화: 비주얼 이펙트와 퍼포먼스 사이의 밸런스](Engine/Rendering/ParticleSystems/Optimization/Balance)
+* [VFX 최적화: 핵심 최적화 개념](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+* [VFX 최적화: 결과 구하기](Engine/Rendering/ParticleSystems/Optimization/Results)
+* [VFX 최적화: 분할 화면](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
 
 
 

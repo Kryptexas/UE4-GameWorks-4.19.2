@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3782314
 Title: iOS 게임 센터 순위표 사용법
 Description:게임에서 순위표를 사용하는 방법입니다.
 Crumbs:
@@ -6,40 +6,7 @@ Availability:Public
 Parent:Platforms/iOS
 order:4
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/iOS/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/iOS/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 ![](Platforms\Mobile\Leaderboards\iOSleaderboard.png)(w:320 convert:false)
 

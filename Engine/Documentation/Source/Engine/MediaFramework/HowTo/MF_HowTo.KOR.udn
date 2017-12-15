@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
-Title: 미디어 프레임워크 비법
+Title: 미디어 프레임워크 안내서
 Crumbs:%ROOT%, Engine
-Description:언리얼 엔진 4 에서 미디어 프레임워크 작업 방법에 대한 단계별 안내 링크입니다.
+Description:언리얼 엔진 4 의 미디어 프레임워크 작업 방법에 대한 단계별 안내서입니다.
 Navigation:topic
 parent:Engine/MediaFramework
-order:2
-Version: 4.13
+order:3
+Version: 4.18
 Related: Engine\MediaFramework\Overview
 Related: Engine\MediaFramework\TechReference
 
@@ -25,12 +25,21 @@ Related: Engine\MediaFramework\TechReference
 ## 중급
 [REGION:wrapper transparent]
 [](FANCY:Engine\MediaFramework\HowTo\MediaPlaylists "%Engine\MediaFramework\HowTo\MediaPlaylists:description%")
+[](FANCY:Engine\MediaFramework\HowTo\PlatformMedia "%Engine\MediaFramework\HowTo\PlatformMedia:description%")
 [](FANCY:Engine\MediaFramework\HowTo\ControllingPlayback "%Engine\MediaFramework\HowTo\ControllingPlayback:description%")
 [/REGION]
 
-<!-- To Do
 ## 고급
 [REGION:wrapper transparent]
+[](FANCY:Engine\MediaFramework\HowTo\UsingWebCams "%Engine\MediaFramework\HowTo\UsingWebCams:description%")
 [/REGION]
--->
+
+
+[COMMENT:none]
+ To Do
+## Advanced
+[REGION:wrapper transparent]
+[/REGION]
+
+[/COMMENT]
 

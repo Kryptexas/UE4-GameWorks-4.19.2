@@ -6,46 +6,7 @@ Related: Engine/Sequencer
 Related: Engine/Sequencer/HowTo/TracksShot
 Related: Engine/Sequencer/HowTo/ViewportOptions
 tags:Sequencer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/SequencerSubway:title%](SequencerSubway_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/SequencerSubway:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/SequencerSubway:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/SequencerSubway]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/SequencerSubway:title%](SequencerSubway_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/SequencerSubway:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/SequencerSubway:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/SequencerSubway]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:SequencerSubway_Topic.png
 
 [TOC]
 

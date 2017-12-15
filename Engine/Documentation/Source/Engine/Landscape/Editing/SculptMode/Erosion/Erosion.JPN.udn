@@ -78,7 +78,8 @@ Topic-image:Erosion_Topic.png
 | **Noise Mode** | ノイズを適用した高さマップの上げ下げ、あるいはその両方の適用を設定します。 [INCLUDE:#noise] |
 | **Noise Scale** | 使用するノイズ フィルターの大きさです。ノイズ フィルターは、位置とスケールに関係します。したがって、**Noise Scale** に変更がない限り、同じフィルターが同じ位置に何度も適用されます。 | 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:noise]
 | 選択 | 説明 |
@@ -88,7 +89,8 @@ Topic-image:Erosion_Topic.png
 | **Lower** | ハイトマップを下げる結果になる侵食エフェクトのみを適用します。  |
 [/EXCERPT:noise]
 
---->
+-
+[/COMMENT]
 
 
 

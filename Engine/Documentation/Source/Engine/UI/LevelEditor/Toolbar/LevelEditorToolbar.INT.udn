@@ -24,11 +24,13 @@ The **Toolbar** panel, like in most applications, is a group of commands providi
 | ![](button_Toolbar_PlayIn.png) | [INCLUDE:#playin] |
 | ![](button_Toolbar_launch.png) | Launches the current map on any of the supported platforms. Connected devices are listed in the menu accessed by clicking the arrow. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:simulate]
 Starts the game in simulation mode. See the [Simulate In Editor](Engine/UI/LevelEditor/InEditorTesting#SimulateInEditor) section for more information.
 [/EXCERPT:simulate]
 [EXCERPT:playin]
 Starts the game in normal play mode. Clicking the arrow displays the **Play Options** menu. See the [Play In Editor](Engine/UI/LevelEditor/InEditorTesting#PlayInEditor) section for more information.
 [/EXCERPT:playin]
--->
+
+[/COMMENT]

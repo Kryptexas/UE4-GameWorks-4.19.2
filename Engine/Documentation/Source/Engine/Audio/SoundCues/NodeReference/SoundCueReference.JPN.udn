@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:サウンド キュー リファレンス
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -110,14 +110,16 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:ParamMode]
 パラメータを適用するモードは以下の通りです。 
 * **MPM_Normal** - 入力値を範囲 (MinInput, MaxInput) にクランプしてから範囲 (MinOutput、MaxOutput) に対してマッピングします。 
 * **MPM_Abs** - 入力値を絶対値として扱う点を除けば、 MPM_Normal と同じです。
 * **MPM_Direct** - Min あるいは Max の入力および出力値をスケールまたは参照せず、入力値をそのまま使用します。
 [/EXCERPT:ParamMode]
---->
+-
+[/COMMENT]
 
 
 
@@ -248,7 +250,9 @@ Enveloper ノードの **[Details (詳細)]** パネルにはエンベロープ 
 | [REGION:tablesection]Sound Node Group Control[/REGION] ||
 | **Group Sizes** | グループ内の Sound Wave ノード数から 1 をひいた数 (最初の Sound Wave ノードは 0 )。|
 
-<!-- get more info here -->
+[COMMENT:none]
+ get more info here 
+[/COMMENT]
 
 
 ## Looping ノード
@@ -333,7 +337,9 @@ Looping ノードは、遅延の導入など、ロジカルなループまたは
 | **Preselect at Level Load** | レベルのロード時に選択され、プレイ セッション中に常に使用される、ランダムな Sound Wave ノードです。この設定の適用は、アンリアル エディタ外でのゲームのビルドに限られます。エディタで再生中、またはシミュレーション中は適用されませんのでご注意ください。
 | **Randomize Without Replacement** | true の場合は、入力サウンドが全部再生されるまで入力 Sound Wave ノードが再度再生されることはありません。これにより、繰り返しが行われる前に、全てのサウンドが確実に再生されるようにします。
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 ## SoundClass ノード
 
@@ -347,7 +353,9 @@ Looping ノードは、遅延の導入など、ロジカルなループまたは
 | **Sound Class Override** | Sound Wave の入力ノードに対する現在の Sound クラスをオーバーライドする Sound Class アセットです。 |
 
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 ## Switch ノード
@@ -361,7 +369,9 @@ Looping ノードは、遅延の導入など、ロジカルなループまたは
 | [REGION:tablesection]Sound Node Switch[/REGION] ||
 | **Int Parameter Name** | 使用する入力を決定するために使う整数パラメータ名です。 |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 
@@ -382,7 +392,9 @@ Looping ノードは、遅延の導入など、ロジカルなループまたは
 | [REGION:tablesection]Sound Node Wave Param[/REGION] ||
 | **Wave Parameter Name** | 再生する Sound Wave を決定するために使う整数パラメータ名です。パラメータが存在しない、または無効の Sound Wave を指している場合、入力ノードに接続されたツリーによって指定されたその Sound Wave を評価して、どの Sound Wave を代わりに再生するかを決めます。 |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 

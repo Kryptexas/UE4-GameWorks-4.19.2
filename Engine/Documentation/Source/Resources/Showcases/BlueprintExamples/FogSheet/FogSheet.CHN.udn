@@ -132,7 +132,8 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:FogSheetCS]
 _构建脚本_ 执行以下任务：
@@ -155,4 +156,5 @@ _构建脚本_ 执行以下任务：
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

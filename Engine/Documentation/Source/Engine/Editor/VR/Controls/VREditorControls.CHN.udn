@@ -116,7 +116,8 @@ skilllevel: intermediate
 | ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | 用控制器对准窗口的柄后按下扳机键即可选取窗口。在追踪板上上下移动拇指即可放大或缩小窗口。 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:MultiSelect]
 [PUBLISH:Rocket]
 [REGION:lightbox][![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION]
@@ -125,4 +126,5 @@ skilllevel: intermediate
 ![Aim Controller at Actor + Squeeze Trigger Halfway + Aim Controller at another Actor + Squeeze Trigger](select_actor_multiple.png)(h:108 convert:false)
 [/PUBLISH:Epic]
 [/EXCERPT:MultiSelect]
--->
+
+[/COMMENT]

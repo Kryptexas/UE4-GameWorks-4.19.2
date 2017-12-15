@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -8,44 +8,7 @@ skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tags:Data Types
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Variables:title%](Engine\Blueprints\UserGuide\variables_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Variables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Variables:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Variables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Variables:title%](Engine\Blueprints\UserGuide\variables_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Variables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Variables:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Variables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/variables_topic.png
 
 
 [TOC (start:2)]
@@ -63,14 +26,14 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 
 [REGION:tip]
-마티네를 사용해서 특정 유형 변수값을 변경하는 법에 대한 정보는, [](Engine/Matinee\UserGuide\BlueprintComponents) 문서를 참고하세요.
+마티네를 사용해서 특정 유형 변수값을 변경하는 법에 대한 정보는, [](Engine/Matinee/UserGuide/BlueprintComponents) 문서를 참고하세요.
 [/REGION]
 
 
 ## 변수 유형
 
 변수는 다양한 유형으로 생성 가능한데, Boolean (_True_ / _False_), Integer (정수), Float (실수) 와 같은 데이터 형은 물론이고 Object, Actor, 특정 Class 와 같은 것을 담는 레퍼런스 형도 생성 가능합니다. 
-각 변수형을 [배열](Engine/Blueprints\UserGuide\Arrays) 로도 만들 수 있으며, 각 유형은 색을 통해 쉽게 알아볼 수 있습니다:
+각 변수형을 [배열](Engine/Blueprints/UserGuide/Arrays) 로도 만들 수 있으며, 각 유형은 색을 통해 쉽게 알아볼 수 있습니다:
 
 [EXCERPT:VarColor]
 
@@ -108,7 +71,7 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 1.  [블루프린트를 생성](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 한 뒤 **그래프** 탭에서 엽니다.
 
-1.  **내 블루프린트** 창에서 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png) 변수 목록 제목줄의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 클릭하여 새 변수를 생성합니다.
+1.  **내 블루프린트** 창에서 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_variable.png) 변수 목록 제목줄의 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) **추가 버튼** 을 클릭하여 새 변수를 생성합니다.
 
 	![](MyBlueprintPane_createVar.png)
 
@@ -147,11 +110,13 @@ Variable (변수)는 변수 이름이 들어간 둥근 박스로 표시됩니다
 
 [/EXCERPT:CreatingVariables]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AddVariables]
 [INCLUDE:#creatingvariables]
 [/EXCERPT:AddVariables]
--->
+
+[/COMMENT]
 
 ### 편집가능 변수
 

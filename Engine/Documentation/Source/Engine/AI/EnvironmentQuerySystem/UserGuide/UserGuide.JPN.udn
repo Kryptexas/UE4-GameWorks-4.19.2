@@ -6,44 +6,7 @@ Description:本ページでは、ビヘイビアツリー内の Environment Quer
 Version:4.9
 SkillLevel:Advanced
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 ## Environment Query System を有効にする
 
@@ -184,20 +147,14 @@ Root へ複数の Generator ノードを接続することができますが、�
 
 新規作成された EnvQueryContext ブループリントには、4 つの機能が実装されています。
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](implementableFunctions.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-		* **Provide Single Location**
-		* **Provide Single Actor**
-		* **Provide Locations Set**
-		* **Provide Actors Set**
+![](implementableFunctions.png)(convert:false)
 
-		これらの 1 つを実行すると、クエリ内のテストで使えるようにコンテキストをカスタム化して作成できるようになります。実行したい関数 (複数可) を右クリックして、 **[Implement Function (関数を実装)]** を選択してください。
-	[/PARAM]
-[/OBJECT]
+	* **Provide Single Location**
+	* **Provide Single Actor**
+	* **Provide Locations Set**
+	* **Provide Actors Set**
 
+	これらの 1 つを実行すると、クエリ内のテストで使えるようにコンテキストをカスタム化して作成できるようになります。実行したい関数 (複数可) を右クリックして、 **[Implement Function (関数を実装)]** を選択してください。
 
 ### Provide Single Location
 

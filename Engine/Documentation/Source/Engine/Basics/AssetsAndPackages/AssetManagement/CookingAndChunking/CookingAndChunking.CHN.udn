@@ -1,51 +1,54 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3588288
+Availability:Docs
 Crumbs: %ROOT%
-Title: Cooking and Chunking
-Description: Cooking Content and Building .pak Files for Distribution
-Type: Overview
-SkillLevel: Intermediate
-Version: 4.17
-Parent: Engine/Basics/AssetsAndPackages/AssetManagement
-Order: 0
-Tags: Assets
-Tags: Asset Management
-Tags: Cooking
-Tags: Chunking
-Related: Resources/SampleGames/ShooterGame
+Title:烘焙和数据块划分
+Description:烘焙内容、编译 .pak 文件进行发布
+Type:Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Engine/Basics/AssetsAndPackages/AssetManagement
+Order:0
+Tags:Assets
+Tags:Asset Management
+Tags:Cooking
+Tags:Chunking
+Related:Engine/Basics/AssetsAndPackages/AssetManagement
 
 [TOC (start:2 end:3)]
 
-When you cook your game for release or test on non-editor platforms, **Chunking** can be used to split your data into several .pak files that can then be independently deployed. Chunking is now integrated into the Asset Manager, and it can be set up using **Primary Asset Labels** or **Rules Overrides**. The best example of chunking can be found in the ShooterGame sample project. ShooterGame establishes three chunks: Chunk 1 for the "Sanctuary" map, Chunk 2 for the "Highrise" map, and Chunk 0 for all other data. For [ShooterGame](Resources/SampleGames/ShooterGame), Primary Asset Labels were chosen, but we will discuss both methods.
+烘焙游戏进行发布或在非编辑器平台上进行测试时，可使用 **数据块（Chunking）** 将数据拆分为数个 .pak 文件，然后独立进行部署。数据块划分现已被整合到资源管理器（Asset Manager）中，可使用 **主资源标签（Primary Asset Labels）** 或 **规则覆盖（Rules Overrides）** 进行设置。ShooterGame 范例项目中包含数据块的最佳实例。ShooterGame 构建了 3 个数据块：数据块 1 是“Sanctuary”地图；数据块 2 是“Highrise”地图；数据块 3 则是其他所有数据。[ShooterGame](Resources/SampleGames/ShooterGame) 项目中选择的是 Primary Asset Labels，但两种方法我们皆会讨论。
 
+## 主资源规则（Primary Asset Rules）
 
-## Primary Asset Labels
+**主资源规则** 用于决定哪个主资源对哪个次资源拥有管理权限，以及在烘焙过程中如何处理资源。这些规则由 `FPrimaryAssetRules` 结构所定义，由 [资源管理器](Engine\Basics\AssetsAndPackages\AssetManagement) 所使用，决定烘焙时的资源处理方式。如需了解 `FPrimaryAssetRules` 中可用选项的详细信息，请查看其 [API 页面](API:FPrimaryAssetRules)。您也需要查看 [FPrimaryAssetRules` API 页面](API:EPrimaryAssetCookRule) 上定义的烘焙规则。
 
-**Primary Asset Label** is a minimal override of `UPrimaryDataAsset` that is set up to designate other assets for chunking and cooking. While they are not usually loaded during the game, they are used when cooking and chunking and can set up their own rules, lists, and priorities for other project assets. In the case of ShooterGame, labels were created to designate the assets that would be placed into the various chunks.
+## 主资源标签（Primary Asset Labels）
+
+**主资源标签** 是 `UPrimaryDataAsset` 的最小覆盖，对其进行设置后可指定其他资源进行数据块划分和烘焙。其在游戏中通常不会被加载，但在烘焙和划分数据块时需要使用，可对其规则、列表和其他项目资源的优先级进行设置。以 ShooterGame 为例，创建的标签能够指定放置到诸多数据块中的资源。
 
 ![](HighriseLabel.png)
 
-[REGION:caption]This Primary Asset Label, named "HighriseLabel", explicitly manages the game's "Highrise" map asset, and indicates that it belongs in Chunk 2.[/REGION]
+[REGION:caption]这个主资源标签名为“HighriseLabel”，可显式管理游戏的“Highrise”地图资源，并标明其属于数据块 2。[/REGION]
 
-At this point, the asset for "Highrise" is associated with its own Primary Asset ID, "Map:/Game/Maps/Highrise", as well as the Primary Asset ID of "HighriseLabel", "PrimaryAssetLabel:HighriseLabel". Because the map has no Chunk ID of its own, the chunking process will use the Chunk ID found in "HighriseLabel", which is 2. In addition, all Secondary Assets in the map will be associated with Chunk 2. A similar setup will need to be made for the "Sanctuary" map and Chunk 1.
+此时，“Highrise”资源与其自身的主资源 ID“Map:/Game/Maps/Highrise”、以及“HighriseLabel”和“PrimaryAssetLabel:HighriseLabel”的主资源 ID 相关联。因为地图不含其自身的数据块 ID，划分数据块的过程将使用“HighriseLabel”中找到的数据块 ID：2。此外，地图中的所有次资源将与数据块 2 相关联。需要对“Sanctuary”地图和数据块 1 执行相似的设置。不带数据块 ID（或带负数据块 ID）的资源将被划入数据块 0，默认 .pak 文件，项目的初始地图“ShooterEntry”将被保存。由多个主资源标签引用的词资源在这些标签中将与最高优先级相关联。在多个标签与最高优先级相关联的事件中，资源将与每个标签相关联。
 
 ![](ReferenceViewer.png)
 
-[REGION:caption]The Reference Viewer shows the management relationship of the Primary Asset Label and the level map.[/REGION]
+[REGION:caption]引用查看器（Reference Viewer）将显示主资源标签和关卡地图的管理关系。[/REGION]
 
 ![](Management.png)
 
-[REGION:caption]Double-clicking on "Map:/Game/Maps/Highrise" reveals that it is managed by "PrimaryAssetLabel:HighriseLabel".[/REGION]
+[REGION:caption]双击“Map:/Game/Maps/Highrise”将显示其由“PrimaryAssetLabel:HighriseLabel”所管理。[/REGION]
 
-## Rules Overrides
+## 规则覆盖（Rules Overrides）
 
-**Rules Overrides** can be used to establish the priority and Chunk settings for a specific Primary Asset. To build our three-chunk setup for ShooterGame using Rules Overrides instead of Primary Asset Labels, the following section should be created in `DefaultGame.ini`:
+**规则覆盖（Rules Overrides）** 可用于建立特定主资源的优先级和数据块设置。如要使用规则覆盖替代主资源标签构建 ShooterGame 的 3 数据块设置，需要在 `DefaultGame.ini` 中创建以下代码段：
 
 	[/Script/Engine.AssetManagerSettings]
-	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/Sanctuary", Rules=(Priority=-1,ChunkId=1,CookRule=Unknown))
-	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/Highrise", Rules=(Priority=-1,ChunkId=2,CookRule=Unknown))
-	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/ShooterEntry", Rules=(Priority=-1,ChunkId=0,CookRule=AlwaysCook))
+	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/Sanctuary",Rules=(Priority=-1,ChunkId=1,CookRule=Unknown))
+	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/Highrise",Rules=(Priority=-1,ChunkId=2,CookRule=Unknown))
+	+PrimaryAssetRules=(PrimaryAssetId="Map:/Game/Maps/ShooterEntry",Rules=(Priority=-1,ChunkId=0,CookRule=AlwaysCook))
 
-[REGION:caption]Cooking and chunking rules in the `DefaultGame.ini` file.[/REGION]
+[REGION:caption]`DefaultGame.ini` 文件中的烘焙和数据块划分规则。我们已在此例中的初始地图“ShooterEntry”中添加一个显式引用。[/REGION]
 
-This sets our main game maps to be in specific chunks, which will cause all of their references to be added to those chunks as well. The final entry, governing Chunk 0, ensures that anything referenced by the map that loads when the game first starts up will be in Chunk 0, which is also the default Chunk.
+这将把我们的主游戏地图设置到特定的数据块中，会使所有引用也被添加到这些数据块。最终的条目管理数据块 0，确保游戏首次启动时加载的地图引用内容保存在默认数据块 0 中。-1 的优先级值将把优先级设为默认值 1。

@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:3697586
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:设置 Gear VR 的运动控制器
+Description:设置 UE4 兼容的 Gear VR 运动控制器。
+Type: how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/GearVR
+Order:2
+Tags:GearVR
+topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
+prereq:Platforms\GearVR\Prerequisites
+prereq:Platforms\GearVR\QuickStart
+prereq:Platforms\GearVR\HowTo\CameraSetup
+
+用户能通过 Gear VR 运动控制器拾取物品并进行互动，真实感极强，这种体验可谓前所未有。以下指南将讲述如何对 UE4 项目进行设置，使其兼容 Gear VR 运动控制器。
+
+## 步骤
+
+1. 首先打开需要添加运动控制器支持的玩家 pawn，在此例中我们的 pawn 名为 **GearVR_Pawn_MotionController**，在 **Components** 标签中点击 **Add Component** 按钮，然后搜索 **Motion Controller**。
+
+    ![](HTGearVR_MC_00.png)
+
+1. 将新添加的 **运动控制器** 拖到现有的 **VRCameraRoot** 上，使其成为 **VRCamera** 的子组件。
+
+    ![](HTGearVR_MC_01.png)
+
+    [region:note]
+    添加到 Pawn 时，Gear VR 运动控制器组件 **Location** 应设为 0,0,0。如并非如此，则必须将位置设为 0,0,0。
+    [/region]
+
+1. 编译并保存蓝图，然后将 **GearVR_Pawn_MotionController** 从 **Content Browser** 拖入关卡。
+
+    [REGION:lightbox]
+    [![](HTGearVR_MC_02.png)(w:660)](HTGearVR_MC_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 选择新添加的 Player Pawn，在 **Details** 面板中将 **Auto Possess Player** 设为 **Player 0**，以便在关卡运行时使用此 Pawn。
+
+    ![](HTGearVR_MC_03.png)
+
+1. 最后按下 **Launch** 键在三星 Galaxy 智能手机上部署并运行此关卡。
+
+    ![](HTGearVR_MC_04.png)
+
+## 最终结果
+
+项目启动后，将手机放入 Gear VR 头戴设备并拿起 Gear VR 运动控制器。在真实环境中移动运动控制器时，UE4 项目中复制出的运动于以下视频类似。
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    WCf_N_JsHAQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+[region:note]
+如 Gear VR 运动控制器网格体处于错误的位置，则将运动控制器移到身体前方之外的地方，长按 **Home** 键重新校正运动控制器的位置。
+[/region]
+
+### UE4 项目下载
+
+可使用以下链接下载用于创建此例的 UE4 项目。 
+
+* [**Gear VR 运动控制器范例项目**](https://epicgames.box.com/s/u9bq98s1w8u7nv45968djx31kyznpuoi)
+
+

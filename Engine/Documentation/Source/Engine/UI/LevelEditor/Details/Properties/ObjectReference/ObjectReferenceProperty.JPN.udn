@@ -18,7 +18,8 @@ Version:4.9
 | ![Find in Content Browser button](button_find_prop.png) | 現在割り当てられているアセットを **コンテンツブラウザ** で探します。アセットが割り当てられていない場合は機能しません。|
 | ![Reset button](button_reset.png) |プロパティをデフォルトアセットにリセットします。|
 
-<!-- Table Includes
+[COMMENT:none]
+ Table Includes
 [EXCERPT:AssetPickerList]
 コンテキスト メニューでは以下の事ができます。
 * **[Edit]** をクリックして修正用の適切なエディタでアセットを開きます
@@ -27,4 +28,5 @@ Version:4.9
 * **[Clear]** をクリックしてアセット参照を削除してブランクのままにします。
 * リストから新規アセットを選択します。オプションで、 **[ブラウズ]** ボックスにテキストを入力してリストをフィルタします。 
 [/EXCERPT:AssetPickerList]
--->
+
+[/COMMENT]

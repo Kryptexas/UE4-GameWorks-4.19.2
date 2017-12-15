@@ -43,7 +43,8 @@ Description:关于类蓝图编辑器界面的概述。
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar)
@@ -56,7 +57,8 @@ Description:关于类蓝图编辑器界面的概述。
 * [编译器结果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
 * [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 
 然而，如果您执行以下任何操作，此用户界面将会有少许变化：

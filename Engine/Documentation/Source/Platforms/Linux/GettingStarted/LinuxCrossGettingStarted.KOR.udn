@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3470080
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 리눅스용 크로스 컴파일
 Crumbs:%ROOT%
@@ -16,7 +16,9 @@ related:Programming/Basics/ConfigurationFiles
 topic-image:GettingStarted_Topic.png
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:3)]
 

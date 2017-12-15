@@ -7,43 +7,12 @@ Related: Engine/Matinee/UserGuide
 Related: Engine/Matinee/TrackReference
 Related: Engine/UI/CurveEditor
 Version: 4.9
-
+topic-image:Matinee_Compact.png
 
 
 [REGION:banner]
 ![](Matinee_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee:title%](Matinee_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Matinee]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee:title%](Matinee_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Matinee]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

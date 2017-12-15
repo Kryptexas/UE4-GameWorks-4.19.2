@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Jump Loop から Jump End の遷移を設定します。
 
@@ -40,4 +40,3 @@ Version:4.15
 
 	![](IsNotFalling.png)
 
-%Steps%

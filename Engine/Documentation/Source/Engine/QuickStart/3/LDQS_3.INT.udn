@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Next we will create a new [Level](Engine/Levels) that we will use to build our game environment in. 
 While there are several different ways in which you can create a new Level, we will use the **File Menu** method which we will present us with level selection options. 
@@ -105,7 +105,7 @@ The level will be created and ready to populate with visual and gameplay related
 
 In the next step, we will begin adding assets and building out our environment. 
 
-%Steps%	
+	
 
 
 

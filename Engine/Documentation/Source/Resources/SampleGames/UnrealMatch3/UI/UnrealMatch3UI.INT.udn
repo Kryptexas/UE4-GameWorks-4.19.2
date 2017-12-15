@@ -5,40 +5,8 @@ Description:Describes the process taken to construct the UI for the Unreal Match
 Version: 4.10
 Related: Engine/UMG
 Related: Engine/Blueprints
+topic-image:Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3/UI:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3/UI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3/UI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3/UI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3/UI:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3/UI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3/UI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3/UI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -49,18 +17,9 @@ On this page we highlight each of the menus and point out considerations made du
 
 ## Title Screen
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](TitleScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Title Screen can be found inside the **Content/UI** folder as the **TitleScreen** Widget Blueprint. It primarily consists of some Text widgets and a Button that animates. When the player clicks on or presses the button, they are then taken to the game's Main Menu. In the Graph we use a Timer to call and play the pulse animation every 5 seconds. When clicking the button, the Main Menu Widget Blueprint is created and added to the viewport before removing the Title Screen. 
-	[/PARAM]
-[/OBJECT]
+![](TitleScreen.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:540)
-[/REGION]
+The Title Screen can be found inside the **Content/UI** folder as the **TitleScreen** Widget Blueprint. It primarily consists of some Text widgets and a Button that animates. When the player clicks on or presses the button, they are then taken to the game's Main Menu. In the Graph we use a Timer to call and play the pulse animation every 5 seconds. When clicking the button, the Main Menu Widget Blueprint is created and added to the viewport before removing the Title Screen. 
 
 The setup for the Button used on the Title Screen is used quite frequently throughout the sample.
 
@@ -72,20 +31,11 @@ We elected not to bake the icons directly into the backgrounds so that we can in
 
 ## Main Menu
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](MainMenu.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Main Menu can be found inside the **Content/UI** folder as the **MainMenu** Widget Blueprint. The hub in which the player can perform several different actions, this screen contains 10 different buttons which allow the player to access settings, access the in-game store, play the game, select levels, etc. When playing on a mobile device, depending on the platform (Android or iOS), the player can access platform specific leaderboards and achievements. 
+![](MainMenu.png)(w:200 convert:false)
 
-	The Graph for this Widget Blueprint is setup so that when the player clicks on one of the buttons that will transition to a new screen menu screen (settings, level select, store, etc.), we first check and see if the player has access that screen before and if not, we then create the corresponding Widget Blueprint to display and store that as a variable for the next time they access that screen. This prevents us from having to create/destroy each screen each time the user accesses it. 
-	[/PARAM]
-[/OBJECT]
+The Main Menu can be found inside the **Content/UI** folder as the **MainMenu** Widget Blueprint. The hub in which the player can perform several different actions, this screen contains 10 different buttons which allow the player to access settings, access the in-game store, play the game, select levels, etc. When playing on a mobile device, depending on the platform (Android or iOS), the player can access platform specific leaderboards and achievements. 
 
-[REGION:raw]
-![](spacer.png)(w:120)
-[/REGION]
+The Graph for this Widget Blueprint is setup so that when the player clicks on one of the buttons that will transition to a new screen menu screen (settings, level select, store, etc.), we first check and see if the player has access that screen before and if not, we then create the corresponding Widget Blueprint to display and store that as a variable for the next time they access that screen. This prevents us from having to create/destroy each screen each time the user accesses it. 
 
 One of the design decisions made in setting up this screen concerns how the buttons across the top and bottom are laid out. 
 
@@ -96,21 +46,12 @@ What this allows us to do is specify in the **Details** panel the amount of Slot
 
 ## Options Menu
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Options1.png)(w:200 convert:false) ![](Options2.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Options Menu can be found inside the **Content/UI** folder as the **OptionsMenu** Widget Blueprint. As seen in the images to the left, the Options Menu is repurposed and used in both the Main Menu and in-game display whenever the Options Button is pressed. Based on the context, the content changes slightly and additional options are presented and stylized treatments are used. 
-	
-	The Graph for this Widget Blueprint contains the logic for loading/saving the options that are changed and is handled by the **Global Game Instance** Blueprint. 
-	We also check to see if the player is accessing the options from in-game or the Main Menu and swap out the buttons displayed at the bottom or enable/disable a background tint. 
-	[/PARAM]
-[/OBJECT]
+![](Options1.png)(w:200 convert:false) ![](Options2.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:60)
-[/REGION]
+The Options Menu can be found inside the **Content/UI** folder as the **OptionsMenu** Widget Blueprint. As seen in the images to the left, the Options Menu is repurposed and used in both the Main Menu and in-game display whenever the Options Button is pressed. Based on the context, the content changes slightly and additional options are presented and stylized treatments are used. 
+	
+The Graph for this Widget Blueprint contains the logic for loading/saving the options that are changed and is handled by the **Global Game Instance** Blueprint. 
+We also check to see if the player is accessing the options from in-game or the Main Menu and swap out the buttons displayed at the bottom or enable/disable a background tint. 
 
 The in-game Options Menu is one of the instances where a Confirmation Screen is used upon performing certain actions. 
 It's usually best practice to provide a confirmation of "destructive" actions whenever you create your UI screens (quitting games, purchasing items, deleting items, etc.) to prevent users from inadvertently selecting something or performing an action they didn't mean to. 
@@ -128,20 +69,11 @@ Click for full view.
 
 ## In-Game Display
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](InGameDisplay.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The primary in-game HUD is contained within the **GameScreen** Widget Blueprint in the **Content/UI** folder. This Widget Blueprint defines the layout for the individual pieces that make up the overall display: the ScoreBoard (**ScoreBoardWB** Widget Blueprint) and Bomb Power (**PowerBarHorz** Widget Blueprint) and the Settings Button (which displays the **OptionsMenu** Widget Blueprint). 
+![](InGameDisplay.png)(w:200 convert:false)
 
-	The Graph for the GameScreen Widget Blueprint contains only the logic for displaying the Options Menu. The logic for updating the Score Board and Bomb Power meter are handled in their respective Widget Blueprints to make things more modular and easier to decipher (versus placing everything in one Widget Blueprint). 
-	[/PARAM]
-[/OBJECT]
+The primary in-game HUD is contained within the **GameScreen** Widget Blueprint in the **Content/UI** folder. This Widget Blueprint defines the layout for the individual pieces that make up the overall display: the ScoreBoard (**ScoreBoardWB** Widget Blueprint) and Bomb Power (**PowerBarHorz** Widget Blueprint) and the Settings Button (which displays the **OptionsMenu** Widget Blueprint). 
 
-[REGION:raw]
-![](spacer.png)(w:260)
-[/REGION]
+The Graph for the GameScreen Widget Blueprint contains only the logic for displaying the Options Menu. The logic for updating the Score Board and Bomb Power meter are handled in their respective Widget Blueprints to make things more modular and easier to decipher (versus placing everything in one Widget Blueprint). 
 
 #### Score Board Display
 
@@ -184,22 +116,13 @@ Above in the **GameLevel_GM**, the score is defined and the process of spawning 
 
 ## Game Over Display
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](YouWinScreen.png)(w:200 convert:false) ![](YouLoseScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Game Over screens (You Win and You Lose) can be found inside the **Content/UI** folder as the **VictoryScreen** Widget Blueprint. The same Widget Blueprint is called when the game is over but is updated based on the results of the session. 
+![](YouWinScreen.png)(w:200 convert:false) ![](YouLoseScreen.png)(w:200 convert:false)
 
-	If you win, the blue background and the medal that you achieved is displayed. If you lose, the red background is displayed and the text content is replaced with the corresponding "you lose" text. 
+The Game Over screens (You Win and You Lose) can be found inside the **Content/UI** folder as the **VictoryScreen** Widget Blueprint. The same Widget Blueprint is called when the game is over but is updated based on the results of the session. 
 
-	Regardless of whether or not you win or lose, the score you achieved is displayed along with a series of buttons that allow you to return to the Main Menu, show platform specific Leaderboards or Achievements or replay the level. 
-	[/PARAM]
-[/OBJECT]
+If you win, the blue background and the medal that you achieved is displayed. If you lose, the red background is displayed and the text content is replaced with the corresponding "you lose" text. 
 
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+Regardless of whether or not you win or lose, the score you achieved is displayed along with a series of buttons that allow you to return to the Main Menu, show platform specific Leaderboards or Achievements or replay the level. 
 
 The buttons that appear at the bottom of the screen are located inside the **GameOverButtons** Widget Blueprint. They are split off from the Game Over Screen widget so that they can be repurposed and used on other screens versus having to recreate that setup each time we need display those options to the user. 
 
@@ -212,22 +135,13 @@ The buttons that appear at the bottom of the screen are located inside the **Gam
 
 ## Level Select
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](LevelSelect.png)(w:200 convert:false) ![](LevelSelect2.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Level Select Menu can be found inside the **Content/UI** folder as the **LevelSelect** Widget Blueprint. This screen allows the player to cycle between the levels in the game as well as the scores needed for the level to earn each medal. 
+![](LevelSelect.png)(w:200 convert:false) ![](LevelSelect2.png)(w:200 convert:false)
+
+The Level Select Menu can be found inside the **Content/UI** folder as the **LevelSelect** Widget Blueprint. This screen allows the player to cycle between the levels in the game as well as the scores needed for the level to earn each medal. 
 	
-	While the core functionality for navigating this screen exists in the Level Select Widget Blueprint, the information however is piped through a different Widget Blueprint called the **LevelSelectWidget** also located in the **Content/UI** folder. 
+While the core functionality for navigating this screen exists in the Level Select Widget Blueprint, the information however is piped through a different Widget Blueprint called the **LevelSelectWidget** also located in the **Content/UI** folder. 
 
-	If the user has not purchased the level, we swap out the Accept Button with a link to the Store so the user can jump directly to the Store menu to purchase it. 
-	[/PARAM]
-[/OBJECT]
-
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+If the user has not purchased the level, we swap out the Accept Button with a link to the Store so the user can jump directly to the Store menu to purchase it. 
 
 #### Level Select Widget
 
@@ -250,20 +164,11 @@ Above we created a function that we can push through values to display (here we 
 
 ## How To Play
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](HowToPlayScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The How To Play screen exists in the **Content/UI** folder as the **HowToScreen** Widget Blueprint. This screen gives a description of how to play the game and is fairly simplistic in layout. It consists of several Text widgets used for the text and the screen is laid out and formatted the same way as the Main Menu for consistency. 
-	
-	As with several other screens, the How to Play screen does implement some special functionality that is a requirement for Google Play Store certification, being able to back out of screens with the devices "back" button. 
-	[/PARAM]
-[/OBJECT]
+![](HowToPlayScreen.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+The How To Play screen exists in the **Content/UI** folder as the **HowToScreen** Widget Blueprint. This screen gives a description of how to play the game and is fairly simplistic in layout. It consists of several Text widgets used for the text and the screen is laid out and formatted the same way as the Main Menu for consistency. 
+	
+As with several other screens, the How to Play screen does implement some special functionality that is a requirement for Google Play Store certification, being able to back out of screens with the devices "back" button. 
 
 #### Android Back Button
 
@@ -284,28 +189,17 @@ Here we are binding an event to the Event Dispatcher called from the **Match 3 P
 
 ## Store Menu
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](StoreMenu.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	The Store screen can be found in the **Content/UI** folder as the **StoreScreen** Widget Blueprint. The layout of this screen is purposely very similar to the Level Select layout and allows the player to unlock a new level that will be available for play from the Level Select menu. 
-	
-	Upon entering this screen from the Main Menu, the player is first presented with a confirmation message (the ConfirmationScreen Widget Blueprint) indicating that items can be purchased from this screen and allows the player to back out before proceeding. After accepting the confirmation message, the player proceeds to the main Store menu. 
-	
-	The content on this screen consists mostly of Borders, Overlays, Text Widgets, Images and Vertical Boxes for alignment. Due to the layout structure, you could copy/paste the menu navigation for shifting between levels to this menu and add more "pages" of items that can be purchased from the store. 
-	[/PARAM]
-[/OBJECT]
+![](StoreMenu.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+The Store screen can be found in the **Content/UI** folder as the **StoreScreen** Widget Blueprint. The layout of this screen is purposely very similar to the Level Select layout and allows the player to unlock a new level that will be available for play from the Level Select menu. 
+	
+Upon entering this screen from the Main Menu, the player is first presented with a confirmation message (the ConfirmationScreen Widget Blueprint) indicating that items can be purchased from this screen and allows the player to back out before proceeding. After accepting the confirmation message, the player proceeds to the main Store menu. 
+	
+The content on this screen consists mostly of Borders, Overlays, Text Widgets, Images and Vertical Boxes for alignment. Due to the layout structure, you could copy/paste the menu navigation for shifting between levels to this menu and add more "pages" of items that can be purchased from the store. 
 
 #### Purchasing from the Store
 
-[REGION:topics third]
 %Platforms/Mobile/InAppPurchases:topic%
-[/REGION]
 
 ## Further Reading
 

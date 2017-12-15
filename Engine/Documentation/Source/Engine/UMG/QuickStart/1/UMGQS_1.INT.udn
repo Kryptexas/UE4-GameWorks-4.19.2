@@ -20,7 +20,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 For this tutorial we are using the **Blueprint First Person** template with **Starter Content** enabled. If you do not know how to create a new project and use a template, please see the [](Engine/Basics/Projects/Browser) page for more information. 
@@ -135,6 +135,6 @@ The last thing we will do before we start generating our actual HUD is provide a
 
 In the next step we will set up the displaying of our Health, Energy and Ammo variables on our HUD and get them working in-game. 
 
-%Steps%
+
 
 

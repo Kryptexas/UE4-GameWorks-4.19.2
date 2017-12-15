@@ -22,7 +22,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 **Procedural Foliage Blocking Volume** は、好きなサイズでレベル内に配置することができる Volume アクタです。 
 このアクタは、Procedural Foliage が Procedural Foliage Blocking Volume の領域で Foliage アクタをスポーンしてしまうことを防ぎます。
 次のセクションでは、 **Procedural Foliage Blocking Volume** のレベルへの追加方法および Foliage meshes のスポーンを防ぐための使用方法について説明します。
@@ -59,4 +59,4 @@ Version:4.8
 	|2:| Procedural Foliage Blocking Volume 追加後|
 
 
-%Steps%
+

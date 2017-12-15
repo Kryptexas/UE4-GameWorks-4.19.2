@@ -67,7 +67,9 @@ parent:Engine/Blueprints
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
-<!--
+[COMMENT:none]
+
 结构体
--->
+
+[/COMMENT]
 

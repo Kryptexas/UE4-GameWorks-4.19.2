@@ -24,8 +24,6 @@ need to make a fix or change to how a function works, you will not have to make 
 materials which may be using that function.
 
 
-
-[REGION:topics half]
 [OBJECT:Topic]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/Functions/Overview:title%](Engine/Rendering/Materials/Functions/matfunc_topic.png)
@@ -97,7 +95,6 @@ materials which may be using that function.
 		[RELATIVE:Engine/Rendering/Materials/Functions/Using]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
 ## Functions Reference
 

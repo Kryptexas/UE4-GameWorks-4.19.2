@@ -186,30 +186,23 @@ Now that you've set up the Steamworks SDK for your application (along with setti
 
 At the end of this brief guide, your application's `DefaultEngine.ini` file should look like the following setting block. If you want to see how other projects set up and use the Online Subsystem, please refer to our library of Sample Projects.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Finished Settings
-    [/PARAM]
-    [PARAM:content]
-		**DefaultEngine.ini**
-			[/Script/Engine.GameEngine]
-			+NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
+#### Finished Settings
+    
+**DefaultEngine.ini**
+
+	[/Script/Engine.GameEngine]
+	+NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
 			
-			[OnlineSubsystem]
-			DefaultPlatformService=Steam
+	[OnlineSubsystem]
+	DefaultPlatformService=Steam
 
-			[OnlineSubsystemSteam]
-			bEnabled=true
-			SteamDevAppId=480
+	[OnlineSubsystemSteam]
+	bEnabled=true
+	SteamDevAppId=480
 
-			[/Script/OnlineSubsystemSteam.SteamNetDriver]
-			NetConnectionClassName="OnlineSubsystemSteam.SteamNetConnection"
-    [/PARAM]
-[/OBJECT]
-
+	[/Script/OnlineSubsystemSteam.SteamNetDriver]
+	NetConnectionClassName="OnlineSubsystemSteam.SteamNetConnection"
+    
 ##Additional Notes
 
 ### Module Setup

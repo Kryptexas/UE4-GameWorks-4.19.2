@@ -86,7 +86,9 @@ SkillLevel:Advanced
 
 可在提示文本（鼠标悬停显示）获取设置的更多详情。
 
-<!-- 添加设置描述 -->
+[COMMENT:none]
+ 添加设置描述 
+[/COMMENT]
 
 将这些设置放置在一个体积中后，可根据摄像机位置使其进行柔和混合 
 （如在室内环境或树下形成更小的 GI 反射）。
@@ -181,7 +183,8 @@ SkillLevel:Advanced
 * 通过几何体体素化形成的次要遮挡，将消耗一定性能换取极佳的精度（当前未加入）。
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VisualizeSlider]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:id]
@@ -217,7 +220,8 @@ SkillLevel:Advanced
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
--->
+
+[/COMMENT]
 
 
 

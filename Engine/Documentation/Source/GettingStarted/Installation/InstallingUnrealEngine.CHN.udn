@@ -175,7 +175,8 @@ _Epic Games启动程序让我们的订购者们可以方便地下载并安装虚
 [REGION:tip]
 虚幻引擎4的编辑器中的帮助功能是一项帮助您获得答案的出色功能。
 [/REGION]
-<!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
+[COMMENT:none]
+Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
 ## 下载安装程序
@@ -240,8 +241,10 @@ _Epic Games启动程序让我们的订购者们可以方便地下载并安装虚
 1. 当下载完成后，您可以使用 **Launch（启动）** 按钮来启动虚幻引擎：
 
 	![](launch.png)
--->
-<!--Previously deprecated procedures
+
+[/COMMENT]
+[COMMENT:none]
+Previously deprecated procedures
 [EXCERPT:Windows]
 1. Run the installer you downloaded and choose a location to install Unreal Engine to:
 
@@ -266,4 +269,5 @@ _Epic Games启动程序让我们的订购者们可以方便地下载并安装虚
 1. Once Finder finishes copying the files, Unreal Engine will be available in the **Launchpad**. Run it from there. 
 
 [/EXCERPT:MacOS]
--->
+
+[/COMMENT]

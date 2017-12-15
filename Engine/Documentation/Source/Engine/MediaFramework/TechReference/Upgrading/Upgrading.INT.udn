@@ -1,64 +1,92 @@
 Availability:Public
-Title: Upgrading Media Framework Content to 4.13
+Title: Upgrading Media Framework Content to 4.18
 Crumbs:%ROOT%, Engine
-Description:Updating projects containing Media Framework assets and playback logic to Unreal Engine 4.13
+Description:Updating projects containing Media Framework assets and playback logic to Unreal Engine 4.18
 Navigation:topic
 parent:Engine/MediaFramework
+type:reference
 order:3
-Version: 4.13
+Version: 4.18
 Related: Engine\MediaFramework\Overview
 Related: Engine\MediaFramework\HowTo
 Related: Engine\MediaFramework\TechReference
 
-In Unreal Engine 4.13, the Media Framework system received an update to the asset types and playback methods. This means that if you have existing Media Framework content in your project, you have to update your content. 
-Your project will still load, but playback will no longer work with existing 4.12 content until you have performed the updates, as the workflow is slightly different now. 
+[TOC(start:2)]
 
-As you transition your project, keep the following items in mind:
+In Unreal Engine 4.18, the **Media Framework** system received an update to the asset types and playback methods. This means that if you have existing Media Framework content in your project, you have to update your content. 
+Your project will still load, but because the workflow is slightly different now, playback will no longer work with existing 4.18 content until you have performed the updates.
 
-* **Media Player** assets no longer store a URL for the media. Instead there are now new asset types called 'media sources' that describe the media. 
+## Media Player Changes
 
-	![](MediaTypes.png)
-	
-	[REGION:tip]
-	For more information on these new asset types, see the [](Engine/MediaFramework/Overview).
-	[/REGION]
+The **Media Player** asset has undergone some changes including how **Media Textures** are referenced and Sound is applied. 
 
-* **File Media Source** assets are used for media files stored on your device or in local network file shares. 
+### Media Sound Component
 
-	![](FileMediaSource.png)
-	
-	[REGION:tip]
-	For an example of how to use a **File Media Source** asset, try [](Engine/MediaFramework/HowTo/FileMediaSource).
-	[/REGION]
-	
-* **Stream Media Source** assets are used for streaming media over the internet. 
+When creating a Media Player asset, the **Create Media Player** no longer presents the option to create a SoundWave asset for audio. 
 
-	![](StreamMediaSource.png)
-	
-	[REGION:tip]
-	For an example of how to use a **Stream Media Source** asset, try [](Engine/MediaFramework/HowTo/StreamMediaSource).
-	[/REGION]
-	
-* **Media Playlist** assets are used to combine multiple media sources and play them one after another. Playlists will automatically cycle back to the beginning. 
+[REGION:imagetable]
+| ![](Pre418_Create.png)(w:490) | ![](418_Create.png)(w:490) | 
+| ------ | ------ | 
+| Previous Engine Versions: Create Sound Wave and Media Texture | Engine Version 4.18: Create Media Texture Only |
+[/REGION]
 
-	![](MediaPlaylist.png)
-	
-	[REGION:tip]
-	For an example of working with playlists, try [](Engine/MediaFramework/HowTo/MediaPlaylists).
-	[/REGION]
+You can still enable the **Video output Media Texture asset** to automatically create and associate a Media Texture asset with the Media Player you are creating. 
 
-* **Media Texture** and **Media Sound Wave** assets no longer hold a reference to the **Media Player**. Instead, the Media Player now references the texture and the sound assets. Additionally, there is no longer a many-to-one relationship between **Media Texture** / **Media Sound Wave** and 
-**Media Player** assets. Every **Media Player** now references at most one of each.
+In order to associate Sound with a Media Player, however, you will need to use a **Media Sound Component** attached to your Actor or [Blueprint.](Engine/Blueprints)
 
-	![](Upgrading_MediaLinks.png)
+![](MediaSoundComponent.png)
 
-* There is no longer an option for automatically starting media playback in Media Player assets. Instead you must open a media source via Blueprint. For convenience, Media Player assets have a **Play On Open** option that will begin playback after a media source opened successfully. 
-If you do not set this option, you must initiate playback via Blueprints or C++.
+[REGION:caption]
+In the image above, we have a Static Mesh in the level that we have added a **Media Sound Component** to and specified the associated **Media Player**. 
+[/REGION]
 
-	![](PlayOnOpen.png)
+[REGION:warning]
+If your project uses Sound Wave assets for Media, you will need to manually delete them and add a **Media Sound Component** and associated **Media Player**. 
+[/REGION]
 
-* The **Loop** option will loop the currently opened media source. Please note that, while looping is enabled, playlists do not advance.
+### Media Texture Reference
 
-	![](Loop.png)
+Media Players also reference Media Textures differently as the Media Texture now points to a Media Player (instead of a Media Player pointing to a Media Texture). 
 
-* For specifics on the content types and URLs supported by the updated Media Framework system, see the [](Engine/MediaFramework/TechReference).
+Below, an image of the pre-4.18 Media Player:
+
+![](Pre418_Player.png)
+
+The **Output** section has been removed and no longer requires an associated **Sound Wave** or **Video Texture**. 
+
+Below, an image of the 4.18 Media Player: 
+
+![](418_Player.png)
+
+This has been replaced with options for controlling the **View Settings** for 360 videos (which is currently still in development). 
+
+Sound Waves have been replaced with the aforementioned **Media Sound Component** while the **Video Texture** (Media Texture asset) now points to an associated **Media Player**. 
+
+![](MediaTexture.png)
+
+[REGION:caption]
+Above, a **Media Texture** asset points to an associated **Media Player** to play back video. 
+[/REGION]
+
+## Updating Materials to 4.18
+
+If your pre-4.18 project uses Media Textures inside a [Material,](Engine/Rendering/Materials) you may need to update your Material and change the **Sampler Type** to the new **External** type. 
+
+![](TextureSamplerUpdate.png)
+
+Materials still use a **Texture Sampler** and Media Texture, however, the Texture Sampler must be set to External. 
+
+Media Textures implement a new texture API called **External Textures** that on some platforms, provides a more optimal way of video playback. 
+For example on Windows, the video frame data is decoded from the file before being copied to the CPU memory buffer. 
+Once in the CPU memory buffer, it is then uploaded to the GPU into a [`UTexture`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Engine/UTexture/index.html) where the Texture is sampled within a Material. 
+
+Some decoders can bypass this transfer of data and have the ability to decode video on the GPU directly.
+For example, on Android and iOS devices the video decoders will decode the compressed video on the GPU so the video frames are already on the GPU allowing for much more efficient video playback. 
+
+
+
+
+
+
+
+

@@ -25,14 +25,10 @@ Description:コリジョン ジオメトリの作成および設定のコンテ�
 [/VAR]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		操作ガイド
-	[/PARAM]
-	[PARAM:links]
+## 操作ガイド
+
+[REGION:buttonlist]
+
 		* [](Engine/Physics/Collision/HowTo/AddConvexHulls "%Engine/Physics/Collision/HowTo/AddConvexHulls:description%")
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
@@ -41,8 +37,8 @@ Description:コリジョン ジオメトリの作成および設定のコンテ�
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
 		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

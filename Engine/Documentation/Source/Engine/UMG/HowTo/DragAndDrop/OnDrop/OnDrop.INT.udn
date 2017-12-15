@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Here we set up our main **HUD** Widget Blueprint and override what happens when we perform the **OnDrop** function. 
 
@@ -85,6 +85,6 @@ Here we set up our main **HUD** Widget Blueprint and override what happens when 
 Our HUD is set up to handle dropping our dragged widget and it displays our Health Bar. 
 In the next and final step in this tutorial, we set up our Dragged Widget to mimic the shape of our Health Bar as well as instruct our Character Blueprint to add the HUD to the viewport. 
 
-%Steps%
+
 
 

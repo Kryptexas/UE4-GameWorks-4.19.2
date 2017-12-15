@@ -149,7 +149,8 @@ Infinity Blade Elven Ruins マップのサイズとレイアウトの関係で�
 
 Elven Ruins マップのレンダリング所要時間が 1.67 分だったのに対して、Kite Demo では 23.07 分になる原因は、Elven Ruins に使用したスタティックメッシュとマテリアルのビルド方法です。Elven Ruins マップとそのコンテンツはモバイル デバイス用に作られています。1 つのアセットに使われているトライアングル数とマテリアル インストラクション数に注意してください。このため、平面反射を Elven Ruins マップで有効にすると、Kite Demo と比べてマップに使用しているアセットの複雑度とサイズが大幅に削減されるので、負荷が低くなります。
 
-<!--  
+[COMMENT:none]
+  
 [EXCERPT:KitePlanarReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_00.png)(w:400 h:200)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400 h:200)](GPU_Profile_PR_On_00.png) | 
@@ -158,9 +159,11 @@ Elven Ruins マップのレンダリング所要時間が 1.67 分だったの�
 |クリックしてフルサイズで表示 |クリックしてフルサイズで表示 |
 [/REGION] 
 [/EXCERPT:KitePlanarReflection]
--->
 
-<!--  
+[/COMMENT]
+
+[COMMENT:none]
+  
 [EXCERPT:ElvenRuinsReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_01.png)(w:400 h:200)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400 h:200)](GPU_Profile_PR_On_01.png) | 
@@ -169,6 +172,7 @@ Elven Ruins マップのレンダリング所要時間が 1.67 分だったの�
 |クリックしてフルサイズで表示 |クリックしてフルサイズで表示 |
 [/REGION] 
 [/EXCERPT:ElvenRuinsReflection]
--->
+
+[/COMMENT]
 
 

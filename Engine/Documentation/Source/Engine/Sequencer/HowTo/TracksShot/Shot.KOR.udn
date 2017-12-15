@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3372149
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:샷 및 테이크 생성
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 전통적인 영화 에디터와 비슷하게, **Shot Track** (샷 트랙)을 사용하여 레벨 시퀀스를 추가, 배치, 조정하면 그 순서대로 재생시킬 수 있습니다.
 여기서 추가시키는 각각의 레벨 시퀀스를 **Shot** (샷)이라 하며, 각각의 샷은 다수의 **Take** (테이크)를 가질 수 있습니다. 테이크를 사용하면 샷을 다른 버전으로 간단히 대체시켜 시네마틱에 다양한 모양새를 빠르게 실험해 볼 수 있습니다.

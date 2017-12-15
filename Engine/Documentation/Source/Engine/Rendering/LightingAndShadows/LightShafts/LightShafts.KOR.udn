@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:라이트 섀프트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:대기에 흩어지는 빛줄기에 대한 시뮬레이션입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightShafts:title%](LShaft_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightShafts:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightShafts:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightShafts]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightShafts:title%](LShaft_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightShafts:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightShafts:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightShafts]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:LShaft_Topic.png
 
 [REGION:banner]
 ![](lightShafts_banner.png)
@@ -94,8 +56,10 @@ Version: 4.9
   
 이러한 (오클루전과 블룸) 이펙트는 별도의 비용이 들기에, 원하는 것만 켜 주는 것이 최선입니다. 680GTX 의 1080p 해상도에서 오클루전은 .5ms 이며, 하나의 라이트에 대한 블룸은 .68ms 입니다.
 
-<!-- Redundant Images
+[COMMENT:none]
+ Redundant Images
 [REGION:lightbox]
 [![](2LightShafts.png)(h:250)](2LightShafts.png) [![](5LightShafts.png)(h:250)](5LightShafts.png) 
 [/REGION]
--->
+
+[/COMMENT]

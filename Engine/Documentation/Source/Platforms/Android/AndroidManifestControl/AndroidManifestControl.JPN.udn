@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:3735331
+Availability:Doc
+Title:Android Manifest ファイルの制御
+Crumbs:%ROOT%, Platforms
+Description:Android Mainfest ファイルの設定および使用方法
+Platform:Android
+Skilllevel:Advanced 
+Navigation:platform
+version:4.12
+tags:Android
+tags:Mobile
+parent:Platforms/Mobile
+type:overview
+
+[TOC(start:2)]
+
+**AndroidManifest.xml** ファイルは、[Projects Settings] の**[Advanced  APKPackaging]** セクションで設定された各種 Android システムの許可および設定の格納に使用されます。本ページでは、アンリアル エンジン 4 (UE4) プロジェクトのニーズを満たすために AndroidManifest.xml ファイルに追加するコマンドの入力方法について説明します。
+
+
+## Android Manifest の保存場所
+AndroidManifest.xml ファイルを探す前に、プロジェクトを Android デバイスにパッケージ化またはデプロイする必要があります。プロジェクトのビルドまたはデプロイが完了したら、**(YourProjectName)\Intermediate\Android\APK** で AndroidManifest.xml ファイルを探します。
+
+[REGION:lightbox]
+[![](AMC_File_Location.png)(w:430 h:285)](AMC_File_Location.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+[region:warning]
+AndroidManifest.xml ファイルの編集はいかなる状況であっても **絶対に** 行ってはいけません。AndroidManifest.xml ファイルに行う必要のある編集はすべて、UE4 エディタの [Advanced APK Packing] セクションで行ってください。 
+[/region]
+
+## Android Manifest ファイルのレイアウト
+一般的に AndroidManifest.xml ファイルは以下の 3 個所にあります。 
+
+* **Application Definition**
+* **Activity**
+* **Requirements** 
+
+		<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+			package="com.yourcompany.project"
+			android:versionCode="1"
+			android:versionName="1.0.0">
+
+			<-- Application Definition -->
+			<application android:label="@string/app_name"
+		android:icon="@drawable/icon" android:hasCode="true">
+				<activity android:name="com.epicgames.ue4.GameActivity"
+				</activity>
+			</application>
+
+			 <-- Requirements -->
+			 <uses-sdk android:minSdkVersions="9"/>
+			 <uses-feature android android:glEsVersion="0x00020000"
+		android:required="true" />
+			 <uses-permission
+		android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+		</manifest>
+
+[region:note]
+上記の Android Manifest file ファイルは参照目的のみであり、作業用ファイルではありません。
+[/region]
+
+
+
+## Manifest 用にタグを追加する
+**[+]** アイコンをクリックして新しいエレメントをタグ配列に追加して、使用するタグを入力ボックスに入力することで Manifest 用のタグを追加することができます。この例では **android:sharedUserId="Foo"** がタグとして使用されています。
+
+![](AMC_Extra_Man_Tags.png)
+
+[Extra Tags for Manifest] セクションへ入力するタグは AndroidManifest.xml ファイルの **[manifest]** セクションに追加されます。 
+
+	<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
+	package="com.YourCompany.AndroidManifest" 
+	android:sharedUserId="Foo" 
+	android:versionCode="1" 
+	android:versionName="1.0">
+
+## Application 用にタグを追加する
+**[+]** アイコンをクリックして Application 配列に新しいエレメントを追加し、仕様するタグを入力することで、アプリケーションにタグを追加することができます。この例では **android:hardwareAccelerated="True"** がタグとして使用されています。 
+
+![](AMC_Extra_App_Tags.png)
+
+ [Extra Tags for Manifest] セクションへ入力するアイテムは AndroidManifest.xml ファイルの **[Application Definition]** セクションに追加されます。
+
+	[COMMENT:none]
+ Application Definition 
+[/COMMENT]
+	<application android:label="@string/app_name"
+	 android:icon="@drawable/icon" 
+	 android:hardwareAccelerated="True" 
+	 android:hasCode="true">
+    
+## Application 用に設定を追加する
+**[Extra Settings for &#60 application>]** セクションに使用する設置を入力することで、アプリケーションに設定を追加することができます。複数の設定を使用したい場合は、設定間を **\n** で区切ります。この例では **android:banner="Foo"** and **android:vmSafeMode="True"** を使って 2 つのアイテムを追加しました。
+
+![](AMC_Extra_App_Settings.png)
+
+「Extra Settings for &#60Android:nameapplication>] セクションに入力したアイテムは AndroidManifest.xml ファイルの **[Activity]** セクションに追加されます。
+
+		</activity>
+		<activity android:name=".DownloaderActivity" android:screenOrientation="landscape" android:configChanges="screenSize|orientation|keyboardHidden|keyboard" android:theme="@style/UE4SplashTheme" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.DepthBufferPreference" android:value="0" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bPackageDataInsideApk" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bVerifyOBBOnStartUp" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bShouldHideUI" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.ProjectName" android:value="AndroidManifest" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bHasOBBFiles" android:value="true" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bSupportsVulkan" android:value="false" />
+		<meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/app_id" />
+		<meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+		<activity android:name="com.google.android.gms.ads.AdActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize" />
+			android:banner="Foo" 
+			android:vmSafeMode="True"
+		<service android:name="OBBDownloaderService" /><receiver android:name="AlarmReceiver" /></application>
+
+## Extra Tags for UE4 Game Activity
+**[+]** アイコンをクリックして Extra Tags for UE4.GameActivity<activity> ノード配列に新規エレメントを追加し、使用したいタグを入力することで、 
+**[Extra Tags for UE4.GameActivity<activity> node]** セクションにタグを追加することができます。
+
+
+
+
+
+

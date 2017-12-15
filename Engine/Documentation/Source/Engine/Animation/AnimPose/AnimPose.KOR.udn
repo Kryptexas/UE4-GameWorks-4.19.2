@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3603049
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 애니메이션 포즈 애셋
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:가중치를 입힌 커브 데이터를 통해 애니메이션을 구동시키는 데 사용할 수 있는 애니메이션 포즈 애셋에 대한 설명입니다.
+Parent: Engine/Animation
 Related: Engine\Animation\Persona\AnimCurves
 Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\AnimHowTo\CurveDrivenAnimation
@@ -42,41 +43,41 @@ topic-image:AnimationPoseAssets_topic.png
 예를 들어, 아래에서는 커브 데이터로 구동되어 캐릭터가 걸어가는 듯한 동작을 만들었습니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:videoid]
-7PRGvePzB2g
-[/PARAMLITERAL]
-[PARAMLITERAL:width]
-100
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-56.25
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-%
-[/PARAMLITERAL]
-[PARAMLITERAL:type]
-simple
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	7PRGvePzB2g
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 아래 비디오에서 보듯 이 프로세스를 얼굴 애니메이션을 만드는 데도 사용할 수 있습니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:videoid]
-UdmU7zMN4tE
-[/PARAMLITERAL]
-[PARAMLITERAL:width]
-100
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-56.25
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-%
-[/PARAMLITERAL]
-[PARAMLITERAL:type]
-simple
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	UdmU7zMN4tE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 위에서, 다양한 포즈용 커브 데이터가 포함된 애니메이션 시퀀스가 있습니다.
@@ -85,89 +86,10 @@ simple
 위 예제는 실험단계 **Facial Animation Bulk Importer** (얼굴 애니메이션 대량 임포터) 플러그인을 사용하여 (FBX 의) 얼굴 애니메이션 커브 테이블을 사운드 웨이브로 임포트한 것입니다.
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		필독
-	[/PARAM]
-	[PARAM:links]
-		[REGION:topics fourth]
-		[INCLUDE:#topics]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
+## 토픽
 
-<!--
-[EXCERPT:Topics]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_create.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/AnimHowTo/CreatePoseAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/AnimHowTo/CreatePoseAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/AnimHowTo/CreatePoseAsset]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_additive.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\AdditivePA:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\AdditivePA:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\AdditivePA]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine\Animation\AnimPose\PoseBlenderNode\PoseNodeTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\PoseBlenderNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\PoseBlenderNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\PoseBlenderNode]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine\Animation\AnimPose\PoseDriverNode\PoseDriveTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\PoseDriverNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\PoseDriverNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\PoseDriverNode]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
--->
+[DIR(output:"topic" parent:"Engine/Animation/AnimPose")]
+
+## 안내서
+
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" tags:"Pose Assets")]

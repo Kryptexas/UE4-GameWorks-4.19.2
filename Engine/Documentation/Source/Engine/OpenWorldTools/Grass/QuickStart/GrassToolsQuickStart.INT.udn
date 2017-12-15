@@ -42,23 +42,15 @@ Once the Open World Demo Collection is downloaded, add it to the project that yo
 
 	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\OpenWorldTools\Grass\QuickStart\1)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\5)
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[REGION:buttonlist]
+* [](Engine\OpenWorldTools\Grass\QuickStart\1)
+* [](Engine\OpenWorldTools\Grass\QuickStart\2)
+* [](Engine\OpenWorldTools\Grass\QuickStart\3)
+* [](Engine\OpenWorldTools\Grass\QuickStart\4)
+* [](Engine\OpenWorldTools\Grass\QuickStart\5)
+[/REGION]
 
 
 

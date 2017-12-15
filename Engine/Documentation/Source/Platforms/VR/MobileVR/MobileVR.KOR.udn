@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:3692730
+Availability: NoPublish
+Crumbs: %ROOT%
+Title: 모바일 VR 개발
+Description: 모바일 기반 VR 플랫폼 개발 관련 정보입니다.
+Type: Landing
+Version: 4.16
+Parent: Platforms/VR
+Order: 1
+tags:Platform
+tags:VR
+topic-icon:%ROOT%/platform_icon.png
+
+![](Platforms\VR\DesktopVR\Header_00.png)
+
+언리얼 엔진 4 (UE4) 는 폭넓은 범위의 가상 현실(VR) 머리 장착 디스플레이(HMD), 모션 컨트롤러와 그에 맞는 소프트웨어 개발 키트(SDK)를 지원합니다. 여기서는 UE4 프로젝트에서 지원되는 모바일 VR HMD 가 작동되도록 하는 데 도움이 될 수 있는 여러가지 문서를 찾을 수 있습니다.
+
+## 지원되는 모바일 VR HMD
+
+UE4 에서 내장 지원하는 모바일 기반 VR HMD 는 다음과 같습니다:
+
+* **삼성 기어 VR**
+* **Google Cardboard & Daydream** 
+
+
+UE4 가 위 모바일 HMD 를 내장 지원한다는 것은, 위 디바이스에서 UE4 프로젝트를 VR 로 확인하는 데 별도로 다운로드하거나 컴파일하지 않아도 된다는 뜻입니다. 아래는 선택한 지원 모바일 HMD 이 작동하도록 UE4 프로젝트를 구성하는 방법에 대한 설명 문서입니다.
+
+## 삼성 기어 VR
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## Google VR 
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+

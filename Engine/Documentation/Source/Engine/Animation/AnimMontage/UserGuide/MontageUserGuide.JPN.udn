@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3616216
-Availability:Docs
+﻿INTSourceChangelist:3717037
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine\Animation\AnimMontage
 Title:アニメーション モンタージュを使用する
 Description:ランタイムにアニメーション モンタージュがどのように再生されるかについて説明します。
@@ -10,7 +10,6 @@ Parent:Engine\Animation\AnimMontage
 Order:1
 Tags:Animation
 Tags:Animation Montage
-Tags:Animation Assets
 topic-image:PlayMontage.png
 social-image:PlayMontage.png
 Related:Engine/Content/Types/SkeletalMeshes
@@ -23,7 +22,6 @@ Related:Engine/Animation/AnimBlueprints
 
 [モンタージュを作成](Engine\Animation\AnimMontage\Creation) し、[モンタージュを編集](Engine\Animation\AnimMontage\Editor) したら、ランタイムにモンタージュを再生することができます。 
 モンタージュを **スケルタルメッシュ** に割り当てて自動的に再生を開始することができます。さらに柔軟性を高めるために、**ブループリント スクリプト** または C++ コードを使って、ゲームプレイの状況に応じてモンタージュまたはその中のセクションを呼び出して再生を開始するようにセットアップすることができます。 
-
 
 ## スケルタルメッシュで Anim to Play を使用する
 

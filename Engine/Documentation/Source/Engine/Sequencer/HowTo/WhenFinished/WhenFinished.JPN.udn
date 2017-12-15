@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3524929
-Availability:Docs
+﻿INTSourceChangelist:3683933
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title:シーケンサーで加えた変更を維持または元に戻す
 Description:シーケンサーで加えた変更を変更終了後にどのように維持するか、変更したものを元に戻す方法を説明します。
@@ -11,6 +11,7 @@ Order:1
 Tags:Sequencer
 Tags: how-to
 topic-image:WhenFinishedTopicImage.png
+type:how-to
 
 シーケンサーで作業する場合、シネマティクス終了後に持続させたいアクタのプロパティを変更することがあります。例えば、プレイヤーがドアを開錠し、ドアを開き、ドアが開いた状態を維持するシネマティックスを作成するとします。映像制作環境では、通常、ショットのアニメートした値をアニメート前の状態に戻し、次のショットに影響を与えないようにします。**[When Finished]** プロパティを使うと、トラックをアニメート前の状態に戻すか、シーケンス終了時にそのまま変更を維持するかをトラック毎に指定することができます。
 

@@ -24,29 +24,32 @@ Additionally, you could go further drilling into more systemic problems using bo
 ## Oculus PerfHud
 
 [Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]
-<!--
+[COMMENT:none]
+
 [EXCERPT:OculusPerfHud]
-Oculus PerfHud is a tool that can be displayed in game, whether in editor or in packaged builds, that will help verify the actual CPU and GPU timings, excluding any throttling done by the application.  There's a great overview of the screens 
+Oculus PerfHud is a tool that can be used to display performance information, whether in the editor or a packaged build. This tool will help verify the actual CPU and GPU timings, excluding any throttling done by the application.  There's a great overview of the screens 
 and what the values mean in Oculus' [documentation](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/).
 
 In general, you'll want to look at the graphs and values on the **Application Render Timing** screen.  These will give you the CPU and GPU timings as the Oculus compositor sees them, and will be more accurate for Draw and GPU timings.
 
-To enable the PerfHud in UE4, type the following in the console:
+To use Oculus PerfHud with Unreal Engine 4 (UE4), you will need to do the following:
 
-	hmd setint PerfHudMode N
-	
-where N is:
+1. First, go to `C:\Program Files\Oculus\Support\oculus-diagnostics` and locate the **OculusDebugTool.exe**.
 
-| N | Display type |
-| --- | -----------|
-|	0	| Turns off the performance HUD |
-|	1	| Shows performance summary and headroom |
-|	2	| Shows latency related timing info |
-|	3	| Shows render timing info for application |
-|	4	| Shows render timing info for OVR compositor |
-|	5	| Shows SDK & HMD version Info |
+    ![](ODT_01.png)
+
+1. Double - click on the OculusDebugTool.exe to open it up and set the **Visible HUD** to the **Performance** option.
+
+    ![](ODT_02.png)
+
+1. Now launch your UE4 project and put your Oculus Rift HMD on and you will see the performance information related to your UE4 project being displayed on the Rift. To change what type of information is displayed, you will need to change what is input into the Visible HUD option like in the image below.
+
+	![](Platforms\Oculus\ProfilingPerf\Oculus_Perf_HUD.png)
+
+
 [/EXCERPT:OculusPerfHud]
--->
+
+[/COMMENT]
 ## SteamVR Frame Timing Tool
 
 The SteamVR Frame Timing will allow you see how your VR project is performing in both the UE4 Editor or in a packaged build. This tool will help verify the actual CPU and GPU timings, excluding any throttling done by the application. There's a great overview of how to open the tool as well as what all of the values relate to on the 

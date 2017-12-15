@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3360829
+﻿INTSourceChangelist:3782314
 Title: 원형 메뉴
 Description: Radial menu, 원형 메뉴는 VR 모드에서 복사/붙여넣기, 되돌리기처럼 자주 사용되는 기능을 쉽게 접할 수 있도록 해줍니다.
 Crumbs:
@@ -7,13 +7,206 @@ parent: Engine/Editor/VR
 type: reference
 order: 3
 tags: VR
-version: 4.15
+version: 4.17
 skilllevel: intermediate
 topic-image:radialmenu.png
 prereq:Engine/Editor/VR/ActivateVRMode
 
-
 [TOC(start:1 end:4)]
+
+Radial Menu, 원형 메뉴에 제공되는 인터페이스는 모드 패널, 애셋 에디터, VR 에서 시뮬레이트 및 플레이를 포함해서 VR 모드의 모든 기능을 빠르게 접근할 수 있도록 해주며, 예전 원형 메뉴와 퀵 메뉴가 하나의 직관적인 유저 인터페이스로 통합된 것입니다. 이 문서는 원형 메뉴 각 옵션의 기능에 대한 세부적인 참고서입니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    UVM1nmnslSY
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## 에디터 창
+
+에디터 창은 더이상 열어도 컨트롤러에 도킹되지 않습니다. 그 대신 왼쪽 컨트롤러에 살짝 떨어진 채 열립니다. 닫기 버튼은 현재 각 창 아래 상호작용 막대 옆에 중첩되어 있습니다. 창을 열때, 트리거를 누르고 있으면 창이 배치되는 곳을 미리볼 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    JaDHuajGPoI
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## 맥락에 따라 달라지는 옵션
+
+원형 메인 메뉴에 맥락 의존적 옵션이 추가되었습니다. 이 메뉴 옵션을 통해 여러가지 툴에서 사용할 수 있는 부가 기능을 빠르게 접할 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    fE3rY6dlhNM
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## 원형 메뉴 옵션
+
+UE4 에디터에서 원형 메뉴 각 옵션의 기능에 대한 분석입니다.
+
+[REGION:lightbox]
+[![](controllers.png)(w:594)](controllers.png)
+[/REGION]
+
+[REGION:caption]
+이미지를 클릭하면 원본을 확인합니다.
+[/REGION]
+
+### 스내핑 
+
+![](T_Radial_Snapping.png)(w:128)
+
+이 버튼을 누르면 다음과 같은 스내핑 옵션이 표시됩니다.
+
+|아이콘|이름|설명|
+|------|----|----|
+|![](T_Radial_Translate_Snap.png)(w:64)|**Translate Snap**|이동 스냅 - 오브젝트를 끌 때 그리드 단위로 끌어붙이는 스냅 기능을 켜고 끕니다. |
+|![](T_Radial_Snapping.png)(w:64)|**Translate Snap Value**|이동 스냅 값 - 위치 스냅 그리드 값을 설정합니다. |
+|![](T_Radial_Rotate_Snap.png)(w:64)|**Rotate Snap**|회전 스냅 - 회전 그리드에 오브젝트를 끌어붙이는 스냅 기능을 켜고 끕니다.  |
+|![](T_Radial_Angle_Num.png)(w:64)|**Rotate Snap Value**|회전 스냅 값 - 회전 스냅 그리드 값을 설정합니다. |
+|![](T_Radial_Translate_Snap.png)(w:64)|**Scale Snap Value**|스케일 스냅 값 - 오브젝트를 스케일 그리드에 끌어붙이는 스케일 그리드를 켜고 끕니다. |
+|![](T_Radial_Scale_Num.png)(w:64)|**Scale Snap Value**|스케일 스냅 값 - 스케일 스냅 그리드 값을 설정합니다. |
+|![](T_Radial_Align_Actors.png)(w:64)|**Smart Snapping**|스마트 스냅 - 스마트 스냅은 오브젝트의 바운드를 사용하여 씬의 다른 액터에 붙이는 기능으로, 그리드를 염두에 두고 애셋을 모듈식으로 제작하지 않아도 정확히 맞출 수 있습니다.|
+|![](T_Radial_Set_Targets.png)(w:64)|**Set Targets**|타겟 설정 - 스마트 스냅을 적용할 액터를 설정합니다.|
+### 기즈모
+
+![](T_Radial_Universal.png)(w:128)
+
+이 버튼을 누르면 다음과 같은 기즈모 옵션이 표시됩니다.
+
+|아이콘|이름|설명|
+|------|----|----|
+|![](T_Radial_Local_Space.png)(w:64)|**Local Space**|로컬 스페이스 - 트랜스폼 기즈모를 로컬 (오브젝트) 좌표계로 전환합니다. |
+|![](T_Radial_World_Space.png)(w:64)|**World Space**|월드 스페이스 - 트랜스폼 기즈모를 월드 좌표계 모드로 전환합니다. |
+|![](T_Radial_Universal.png)(w:64)|**Universal**|균등 - 기즈모가 선택된 액터를 이동, 회전, 스케일 조절할 수 있습니다.|
+|![](T_Radial_Translate.png)(w:64)|**Translate**|이동 - 선택된 액터의 이동으로만 기즈모를 제한시킵니다. |
+|![](T_Radial_Gizmo.png)(w:64)|**Rotate**|회전 - 선택된 액터의 회전으로만 기즈모를 제한시킵니다. |
+|![](T_Radial_Scale.png)(w:64)|**Scale**|스케일 - 선택된 액터의 스케일 조절로만 기즈모를 제한시킵니다.|
+
+### 창
+
+![](T_Radial_Windows.png)(w:128)
+
+이 버튼을 누르면 다음과 같은 창이 표시됩니다.
+
+|아이콘|이름|설명|
+|------|----|----|
+|![](T_Radial_Details.png)(w:64)|**Details Pannel**|디테일 패널 - 디테일 패널을 엽니다.|
+|![](T_Radial_Windows.png)(w:64)|**Content Browser**|콘텐츠 브라우저 - 콘텐츠 브라우저를 엽니다. |
+|![](T_Radial_Modes.png)(w:64)|**Modes Panel**|모드 패널 - 모드 패널을 엽니다.|
+|![](T_Radial_World_Outliner.png)(w:64)|**World Outliner**|월드 아웃라이너 - 월드 아웃라이너를 엽니다. |
+|![](T_Radial_World_Space.png)(w:64)|**World Settings**|월드 세팅 - 월드 세팅을 엽니다. |
+|![](T_Radial_Sequencer.png)(w:64)|**Create Sequence**|시퀀스 생성 - 새 시퀀스를 생성합니다. |
+
+### 편집
+
+![](T_Radial_Edit.png)(w:128)
+
+이 버튼을 누르면 다음과 같은 편집 옵션이 표시됩니다.
+
+[region:note]
+편집 모드의 옵션은 액터를 선택한 경우에만 사용할 수 있습니다.
+[/region]
+
+|아이콘|이름|설명|
+|------|----|----|
+|![](T_Radial_Deselect_All.png)(w:64)|**Deselect All**|모두 선택 해제 - 현재 선택된 액터를 전부 선택 해제합니다. |
+|![](T_Radial_Delete.png)(w:64)|**Delete**|삭제 - 현재 선택된 액터를 삭제합니다.|
+|![](T_Radial_Cut.png)(w:64)|**Cut**|잘라내기 - 현재 선택된 액터를 잘라냅니다.|
+|![](T_Radial_Copy.png)(w:64)|**Copy**|복사하기 - 현재 선택된 액터를 복사합니다.|
+|![](T_Radial_Duplicate.png)(w:64)|**Duplicate Selected**|선택 복제 - 현재 선택된 액터를 복제합니다.|
+|![](T_Radial_Paste.png)(w:64)|**Paste**|붙여넣기 - 복사한 액터를 붙여넣습니다.|
+|![](T_Radial_Snaps.png)(w:64)|**Snap To Floor**|바닥에 스냅 - 현재 액터를 바닥에 끌어 붙입니다.|
+
+### 툴
+
+![](T_Radial_Tools.png)(w:128)
+
+이 버튼을 누르면 다음과 같은 도구가 표시됩니다.
+
+|아이콘|이름|설명|
+|------|----|----|
+|![](T_Radial_Simulate.png)(w:64)|**Simulate**|시뮬레이트 - 게임 시뮬레이션을 시작합니다.|
+|![](T_Radial_Save_Actors.png)(w:64)|**Save Actors**|액터 저장 - 선택된 액터의 시뮬레이션 위치를 에디터에 저장합니다.|
+|![](T_Radial_Pause.png)(w:64)|**Pause**|일시정지 - 시뮬레이션을 일시정지합니다.|
+|![](T_Radial_Resume.png)(w:64)|**Resume**|재개 - 일시정지된 시뮬레이션을 재개합니다.|
+|![](T_Radial_Seq_Play.png)(w:64)|**Play**|플레이 - 시뮬레이션을 시작합니다.|
+|![](T_Radial_Screenshot.png)(w:64)|**Screenshot**|스크린샷 - 현재 뷰의 스크린샷을 찍습니다.|
+|![](T_Radial_Flashlight.png)(w:64)|**Flashlight**|손전등 - 어두운 씬을 밝히는 데 사용할 수 있는 손전등을 켜고 끕니다.|
+
+### 모드
+
+![](T_Radial_Modes.png)(w:128)
+
+
+현재 사용중인 툴에 따라 새로운 메뉴를 띄웁니다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[COMMENT:none]
 
 **Radial Menu** (원형 메뉴)에서는 되돌리기, 다시하기, 붙여넣기 등 자주 쓰는 기능을 접할 수 있습니다.
 
@@ -40,6 +233,4 @@ VR 에디터에서 원형 메뉴를 열면 사용할 수 있는 옵션입니다.
 | **Delete** | 삭제 - 선택된 액터를 삭제합니다. |
 | **Cut** | 잘라내기 - 선택된 액터를 클립보드에 복사한 뒤 씬에서 제거합니다. |
 
-
-
-
+[/COMMENT]

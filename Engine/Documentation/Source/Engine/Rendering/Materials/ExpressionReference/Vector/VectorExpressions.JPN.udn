@@ -74,7 +74,8 @@ CameraWorldPosition 表現式は、ワールド空間のカメラ位置を表す
 [REGION:warning]
 ライティングの演算はディファードで行われるため、この表現式は非推奨です。
 [/REGION:warning]
-<!--
+[COMMENT:none]
+
 LightVector 表現式はサーフェスに対するライト方向を表す 3 つのチャンネルのベクター値です。
 
 **使用例：** LightVector はランバート照明モデルのような、カスタムのライティング計算に使用します。
@@ -84,7 +85,8 @@ LightVector 表現式はサーフェスに対するライト方向を表す 3 �
 [REGION:note]
 	LightVector 表現式は、エミッシブな出力の計算中は無効で、LightFunction または DeferredDecal マテリアルのみに使用できます。
 [/REGION]
--->
+
+[/COMMENT]
 
 
 ## Object Bounds
@@ -154,7 +156,8 @@ _画像をクリックしてフルサイズで表示_
 | Tri-Planar Pre-Skinned Local Normal Vector Expression | Tri-Planar Material |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalNormal1]
 [REGION:asyncgif]
 ![](PreSkinnedTriPlanar.gif)(w:250)
@@ -166,7 +169,8 @@ _画像をクリックしてフルサイズで表示_
 ![](TriPlanarMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 ## Pre-Skinned Local Position
 
@@ -189,7 +193,8 @@ _画像をクリックしてフルサイズで表示_
 | Pre-Skinned Local Position Vector Expression | Skeletal Mesh's Default UV Layout |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:LocalPos1]
 [REGION:asyncgif]
 ![](PS_LocalPositionMaterial.gif)(w:250)
@@ -201,7 +206,8 @@ _画像をクリックしてフルサイズで表示_
 ![](PS_DefaultMaterial.gif)(w:250)
 [/REGION]
 [/EXCERPT]
---->
+-
+[/COMMENT]
 
 
 ## ReflectionVectorWS
@@ -302,7 +308,8 @@ Perlin Curl と Perlin Gradient は微分係数ベースの演算なので、オ
 
 [/EXCERPT:VectorNoiseTest]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorNoiseFunctions]
 
 |関数| 説明|
@@ -313,4 +320,5 @@ Perlin Curl と Perlin Gradient は微分係数ベースの演算なので、オ
 | **Perlin Curl** | 3D Curl Noise を計算します。Perlin 3D Noise に Curl Noise を計算して出力します。命令数は約 162 です。 |
 | **Voronoi** | アルゴリズムと命令数は *Noise* 表現式の Voronoi 関数と同じです。ただし、RGB はそれぞれの Voronoi セル内で最も近いシード ポイントの位置になり、そのシード ポイントまでの距離が A となります。 |
 [/EXCERPT]
--->
+
+[/COMMENT]

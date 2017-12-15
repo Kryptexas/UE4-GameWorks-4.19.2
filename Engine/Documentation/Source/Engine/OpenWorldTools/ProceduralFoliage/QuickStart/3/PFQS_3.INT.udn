@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 **Foliage Types** come with a number of different properties that you can adjust to control anything from how the Foliage types are placed on other objects in the level to how the Foliage types will grow and spread throughout the Foliage Spawner. 
 In the following section we will take a look at what properties available in **Foliage types** and how you can manipulate these properties to get the results you desire. 
 We will continue to work with the **PFT_00** level that was used in the last step.
@@ -87,4 +87,4 @@ We will continue to work with the **PFT_00** level that was used in the last ste
 	[/region]
 
 
-%Steps%
+

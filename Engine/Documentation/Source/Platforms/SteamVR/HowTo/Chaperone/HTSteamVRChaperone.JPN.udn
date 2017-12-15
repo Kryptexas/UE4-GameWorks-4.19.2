@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:3729159
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:SteamVR Chaperone の設定方法 
+Description:SteamVR Chaperone システムを UE4 に設定する方法
+Type: how-to
+Skilllevel:Beginner
+Version:4.17
+Parent:Platforms/SteamVR
+Order:5
+tags:Basics
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+prereq:Platforms\SteamVR\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+
+![](SVRChaperone_Hero_Image.png)
+
+SteamVR Chaperone コンポーネントは、VR インタラクション エリアのソフト / ハードの境界位置をユーザーに表示します。この操作ガイドでは、UE4 VR ポーンに SteamVR Chaperone を追加する方法を説明します。
+
+[REGION:warning]
+UE4 から Chaperone システムを無効にすることは **できません**し、推奨もしません。ただし、ユーザーが境界に近づいてくると UE4 がどのように反応するかを調節することは可能です。  
+[/REGION]
+
+## ステップ
+
+この機能を UE4 プレイヤー ポーンに追加するには、以下の手順に従います。
+
+1. プロジェクト プレイヤー Pawn Blueprint を開いて **[Components]** タブが表示されるようにします。  
+
+1. 表示されたリストから **[Add Component]** ボタンをクリックして **Steam VRChaperone** コンポーネントを検索し、見つけたらクリックして Component リストに追加します。
+
+	![](SVRChaperone_00.png)(w:300)
+
+1. 完了すると、プレイヤー ポーンはこのようになります。
+
+	![](SVRChaperone_01.png)(w:300)
+
+## 最終結果
+
+ここで VR でプロジェクトを起動して Vive HMD を装着して VR インタラクション エリアの境界へ近づくと、以下の動画のように見えるはずです。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ibnskPOz1Hw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 プロジェクトのダウンロード
+
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。 
+
+* [**SteamVR Chaperone Set Up Project**](https://epicgames.box.com/s/f9aw7n5wpjc0nnzjtiom78hticmdl3w1)
+

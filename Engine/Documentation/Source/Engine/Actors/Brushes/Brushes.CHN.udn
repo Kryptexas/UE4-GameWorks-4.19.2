@@ -2,47 +2,7 @@
 Title:CSG画刷用户指南
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:使用CSG画刷创建虚幻编辑器内关卡几何体及立体空间的指南。
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Brushes:title%](Brushes_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Brushes:title%](Brushes_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Brushes_topic.png
 
 [TOC (end:2)]
 
@@ -97,7 +57,8 @@ BSP 画刷是虚幻的关卡构建中最为基本的工具。 从理论上说，
 |![](BSP_Deintersect.png)|反交集会变更构建器画刷形状，这样它仅会与构建器画刷及其它画刷之间的任意交集之 _外_ 的区域相匹配。
 |![](BSP_Volume.png)|打开下拉框，使您可以创建各种各样的不同体积对象。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BoxBuilder]
 [REGION:simpletable]
 |立方体构建器设置 ||
@@ -214,7 +175,8 @@ BSP 画刷是虚幻的关卡构建中最为基本的工具。 从理论上说，
 [/EXCERPT:SpiralStairBuilder]
 
 
---->
+-
+[/COMMENT]
 
 ## BSP 画刷的用途
 

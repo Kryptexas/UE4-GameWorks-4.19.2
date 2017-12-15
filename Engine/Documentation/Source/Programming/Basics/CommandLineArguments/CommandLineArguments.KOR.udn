@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 명령줄 인수
 Crumbs: %ROOT%, Engine
@@ -95,19 +95,25 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `COOKPACKAGES`: 쿠킹 패키지 지정용 태그입니다.
 * `CRASHREPORTS`: 엔진 크래시를 항상 보고합니다.
 * `D3DDEBUG`: d3d 디버그 장치를 사용합니다.
+[COMMENT:none]
+
 * `DEBUG`: 엔진이 디버그 정보를 디버거에게 보내도록, 또는 스크립트 컴파일 도중 디버그 패키지를 빌드하도록 합니다. 
+
+[/COMMENT]
 * `DEVCON`: 개발자용 보안 연결을 끕니다 (암호화되지 않은 소켓을 사용합니다)
 * `DUMPFILEIOSTATS`: 파일 IO 통계를 추적하여 로그합니다.
-* `DUMPUDKSURVEY`: UDK 하드웨어 조사를 덤프하기만 합니다. 업로드하지 않습니다.
+[COMMENT:none]
+
 * `FATALSCRIPTWARNINGS`: 디버깅으로부터의 스크립트 경고를 치명적인 것으로 간주합니다.
 * `FINAL_RELEASE`: FINAL_RELEASE 매크로를 스크립트 컴파일용으로 설정합니다.
+
+[/COMMENT]
 * `FIXEDSEED`: 난수 발생기를 고정된 값 0으로 초기화시킵니다.
 * `FIXUPTANGENTS`: 분포의 레거시 탄젠트를 자동으로 고칩니다.
 * `FORCELOGFLUSH`: 로그를 매 라인마다 가지런히(flush) 합니다.
 * `FORCEPVRTC`: 모바일 플랫폼용 pvrtc 텍스처 압축을 강제합니다.
 * `FORCESOUNDRECOOK`: 모든 사운드의 완전 재쿠킹을 강제합니다.
 * `GENERICBROWSER`: 일반 브라우저를 사용합니다.
-* `INCLUDEUTGAMECONTENT`: UTGameContent 패키지가 로드되도록 설정합니다.
 * `INSTALLED`: 개발 용도로, 게임이 설치된 것처럼 실행시킵니다.
 * `INSTALLFW/UNINSTALLFW`: 파이어월 통합 처리를 수행할지 여부를 정합니다.
 * `INSTALLGE`: 게임을 Game Explorer(게임 익스플로러)에 추가합니다.
@@ -121,13 +127,21 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `NOINNEREXCEPTION`: 네이티브 C++ 내의 예외 처리기를 끕니다.
 * `NOLOADSTARTUPPACKAGES`: 스타트업 패키지가 로드되지 않도록 강제합니다. 스타트업 패키지의 오브젝트를 에디터에서 지워야 하는 경우 사용하기에 좋습니다.
 * `NOLOGTIMES`: 로그 출력에 시간을 출력하지 않습니다. (기본적으로 Engine.ini 의 [LogFiles] 에 LogTimes=False 줄을 넣는 것과 똑같습니다.)
+[COMMENT:none]
+
 * `NOMODAUTOLOAD`: 모드 클래스를 자동으로 로드하지 않습니다.
+
+[/COMMENT]
 * `NOPAUSE`: 나갈 때 로그창을 자동으로 닫습니다.
 * `NOPAUSEONSUCCESS`: 오류가 없는 경우 나갈 때 로그창을 자동으로 닫습니다.
 * `NORC`: 리모트 콘트롤을 끕니다. 전용 서버에 사용됩니다.
 * `NOVERIFYGC`: 가비지 컴파일러 가정을 검증하지 않습니다.
 * `NOWRITE`: 로그 출력을 끕니다.
+[COMMENT:none]
+
 * `OUTPUTHEADERS`: 스크립트 패치 내보내기시 헤더 출력을 강제합니다.
+
+[/COMMENT]
 * `SEEKFREELOADING`: 쿠킹된 데이터만 사용합니다.
 * `SEEKFREEPACKAGEMAP`: 패키지 맵으로 seekfree (쿠킹된) 버전으로 덮어씁니다.
 * `SEEKFREELOADINGPCCONSOLE`: PC 콘솔 모드용으로 쿠킹된 데이터만 사용합니다.
@@ -141,7 +155,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `UNINSTALLGE`: 게임 익스플로러로부터 게임을 제거합니다.
 * `USEUNPUBLISHED`: Unpublished (지양상태?) 폴더에 있는 패키지를 강제로 사용되게 합니다. 
 * `VADEBUG`: 비주얼 스튜디오 디버거 인터페이스를 사용합니다.
-* `VERBOSE`: 스크립트 컴파일러가 상세 출력을 사용하도록 설정합니다.
+* `VERBOSE`: 컴파일러가 상세 출력을 사용하도록 설정합니다.
 * `VERIFYGC`: 가비지 컴파일러 가정을 강제로 검증하도록 합니다.
 * `WARNINGSASERRORS`: 경고를 오류로 간주합니다.
 
@@ -221,7 +235,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `REGENERATEINIS`: .ini 파일 재생성을 강제합니다.
 
 
-또한 명령줄 인수를 통해 게임이나 에디터가 로드하는 INI 파일을 임시로 덮어쓸 수 있습니다. 예를 들어 커스텀 'MyGame.ini' 를 'UDKGame.ini' 대신 사용하려는 경우, 인수는 -GAMEINI=MyGame.ini 로 하면 됩니다. 아래 표는 UE4 에서 사용되는 다양한 INI 파일을 덮어쓰는 데 사용되는 인수를 나타냅니다:
+또한 명령줄 인수를 통해 게임이나 에디터가 로드하는 INI 파일을 임시로 덮어쓸 수 있습니다. 예를 들어 커스텀 'MyGame.ini' 를 'MyOldGame.ini' 대신 사용하려는 경우, 인수는 -GAMEINI=MyGame.ini 로 하면 됩니다. 아래 표는 UE4 에서 사용되는 다양한 INI 파일을 덮어쓰는 데 사용되는 인수를 나타냅니다:
 
 | 명령줄 인수 | INI 덮어쓰기 |
 | --- | --- |

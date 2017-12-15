@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:プロジェクト設定
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:現行プロジェクトのオプションを設定するダイアログ
 Version:4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ProjectSettings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ProjectSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ProjectSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ProjectSettings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ProjectSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ProjectSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:projectsettings_topic.png
 
 [REGION:fullwidth]
 	[OBJECT:ToggleButtonContent]
@@ -141,6 +103,8 @@ Version:4.9
 | **Console** | コンソール向けの独自のインゲームの入力を設定することができます。 |
 | **Cooker** | 様々なクッカ設定のオプションがあります。テクスチャの圧縮品質などを処理します。 |
 | **Crowd Manager** | AI 群集を管理するための設定可能なオプション一式があります。 |
+| [REGION:tablesection]エンド ユーザー設定[/REGION] ||
+| Privacy | [INCLUDE:#privacy] |
 | **Garbage Collection** | ゲームのためのガーベジ コレクションがどのように機能するかを設定することができます。  |
 | **General Settings** | デフォルトのフォント、ベースクラス、マテリアル、フレームレートなど、エンジンとエディタが初期化および設定に使用するオプションがあります。 |
 | **Input** | ゲームのアクションや軸のバインディングを設定 (キーバインディングやその他の入力マッピング) します。[REGION:note]これはインゲームのキーバインドであってエディタのキーバインドではありません。[/REGION] |
@@ -153,6 +117,15 @@ Version:4.9
 | **Tutorials** | プロジェクトで利用可能なチュートリアルを設定することができます。 |
 | **User Interface** | DPI スケーリング、カーソル、およびそのレンダリング フォーカス ルールなどのスレートと UMG を制御する設定があります。  |
 
+[COMMENT:none]
+
+[EXCERPT:privacy]
+匿名の使用データをエピック ゲームズに送信するかどうかを制御します。使用データの送信を無効にするには、**[End-users don't send]** をクリックします。
+
+![](privacy_donotsend.png)
+[/EXCERPT:privacy]
+
+[/COMMENT]
 
 ### エディタ カテゴリ
 

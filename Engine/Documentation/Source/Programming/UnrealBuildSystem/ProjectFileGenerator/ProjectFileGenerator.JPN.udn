@@ -19,7 +19,9 @@ tags:Unreal Build System
 
 最新のアンリアル・エンジン 4 (UE4) のコードを既にダウンロードされたユーザーは、コンパイルやエンジンおよびサンプルゲームの実行に、Visual Studio (VS) や Xcode プロジェクト ファイルが同梱されていないことにお気づきかもしれません。プロジェクト ファイルはスクリプトを実行して生成する必要があります。
 
-* UE4 のメイン ディレクトリ <!--(mapped to '//depot/UE4/`)--> にある GenerateProjectFiles.bat ファイルを実行します。
+* UE4 のメイン ディレクトリ [COMMENT:none]
+(mapped to '//depot/UE4/`)
+[/COMMENT] にある GenerateProjectFiles.bat ファイルを実行します。
 
 	[REGION:note]
 	スクリプトはどのフォルダからも実行できます。(必要に応じてデスクトップ上にショートカットを作成してください) 
@@ -126,7 +128,9 @@ C++ モジュールのソースコードと一緒に、生成されるプロジ�
 
 * スタートアップ プロジェクトを UnrealBuildTool に変更します。
 * デバッグ作業のコマンドライン パラメータを `-ProjectFiles` に設定します。
-* 作業ディレクトリをローカルパスへ設定します： <!--//depot/UE4-->[Your UE4 Directory]/Engine/Source/
+* 作業ディレクトリをローカルパスへ設定します： [COMMENT:none]
+//depot/UE4
+[/COMMENT][Your UE4 Directory]/Engine/Source/
 * 法線ごとにコンパイルおよびデバッグ作業を行います。
 
 

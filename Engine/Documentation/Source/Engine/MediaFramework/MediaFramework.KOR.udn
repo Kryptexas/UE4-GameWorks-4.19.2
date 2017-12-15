@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 미디어 프레임워크
 Crumbs:%ROOT%, Engine
@@ -6,48 +6,14 @@ Description:언리얼 엔진 4 의 Media Playback, 미디어 재생 함수 기�
 Navigation:topic
 parent:Engine
 order:16
-Version: 4.13
+Version: 4.18
+Type:Landing
+tags: Media Framework
+tags: Video Playback
+tags: Media Player
+topic-image:MediaFrameworkTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/MediaFramework:title%](MediaFrameworkTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/MediaFramework:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/MediaFramework:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/MediaFramework]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/MediaFramework:title%](MediaFrameworkTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/MediaFramework:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/MediaFramework:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/MediaFramework]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:fullwidth raw]
+[REGION:fullwidth]
 ![](MediaFrameWork.png)(convert:false)
 [/REGION]
 
@@ -70,11 +36,7 @@ Version: 4.13
 
 이 글에는 미디어 프레임워크 관련 다수의 부가 문서에 대한 링크가 포함되어 있습니다. 개요 페이지에서 미디어 프레임워크의 기능에 대한 분석은 물론 비법이나 퀵스타트 페이지에서 미디어 프레임워크 작업 관련 단계별 안내를 확인하실 것을 추천합니다.
 
-[REGION:warning]
-미디어 프레임워크는 아직 제작 단계에서 사용하기에는 이르며, 여전히 실험단계 기능입니다. 일부 기능이 예상대로 작동하지 않을 수 있으나 
-현재 그러한 문제 해결 뿐만 아니라 기능 추가 및 지원을 위해서도 열심히 노력중입니다.  _역주: 나머지 세부적인 문서에 대한 번역문은 실험단계를 벗어날 때 제공하도록 하겠습니다._
-[/REGION]
-
 ## 필독자료
 
 [DIR(output:"listbutton" parent:"Engine/MediaFramework" org:"hierarchy" end:"1")]
+

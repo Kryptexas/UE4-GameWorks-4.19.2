@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:3782314
+Availability:Docs
+Crumbs: %ROOT%
+Title:Low-Level Memory Tracker
+Description:アンリアル エンジン プロジェクトで Low-Level Memory Tracker を使用する方法
+Type:Overview
+SkillLevel:Advanced
+Version:4.18
+Parent:Programming\Development\Tools
+Order:2
+Tags:Mobile
+Tags:Optimization
+
+[TOC(start:1 end:2)]
+
+![](LLM_00.png)
+
+[REGION:caption]
+Low-Level Memory Tracker (LLM) は、PlayStation 4 と XboxOne をサポートします。Windows は、実験的機能としてサポートされています。
+[/REGION]
+
+
+**Low-Level Memory Tracker** (**LLM**) は、アンリアル エンジン プロジェクトのメモリの使用状況を追跡するツールです。LLM は、アンリアル エンジンと OS によって割り当てられるすべてのメモリを記録するためにスコープのタグ システムを使います。
+
+
+## LLM Tracker
+
+現時点では 2 つのトラッカーがあります。各トラッカーには独自の割り当てマップとタグ スタックがあります。デフォルトのトラッカーはエンジンからの全ての割り当て用です。これは 2 つのうちでレベルが高い方で、 `FMemory` クラス関数、`Malloc` を通して行われる割り当てを記録します。このトラッカーが、`stat LLM` と `stat LLMFULL` のコンソール コマンドに対して統計情報を表示します。Platform Tracker はレベルが低い方で、OS によるすべての割り当てを記録します。例えば、`Binned2` のような関数による内部の割り当ては追跡しません。従って、Default Tracker の統計情報は、Platform Tracker の統計情報のサブセットになります。
+
+
+## LLM のセットアップ
+
+プロジェクトで LLM を有効にするには、以下のコマンドライン引数とコンソールコマンドを使います。
+
+| コマンドライン引数 | 説明 |
+|--|--|
+|`-LLM`| LLM を有効にします。|
+|`-LLMCSV`|すべての値を継続的に CSV ファイルに書き込みます。 -LLM を自動的に有効にします。|
+|`-llmtagsets=Assets`|実験的機能です。各アセットによって割り当てられる合計を表示します。|
+|`-llmtagsets=AssetClasses`|実験的機能です。各 UObject クラス型の合計を表示します。|
+
+| コンソールコマンド| 説明|
+|--|--|
+|`stat LLM`| LLM サマリーを表示します。すべての低レベルのエンジンの統計情報は、単一の Engine 統計情報にグループ化されます。
+|`stat LLMFULL`|すべての LLM 統計情報を表示します。|
+|`stat LLMPlatform`|OS から割り当てられるすべてのメモリの統計情報を表示します。|
+|`stat LLMOverhead`| LLM によって内部で使用されるメモリを表示します。|
+
+`-LLMCSV` コマンドライン引数を使う場合、`.CSV` ファイルが `saved/profiling/llm/` に書き出されます。このファイルには、各タグの列があり、MB 単位で現在値を表示します。新しい行は 5 秒毎に書き込まれます (デフォルト)。この頻度は、`LLM.LLMWriteInterval` コンソール変数を使って変更することができます。
+
+
+## LLM タグ
+
+エンジンによるすべてのメモリ割り当て (ゲームコードを含む) は、属するカテゴリを特定するタグ値を割り当てられます。つまり、すべてのメモリは一回だけ追跡され、追跡から外れたり、2 回カウントされるものはありません。すべてのカテゴリの合計が加算されて、ゲームで使用されるメモリ量の合計になります。
+
+タグ / スコープのマクロを使ってタグが適用されます。このスコープ内で行われる割り当てには、指定されたタグが与えられます。LLM は、タグ スコープのスタックを維持管理し、一番上のタグがメモリ割り当ての際に与えられます。LLM の統計情報は、`stat LLM` または `stat LLMFULL` のコンソールコマンドを使ってインゲームで見ることができます。各タグの現在の合計が MB 単位で表示されます。LLM は値を分析できるように統計値を `.CSV` ファイルにも書き込みます。以下のタグ カテゴリは、現在エンジン内にあるものです。
+
+| タグ名| 説明|
+|--|--|
+|**UObject**| これは `UObject` から継承するクラスおよびプロパティなど、そのクラスによってシリアライズされるものを含みます。**UObject** は、他のカテゴリで追跡されていないエンジンやゲームのメモリなどあらゆるものに対応します。この統計情報には、個別に追跡されるメッシュやアニメーションのデータは含みません。レベルに配置されたオブジェクトに対応します。|
+|**EngineMisc**|他のカテゴリで追跡されていない低レベルのメモリ |
+|**TaskGraphTasksMisc**|独自のカテゴリを持たないタスク グラフから始まるタスク。これは一般的に、低レベルです。 |
+|**StaticMesh**|`UStaticMesh` クラスと関連するプロパティです。実際のメッシュのデータは含みません。|
+
+新規タグを追加するには、以下の手順に従います。
+
+1. `LowLevelMemTracker.h` にある `ELLMTag` 列挙型に値を追加します。
+1. `LowLevelMemTracker.cpp` にある `ELLMTagNames` 配列に対応する要素を追加します。
+1. `LLM_SCOPE` マクロを使ってコードにタグのスコープを追加します。
+
+スコープがプラットフォーム固有である場合、プラットフォーム固有の LLM ファイル内で同じように列挙型に追加します。例えば、 PlayStation 4 では `PS4LLM.cpp` と `PS4LLM.h` になります。
+
+
+## Tag Sets (実験的)
+
+Tag Sets を使うには、`LowLevelMemory.h` で `LLM_ALLOW_ASSETS_TAGS` を定義します。Tag Sets を使う場合、各割り当てでさらに Asset 名または Object クラス名を保存します。
+[REGION:note]Tag Sets を使うと、メモリ使用量とランタイムのパフォーマンスにオーバーヘッドが加わります。[/REGION]
+
+[COMMENT:none]
+- Commenting this out because I'm not sure we want the burden of supporting third-party engine ports to new platforms.
+
+## 新規プラットフォームのセットアップ
+
+`FGenericPlatformMemory` から継承するプラットフォームのメモリ クラスは、以下の関数を実行する必要があります。
+
+    static bool GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment);
+
+この関数は `alloc` と `free` の関数ポインタとそのアラインメント (通常は OS のページサイズ) に書き込まれます。この割り当て関数は、LLM によってフックされていない OS 割り当て関数を使う必要があります。例えば、Windows では `VirtualAlloc` を使います。
+
+こうした関数は、メモリの割り当て時と解放時に呼び出されなければなりません。
+
+    void FLowLevelMemTracker::OnLowLevelAlloc(ELLMTracker Tracker, const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMAllocType AllocType)
+
+
+    void FLowLevelMemTracker::OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, uint64 CheckSize, ELLMAllocType AllocType)
+
+こうした関数によってメモリが 2 回カウントされないように注意する必要があります。`FMemory` クラスの `Malloc` 関数には、Default Tracker のフックが含まれます。そのため、このメモリはすでに全プラットフォームに対して追跡されています。しかし、`Binned2` による OS 割り当てはPlatform tracker によって追跡される必要があります (`FGenericPlatformMemory` クラス関数、 `BinnedAllocFromOS` を参照)。
+-
+[/COMMENT]
+
+## 実装の技術的詳細
+
+LLM はポインタによってインデックス付けされるすべての割り当てのマップを維持することで機能します。マップには現在、各割り当てのサイズと割り当てられた Tag が含まれます。ゲームでは一度に 400 万の割り当てがプレイ中に生じることがあり、メモリのオーバーヘッドをできる限り少なく保つことが重要になります。現在の実装では、一回の割り当てで 21 バイトを使用します。
+
+| 割り当て| サイズ|
+|--|--|
+|ポインタ|8 バイト |
+|ポインタのハッシュ キー |4 バイト |
+|サイズ|4 バイト |
+|タグ|1 バイト |
+| ハッシュマップ インデックス |4 バイト |
+
+`OnLowLevelAlloc` 関数を使って割り当てを追跡する場合、タグ スタックの一番上にあるタグが現在のタグになり、そのポインタをキーとして割り当てマップに格納されます。コンテンションを避けるために、各タグのフレームの差分を別個の `FLLMThreadState` クラス インスタンスで追跡します。フレームの終わりに、こうした差分が合計されて、統計情報システムと `.CSV` ファイルに出力されます。
+
+LLM は非常に早い段階で初期化されます。つまり、デフォルトで有効になっていなければなりません。コマンドラインで LLM が有効になっていなければ、それ自体シャットダウンして、すべてのメモリをクリーンアップし、オーバーヘッドが全く生じないようにします。LLM は、Test ビルドおよび Shipping ビルドでは完全にコンパイルから除外されます。
+
+LLM は統計情報システムなしに実行することができます (例えば、Test config)。画面上に統計情報を表示することはできませんが、`.CSV` ファイルに書き出されます。LLM は、`LowLevelMemTracker.h` で `ENABLE_LOW_LEVEL_MEM_TRACKER` を修正して有効にする必要があります。
+
+scope マクロを使ってタグが適用されます。主なマクロとして以下の 2 つがあります。
+* `LLM_SCOPE(Tag)`
+* `LLM_PLATFORM_SCOPE(Tag)`
+
+これらは、それぞれ現在の Default Tracker と Platform Tracker のスコープを設定します。こうしたスコープにはプラットフォームに依存するバージョンがあります。例えば、プラットフォーム固有のタグ列挙型を使う `LLM_SCOPE_PS4(Tag)` があります。`LLM_SCOPED_TAG_WITH_STAT` などの統計情報を使うスコープ マクロは、現時点では非推奨であるため使用しないでください。
+
+LLM が内部で使用するすべてのメモリは、プラットフォームが供給する `LLMAlloc` 関数と `LLMFree` 関数によって管理されます。LLM が自己のメモリ使用を追跡しないように (および無限再帰 (呼び出し)を生じないように)、他の方法では割り当てしないことは重要です。
+
+## 追加の技術的な詳細
+
+以下のセクションでは、LLM を使用する際に認識しておくべき様々な注意や追加情報を示します。
+
+* LLM のオーバーヘッドは 100MB 以上になることがあるため、以下のように各コンソールの大きなメモリ モードで実行することを強くお勧めします。
+
+    * PlayStation 4 の場合、コンソールの Target Settings に進み、 "Memory Budget Mode" を "LARGE" に変更します。
+    * XBox One の場合、XBox One Manager の Settings タブで、"Debug Memory Mode" を "Pix and Title" に設定します。
+
+* Test config の LLM は、統計情報のページを画面上に表示しませんが、`.CSV` ファイルに書き込みます。LLM は Shipping では完全に無効になります。
+
+* PlayStation 4 では、LLM は内部で使用するためにメモリを前もって確保する必要があります (現在、600MB)。PlayStation 4 が新しいメモリ システム (`PS4Memory2.cpp`) に移動すると、これは不要になります。
+
+* Asset タグの追跡はまだ早期実験段階です。

@@ -101,7 +101,8 @@ Related: Engine/Blueprints/UserGuide/Components
 
 
 
-<!--------------------------------
+[COMMENT:none]
+------------------------------
 
 
 
@@ -151,5 +152,6 @@ Related: Engine/Blueprints/UserGuide/Components
 * 当玩家退出盒体组件时，销毁帮助文本并停止对 **E** 按键输入的处理。
 [/EXCERPT:ButtonEG]
 
---------------------------------->
+-------------------------------
+[/COMMENT]
 

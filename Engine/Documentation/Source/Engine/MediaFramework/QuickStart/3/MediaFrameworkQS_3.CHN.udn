@@ -1,0 +1,71 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:3 - TV Blueprint Setup - Components
+Description:Here we create our TV Blueprint and set up its components. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:3
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+In previous steps, we set up our media content and created a Material that will be used to play our video. 
+In the next few steps we use [](Engine/Blueprints) (Unreal Engine's visual node-based scripting system) to create an interactable TV Blueprint that will enable players to walk up to and turn on/off our specified video content. 
+Here in this step, we add the **Components** that will make up our interactable TV. 
+
+## Steps
+
+1. Inside the **Content Browser** of your project, create a folder called **Blueprints** and in it, right-click and create a new **Blueprint Class**. 
+
+	![](Blueprint_01.png)
+
+1. In the **Pick Parent Class** window, select **Actor** then name the Blueprint **TV_Blueprint**. 
+
+	![](Blueprint_02.png)
+
+	Picking a [Parent Class](Engine/Blueprints/UserGuide/Types/ClassBlueprint) is a way to inherit properties or functionality from an existing class (we just want a generic Actor that can be spawned or placed in the world). 
+
+1. Open the **TV_Blueprint**, then in the upper-left click the **+Add Component** button and search for and add a **Static Mesh**. 
+
+	![](Blueprint_03.png)
+
+	Components are all the bits and pieces that make up the entirety of a Blueprint. 
+	In our case we need a **Static Mesh** to represent our TV, a **Box Collision** volume to tell us when the player is in range to turn on/off the TV, and a **Media Sound** Component to play the audio associated with our Media Player. 
+
+1. For the **Static Mesh**, name it **TV_Mesh** then in the **Details** panel, set the **Static Mesh** field to **SM_TV**. 
+
+	![](Blueprint_04.png)
+
+1. Click the **+Add Component** button and add a **Box Collision** component and resize it in the viewport as desired in front of the TV. 
+
+	![](Blueprint_05.png)
+
+	You can use the [Transform Tools](GettingStarted/HowTo/ManipulatingActors) and widget in the viewport to **Translate (W)**, **Rotate (E)** or **Scale (R)** the box. 
+
+1.	Click the **+Add Component** button and add a **Media Sound** component. 
+
+	![](Blueprint_06.png)
+
+	The **Media Sound** component is needed to play audio associated with a video file. 
+
+1.	In the **Details** panel for the **Media Sound** component, set the **Media Player** field to **MediaPlayer_01**. 
+
+	![](Blueprint_07.png)
+
+	Now when we open this Media Player, this Media Sound component will also open and begin playing the audio associated with the video playing. 
+
+		
+
+## End Result
+
+With each of the Components for our TV Blueprint set up, in the next step, we will define some of the options that we want to be customizable within our TV Blueprint. 
+This will enable us to define in the editor what Media Texture and Media Sound are associated with a TV in the level and change them on a per-instance basis (enabling us to have the same TV Blueprint, playing different content on each). 
+
+[NAV]
+
+
+

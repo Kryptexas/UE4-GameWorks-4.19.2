@@ -27,7 +27,8 @@ Version:4.9
 
 
 
-<!----------------Camera Offset includes----------------
+[COMMENT:none]
+--------------Camera Offset includes----------------
 #### Includes
 
 [EXCERPT:UpdateMethod]
@@ -41,4 +42,5 @@ Version:4.9
 [/EXCERPT:UpdateMethod]
 
 
-------------------End Camera Offset Includes------------>
+------------------End Camera Offset Includes----------
+[/COMMENT]

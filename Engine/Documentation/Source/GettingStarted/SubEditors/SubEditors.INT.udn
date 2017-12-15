@@ -28,7 +28,8 @@ Refer to each of the sections below for an overview along with links to more det
 |[INCLUDE:GettingStarted\SubEditors#mediaeditorimage]|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:leveleditorimage]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -42,7 +43,7 @@ Refer to each of the sections below for an overview along with links to more det
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](LevelEditor_Windows.png)(w:400 h:240)](LevelEditor_Windows.png)
+	[![](LevelEditor_Windows.png)(w:400)](LevelEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -57,7 +58,7 @@ Refer to each of the sections below for an overview along with links to more det
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](LevelEditor_Mac.png)(w:400 h:240)](LevelEditor_Mac.png)
+	[![](LevelEditor_Mac.png)(w:400)](LevelEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -84,7 +85,7 @@ For more information, see: [](Engine/UI/LevelEditor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MaterialEditor_Windows.png)(w:400 h:240)](MaterialEditor_Windows.png)
+	[![](MaterialEditor_Windows.png)(w:400)](MaterialEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -99,7 +100,7 @@ For more information, see: [](Engine/UI/LevelEditor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MaterialEditor_Mac.png)(w:400 h:240)](MaterialEditor_Mac.png)
+	[![](MaterialEditor_Mac.png)(w:400)](MaterialEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -126,7 +127,7 @@ For more information, see: [](Engine/Rendering/Materials/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](BlueprintEditor_Windows.png)(w:400 h:240)](BlueprintEditor_Windows.png)
+	[![](BlueprintEditor_Windows.png)(w:400)](BlueprintEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -141,7 +142,7 @@ For more information, see: [](Engine/Rendering/Materials/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](BlueprintEditor_Mac.png)(w:400 h:240)](BlueprintEditor_Mac.png)
+	[![](BlueprintEditor_Mac.png)(w:400)](BlueprintEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -168,7 +169,7 @@ For more information, see: [](Engine/Blueprints/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](BehaviorTree_Windows.png)(w:400 h:240)](BehaviorTree_Windows.png)
+	[![](BehaviorTree_Windows.png)(w:400)](BehaviorTree_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -183,7 +184,7 @@ For more information, see: [](Engine/Blueprints/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](BehaviorTree_Mac.png)(w:400 h:240)](BehaviorTree_Mac.png)
+	[![](BehaviorTree_Mac.png)(w:400)](BehaviorTree_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -211,7 +212,7 @@ For more information, see: [](Engine/AI/BehaviorTrees/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](AnimEditors_Windows.png)(w:400 h:240)](AnimEditors_Windows.png)
+	[![](AnimEditors_Windows.png)(w:400)](AnimEditors_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -226,7 +227,7 @@ For more information, see: [](Engine/AI/BehaviorTrees/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](AnimEditors_Mac.png)(w:400 h:240)](AnimEditors_Mac.png)
+	[![](AnimEditors_Mac.png)(w:400)](AnimEditors_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -254,7 +255,7 @@ For more information, see: [](Engine/Animation/Persona)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](CascadeEditor_Windows.png)(w:400 h:240)](CascadeEditor_Windows.png)
+	[![](CascadeEditor_Windows.png)(w:400)](CascadeEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -269,7 +270,7 @@ For more information, see: [](Engine/Animation/Persona)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](CascadeEditor_Mac.png)(w:400 h:240)](CascadeEditor_Mac.png)
+	[![](CascadeEditor_Mac.png)(w:400)](CascadeEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -296,7 +297,7 @@ For more information, see: [](Engine/Rendering/ParticleSystems/Cascade)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](UMGEditor_Windows.png)(w:400 h:240)](UMGEditor_Windows.png)
+	[![](UMGEditor_Windows.png)(w:400)](UMGEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -311,7 +312,7 @@ For more information, see: [](Engine/Rendering/ParticleSystems/Cascade)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](UMGEditor_Mac.png)(w:400 h:240)](UMGEditor_Mac.png)
+	[![](UMGEditor_Mac.png)(w:400)](UMGEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -339,7 +340,7 @@ For more information, see: [](Engine/UMG/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MatineeEditor_Windows.png)(w:400 h:240)](MatineeEditor_Windows.png)
+	[![](MatineeEditor_Windows.png)(w:400)](MatineeEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -354,7 +355,7 @@ For more information, see: [](Engine/UMG/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MatineeEditor_Mac.png)(w:400 h:240)](MatineeEditor_Mac.png)
+	[![](MatineeEditor_Mac.png)(w:400)](MatineeEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -381,7 +382,7 @@ For more information, see: [](Engine/Matinee/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](SoundCueEditor_Windows.png)(w:400 h:240)](SoundCueEditor_Windows.png)
+	[![](SoundCueEditor_Windows.png)(w:400)](SoundCueEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -396,7 +397,7 @@ For more information, see: [](Engine/Matinee/UserGuide)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](SoundCueEditor_Mac.png)(w:400 h:240)](SoundCueEditor_Mac.png)
+	[![](SoundCueEditor_Mac.png)(w:400)](SoundCueEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -424,7 +425,7 @@ For more information, see: [](Engine/Audio/SoundCues/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](SpriteEditor_Windows.png)(w:400 h:240)](SpriteEditor_Windows.png)
+	[![](SpriteEditor_Windows.png)(w:400)](SpriteEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -439,7 +440,7 @@ For more information, see: [](Engine/Audio/SoundCues/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](SpriteEditor_Mac.png)(w:400 h:240)](SpriteEditor_Mac.png)
+	[![](SpriteEditor_Mac.png)(w:400)](SpriteEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -467,7 +468,7 @@ For more information, see: [](Engine/Paper2D/Sprites/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](FlipbookEditor_Windows.png)(w:400 h:240)](FlipbookEditor_Windows.png)
+	[![](FlipbookEditor_Windows.png)(w:400)](FlipbookEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -482,7 +483,7 @@ For more information, see: [](Engine/Paper2D/Sprites/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](FlipbookEditor_Mac.png)(w:400 h:240)](FlipbookEditor_Mac.png)
+	[![](FlipbookEditor_Mac.png)(w:400)](FlipbookEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -509,7 +510,7 @@ For more information, see: [](Engine/Paper2D/Flipbooks/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](PhysicsAssetEditor_Windows.png)(w:400 h:240)](PhysicsAssetEditor_Windows.png)
+	[![](PhysicsAssetEditor_Windows.png)(w:400)](PhysicsAssetEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -524,7 +525,7 @@ For more information, see: [](Engine/Paper2D/Flipbooks/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](PhysicsAssetEditor_Mac.png)(w:400 h:240)](PhysicsAssetEditor_Mac.png)
+	[![](PhysicsAssetEditor_Mac.png)(w:400)](PhysicsAssetEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -553,7 +554,7 @@ For more information, see: [](Engine/Physics/PhAT)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](StaticMeshEditor_Windows.png)(w:400 h:240)](StaticMeshEditor_Windows.png)
+	[![](StaticMeshEditor_Windows.png)(w:400)](StaticMeshEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -568,7 +569,7 @@ For more information, see: [](Engine/Physics/PhAT)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](StaticMeshEditor_Mac.png)(w:400 h:240)](StaticMeshEditor_Mac.png)
+	[![](StaticMeshEditor_Mac.png)(w:400)](StaticMeshEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -595,7 +596,7 @@ For more information, see: [](Engine/Content/Types/StaticMeshes/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MediaPlayerEditor_Windows.png)(w:400 h:240)](MediaPlayerEditor_Windows.png)
+	[![](MediaPlayerEditor_Windows.png)(w:400)](MediaPlayerEditor_Windows.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -610,7 +611,7 @@ For more information, see: [](Engine/Content/Types/StaticMeshes/Editor)
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[REGION:lightbox]
-	[![](MediaPlayerEditor_Mac.png)(w:400 h:240)](MediaPlayerEditor_Mac.png)
+	[![](MediaPlayerEditor_Mac.png)(w:400)](MediaPlayerEditor_Mac.png)
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -628,4 +629,5 @@ You can also see information about your media inside this editor as well as use 
 For more information, see: [](Engine/MediaFramework)
 [/EXCERPT:mediaeditor]
 
---->	
+-
+[/COMMENT]	

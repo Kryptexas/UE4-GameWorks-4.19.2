@@ -14,35 +14,8 @@ social-image:RoboRecall_Social.png
 
 ## Starting Out
 
-[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" tags:"Getting Started")]
+[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" type:"landing,overview,reference,quick start")]
 
 ## Guides
 
-[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" tags:"!Getting Started" type:"!reference")]
-
-## Reference
-
-[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" tags:"!Getting Started" type:"reference")]
-
-<!--
-
-Should list:
-
-* How-To Landing
-
-* Robo Recall Modding Overview
-
-* Robo Recall Art Considerations
-
-* Robo Recall Modding Limitations
-
-* Robo Recall Advanced Modding
-
-* Robo Recall Getting Started
-
-* Learning Resources Mods
-
-* Robo Recall Reference
-
--->
-
+[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" type:"how-to")]

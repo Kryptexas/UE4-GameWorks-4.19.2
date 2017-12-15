@@ -2,7 +2,7 @@ Availability: Public
 Title: Android Quick Start
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -10,57 +10,30 @@ type:quick start
 parent:Platforms/Android
 order:1
 Checkpoint:AndroidQS
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](AndroidTopic.jpg)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/GettingStarted:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/GettingStarted]
-	[/PARAM]
-	[PARAM:description]
-	%Platforms/Android/GettingStarted:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](AndroidTopic.jpg)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/GettingStarted:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/GettingStarted]
-	[/PARAM]
-	[PARAM:description]
-	%Platforms/Android/GettingStarted:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:AndroidTopic.jpg
 
 ![](AndroidTopic.jpg)
 
-Unreal Engine 4 (UE4) uses a special version of the Android Software Development Kit (SDK), called **CodeWorks for Android 1R6**. 
+Unreal Engine 4 (UE4) uses a special version of the Android Software Development Kit (SDK), called **CodeWorks for Android 1R6u1**. 
 This version of CodeWorks for Android is the easiest way to set up the SDK and Native Development Kit (NDK) needed to develop 
-Android projects with UE4. Although we're currently using version 1R6, we intend to use subsequent releases of CodeWorks. 
+Android projects with UE4. Although we're currently using version 1R6u1, we intend to use subsequent releases of CodeWorks. 
 If you have other versions of the Android SDK installed (or, older versions of CodeWorks for Android), we recommend that you 
 uninstall them and install CodeWorks for Android, using the CodeWorks for Android installer that's being distributed with UE4. 
 
 [region:note]
 We've bundled the CodeWorks for Android installer with UE4 to make sure that your Android SDK will be compatible with Unreal Engine. 
+In UE4.18 the Gradle build system is enabled by default. But, this requires accepting the SDK License agreement in **Project Settings** > **Android** (button is disabled if the agreement has been previously accepted). Press the button, read the agreement, then Accept it. After that, the button should be grayed out. You can still use the Ant build system in 4.18 by clearing the **Enable Gradle instead of Ant** Check box.
+
+![](AQS_AcceptSDKLicense.png)
 [/region]
+
+
+
+
 
 ## Goals
 
-The focus of this Android Quick Start guide is to walk you through the basics of setting up your computer for Android Development with UE4.
+The focus of this Android Quick Start guide is to walk you through the basics of setting up your computer for Android Development with Unreal Engine 4 (UE4).
 This guide also teaches you how to put a template game on your Android device with the Unreal Editor's launching and packaging features.
 
 ## Objectives

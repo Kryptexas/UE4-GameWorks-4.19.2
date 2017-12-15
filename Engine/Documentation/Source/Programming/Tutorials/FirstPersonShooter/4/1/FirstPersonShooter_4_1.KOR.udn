@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.1 - 캐릭터 애니메이션
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 여기서는 게임에 애니메이션을 조금 가져와 보도록 하겠습니다.
 
@@ -97,4 +97,3 @@ Version: 4.15
 	[/REGION]
 	_이미지를 클릭하면 확대됩니다._
 
-%Steps%

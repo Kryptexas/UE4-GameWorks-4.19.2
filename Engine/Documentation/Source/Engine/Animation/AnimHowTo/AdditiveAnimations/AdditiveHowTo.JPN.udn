@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:レイヤー化されたアニメーションを使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -27,7 +27,8 @@ WxYiLbnbQ_A
 
 このガイドでは、上の動画のようなキャラクターをセットアップしますが、これをご自身で用意したキャラクターに適用して、レイヤー アニメーションを作成することができます。 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intro]
 [REGION:note]
 このガイドでは、**Starter Content** を有効にした状態で **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。 
@@ -39,24 +40,17 @@ WxYiLbnbQ_A
 Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project (プロジェクトに追加)]** ボタンで自分のプロジェクトに追加することができます。
 [/REGION]
 [/EXCERPT:Intro]
--->
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings "%Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings:description%")
-	[/PARAM]
-[/OBJECT]
+[/COMMENT]
+
+## ステップ
+
+[DIR(output:"checkpoint" parent:"Engine/Animation/AnimHowTo/AdditiveAnimations")]
+
+[REGION:call_to_action]
+	[クリックして開始](Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup "%Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup:title%")
+[/REGION]
+
 
 
 

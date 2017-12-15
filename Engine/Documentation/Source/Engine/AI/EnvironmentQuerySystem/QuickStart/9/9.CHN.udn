@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 所有必要资源准备好后，即可开始构建行为树：
 
@@ -96,6 +96,6 @@ version:4.9
 
 所有节点连接到行为树后即告完成，无需进行额外编辑。
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

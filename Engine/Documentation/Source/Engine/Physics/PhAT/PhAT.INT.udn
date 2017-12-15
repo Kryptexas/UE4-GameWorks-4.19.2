@@ -1,50 +1,104 @@
 Availability: Public
-Title:Physics Asset Tool (PhAT)
-Crumbs: %ROOT%, Engine, Engine/Physics
-Description: Tool to set up physics bodies and joints to use for physical simulation and collision for SkeletalMeshes.
-Version: 4.9
+Crumbs: %ROOT%
+Title: Physics Asset Editor
+Description: Editor to setup physics bodies and constraints used for physical simulation and collision for Skeletal Meshes.
+Type: Landing
+Type:overview
+Version:4.18
+Parent:Engine/Physics
+Related:Engine/Physics/FrictionRestitutionAndDamping
+Related:Engine/Physics/PhysicalMaterials
+Related:Engine/Physics/Tracing
+Related:Engine/Physics/SimpleVsComplex
+Order:
+Tags:Physics
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
-![](phat.png)
+![](PhysicsAssetEditor.png)
 [/REGION]
 
 
-The Unreal **Physics Asset Tool** (**PhAT**) is an integrated editor in the Unreal Editor designed specifically to manipulate Physics Assets for Skeletal Meshes.
+The **Physics Asset Editor** is an integrated editor that is part of the [Animation Editors](Engine/Animation/Persona/Modes) in Unreal Engine 4. It is specifically designed to manipulate
+**Physics Assets** for [Skeletal Meshes](Engine/Content/Types/SkeletalMeshes). 
 
-## Opening PhAT
+[REGION:raw]
+![](PhysicsAssetCB.png)
+[/REGION]
 
-The PhAT Physics Editor can be opened by **double-clicking** any Physics Asset or through the **right-click** context menu of a physics asset in the **Content Browser**. Either of these will open up that particular physics asset in the PhAT Physics Editor for editing.
+A **Physics Asset** is used to define the physics and collision used by a Skeletal Mesh. These contain a set of rigid bodies and constraints that make up a single ragdoll, which is not
+limited to humanoid ragdolls. They can be used for any physical simulation using bodies and constraints. Because only a single Physics Asset is allowed for a Skeletal Mesh, they can 
+be turned on or off for many Skeletal Mesh components.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Physical Materials Topics
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Physics/PhAT/HowTo "%Engine/Physics/PhAT/HowTo:Description%")
-		* [](Engine/Physics/PhAT/Reference "%Engine/Physics/PhAT/Reference:Description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:imagetable]
+| ![](HumanoidPA.png)(h:600) | ![](VehiclePA.png)(h:600) |
+| --- | --- |
+| Character Physics Asset | Vehicle Physics Asset |
+[/REGION]
+
+A Physics Asset can be set up for any Skeletal Mesh for simulation. These are two examples of their usage; a humanoid character and the Buggy from Epic's demo Vehicle Game.
+
+
+## Creating Physics Assets
+
+There a couple of ways that Physics Assets can be created for your Skeletal Meshes:
+
+* On import by having **Create Physics Asset** enabled.
+
+	[REGION:lightbox]
+	[![](Import.png)(h:400)](Import.png)
+	[/REGION]
+	[REGION:caption] Click image for full size. [/REGION]
+
+* By creating a Physics Asset using the **Content Browser** and selecting a Skeletal Mesh to use.
+	
+	[REGION:lightbox]
+	[![](CreatePA_CB.png)(w:575) ](CreatePA_CB.png)
+	[/REGION]
+	[REGION:caption] Click image for full size. [/REGION]
+	
+	The first time the Physics Asset is selected, a window to set the how bodies and constraints should be generated will open:
+
+	![](PhysicsAssetGenerationProperties.png)
+
+
+## Opening the Physics Asset Editor
+
+The Physics Asset Editor can be opened in a couple of different ways:
+
+* By double-clicking the Physics Asset in the **Content Browser**.
+[COMMENT:none]
+-
+[REGION:lightbox]
+[![](OpenFromCB.png)(w:300)](OpenFromCB.png)
+[/REGION]
+-
+[/COMMENT]
+* By using the right-click context menu and selecting **Edit...**.
+
+	[REGION:lightbox]
+	[![](RightClickOpen.png)(w:300)](RightClickOpen.png)
+	[/REGION]
+
+* Or by selecting the **Physics** tab in the [Animation Editors](Engine/Animation/Persona/Modes) selection tabs.
+
+	![](PhysicsAssetEditorTab.png)
+
+	The down **arrow** next to the **Physics** tab can be used to select any Physics Asset located in the Content Browser that is using the currently opened Skeleton.
+
+	![](PhysicsAssetSelectionDropDown.png)
+
+
+## Essentials
+
+[DIR(output:"topiccompact" parent:"Engine/Physics/PhAT" org:"hierarchy" type:"landing,overview,reference,quick start" tags:"physics" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Physics" org:"hierarchy" type:"landing" tags:"physics" tags:"constraints" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Physics" org:"hierarchy" type:"landing" tags:"physics" tags:"bodies" end:"1")]
+
+## How-To's
+[DIR(output:"topiccompact" parent:"Engine/Physics/PhAT" org:"hierarchy" type:"how-to" tags:"physics" end:"1")]
+
+
+
+
+

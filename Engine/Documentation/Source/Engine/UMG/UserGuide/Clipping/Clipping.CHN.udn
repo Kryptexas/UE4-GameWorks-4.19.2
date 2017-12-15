@@ -54,7 +54,8 @@ Take for instance these examples:
 
 
 
-<!----
+[COMMENT:none]
+--
 [INCLUDE:#comparison]
 
 [EXCERPT:comparison]
@@ -68,7 +69,8 @@ Take for instance these examples:
 [/OBJECT]
 [/EXCERPT:comparison]
 
---->
+-
+[/COMMENT]
 
 In this example, the Image Widget (left) has been placed at the edge of the Canvas Panel so that part of it is outside of the clipping zone. The clipping system now uses axis-aligned clipping, which resolves artifacts and issues as seen in the comparison image (right). In 4.16, if a Widget was rotated with part of its bounds outside of the Canvas Panel, you would get clipped edges inside of the Canvas Panel. Now with 4.17, when you rotate a Widget, the bounds also rotate with it to clip properly. 
 

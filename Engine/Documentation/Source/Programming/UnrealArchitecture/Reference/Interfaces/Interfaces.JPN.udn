@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3688188
 Availability:Public
 Title:インターフェース
-Crumbs:
+Crumbs:%ROOT%
 Description:インターフェースの作成および実装に関するリファレンス
 tags:Programming
 Version:4.14
@@ -49,7 +49,7 @@ Interface クラスは関連性のない一連のクラスが共通の関数を�
         bool ReactToTrigger() const;
     };
 
-関数は直接ヘッダー ファイルに書き込まれますが、これは関数がデフォルトで行われるか、または false、ゼロ、空の文字列、または類似のものを戻すなどの自明なビヘイビアを持つ場合に行われます。コンパイル時間を短縮するためにより複雑な関数を、 .cpp ファイルに書き込むことができます。純粋仮想関数がサポートされます。サンプルの関数は自明であり、ヘッダー ファイルに書き込むことができますが、.cpp ファイルに書き込みます。.cpp ファイル (例、 `ReactToTriggerInterface.cpp`) には以下が含まれます。:
+関数は直接ヘッダー ファイルに書き込まれますが、これは関数がデフォルトで何も行わないか、または false、ゼロ、空の文字列、または類似のものを戻すなどの自明な挙動を持つ場合に行われます。コンパイル時間を短縮するためにより複雑な関数を、 .cpp ファイルに書き込むことができます。純粋仮想関数がサポートされます。サンプルの関数は自明であり、ヘッダー ファイルに書き込むことができますが、.cpp ファイルに書き込みます。.cpp ファイル (例、 `ReactToTriggerInterface.cpp`) には以下が含まれるようになります。:
 
     #include "ReactToTriggerInterface.h"
 	bool IReactToTriggerInterface::ReactToTrigger() const
@@ -62,9 +62,14 @@ Interface クラスは関連性のない一連のクラスが共通の関数を�
 
 [REGION:NOTE]ブループリントにこのインターフェースを実装させたい場合は、`Blueprintable` の指定子が必要です。[/REGION:NOTE]
 
-### Interface 指定子
+### インターフェース指定子
 
-[INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]
+| インターフェース指定子 | 意味 |
+| --- | --- |
+| `BlueprintType` | ブループリントの変数に使用できるタイプとしてクラスを公開します。 |
+| `DependsOn=(ClassName1, ClassName2, ...)` | リストされている全クラスは、このクラスより前にコンパイルされます。ClassName は同じ (あるいは以前の) パッケージのクラスを指定しなければなりません。1 行の `DependsOn` をカンマで区切ったり、クラスごとに別の `DependsOn` 行を使うことで、複数の依存クラスを指定することができます。これは他のクラスで宣言された構造体や列挙型変数をクラスで使う場合に重要になります。コンパイラはクラス内のコンパイル済みのものしか認識しないからです。 |
+| `MinimalAPI` | 他のモジュールで使用するために、クラスの型情報のみエクスポートさせます。クラスはキャスト可能ですが、クラスの関数を呼び出すことはできません (インライン メソッドは除く)。これにより、他のモジュールからすべての関数にアクセス可能である必要のないクラスで何もかもをエクスポートしないことでコンパイル時間を短縮できます。 |
+
 
 ## C++ でインターフェースを実装する
 
@@ -86,7 +91,7 @@ Interface クラスは関連性のない一連のクラスが共通の関数を�
 	IReactToTriggerInterface* ReactingObject = Cast<IReactToTriggerInterface>(OriginalObject); // ReactingObject will be non-null if OriginalObject implements UReactToTriggerInterface.(OriginalObject が UReactToTriggerInterface を実装する場合、ReactingObject は null ではない)
 
 [REGION:note]
-`StaticClass` 関数は "I-prefixed" クラスに実装されておらずコンパイルを行わないと同時に、"U-prefixed" クラスで `Cast` を使用すると失敗します。
+`StaticClass` 関数が "I プリフィックス" クラスで実装されておらずコンパイルを行わないと同時に、"U プリフィックス" クラスで `Cast` を使用すると失敗します。
 [/REGION]
 
 ## 他のアンリアル タイプにキャストする
@@ -99,4 +104,4 @@ Interface クラスは関連性のない一連のクラスが共通の関数を�
 
 ## Blueprint Implementable クラス
 
-ブループリントにこのインターフェースを実装させたい場合は、`Blueprintable` のメタデータの指定子を使用しなければなりません。ブループリントのクラスがオーバーライドしようとする関数は、 `BlueprintNativeEvent` または `BlueprintImplementableEvent` でなければなりません。`BlueprintCallable` としてマークされる関数も呼び出し可能ですが、オーバーライドはされません。他のすべての関数はブループリントからアクセスできません。
+ブループリントにこのインターフェースを実装させたい場合は、`Blueprintable` のメタデータの指定子を使用しなければなりません。Blueprint クラスがオーバーライドしようとする関数は、 `BlueprintNativeEvent` または `BlueprintImplementableEvent` でなければなりません。`BlueprintCallable` としてマークされる関数も呼び出し可能ですが、オーバーライドはされません。他のすべての関数はブループリントからアクセスできません。

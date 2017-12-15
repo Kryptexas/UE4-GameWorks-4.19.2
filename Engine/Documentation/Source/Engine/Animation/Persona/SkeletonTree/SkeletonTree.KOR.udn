@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3208714
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:스켈레톤 트리
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -7,25 +7,6 @@ version: 4.14
 related: Engine/Content\Types\SkeletalMeshes\Sockets
 related: Engine/Animation/AnimationRetargeting
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/SkeletonTree:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/SkeletonTree:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/SkeletonTree:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/SkeletonTree]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](SkeletonTree.png)  
 

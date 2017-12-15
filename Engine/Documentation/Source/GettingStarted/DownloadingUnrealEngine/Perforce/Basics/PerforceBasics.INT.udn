@@ -4,11 +4,13 @@ Crumbs:
 Description:Instructions for downloading Unreal Engine source code with Perforce.
 Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
-<!--
+[COMMENT:none]
+
 ## Connect to Epic's VPN
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
--->
+
+[/COMMENT]
 
 [EXCERPT:main]
 Connecting to Epic perforce requires utilizing the SSL feature, and you must be running a 2012.1 or later version of a Perforce client (P4V, p4, or API). You can take advantage of latency based routing to automatically connect to the closest Perforce regional proxy by using the global DNS name. Alternatively, you can connect direct to a regional proxy to ensure you always connect to the closest one. 

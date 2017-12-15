@@ -24,27 +24,27 @@ Cluster generation uses the settings from the individual HLOD Levels to decide h
 
 1. Once you’ve setup your specific settings for the individual HLOD levels you need, click the **Generate Clusters** button.
 	
-	![image alt text](Engine/HLOD/Overview/image_3.png)(h:28 w:112 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_3.png)(w:112 convert:false)
 
 	Once the process starts you’ll see a progress bar appear that indicates the LOD level being generated.
 
-	![image alt text](Engine/HLOD/Overview/image_4.png)(h:58 w:398 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_4.png)(w:398 convert:false)
 
 1. Now that the process has completed you’ll see the **HLOD Outliner** populated with all the clustered **Actors**. 
 
-	![image alt text](Engine/HLOD/Overview/image_5.png)(h:350 w:624 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_5.png)(w:624 convert:false)
 
 1. You can expand the individual **LODActors** to see what **Static Meshes** make up this cluster by clicking the arrow button to the left of the name.
 
-	![image alt text](Engine/HLOD/Overview/image_6.png)(h:350 w:624 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_6.png)(w:624 convert:false)
 
 1. You can visualize the clusters in the level by selecting a **LODActor** from the **HLOD Outliner** and locating it in the editor viewport.
 
-	![image alt text](Engine/HLOD/Overview/image_7.png)(h:481 w:624 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_7.png)(w:624 convert:false)
 
 To visualize how the generated clusters work in the editor you can use the **Forced Viewing Level** slider to see the HLOD in action without the need to have it transition at a specific screen size. This is helpful for troubleshooting any issues appearing on screen that may be part of the generated cluster.
 
-![image alt text](Engine/HLOD/Overview/image_8.png)(h:17 w:624 convert:false)
+![image alt text](Engine/HLOD/Overview/image_8.png)(w:624 convert:false)
 
 Should you run into any issues you don’t like with the generated cluster you can expand the specified cluster and select the offending **Static Mesh Actor**. You can then click and drag it to another cluster, or you have the option to **Remove** or **Exclude** it from the generation of the cluster by right-clicking on the **Actor's** name in the list. 
 
@@ -52,7 +52,7 @@ Should you run into any issues you don’t like with the generated cluster you c
 
 Further, if you wish to add an **Actor** to a **Cluster** you can click and drag from the **World Outliner** to the **Cluster** you wish it to be included in.
 
-![image alt text](Engine/HLOD/Overview/image_11.png)(h:236 w:269 convert:false)
+![image alt text](Engine/HLOD/Overview/image_11.png)(w:269 convert:false)
 
 Repeat this process while adjusting the values in the HLOD's level **Cluster Generation Settings** until you are happy with the clusters being generated, then continue on to the next section: [**Generate Proxy Meshes**](#generateproxymeshes).
 
@@ -62,11 +62,11 @@ After you’re happy with the results of the generated cluster you can move on t
 
 1. If you’re ready to build the proxy meshes you can now click the button  "Generate Proxy Mesh" button to start the process. 
 
-	![image alt text](Engine/HLOD/Overview/image_13.png)(h:28 w:148 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_13.png)(w:148 convert:false)
 
 	Once the process starts you’ll see the progress bar appear that indicates the HLOD Level being worked on and the number of Proxy Meshes being generated. This progress bar does not show all the HLOD Levels and total number of proxy meshes being created, only that specific level.
 
-	![image alt text](Engine/HLOD/Overview/image_14.png)(h:94 w:458 convert:false)
+	![image alt text](Engine/HLOD/Overview/image_14.png)(w:458 convert:false)
 
 	Depending on your HLOD Level settings, the number of proxy meshes being created, and your system specs this process can take a while, even for high-end machines!
 

@@ -9,46 +9,8 @@ Related: Resources\SampleGames\UnrealMatch3
 Version: 4.10
 SkillLevel: Advanced
 tags:UMG UI Designer
+topic-image:EventUI.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/EventBasedUI:title%](EventUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/EventBasedUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/EventBasedUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/EventBasedUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/EventBasedUI:title%](EventUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/EventBasedUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/EventBasedUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/EventBasedUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:note]
 It is recommended that you have a general understanding of the [](Engine/UMG) before proceeding with this How-to. 

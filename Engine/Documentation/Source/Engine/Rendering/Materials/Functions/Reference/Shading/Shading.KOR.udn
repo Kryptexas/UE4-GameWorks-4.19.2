@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 title:셰이딩
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -50,7 +50,8 @@ Shading 함수는 퍼지 셰이딩이나 스페큘러 하이라이트의 모양�
 
 
 ![FuzzyShadingGrass](FuzzyShadingGrass_Demo.png)
-<!---
+[COMMENT:none]
+-
 ### TextureDefinedSpecularShape
 
 오브젝트의 스페큘러 하이라이트의 모양으로 사용할 텍스처를 지정할 수 있는 함수입니다. 현재 개발 중입니다.
@@ -66,4 +67,5 @@ Shading 함수는 퍼지 셰이딩이나 스페큘러 하이라이트의 모양�
 
 ![TextureDefinedSpecularShape](TextureDefinedSpecularShape.png)
 
---->
+-
+[/COMMENT]

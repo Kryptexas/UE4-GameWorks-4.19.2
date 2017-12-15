@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3060419
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Copy Bone（ボーンのコピー）
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -75,7 +75,7 @@ Transform のチェックボックスを選択する際は注意してくださ�
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Copy Translation** | ソースボーンのトランスフォームのTranslation (平行移動) 平行移動コンポーネントをコピーするかを指定する bool 値です。 |
+| **Copy Translation** | ソースボーンのトランスフォームのTranslation (平行移動) コンポーネントをコピーするかを指定する bool 値です。 |
 | **Copy Rotation** | ソースボーンの トランスフォームの Rotation (回転) コンポーネントをコピーするかを指定する bool 値です。 |
 | **Copy Scale** | ソース ボーンのトランスフォームの Scale (スケーリング) コンポーネントをコピーするかを指定する bool 値です。 |
 

@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:본 구동 콘트롤러
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:하나 이상의 영향받는 본 동작에 동적으로 영향을 끼칠 수 있도록 본을 "구동"시킬 수 있는 Bone Driver Controller 노드에 대한 설명입니다.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:title%](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController\BoneDrivenController.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:title%](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController\BoneDrivenController.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:BoneDrivenController.png
 
 **Bone Driven Controller** 는 하나의 본을 구동시켜 하나 이상 영향받는 본 동작에 동적으로 영향을 끼치도록 할 수 있습니다. 여러가지 액세서리가 붙어있는 캐릭터의 경우 블렌딩을 많이 사용해도 애니메이션 도중 지오메트리가 교차하지 않도록 하는 데 좋습니다.
 
@@ -80,7 +47,8 @@ CDG4WcQ7cIY
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
 | 값 | 이펙트 |
@@ -90,9 +58,11 @@ CDG4WcQ7cIY
 | **Scale** | 타겟 본의 스케일 XYZ 컴포넌트입니다. |
 [/REGION] 
 [/EXCERPT:LocationSpace]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ModificationSettings]
 [REGION:simpletable]
 | 값 | 이펙트 |
@@ -102,6 +72,7 @@ CDG4WcQ7cIY
 | **Add to Ref Pose** | 레퍼런스 포즈에 추가 - 구동되는 값을 레퍼런스 포즈 값에 더합니다. |
 [/REGION] 
 [/EXCERPT:ModificationSettings]
--->
+
+[/COMMENT]
 
 

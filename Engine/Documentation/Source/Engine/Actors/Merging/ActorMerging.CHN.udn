@@ -20,7 +20,8 @@ Merge Actors 工具可将多个静态网格体合并为一个新的 Actor。多�
 
 ## Actor 合并工作流
 
-<!--
+[COMMENT:none]
+
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
 _fTSGN8HGu8
@@ -32,7 +33,8 @@ _fTSGN8HGu8
 568
 [/PARAMLITERAL]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 在场景中合并静态网格体的处理过程如下：
 
@@ -74,7 +76,8 @@ Merge Actors 窗口顶端列出了视口中选中的所有静态网格体。您�
 |**Replace Source Actors**|选中后，在视口中选中的 Actor 会被移除，并以新合并的版本替代。这不会影响内容浏览器中的原对象。| 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:MaterialSettings]
 [REGION:simpletable]
 |----|----|
@@ -91,7 +94,8 @@ Merge Actors 窗口顶端列出了视口中选中的所有静态网格体。您�
 |**Use Vertex Data for Baking Material**|是否使用顶点数据（如顶点颜色）烘焙生成的材质。如果材质受到顶点颜色某种方式的控制，此项将十分实用。|
 [/REGION]
 [/EXCERPT:MaterialSettings]
--->
+
+[/COMMENT]
 
 |[REGION:tablesection]Texture Sizing Type Settings[/REGION]||
 |-----|-----|

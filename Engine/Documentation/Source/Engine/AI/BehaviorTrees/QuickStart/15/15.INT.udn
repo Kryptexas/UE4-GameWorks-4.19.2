@@ -3,23 +3,12 @@ Title: 15. Next Steps
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 15. Next Steps
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:15
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/14 "%Engine/AI/BehaviorTrees/QuickStart/14:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 There's so much more you can do to this simple tree, why don't you give some of these ideas a try?
 
@@ -36,35 +25,18 @@ There's so much more you can do to this simple tree, why don't you give some of 
 * Integrate the **Environment Query System** into the Behavior tree to choose places to stand or mull around.
 * Change the move speed of the AI Character to a walk when they are patrolling, but make them run when they are chasing the player.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
-	* [Behavior Trees](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
-	* [Behavior Tree User Guide](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
-	* [Behavior Tree Node Reference](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem "%Engine/AI/EnvironmentQuerySystem:description%")
-	[/PARAM]
-[/OBJECT]
+## AI
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		External Links
-	[/PARAM]
-	[PARAM:links]
-	* [Behavior Trees for Next-Gen Game AI](http://aigamedev.com/insider/presentation/behavior-trees/ "Hosted on AIGameDev.com, this video will talk you through the benefits and functionality of Behavior Trees. You have to sign up on the site, but sign up is free.")
-	[/PARAM]
-[/OBJECT]
+* [Behavior Trees](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
+* [Behavior Tree User Guide](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
+* [Behavior Tree Node Reference](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
+* [](Engine/AI/EnvironmentQuerySystem "%Engine/AI/EnvironmentQuerySystem:description%")
+	
+## External Links
+	
+* [Behavior Trees for Next-Gen Game AI](http://aigamedev.com/insider/presentation/behavior-trees/ "Hosted on AIGameDev.com, this video will talk you through the benefits and functionality of Behavior Trees. You have to sign up on the site, but sign up is free.")
 
-
-%Steps%
+[NAV]
 
 
 

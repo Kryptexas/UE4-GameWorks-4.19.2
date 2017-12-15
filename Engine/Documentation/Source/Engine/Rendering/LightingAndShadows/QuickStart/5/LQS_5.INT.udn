@@ -21,7 +21,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Our apartment is lit, however there are some things we can do to improve the quality of the lighting, starting with **Build** options. 
 
@@ -109,7 +109,7 @@ First, let's add some Materials to our apartment instead of using the default on
 
 Our little apartment is now lit with some basic lighting. In the **Next Step** we will update one of our lights to a slightly more complex light. 
 
-%Steps%
+
 
 
 

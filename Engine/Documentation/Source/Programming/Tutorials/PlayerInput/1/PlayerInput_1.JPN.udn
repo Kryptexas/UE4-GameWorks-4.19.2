@@ -20,7 +20,7 @@ Description:ポーン入門
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、プロジェクトの作成、プロジェクトに C++ コードを追加、またコードをコンパイルできる方を想定しています。[/REGION]
 
@@ -152,4 +152,4 @@ Description:ポーン入門
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

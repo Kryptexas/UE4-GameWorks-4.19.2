@@ -27,19 +27,13 @@ _このチュートリアルの最後まで終了すると、この画面のよ�
 * 発射物の実装
 * キャラクターのアニメート
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		セクション
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## セクション
+
+[REGION:buttonlist]
+
 	* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

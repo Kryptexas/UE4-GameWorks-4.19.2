@@ -120,7 +120,8 @@ UmZ9q-3KP8o
 
 
 
-<!---------Vector Field Includes--------
+[COMMENT:none]
+-------Vector Field Includes--------
 [EXCERPT:LocalTranslateNote]
 [REGION:note]
 	ローカル ベクターフィールドを数値で変換することもできますが、**[Preview]** ペインで移動ウィジットを使用して変換するほうがより直観的です。エミッタリストで Local Vector Field モジュールが選択されると、常にこのウィジェットが有効になります。
@@ -131,4 +132,5 @@ UmZ9q-3KP8o
 
 
 
---------End Vector Field Includes----------->
+--------End Vector Field Includes---------
+[/COMMENT]

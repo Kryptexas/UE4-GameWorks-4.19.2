@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3322057
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:シーケンサーに記録する
 Crumbs:
@@ -25,7 +25,6 @@ type:how-to
 [/REGION]
 
 1.	**メニューバー** の **[Window]** で [Sequence Recorder (シーケンス レコーダー)] を選択します。 
-
 	![](RecorderStep1.png)
 
 	シーケンス レコーダー ウィンドウが自動的に開きます。**[Sequence Recording]** にはいくつかのオプションがあります。こうしたオプションで、どのように (およびどこに) レベル シーケンス アセットが保存されるかを決定します。スポーンされたアクタ (パーティクル エフェクト、その他のキャラクターなど) を記録したり、命名規則と保存場所を決めたり、記録時間や記録開始までの遅延などのその他の設定をすることができます。

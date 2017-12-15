@@ -28,7 +28,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -76,7 +76,7 @@ You should always make sure your public variables have tooltips to explain what 
 
 The Components for this Blueprint Actor are fairly extensive, because this example has two completely independent and working lights. Most of the Components are Static Mesh Components, with a few Text Render Components used for labeling. Of course, we must also have some Spot Light Components to complete the effect. 
 
-![](LightComponentList.png) ![](LightComponentPreview.png)(w:550 h:355)
+![](LightComponentList.png) ![](LightComponentPreview.png)(w:550)
 
 There are two separate setups, though both are essentially the same. The Component setup for each light is as follows:
 

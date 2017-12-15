@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429225
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 액터 & 지오메트리
 Crumbs:%ROOT%, Engine
@@ -15,8 +15,10 @@ track:LevelDesign_Beginner|7
 ![](actorBanner.png)
 [/REGION]
 
-<!-- 가장 근본적인 레벨에서, [**Actor**](Gameplay/UnrealTerminology), 액터란 레벨에 배치 또는 [스폰/인스턴스화](Gameplay/HowTo/SpawnAndDestroyActors) 시킬 수 있는 게임플레이 오브젝트를 말합니다. 언리얼 엔진 4 는 대부분의 흔히 사용되는 경우를 자동으로 처리해 줍니다. 이를테면 **콘텐츠 브라우저** 에서 스태틱 메시를 레벨에 끌어 놓으면, **스태틱 메시 액터** 가 자동으로 생기는 것처럼요.
--->
+[COMMENT:none]
+ 가장 근본적인 레벨에서, [**Actor**](Gameplay/UnrealTerminology), 액터란 레벨에 배치 또는 [스폰/인스턴스화](Gameplay/HowTo/SpawnAndDestroyActors) 시킬 수 있는 게임플레이 오브젝트를 말합니다. 언리얼 엔진 4 는 대부분의 흔히 사용되는 경우를 자동으로 처리해 줍니다. 이를테면 **콘텐츠 브라우저** 에서 스태틱 메시를 레벨에 끌어 놓으면, **스태틱 메시 액터** 가 자동으로 생기는 것처럼요.
+
+[/COMMENT]
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
@@ -28,9 +30,8 @@ track:LevelDesign_Beginner|7
 
 ## 액터 작업하기
 
-[DIR(output:"topic" parent:"Engine/Actors" org:"hierarchy" end:"1" path:"!Engine/Actors/Types")]
+[DIR(output:"topic" parent:"Engine/Actors" org:"hierarchy" end:"1")]
 
 ## 액터 유형
 
-%Engine/Actors/Types:topic%
 [DIR(output:"topic" parent:"Engine/Actors/Types")]

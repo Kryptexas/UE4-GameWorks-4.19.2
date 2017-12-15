@@ -53,23 +53,17 @@ Version: 4.8
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\QuickStart\1 "%Programming\QuickStart\1:description%")
 	* [](Programming\QuickStart\2 "%Programming\QuickStart\2:description%")
 	* [](Programming\QuickStart\3 "%Programming\QuickStart\3:description%")
 	* [](Programming\QuickStart\4 "%Programming\QuickStart\4:description%")
 	* [](Programming\QuickStart\5 "%Programming\QuickStart\5:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

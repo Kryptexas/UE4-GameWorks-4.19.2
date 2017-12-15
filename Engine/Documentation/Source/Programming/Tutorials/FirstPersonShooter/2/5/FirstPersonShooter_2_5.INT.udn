@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In general, Action Mappings deal with inputs for discrete events, they allow you to map inputs to a "friendly name" that can later be bound to event-driven behavior. 
 The end effect is that pressing and/or releasing a key, mouse button, or keypad button directly triggers game behavior.
@@ -227,4 +227,3 @@ It's now time to compile and test your newly implemented character movement func
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

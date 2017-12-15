@@ -126,7 +126,8 @@ The **Window** menu in the **Blueprint Editor** has a specific subsection for di
 
 [/EXCERPT:Main]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:devtools]
 [REGION:simpletable]
 | Sub-Menu Item | Description |
@@ -144,4 +145,5 @@ The **Window** menu in the **Blueprint Editor** has a specific subsection for di
 | **Widget Reflector** | Opens the Widget Reflector. This enables you to see the various Slate elements that make up the interfaces within the Editor interface. |
 [/REGION]
 [/EXCERPT:devtools]
--->
+
+[/COMMENT]

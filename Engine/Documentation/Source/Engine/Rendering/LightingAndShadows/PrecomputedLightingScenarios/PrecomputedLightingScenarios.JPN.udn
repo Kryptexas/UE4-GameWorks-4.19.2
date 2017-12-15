@@ -2,7 +2,7 @@
 Availability:Public
 Title:Precomputed Lighting Scenarios
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:UE4 の Precomputed Lighting Scenarios の概要です。
+Description:UE4 の Precomputed Lighting Scenarios の概要
 Version:4.14
 Parent:Engine/Rendering/LightingAndShadows
 Order:1

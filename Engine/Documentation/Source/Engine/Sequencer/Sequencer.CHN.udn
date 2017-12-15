@@ -43,8 +43,10 @@ tags:Sequencer
 
 [DIR(output:"topiccompact" parent:"Resources/Showcases" tags:"Sequencer")]
 
-<!-- Killing this for now while the current does get updates instead.
+[COMMENT:none]
+ Killing this for now while the current does get updates instead.
 * [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
--->
+
+[/COMMENT]
 
 

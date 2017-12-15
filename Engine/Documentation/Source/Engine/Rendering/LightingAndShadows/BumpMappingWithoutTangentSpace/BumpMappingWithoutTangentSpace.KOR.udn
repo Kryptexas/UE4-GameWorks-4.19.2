@@ -1,29 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:탄젠트 스페이스 없는 범프 매핑
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:예전 탄젠트 스페이스가 작동하지 않을 때 3D 프로시저럴 셰이더에서 범프 매핑을 이뤄내는 법입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:title%](%ROOT%/Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace/bump_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:bump_topic.png
 
 **Bump mapping** (범프 매핑)이란, 지오메트리를 추가하지 않고 셰이딩 계산 조절을 통해 표면에 
 오돌도돌한 느낌을 내는 (1978년 James Blinn이 개발한) 그래픽 프로그래머들이 오래도록 사용해온 팁입니다.

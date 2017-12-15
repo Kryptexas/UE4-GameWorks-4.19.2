@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:3.アクタのセットアップとテスト
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -25,7 +25,7 @@ Order:3
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 この最後のセクションでは、Widget ブループリントを **Widget** コンポーネントとしてアクタに追加し、プレイヤーが **Enter** ボタンをクリックすると何が起こるかを定義し、入力されたテキストが **GoalText** と同じになるかをチェックします。 
 何もかも配置した状態で、テストして最終結果を見てみます。コードが正しければ  **Success** と画面に表示され、コードに誤りがあれば **Wrong Code** と表示されます。  

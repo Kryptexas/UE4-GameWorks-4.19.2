@@ -24,7 +24,8 @@ UE4 での Android 向けゲーム開発要件は、現在以下となってい�
  | ---------- | --------------------- |
  |   [INCLUDE:#codecomponents] |  [INCLUDE:#codeenvvar] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPComponents]
 * Android SDK
 * Java Development Kit
@@ -46,7 +47,8 @@ UE4 での Android 向けゲーム開発要件は、現在以下となってい�
 [INCLUDE:#bpenvvar]
 * NDKROOT
 [/EXCERPT:CodeEnvVar]
--->
+
+[/COMMENT]
 
 ## コンポーネントのインストール
 
@@ -82,7 +84,8 @@ UE4 での Android 向けゲーム開発要件は、現在以下となってい�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TADPWindowsSetup]
 
 CodeWorks for Android 1R6 (NVIDIA 製) は、Android 開発の必要品のワンストップ ショップです。CodeWorks for Android 1R6 をインストールすれば、Android 開発要件をすべて満たすことができます。
@@ -153,7 +156,8 @@ CodeWorks for Android 1R6 のインストーラは、Mac 向けアンリアル �
 
 [/EXCERPT:TADPMacOSSetup]
 
--->
+
+[/COMMENT]
 
 
 ## 環境変数
@@ -189,7 +193,8 @@ CodeWorks for Android 1R6 のインストーラは、Mac 向けアンリアル �
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ENVWindowsSetup]
 
 備え付けの UE4 インストーラから CodeWorks for Android 1R6 をインストールしていない場合は、環境変数が正しく設定されているか確認する必要があります。 
@@ -268,7 +273,8 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 
 [/EXCERPT:ENVMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ## Android のヒントとトリック 
 
@@ -302,7 +308,8 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ATTWindowsSetup]
 **[Launch]** メニューに自分のデバイスが表示されない場合は、以下を試してみてください。 
 - 数秒間待って再度確認する。接続デバイスのバックグラウンド スキャンに時間はほとんどかかりません。 
@@ -340,7 +347,8 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 
 [/EXCERPT:ATTMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ## Android テクスチャ フォーマット
 Android デバイスはすべて同じ構成をしているわけではありません。特に、レンダリング ハードウェアは 4 種類あります。それぞれが異なるフォーマットの圧縮テクスチャをサポートしています。 

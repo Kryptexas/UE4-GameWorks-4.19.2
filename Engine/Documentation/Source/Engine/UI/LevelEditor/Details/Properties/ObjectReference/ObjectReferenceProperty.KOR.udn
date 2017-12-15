@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 오브젝트 레퍼런스 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
@@ -18,7 +18,8 @@ Version: 4.9
 | ![Find in Content Browser button](button_find_prop.png) | 콘텐츠 브라우저에서 현재 할당된 애셋을 찾습니다. 할당된 애셋이 없으면 작동하지 않습니다. |
 | ![Reset button](button_reset.png) | 프로퍼티를 디폴트 애셋으로 리셋시킵니다. |
 
-<!-- Table Includes
+[COMMENT:none]
+ Table Includes
 [EXCERPT:AssetPickerList]
 맥락 메뉴에서 할 수 있는 작업은 다음과 같습니다:
 * **편집** 을 누르면 애셋이 적합한 에디터에서 열려 편집할 수 있습니다.
@@ -27,4 +28,5 @@ Version: 4.9
 * **비우기** 를 누르면 애셋 레퍼런스를 삭제하고, 공백으로 비웁니다.
 * 리스트에서 새 애셋을 선택합니다. 글상자에 문자를 입력하여 리스트에 필터를 적용할 수도 있습니다.
 [/EXCERPT:AssetPickerList]
--->
+
+[/COMMENT]

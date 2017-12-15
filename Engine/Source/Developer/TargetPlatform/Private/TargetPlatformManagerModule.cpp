@@ -565,7 +565,7 @@ public:
 protected:
 
 	/**
-	 * Checks whether the AutoDesk software development kit (SDK) is enabled.
+	 * Checks whether AutoSDK is enabled.
 	 *
 	 * @return true if the SDK is enabled, false otherwise.
 	 */

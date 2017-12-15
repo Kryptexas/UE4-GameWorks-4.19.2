@@ -1,10 +1,11 @@
-Availability:Docs
+Availability:Public
 Title: Composure Editor
 Crumbs: %ROOT%, Engine
 Description:Composure is Unreal Engine 4's compositing editor used for compositing digital and real world footage together in real time in Unreal Engine 4. 
 Type: Landing
 Version: 4.17
 parent:Engine
+order:4
 topic-image:ComposureTopic.png
 related: Engine/Sequencer
 tags:Sequencer
@@ -19,7 +20,8 @@ On this page, you will find links to a number of different documents that cover 
 
 [DIR(output:"topic" parent:"Engine/Composure" org:"hierarchy" end:"1" tags:"Getting Started")]
 
-<!--
+[COMMENT:none]
+
 ## Essentials
 
 
@@ -32,7 +34,8 @@ On this page, you will find links to a number of different documents that cover 
 
 ## Samples
 
--->
+
+[/COMMENT]
 
 
 

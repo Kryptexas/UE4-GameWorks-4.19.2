@@ -35,11 +35,13 @@ version: 4.9
 有关设置和使用翻页书组件的详细信息，请参见 [](Engine\Paper2D\Flipbooks\Components) 文档。 
 
 
-<!-- Hidden for now, still experimental
+[COMMENT:none]
+ Hidden for now, still experimental
 ## Paper Tile Map Render Component （纸张块图渲染组件）
 
 **PaperTileMapRenderComponent** 是一个标准构建器，在所有反射属性初始化完成后被调用。 
--->
+
+[/COMMENT]
 
 
 

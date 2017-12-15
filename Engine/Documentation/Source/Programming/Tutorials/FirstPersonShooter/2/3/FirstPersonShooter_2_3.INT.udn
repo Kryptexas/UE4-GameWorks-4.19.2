@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step, we're going to set-up our Player Input Component and implement the following functions in the `FPSCharacter` class:
 
@@ -197,4 +197,3 @@ It's now time to compile and test your newly implemented character movement func
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

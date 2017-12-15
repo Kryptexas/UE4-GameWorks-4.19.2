@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:6 - On Your Own
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:6 - 직접 해보기
 Crumbs:%ROOT%
-Description:This step offers some additional things to try with our sample scene and links to more documentation. 
+Description:이 단계에서는 샘플 씬에서 추가로 해볼 수 있는 작업과 추가 문서에 대한 링크를 제공해 드립니다.
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,24 +13,24 @@ tags:Composure
 
 [NAV]
 
-In this example, we used Composure with Sequencer like you would in a video editing pipeline but you can use Composure for anything that requires compositing real world footage with computer generated footage. You could also use Composure for an augmented reality experience where the backplate texture is a video feed from the camera. Now that you know the basics on how Composure works, here are some additional things you can try.
+이번 예제에서는 비디오 편집 파이프라인과 마찬가지로 컴포셔와 시퀀서를 사용했지만, 현실의 실제 영상과 컴퓨터 생성 영상을 합성하는 것이면 무엇이든 컴포셔를 사용할 수 있습니다. 컴포셔는 증강현실 체험에도 사용할 수 있는데, 뒷판 텍스처에 카메라의 비디오 피드를 사용하는 식입니다. 이제 컴포셔 작동방식 기본을 알았으니, 추가로 시도해 볼 수 있는 몇 가지 작업을 알려드립니다.
 
-* Try changing the character that is used by using the [**Animation Retargeting**](Engine/Animation/RetargetingDifferentSkeletons) system.
-* Try to fade the scene in/out using a [**Fade Track**](Engine/Sequencer/HowTo/TracksFade). 
-* Add Music from the **Content/StarterContent/Audio** folder with an [**Audio Track**](Engine\Sequencer\HowTo\TracksAudio). 
-* Cause the scene to enter slow motion with the [**Play Rate**](Engine\Sequencer\HowTo\TracksPlayRate) track. 
+* [애니메이션 리타게팅](Engine/Animation/RetargetingDifferentSkeletons) 시스템을 사용하여 사용된 캐릭터를 바꿔봅니다.
+* [페이드 트랙](Engine/Sequencer/HowTo/TracksFade) 을 사용하여 씬 페이드 인/아웃 효과를 추가해 봅니다.
+* [오디오 트랙](Engine\Sequencer\HowTo\TracksAudio) 을 사용하여 **Content/StarterContent/Audio** 폴더에 있는 음악을 추가해 봅니다.
+* [플레이 레이트 트랙](Engine\Sequencer\HowTo\TracksPlayRate) 으로 씬에 슬로우 모션을 줍니다.
 
-Optionally, you can **Render** out your cinematic as a video file: 
+옵션으로, 시네마틱을 비디오 파일로 **렌더링** 출력할 수 있습니다:
 
-1. Click the **Render Movie** option. 
+1. **Render Movie** 옵션을 선택합니다.
 
     ![](Engine\Sequencer\QuickStart\6\ExportMovie.png)
 
-1. Make sure the **Frame Rate** is set ot **24**.
+1. **Frame Rate** 가 **24** 로 설정되었는지 확인합니다.
 
 	![](ComposureQS_S6_1.png)
 
-1. Under **General**, define the **Output Directory** then set the **Game Mode Override** to SimpleComposureGameModeBase. When that is completed, click the **Capture Movie** button to start rendering. A preview window will appear while rendering and will close when complete.
+1. **General** 아래 **Output Directory** 를 설정한 뒤 **Game Mode Override** 를 SimpleComposureGameModeBase 로 설정합니다. 그 작업이 완료되면, **Capture Movie** 버튼을 클릭하여 렌더링을 시작합니다. 프리뷰 창에 렌더링 내용이 나오고, 완료되면 닫힐 것입니다.
 
     ![](ComposureQS_S6_2.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 퍼포먼스 및 프로파일링 개요
 Crumbs: %ROOT%, Engine
@@ -7,46 +7,7 @@ Navigation:topic
 version: 4.9
 parent:Engine/Performance
 order:1
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Performance/Overview:title%](performance_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Performance/Overview:title%](performance_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:performance_topic.png
 
 
 [TOC (start:2 end:3)]

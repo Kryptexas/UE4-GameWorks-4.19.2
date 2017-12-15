@@ -32,7 +32,8 @@ Topic-image:SceneFringe_topic.png
 | **Fringe Intensity** | A scaling factor that controls how much shifting occurs. [INCLUDE:#Intensity] |
 | **Fringe Saturation** | A scaling factor that controls the saturation of the shifted colors. Lower values produce a more blurred result, while higher values make the color shifting much more pronounced. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:240) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:240) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:240)
@@ -40,4 +41,5 @@ Topic-image:SceneFringe_topic.png
 | 0.0 | 1.0 | 5.0 |
 [/REGION]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

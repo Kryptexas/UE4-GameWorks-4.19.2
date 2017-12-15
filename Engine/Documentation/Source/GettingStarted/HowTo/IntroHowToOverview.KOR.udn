@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:기본 비법
 Crumbs: %ROOT%, GettingStarted
@@ -6,41 +6,7 @@ Description: 언리얼 엔진 4 작업에 있어 필요한 지식을 단계별�
 version: 4.9
 parent:Engine/Editor
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](IntroHowTo_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\HowTo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\HowTo]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\HowTo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](IntroHowTo_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\HowTo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\HowTo]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\HowTo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:IntroHowTo_Topic.png
 
 **언리얼 엔진 4** 에디터가 처음이신 분들을 위해, 자주 사용되는 기능에 빨리 익숙해 질 수 있도록 하는 것이 이 글의 목표입니다. 각각의 비법 안내마다 설명된 (또는 다루고 있는 주제 관련) 기능을 사용하는 법을 단계별로 안내해 드릴 것입니다. 각 비법 안내 마지막에는 좀 더 자세한 관련 문서 링크가 제공됩니다.
 
@@ -48,10 +14,10 @@ order:2
 
 |비법...| 설명 |
 | ------- | ------------ |
-| **[프로젝트 생성/열기](Engine/Basics/Projects/Browser)** | %Engine/Basics/Projects/Browser:description% |
-| **[](Engine\Actors\Placement)** | %Engine\Actors\Placement:description% |
-| **[](GettingStarted\HowTo\ManipulatingActors)** | %GettingStarted\HowTo\ManipulatingActors:description% |
-| **[](GettingStarted\HowTo\DetailsPanel)** | %GettingStarted\HowTo\DetailsPanel:description% |
-| **[](GettingStarted\HowTo\PIE)** | %GettingStarted\HowTo\PIE:description% |
-| **[](GettingStarted\HowTo\FindingHelp)** | %GettingStarted\HowTo\FindingHelp:description% |
+| [](Engine/Basics/Projects/Browser) | %Engine/Basics/Projects/Browser:description% |
+| [](Engine/Actors/Placement) | %Engine/Actors/Placement:description% |
+| [](GettingStarted/HowTo/ManipulatingActors) | %GettingStarted/HowTo/ManipulatingActors:description% |
+| [](GettingStarted/HowTo/DetailsPanel) | %GettingStarted/HowTo/DetailsPanel:description% |
+| [](GettingStarted/HowTo/PIE) | %GettingStarted/HowTo/PIE:description% |
+| [](GettingStarted/HowTo/FindingHelp) | %GettingStarted/HowTo/FindingHelp:description% |
 

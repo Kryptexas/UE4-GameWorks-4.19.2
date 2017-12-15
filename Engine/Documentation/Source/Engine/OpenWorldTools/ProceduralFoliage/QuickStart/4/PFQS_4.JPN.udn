@@ -22,7 +22,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 木の種類を追加すると、架空の森がよりリアルになり、全体的な見た目と質感がぐんと増します。 
 幸運にも **Procedural Foliage Spawner** を使えば、1 つの **Procedural Foliage Spawner** が複数の **フォリッジ タイプ** をスポーンして、多種多様な木で構成される森をスポーンできるようになります。 
 次のセクションでは、複数のフォリッジ タイプで作業するための Procedural Foliage Spawner の設定方法を説明します。
@@ -69,4 +69,4 @@ Version:4.8
 
 	![](T_FT01_Adjust_Settings.png)
 
-%Steps%
+

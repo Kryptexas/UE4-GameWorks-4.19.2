@@ -24,11 +24,13 @@ SkillLevel:Advanced
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
 [/REGION]
---->
+-
+[/COMMENT]
 
 
 让人体皮肤在渲染后正确显示是一个非常复杂的主题，没有一个获得正确结果的完美解决方案。 

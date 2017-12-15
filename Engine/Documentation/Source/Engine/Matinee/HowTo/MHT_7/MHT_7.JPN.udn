@@ -12,14 +12,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Matinee アクタとプロップを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Matinee アクタ** と **Skeletal Mesh アクタ** を追加し、キャラクタがジャンプして上に乗るプラットフォームを作成します。  
-	[/PARAM]
-[/OBJECT]
+## Matinee アクタとプロップを追加する
+
+この手順では、**Matinee アクタ** と **Skeletal Mesh アクタ** を追加し、キャラクタがジャンプして上に乗るプラットフォームを作成します。
 
 1. **ツールバー** メニューから **[マチネ]** を選択し、**[Add Matinee]** ボタンをクリックします。 
 
@@ -58,14 +53,9 @@ SkillLevel:Intermediate
 	![](BoxHeightGray.jpg)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		アクタをマチネに追加し、トラックを追加する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは **マチネ** に **SK_Mannequin** を追加し、シーケンスに使用するトラックを追加します。 
-	[/PARAM]
-[/OBJECT]
+## アクタをマチネに追加し、トラックを追加する
+
+このステップでは **マチネ** に **SK_Mannequin** を追加し、シーケンスに使用するトラックを追加します。
 
 1. ワールド アウトライナーから Matine アクタを選択し、**[Open Matinee]** ボタンをクリックします。 
 
@@ -88,14 +78,9 @@ SkillLevel:Intermediate
 	![](MHT7_MoveEndMarker.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		動きとアニメーションを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、ボックスの上にジャンプして乗るキャラクターの動きとアニメーションをセットアップします。 
-	[/PARAM]
-[/OBJECT]
+## 動きとアニメーションを追加する
+
+この手順では、ボックスの上にジャンプして乗るキャラクターの動きとアニメーションをセットアップします。
 
 1. マチネを開いた状態で Movement トラック上でクリックして、**タイムバー** を **3.00** に移動し、**Enter** を押してキーフレームを追加します。 
 
@@ -174,14 +159,9 @@ SkillLevel:Intermediate
 	_シーケンスの最後の暗くなっている部分は、アニメーションがループするように設定されていることを示しています。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		サウンドを追加し、マチネを終了する
-	[/PARAM]
-	[PARAM:description]
-	この手順ではサウンドトラックを使用してサウンドを追加し、シーケンスを仕上げます。 
-	[/PARAM]
-[/OBJECT]
+## サウンドを追加し、マチネを終了する
+
+この手順ではサウンドトラックを使用してサウンドを追加し、シーケンスを仕上げます。
 
 1. [マチネ] ウィンドウを最小化し、**コンテンツ ブラウザ** の「Game/Audio」 フォルダ内ので **Explosion01** アセットをクリックします。 
 

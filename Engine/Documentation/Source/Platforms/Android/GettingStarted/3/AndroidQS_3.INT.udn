@@ -2,7 +2,7 @@ Availability:Public
 Title:3. Create Your Project
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Start a template project
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -27,7 +27,7 @@ The project that we create will be a Blueprint based project that will use the B
 * Do not include the Starter Content
 * Give the project a name of AndroidProject
 
-![](new_android_project.png)
+	![](new_android_project.png)
 
 1. Once that is completed, press the **Create Project** button to create the project.
 

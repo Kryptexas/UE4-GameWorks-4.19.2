@@ -4,45 +4,6 @@ Crumbs:%ROOT%, Engine, Engine/UI
 Description:The Global Asset Picker allows you to quickly find assets from any folder in the Asset Tree.
 Version: 4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/GlobalAssetPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/GlobalAssetPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/GlobalAssetPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/GlobalAssetPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/GlobalAssetPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/GlobalAssetPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 The **Global Asset Picker** (**Ctrl-P**) is a fast-access means of editing assets or bringing them into your levels. In some ways, it is similar to the **Content Browser** but without limiting itself to the current folder you have selected in the **Asset Tree**. So not only can you pull assets specific to your game, but also anything from `Engine`, like lights or sound emitters. Because it offers all available assets in a list format, it is not intended to be used as means for browsing. Instead, it is perfect for those moments when you know the asset (or asset type) you need and just want to quickly type part of its name into the Search Line.
 
 ![](GAP_theGAP01.png)

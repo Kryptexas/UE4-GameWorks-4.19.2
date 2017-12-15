@@ -3,6 +3,7 @@ Title:Advanced Blueprint Examples
 Crumbs:%ROOT%, Resources
 Description:An overview of the Advanced Blueprints example level
 Version: 4.9
+topic-image:blueprintAdvanced_ce_compact.png
 
 [REGION:banner]
 ![](advanced_bp_header.png)(convert:false)
@@ -10,38 +11,6 @@ Version: 4.9
 
 [TOC(start:2 end:3)] 
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprints_Advanced:title%](blueprintAdvanced_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprints_Advanced:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Blueprints_Advanced:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprints_Advanced]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprints_Advanced:title%](blueprintAdvanced_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprints_Advanced:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprints_Advanced]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!-- insert to PARAM:path when complete! [RELATIVE:Resources/ContentExamples/Blueprints_Advanced]-->
 
 Welcome to the **Advanced Blueprints** example level!
 
@@ -54,22 +23,18 @@ Welcome to the **Advanced Blueprints** example level!
 
 ### Construction Script
 
-[REGION:topics fourth]
 %Resources/ContentExamples/Blueprints_Advanced/1_1:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/1_2:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/1_3:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/1_4:TopicCompact%
-[/REGION]
 
 ### Event Graph
-[REGION:topics fourth]
+
 %Resources/ContentExamples/Blueprints_Advanced/2_1:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/2_2:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/2_3:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/2_4:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/2_5:TopicCompact%
-[/REGION]
-
 
 ## Related Topics and Further Reading
 

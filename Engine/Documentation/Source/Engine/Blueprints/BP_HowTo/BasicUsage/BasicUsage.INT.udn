@@ -31,7 +31,8 @@ After you select your class, a new Blueprint asset will be added to the **Conten
 
 ![](Basic4.png)
 
-<!--
+[COMMENT:none]
+
 1.	After you have entered a name, the Blueprint creation process is complete. 
 
 	![](Basic5.png)
@@ -45,7 +46,8 @@ After you select your class, a new Blueprint asset will be added to the **Conten
 1.	When the **Save Content** window appears, your Blueprint will be displayed in the window. Click the **Save Selected** button to save. 
 
 	![](Basic7.png)
--->
+
+[/COMMENT]
 
 ### Create Blueprint Using Assets
 
@@ -59,7 +61,8 @@ This option is only available for assets that support it - Static Meshes, Skelet
 
 After selecting the **Create Blueprint Using This...** option, you will be prompted on where you want to save the Blueprint. After confirming your save location, the Blueprint will automatically open in the Blueprint Editor.
 
-<!--
+[COMMENT:none]
+
 ### Replace Assets with Composited Blueprint
 
 Similar to the create Blueprint using assets method, the replace assets with composited Blueprint option will automatically add components to and create a Blueprint based off assets placed in your level. 
@@ -77,7 +80,8 @@ This option is useful in the event that you have several objects in your level a
 [REGION:tip]
 When creating a Blueprint using an asset from the **Content Browser** or by replacing assets in your level with a Composited Blueprint, you do not need to provide any logic in its Graph for the Blueprint to work in your levels. As stated in the example above, you can take several Components and combine them in a Blueprint to create a new singular asset in your level. 
 [/REGION]
--->
+
+[/COMMENT]
 
 ## Placing Blueprints in Levels
 
@@ -91,7 +95,8 @@ Or with the Blueprint selected in the **Content Brower**, you can **Right-click*
 
 ![](RightClickMethod.png)
 
-<!--
+[COMMENT:none]
+
 ## Editing a Blueprint
 
 Depending upon the type of Blueprint you are working with, different **Blueprint Modes** may be available for you to work with to determine what your Blueprint does or how it functions. This section focuses on Blueprints created through the methods described above, for more information on the different types of Blueprints, refer to the links below. 
@@ -127,7 +132,8 @@ The **Graph Mode** is considered to be the heart of a Blueprint. This is where y
 The **Defaults Mode** is a one-stop shop for all the default settings and properties (as well as any variables) the Blueprint contains. You can modify any of the options directly from this mode and use the **Search** option to search for particular settings you wish to modify. 
 
 * See [](Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab) for more information on navigating the **Defaults Mode**. 
--->
+
+[/COMMENT]
 
 ## Placing Blueprint Nodes
 

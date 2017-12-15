@@ -1,76 +1,133 @@
-﻿INTSourceChangelist:3344913
-Availability:Docs
+﻿INTSourceChangelist:3620333
+Availability:Public
 Title:仮想ボーン
 Crumbs:
-Description:エディタ内で IK または Anim のコンストレイント ジョイントを追加できるようにする仮想ボーンの概要
+Description:エディタ内で IK や Anim のコンストレイント ジョイントを追加できるようにする仮想ボーンの概要
 Related:Engine/Content/FBX/Animations
 Related:Engine/Animation/Persona/Modes
 Related:Engine/Content/Types/SkeletalMeshes
-version:4.15
+version:4.17
 parent:Engine/Animation
 type:reference
-topic-image: 
+topic-image:VirtualBones_Topic.png
 reference-image:WalkAnim.gif
-tags:Animations, Skeletal Mesh, Skeleton, Bones
-order:
+tags:Animation
+Tags:Skeletal Mesh
+order:100
 
 
 [REGION:fullwidth raw]
 ![Virtual Bones](VirtualBones.png)
 [/REGION]
 
-[アニメーション ツール](Engine/Animation/Persona/Modes)、すなわちスケルトン エディタ、アニメーション エディタでは、メッシュのスケルトンに **Virtual Bone (仮想ボーン)** を追加することができます。 
-これらは、IK や照準のターゲット ジョイントの階層の変更を可能にすることで、イタレーション時間の改善に役立ちます。この機能が追加される前は、 
-エンジン外部のモデリング アプリケーションでアセットに仮想ボーンを追加してから、その後、すべてのアニメーションを再インポートし、 
-含まれる新規ジョイントでアニメーション データを修正しなければなりませんでした。 
 
-仮想ボーンはその性質上、スキンできませんが、スケルトン上の 2 つの既存ボーン間で拘束され、 
-スケルトン上にある各アニメーションに対してデータを自動生成します。例えば、手の子となるジョイントを追加することはできますが、手の平ジョイントに拘束されます。ソケットとは異なり、このジョイントはその後、Animation ブループリントで 
-IK ターゲットや look at ターゲットなどのターゲットとして使用することができます。または、後で使用するために Anim ブループリントで修正することができます。 
+[TOC(start:2 end:2)]
 
-仮想ボーンの実際の使用に関する追加情報や提案、例えばリターゲットを簡単にする、コントローラーの参照フレームを変更するためにどのように使用するか、
-およびオリエンテーションやスロープのワープなどについても、詳細については Paragon トレーニング ストリームをご覧ください！ 
+
+[スケルトン エディタ](Engine/Animation/Persona/Modes/Skeleton) 内で、スケルトン ツリーを使って、既存のメッシュのスケルトンに **Virtual Bone (仮想ボーン)** を追加することができます。仮想ボーンは、 
+エディタ内から、ターゲット ジョイントの階層やIK (インバース キネマティクス) の変更を可能にすることで、イタレーション時間の改善に役立ちます。これまでは、
+エディタ外部の 3D モデリング ソフトウェアでこうしたボーンを追加してから、すべてのアニメーションを再インポートし、新たに含まれたジョイントでアニメーション データを修正しなければなりませんでした。 
+
+仮想ボーンはその性質上、スキンできず、スケルトン階層の 2 つの既存ボーン間で拘束され、各アニメーションに対してデータを自動的に生成します。
+例えば、手の子となるジョイントを追加することはできますが、手の平ジョイントに拘束されます。ソケットとは異なり、このジョイントはその後、 [Animation ブループリント](Engine/Animation/AnimBlueprints) でIK ターゲットまたは "look at" ターゲットなどの
+ターゲットとして使用することができます。これらは後で使用するために Animation ブループリントで変更することもできます。
+
+
+
+## 仮想ボーンを追加する
+
+仮想ボーンをスケルタルメッシュのスケルトン ツリーに追加するには、以下の手順に従います。
+
+1. **[Skeleton Tree]** ウィンドウを使って、最初の接続点にするボーンを選択します。 
+	[REGION:lightbox]
+
+	[![](Add_SelectBone.png)(w:600)](Add_SelectBone.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+1. 右クリックしてコンテキスト メニューを表示させて、リストから **[Add Virtual Bone]** を選択します。次に展開した **[Pick Target Bone...]** から、接続したいボーンを選択します。
+	[REGION:lightbox]
+
+	[![](Add_AddVB_Target.png)(w:600)](Add_AddVB_Target.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+	[REGION:tip]
+
+	スケルトンの階層を有効にして常に可視状態にすることができます。これを行うには、ビューポートで、 **Show** > **Bone** > **All Hierarchy** の順序で選択します。 
+	[/REGION]
+
+1. リスト化された仮想ボーンがスケルトン ツリーの階層に、接頭辞 **VB** と共に表示されるようになります。 
+
+	![](Add_VirtualBoneAdded.png)
+
+	リストから選択すると、スケルトンのエディタ ビューポートで選択したものがハイライトされるのがわかります。 
+
+	[REGION:lightbox] 
+	[![](Add_VirtualBoneSelected.png)(w:600)](Add_VirtualBoneSelected.png) 
+	[/REGION] 
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+	選択した仮想ボーンを持つアニメーションを再生すると、アニメートされて更新されるのがわかります。
+
+	[REGION:asyncgif] ![](WalkAnim.gif)(w:350) [/REGION]
+
+## 仮想ボーンを削除する
+
+追加した仮想ボーンをスケルタルメッシュのスケルトン ツリーから削除するには、以下の手順に従います。
+
+1. **[Skelton Tree]** ウィンドウで任意の仮想ボーンを選択します。
+
+	[REGION:lightbox]
+	[![](Delete_SelectVB.png)(w:600)](Delete_SelectVB.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+1. 右クリックしてコンテキスト メニューを表示させて、リストから **[Delete]** を選択します。 
+
+	![](Delete_DeleteVB.png)(w:400)
+
+
+## 仮想ボーンの名前を変更する
+
+スケルタルメッシュのスケルトン ツリーで仮想ボーンの名前を変更するには、以下の手順に従います。
+
+1. **[Skelton Tree]** ウィンドウで任意の仮想ボーンを選択します。
+
+	[REGION:lightbox]
+	[![](Delete_SelectVB.png)(w:600)](Delete_SelectVB.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+1. 仮想ボーンの名前を変更するには、以下の 3 種類の方法があります。 
+
+	* 右クリックしてコンテキスト メニューから **[Rename Virtual Bone]** を選択します。
+		![](Rename_ContextMenu.png)(w:400)
+
+	* 仮想ボーンを選択した状態で **F2** キーを押します。
+	* または仮想ボーンの名前の上でダブルクリックします。
+
+	## 追加の資料
+
+
+
+仮想ボーンの実際の使用に関する追加情報や提案、例えばリターゲットを簡単にする、コントローラー、方向、スロープのワープの参照フレームを変更するためにどのように使用するかについては 
+以下をご覧ください。 
 
 [OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	1UOY-FMm-xo
 	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	50
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-## 仮想ボーンをスケルトンに追加する
-
-仮想ボーンをスケルタルメッシュに追加するには、以下の手順に従います。
-
-1. **コンテンツ ブラウザ** で、スケルタルメッシュまたは Animation アセットを開きます。 
- 
-	![](CB_Skeleton.png)(w:350) 
-1. **スケルタル エディタ** または **アニメーション エディタ** の **スケルトン ツリー** ウィンドウでジョイント階層から任意のボーンを選択します。右クリックして、コンテキスト メニューで **Add Virtual Bone** にマウスをかざします。 
- 開いた **Pick Target Bone** ウィンドウでボーンを選択します。 
-   
-	[REGION:raw]
-	![](SelectVirtualBone.png)(w:850)
-	[/REGION]
-
-
-仮想ボーンを追加したので、スケルトンの階層にリストされます。スケルトン ツリー ウィンドウでこれらの名前にはプレフィックス "VB" が付き、薄紫色で表示されます。 
-
-[REGION:lightbox]
-[![](VirtualBoneView.png)(w:550)](VirtualBoneView.png)
-[/REGION]
-
-[REGION:tip]
-スケルトン エディタまたはアニメーション エディタのビューポートでボーンが見えない場合は、**Show** > **Bones** > **All Hierarchy** の順序で進み、スケルトンが常に表示されるようにします。ビューポートに常にすべてのボーンを表示したくない場合は、
-必要に応じて他のオプションもあります。
-[/REGION]
-
-アニメーション エディタで選択したジョイント間で仮想ボーンが拘束されて、アニメーションに合わせて更新されます。 
- 
-[REGION:asyncgif]
-![Virtual Bone](WalkAnim.gif)(w:350)
-[/REGION]

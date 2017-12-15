@@ -1,31 +1,19 @@
-﻿INTSourceChangelist:2757227
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:12.タスクの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 12タスクの作成
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:12
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/11 "%Engine/AI/BehaviorTrees/QuickStart/11:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/13 "%Engine/AI/BehaviorTrees/QuickStart/13:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Task ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[デコレーター](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
 
-**Task** ノードは基本的には **Move To** ノードを再生成したものです。大きな違いは、Task ノードは常に AI を、プレイヤーの位置ではなく Pawn に向かって走らせることです。また、内容を細かく分けて、**Finish Execute** を実行しないと Task ノードが処理を継続するかを確認する場合に便利です。**AI MoveTo** ノードがこれを完璧に表示します。
+**Task** ノードは基本的には **Move To** ノードを再作成したものです。大きな違いは、Task ノードは常に AI を、その位置ではなくプレイヤーの Pawn に向かって走らせることです。また、内容を細かく分けるのに役立ち、**Finish Execute** を実行しないと Task ノードが処理を継続するようにし、**AI MoveTo** ノードがこれを完璧に示します。
 
 
 ## ステップ
@@ -35,7 +23,7 @@ Task ノードは、AI を移動するなどのように何かを "実行する"
 
 	ビヘイビアツリーと同じフォルダ内に作成されます。
 1. **コンテンツ ブラウザ** 内で名前を「RapidMoveTo」に変更します。
-1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
+1. 編集のためにエディタによって既に開いているはずですが、そうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
 1. 次のグラフを作成します。
 
 	[OBJECT:Snippet]
@@ -56,17 +44,15 @@ Task ノードは、AI を移動するなどのように何かを "実行する"
 
 	![](variables.png)
 
-	このブループリントの変数名、タイプ、値です。
+	このブループリントの変数名、型、値です。
 
 	%vartable1%
 
-
-
 [VAR:varTable1]
-| 変数名 | タイプ | 値 |
+| 変数名 | 型 | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
+| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンス毎に変更することができます。 |
 [/VAR]
 
 
@@ -78,7 +64,7 @@ Task ノードは、AI を移動するなどのように何かを "実行する"
 1. 成功すると、タスクは正常に **Finish Execute** を実行します。
 
 
-%Steps%
+[NAV]
 
 [VAR:bpcode]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_845"

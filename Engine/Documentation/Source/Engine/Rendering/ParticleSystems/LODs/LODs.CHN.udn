@@ -148,7 +148,8 @@ Version:4.9
 | **LODDistances** | 确定使用 LOD 级别的距离阵列。（仅在 LODMethod 设为 Automatic 时使用）。这些数值将提供选择 LOD 级别的推荐最小距离。例如，3 种 LOD 级别的粒子系统：[INCLUDE:#LODDistance] |
 | **LODSettings** | 一种结构阵列，决定每个 LOD 使用的特定设置。当前使用指定 LOD 时，唯一的设置 _Lit_ 用于控制 ParticleSystem 是否接受光照。|
 
-<!----
+[COMMENT:none]
+--
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | 值| 范围 | 所选 LOD 级别 |
@@ -168,4 +169,5 @@ Version:4.9
 [/REGION]
 [/EXCERPT:LODMethod]
 
----->
+--
+[/COMMENT]

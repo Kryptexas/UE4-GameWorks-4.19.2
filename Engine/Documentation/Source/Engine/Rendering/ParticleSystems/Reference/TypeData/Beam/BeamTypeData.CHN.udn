@@ -51,8 +51,11 @@ coXs-CmI_v8
 | **Render Tessellation** | 如为 _true_，将对源点和目标之间的曲面细分路径执行渲染。用于级联中的调试。|
 
 
-<!-- Begin Beam Includes -->
-<!--
+[COMMENT:none]
+ Begin Beam Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:BeamMethod]
 [REGION:simpletable]
 | 方法 | 描述 |
@@ -89,8 +92,11 @@ coXs-CmI_v8
 [/REGION:simpletable]
 [/EXCERPT:TaperMethod]
 
--->
-<!-- End Beam Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End Beam Includes 
+[/COMMENT]
 
 
 

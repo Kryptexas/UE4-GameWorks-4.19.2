@@ -85,7 +85,8 @@ The **Bone/Socket Location** module allows particle to be spawned directly at th
 
 
 
-<!-------------Bone/Socket Location Includes----------------
+[COMMENT:none]
+-----------Bone/Socket Location Includes----------------
 
 
 [EXCERPT:BoneSelMethod]
@@ -122,7 +123,8 @@ The **Bone/Socket Location** module allows particle to be spawned directly at th
 
 
 
--------------End Bone/Socket Location Includes--------------->
+-------------End Bone/Socket Location Includes-------------
+[/COMMENT]
 
 ## Direct Location
 
@@ -154,7 +156,8 @@ The **Emitter InitLoc** module is used to set the initial location of a particle
 
 
 
-<!-------------Emitter Init Loc Includes----------------
+[COMMENT:none]
+-----------Emitter Init Loc Includes----------------
 #### Includes
 
 [EXCERPT:InitLocSelMethod]
@@ -166,7 +169,8 @@ The **Emitter InitLoc** module is used to set the initial location of a particle
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
 
--------------End Emitter Init Loc Includes--------------->
+-------------End Emitter Init Loc Includes-------------
+[/COMMENT]
 
 
 ## Emitter Direct Loc
@@ -213,7 +217,8 @@ The **Cylinder** module is used to set the initial location of particles within 
 
 
 
-<!-------------Cylinder Includes----------------
+[COMMENT:none]
+-----------Cylinder Includes----------------
 #### Includes
 
 [EXCERPT:CylinderHeightAxis]
@@ -226,7 +231,8 @@ The **Cylinder** module is used to set the initial location of particles within 
 [/REGION]
 [/EXCERPT:CylinderHeightAxis]
 
--------------End Cylinder Includes--------------->
+-------------End Cylinder Includes-------------
+[/COMMENT]
 
 ## Cylinder (Seeded)
 
@@ -338,7 +344,8 @@ The **Skel Vert/Surf Loc** module allows for particles to be emitted from a skel
 |**Valid Material Indices** | Provides a list of materials applied to the skeletal mesh from which particles will be allowed to emit. Useful if only certain materials should be emitting particles. Leave empty to allow any material to emit. |
 
 
-<!-------------Vert/Surf Location Includes----------------
+[COMMENT:none]
+-----------Vert/Surf Location Includes----------------
 #### Includes
 
 
@@ -360,7 +367,8 @@ The **Skel Vert/Surf Loc** module allows for particles to be emitted from a skel
 [/REGION]
 [/EXCERPT:VertSourceType]
 
--------------End Vert/Surf Location Includes--------------->
+-------------End Vert/Surf Location Includes-------------
+[/COMMENT]
 
 
 

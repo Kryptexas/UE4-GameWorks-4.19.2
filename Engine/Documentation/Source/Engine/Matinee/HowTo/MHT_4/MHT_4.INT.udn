@@ -5,19 +5,13 @@ Description:A simple scene that fades in-and-out, uses multiple FOV angles and P
 Version: 4.9
 SkillLevel: Intermediate
 
----
 In this How-to series, we are going to create a short sequence that uses multiple camera angles with different FOVs (Fields of View), Depth of Field, and other Post Processing Effects applied to them. 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Matinee, Cameras, and Props
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, our **Cameras**, and some props that will be the subject for our shots. 
-	[/PARAM]
-[/OBJECT]
+## Adding the Matinee, Cameras, and Props
+
+In this step, we will add our **Matinee Actor**, our **Cameras**, and some props that will be the subject for our shots. 
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -61,15 +55,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 
 	![](MHT4_C2_CameraSettings.png)
 
+## Adding the Cameras to Matinee and Adding Tracks
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Cameras to Matinee and Adding Tracks
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Cameras** to **Matinee** and set up the Post Processing tracks we will manipulate in the scene.
-	[/PARAM]
-[/OBJECT]
+In this step, we will add our **Cameras** to **Matinee** and set up the Post Processing tracks we will manipulate in the scene.
 
 1. Select the Matinee in the **World Outliner**, then select the **Open Matinee** option from the Details panel. 
 
@@ -117,15 +105,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 
 	![](MHT4_CameraGroupsComplete.png)
 
+## Camera 1, Shot 1 - Movement and Post Processing Effects
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 1 - Movement and Post Processing Effects
-	[/PARAM]
-	[PARAM:description]
-	In this step we will add camera movement and Post Processing effects to Camera 1 which will also be our first shot.
-	[/PARAM]
-[/OBJECT]
+In this step we will add camera movement and Post Processing effects to Camera 1 which will also be our first shot.
 
 1. Inside the Matinee Editor, select the **FOVAngle** track of the Camera1 group and press **Enter** to add a keyframe at **0.00**. 
 
@@ -177,17 +159,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 
 	_This will cause the background to be in focus then blend to out of focus as we focus on the foreground brush._
 
+## Camera 2, Shot 2 - Movement and Post Processing Effects
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 2 - Movement and Post Processing Effects
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add camera movement and Post Processing effects to camera 2 which is used for our second shot. 
-	[/PARAM]
-[/OBJECT]
-
-
+In this step, we will add camera movement and Post Processing effects to camera 2 which is used for our second shot. 
 
 1. On the Movement track for **Camera2** move the Time Bar to **5.00** and press **Enter** to add a keyframe, then delete the keyframe at **0.00**.
 
@@ -238,14 +212,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 	_This will blur the background while we focus on the rock and then bring into focus the clouds when we pan to them._
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 3 - Adding a Film Effect
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will switch back to camera 1 for our third shot of the sequence and add a Film Post Processing Effect. 
-	[/PARAM]
-[/OBJECT]
+## Camera 1, Shot 3 - Adding a Film Effect
+
+In this step, we will switch back to camera 1 for our third shot of the sequence and add a Film Post Processing Effect. 
 
 1. Inside the Matinee Editor, select and copy the keyframe at **5.00** on the Movement track of Camera1. 
 
@@ -299,15 +268,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 
 	_Leave their settings as default since they will be updated via the Matinee._
 
+## Camera 2, Shot 4 - Adding a Scene Color Effect
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 4 - Adding a Scene Color Effect
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will switch back to camera 2 for our final shot and add a noise filter effect to the scene. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will switch back to camera 2 for our final shot and add a noise filter effect to the scene. 
 
 1. Inside the Matinee Editor, move the Time Bar to **15.50**. 
 
@@ -333,15 +296,9 @@ In this How-to series, we are going to create a short sequence that uses multipl
 
 	_Leave the setting as default since it will be updated via the Matinee._
 
+## Director Group - Adding Camera Cuts and Fading
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Director Group - Adding Camera Cuts and Fading
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will finish the scene by adding camera cuts and fading via the **Director** track. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will finish the scene by adding camera cuts and fading via the **Director** track. 
 
 1. Inside the Matinee Editor in an empty space under the last track of Camera2, **Right-Click** and from the context menu choose **Add New Director Group**. 
 

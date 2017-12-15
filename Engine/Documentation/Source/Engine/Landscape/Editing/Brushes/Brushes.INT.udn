@@ -55,7 +55,7 @@ The size and falloff of the current brush is displayed in the viewport as a flas
 
 The **Circle** brush applies the current tool in a circular area, with a falloff defined both numerically and by type.
 
-![circle.jpg](circle.jpg)(w:486 h:486)
+![circle.jpg](circle.jpg)(w:486)
 
 ### Circle Brush Falloff Type
 
@@ -69,7 +69,7 @@ The **Circle** brush applies the current tool in a circular area, with a falloff
 Below is an example of each of these falloff types when operating on the heightmap, with the same radius and falloff:
 
 [REGION:imagetable]
-| ![](Smooth.jpg)(w:200 h:300) | ![](Linear.jpg)(w:200 h:300) | ![](Sphere.jpg)(w:200 h:300) | ![](Tip.jpg)(w:200 h:300) |
+| ![](Smooth.jpg)(w:200) | ![](Linear.jpg)(w:200) | ![](Sphere.jpg)(w:200) | ![](Tip.jpg)(w:200) |
 | -------- | ----------- | ------ | ----- |
 | ** Smooth **| ** Linear ** | ** Spherical** | ** Tip ** | 
 [/REGION]
@@ -80,7 +80,7 @@ Below is an example of each of these falloff types when operating on the heightm
 
 The **Alpha** brush is similar to the Pattern brush, but instead of tiling the texture across the Landscape as you paint, it orients the brush texture in the direction of your painting and drags the shape as you move the cursor.
 
-![brush_alpha_drag.jpg](brush_alpha_drag.jpg)(w:273 h:475)
+![brush_alpha_drag.jpg](brush_alpha_drag.jpg)(w:273)
 
 
 ### Alpha Brush Settings
@@ -103,13 +103,13 @@ The **Pattern** brush allows you to use an arbitrary shape for the brush by samp
 
 For example, the textures below could be used as the alpha:
 
-![alpha_tex.jpg](alpha_tex.jpg)(w:258 h:258) ![alpha_tex_checker.jpg](alpha_tex_checker.jpg)(w:258 h:258)
+![alpha_tex.jpg](alpha_tex.jpg)(w:258) ![alpha_tex_checker.jpg](alpha_tex_checker.jpg)(w:258)
 
 Those would result in the following brushes:
 
-![alpha_pattern.jpg](alpha_pattern.jpg)(w:425 h:425) ![alpha_applied.jpg](alpha_applied.jpg)(w:425 h:425)
+![alpha_pattern.jpg](alpha_pattern.jpg)(w:425) ![alpha_applied.jpg](alpha_applied.jpg)(w:425)
 
-![alpha_pattern_checker.jpg](alpha_pattern_checker.jpg)(w:425 h:425) ![alpha_default_checker.jpg](alpha_default_checker.jpg)(w:425 h:425)
+![alpha_pattern_checker.jpg](alpha_pattern_checker.jpg)(w:425) ![alpha_default_checker.jpg](alpha_default_checker.jpg)(w:425)
 
 ### Pattern Brush Settings
 
@@ -122,9 +122,9 @@ Those would result in the following brushes:
 | **Brush Size** | Sets the size of the brush. |
 | **Brush Falloff** | Sets the brush falloff. |
 | **Use Clay Brush** | If selected, enables you to use a clay brush. |
-| **Texture Scale** | Sets the size of the sampled Texture in relation to the surface of the Landscape. <br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texscale.jpg](alpha_texscale.jpg)(w:128 h:128) |
-| **Texture Rotation** | Sets the rotation of the sampled texture in relation to the surface of the Landscape. <br/>![alpha_texrot_default.jpg](alpha_texrot_default.jpg)(w:128 h:128) ![alpha_texrotation.jpg](alpha_texrotation.jpg)(w:128 h:128) |
-| **Texture Pan [U/V]** | Sets the offset of the sampled texture on the surface of the Landscape. <br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texpan.jpg](alpha_texpan.jpg)(w:128 h:128) |
+| **Texture Scale** | Sets the size of the sampled Texture in relation to the surface of the Landscape. ![alpha_default.jpg](alpha_default.jpg)(w:128) ![alpha_texscale.jpg](alpha_texscale.jpg)(w:128) |
+| **Texture Rotation** | Sets the rotation of the sampled texture in relation to the surface of the Landscape. ![alpha_texrot_default.jpg](alpha_texrot_default.jpg)(w:128) ![alpha_texrotation.jpg](alpha_texrotation.jpg)(w:128) |
+| **Texture Pan [U/V]** | Sets the offset of the sampled texture on the surface of the Landscape. ![alpha_default.jpg](alpha_default.jpg)(w:128) ![alpha_texpan.jpg](alpha_texpan.jpg)(w:128) |
 
 
 
@@ -134,7 +134,7 @@ Those would result in the following brushes:
 
 The **Component** brush is used for operating on individual components. The cursor becomes limited to a single component at a time:
 
-![selection_cursor.jpg](selection_cursor.jpg)(w:900 h:453)
+![selection_cursor.jpg](selection_cursor.jpg)(w:900)
 
 [REGION:note]
 The Component brush is the only brush available when you are using tools that operate on the individual component level.

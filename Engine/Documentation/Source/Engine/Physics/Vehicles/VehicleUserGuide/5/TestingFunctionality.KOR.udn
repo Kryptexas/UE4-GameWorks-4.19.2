@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3400712
+﻿INTSourceChangelist:3782314
 Availability: Public
 crumbs:%ROOT%
 Title: 5 - 함수 기능 셋업 및 테스트
@@ -25,7 +25,9 @@ Tags: Vehicles
 
 	![](input.png)(w:950)
 
-1. 바인딩 메뉴에서, (현재 나열되어 있지 않은 경우) 컨트롤을 다음과 같이 셋업합니다. 나열되어 있지 않으면 여기 나온 대로 셋업되어 있는지 다시 한 번 확인하는 것이 비히클 정상 작동에 좋습니다. <!-- TODO, add images for this steps and all of the sub-steps contained herein. -->
+1. 바인딩 메뉴에서, (현재 나열되어 있지 않은 경우) 컨트롤을 다음과 같이 셋업합니다. 나열되어 있지 않으면 여기 나온 대로 셋업되어 있는지 다시 한 번 확인하는 것이 비히클 정상 작동에 좋습니다. [COMMENT:none]
+ TODO, add images for this steps and all of the sub-steps contained herein. 
+[/COMMENT]
 
 	1. 먼저 Action Mappings (액션 매핑) 프로퍼티 옆의 **+** 부호를 클릭하여 **액션 매핑** 셋업을 해주겠습니다.
 

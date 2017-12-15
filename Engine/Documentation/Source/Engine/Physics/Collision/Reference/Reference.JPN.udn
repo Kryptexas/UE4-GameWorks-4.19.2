@@ -58,7 +58,8 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:colrep]
 
 これらのプロパティによって、この物理ボディのトレース タイプとオブジェクト タイプの他のすべてのタイプとインタラクト方法が定義されます。結果となるアクションを定義する物理ボディ間のインタラクションなので、両方の物理ボディのオブジェクト タイプとコリジョン反応が重要になることを覚えておいてください。
@@ -169,4 +170,5 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 | **Destructible** || 被破壊メッシュはデフォルトでこのタイプを受け取ります。 |
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]

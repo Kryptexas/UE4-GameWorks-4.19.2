@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3470080
-Availability:Public
+﻿Availability:Public
 Title:Linux のクロスコンパイル
 Crumbs:%ROOT%
 Description:Linux プラットフォームをターゲットにして、Windows でクロスコンパイル ツールチェーンを設定してみよう。
@@ -16,7 +15,9 @@ related:Programming/Basics/ConfigurationFiles
 topic-image:GettingStarted_Topic.png
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:3)]
 
@@ -37,8 +38,8 @@ prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
 Windows (ホスト) コンピューターからツールチェーンをセットアップして前述のプラットフォームのいずれかをターゲットにするには、 
 ツールチェーンをダウンロードしてシステムの環境変数を設定して、環境に基づいて Linux と ARM 向けにアプリケーションをパッケージ化する必要があります。Linux プラットフォーム向けに UE4 プロジェクトを初めてパッケージ化する場合は、 
-Linux 用の Visual Studio と使ってエンジンをビルドする必要もあります。以下の手順に従って設定をすれば、 
-現在サポート対象のプラットフォームのいずれかをターゲットにするようにホスト環境が設定されるはずです。 
+Linux 用の Visual Studio を使ってエンジンをビルドする必要もあります。現在サポート対象のプラットフォームのいずれかをターゲットにするようにホスト環境を設定するには、 
+以下の手順に従います。 
 
 [REGION:note]
 これから説明する手順を開始する前に、インターネット接続が信頼できるものであることを確認してください。ツールチェーンのダウンロード時間は数分から数時間です 
@@ -169,7 +170,7 @@ Linux 用の Visual Studio と使ってエンジンをビルドする必要も�
 	![](LinuxXC_Step14.png)
 
 	[REGION:note]
-	エンジンはパッケージ化の間は `LINUX_ROOT` よりも `LINUX_MULTIARCH_ROOT` を優先するので、`LINUX_ROOT` 環境変数を既に設定してしまっても削除する必要はありません。
+	パッケージ化の間、エンジンは `LINUX_ROOT` よりも `LINUX_MULTIARCH_ROOT` を優先するので、`LINUX_ROOT` 環境変数が既に設定されていても削除する必要はありません。
 	[/REGION]
 
 1.	**[OK]** ボタンを押して **[System Properties]** メニューを終了します。
@@ -216,7 +217,7 @@ Linux 用の Visual Studio と使ってエンジンをビルドする必要も�
 		クリックしてフルサイズで表示
 	[/REGION]
 
-1.	次にエンジンの実行を停止し、**Visual Studio** に戻って Visual Studio で **Linux** ソリューション プラットフォームを選択します。キーボードで **Ctrl+Shift+B** を一緒に押すと Linux 用のビルドになります。
+1.	次にエンジンの実行を停止し、**Visual Studio** に戻って Visual Studio で **Linux** ソリューション プラットフォームを選択します。キーボードで **Ctrl+Shift+B** を同時に押すと Linux 用のビルドになります。
 
 	[REGION:lightbox]
 		[![](LinuxXC_Step21.png)(w:600)](LinuxXC_Step21.png)

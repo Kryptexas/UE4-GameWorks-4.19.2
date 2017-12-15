@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429248
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:シーケンサー エディタ
 Crumbs: %ROOT%, Engine
@@ -26,11 +26,7 @@ tags:Sequencer
 
 ## はじめよう
 
-[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" tags:"Getting Started")]
-
-## 基本
-
-[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" tags:"!Getting Started" path:"!Engine/Sequencer/HowTo")]
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" type:"landing,overview,reference,quick start")]
 
 ## ガイド
 
@@ -43,8 +39,5 @@ tags:Sequencer
 
 [DIR(output:"topiccompact" parent:"Resources/Showcases" tags:"Sequencer")]
 
-<!-- Killing this for now while the current does get updates instead.
-* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
--->
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 레벨 시퀀스 에디터 개인설정
 Crumbs: %ROOT%, Engine
@@ -34,7 +34,8 @@ tags:Sequencer
 키 보간 관련 상세 정보는 [](Engine/UI/CurveEditor) 문서를 참고하세요.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AutoKeyMode]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -44,9 +45,11 @@ tags:Sequencer
 | **Key None** | 키 설정 안함 - 프로퍼티 자동 키 설정을 하지 않습니다. |
 [/REGION] 
 [/EXCERPT:AutoKeyMode]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:KeyInterp]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -58,7 +61,8 @@ tags:Sequencer
 | **Constant** | 상수 - 키 보간 모드를 상수로 설정합니다. |
 [/REGION] 
 [/EXCERPT:KeyInterp]
--->
+
+[/COMMENT]
 
 
 ## 일반
@@ -71,7 +75,8 @@ tags:Sequencer
 | **Create Spawnable Cameras** | 스포너블 카메라 생성 - 시퀀서 툴바에서 추가한 카메라를 [스포너블](Engine/Sequencer/HowTo/Spawnables) 로 추가할 것인지를 결정합니다.   |
 | **Label Browser Visible** | 라벨 브라우저 표시 - **라벨 브라우저** 창을 표시 또는 숨깁니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Spawn]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -80,7 +85,8 @@ tags:Sequencer
 | **Place in Front of Camera** | 카메라 앞에 배치 - 원근 뷰포트의 카메라 앞에 스폰시킵니다. |
 [/REGION] 
 [/EXCERPT:Spawn]
--->
+
+[/COMMENT]
 
 
 ## 타임라인
@@ -99,7 +105,8 @@ tags:Sequencer
 | **Show Combined Keyframes** | 합친 키프레임 표시 - 켜면, 한 프레임에 하나 이상의 키가 할당된 프로퍼티를 표시합니다. |
 | **Show Channel Colors** | 채널 색 표시 - 위치, 회전, 스케일의 XYZ 를 색이 있는 선으로 표시할지 말지 전환합니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Zoom]
 [REGION:simpletable]
 | 값 | 효과 |
@@ -108,7 +115,8 @@ tags:Sequencer
 | **Mouse Position** | 마우스 위치 - 줌 인 / 아웃 은 타임라인의 마우스 위치에서 일어납니다. |
 [/REGION] 
 [/EXCERPT:Zoom]
--->
+
+[/COMMENT]
 
 ## 스내핑
 

@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **アンリアルエディタ** へ戻って、プロジェクトの入力設定を行います。設定値は **Edit (編集)** ドロップダウン メニューの **Project Settings (プロジェクト設定)** にあります。
 
@@ -183,4 +183,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

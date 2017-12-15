@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 编写可以从终端运行的的自定义外壳脚本可以提升生产效率。如果您了解如何在 Linux 中编写外壳脚本，则可以尝试编写一个自动进行 UE4 设置和生成流程的脚本。
 
@@ -45,4 +45,4 @@ SkillLevel:Beginner
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
 
-%Steps%
+

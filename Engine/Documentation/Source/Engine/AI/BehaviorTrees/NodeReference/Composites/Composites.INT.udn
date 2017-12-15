@@ -38,11 +38,13 @@ The Simple Parallel node allows a single main task node to be executed along sid
 | **Finish Mode** | [INCLUDE:#subprop1] |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop1]
 | --- | --- |
 | **Immediate** | Once the main task finishes, the background tree will be aborted.  |
 | **Delayed** | The background tree will be permitted to finish once the main task has finished. |
 [/EXCERPT:subprop1]
--->
+
+[/COMMENT]
 

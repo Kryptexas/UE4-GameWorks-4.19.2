@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/VAR]
 
 
-%Steps%
+
 
 通过使用这个引导的一些方法，尝试做以下这些事情：
 
@@ -61,4 +61,4 @@ checkpoint: editorqs
 
 * 关于光照的更多信息，请参考： [光照快速入门](Engine/Rendering/LightingAndShadows/QuickStart)
 
-%Steps%
+

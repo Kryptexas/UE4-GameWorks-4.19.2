@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 您的设备已经与苹果开发者账户进行了关联？ [您可以跳过这个部分。](Platforms/iOS/QuickStart/5)
@@ -73,13 +73,15 @@ Availability:Public
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

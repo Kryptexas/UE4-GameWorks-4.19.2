@@ -13,21 +13,15 @@ checkpoint: editorqs
 
 在本指南中，我们将更改一些会在关卡中影响 Actor 的属性，例如，缩放 Actor 以增大其大小、应用材质、对 Actor 启用物理以及调整碰撞设置，以便在游戏期间能够和其他 Actor 产生碰撞。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](GettingStarted\HowTo\DetailsPanel\Transform)
 	* [](GettingStarted\HowTo\DetailsPanel\Materials)
 	* [](GettingStarted\HowTo\DetailsPanel\Collision)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [REGION:call_to_action]
 	[点击开始](GettingStarted\HowTo\DetailsPanel\Transform "%GettingStarted\HowTo\DetailsPanel\Transform:title%")

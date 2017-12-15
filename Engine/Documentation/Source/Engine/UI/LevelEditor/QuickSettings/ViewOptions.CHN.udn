@@ -34,7 +34,8 @@ Description:关卡编辑器中用于控制选择、编辑及预览等各方面�
 | [REGION:tablesection]视口[/REGION] ||
 | **Hide Viewport UI（隐藏视口的用户界面）** | 切换隐藏的视口用户界面模式，并隐藏所有重叠的视口用户界面控件。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BrushPolys]
 [REGION:imagetable]
 | ![](brush_polys_enabled.png)(quality:100) | ![](brush_polys_disabled.png)(quality:100) |
@@ -59,4 +60,5 @@ Description:关卡编辑器中用于控制选择、编辑及预览等各方面�
 | 高 |
 [/REGION]
 [/EXCERPT:MaterialQuality]
--->
+
+[/COMMENT]

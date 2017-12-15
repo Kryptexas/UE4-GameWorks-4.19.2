@@ -11,63 +11,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Material Nodes Home](Resources/ContentExamples/MaterialNodes)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/MaterialNodes/1_2 "%Resources/ContentExamples/MaterialNodes/1_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_1:title%](Resources\ContentExamples\MaterialNodes\Topic_1_1_BaseColor.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_1:title%](Resources\ContentExamples\MaterialNodes\Topic_1_1_BaseColor.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Resources\ContentExamples\MaterialNodes\Topic_1_1_BaseColor.png
 
 [REGION:fullwidth]
 ![](1_1_BaseColor.png)

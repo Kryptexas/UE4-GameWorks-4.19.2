@@ -1,82 +1,98 @@
-﻿INTSourceChangelist:3565221
+﻿INTSourceChangelist:3782314
 Title:2. 프로젝트 생성
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:언리얼 엔진 게임 프로젝트를 생성합니다.
 Availability:Public
-Version: 4.9
+Version: 4.18
 SkillLevel: Intermediate
-
+Checkpoint:iOSQS
+order:2
+parent:Platforms/iOS/QuickStart
 
 [VAR:Steps]
 [OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/iOS/QuickStart/1 "%Platforms/iOS/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/iOS/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
-	[/PARAM]
+    [PARAM:previous]
+        [Previous Step](Platforms/iOS/QuickStart/1 "%Platforms/iOS/QuickStart/1:title%")
+    [/PARAM]
+    [PARAM:current]
+    [/PARAM]
+    [PARAM:home]
+        [Quick Start Home](Platforms/iOS/QuickStart)
+    [/PARAM]
+    [PARAM:next]
+        [Next Step](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
+    [/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 이 단계는 현 시점에서 필수는 아니지만, 디플로이 테스트 준비가 된 프로젝트가 있어서 나쁠 것은 없습니다. [이미 프로젝트가 준비되어 있다면 이 섹션은 건너뛰어도 됩니다.](Platforms/iOS/QuickStart/3)
 [/REGION]
 
 %Globals:OSSelect%
+## 단계
+여기서는 iOS 디바이스에서 설치하거나 실행시킬 수 있는 언리얼 엔진 4 (UE4) [프로젝트](Engine/Basics/Projects) 구성 방법을 살펴보겠습니다.
 
-어떤 게임 개발을 시작하든 첫 단계는 [프로젝트](Engine/Basics/Projects) 를 만드는 것입니다. 결국에는 그 프로젝트를 
-iOS 디바이스에 실행 또는 설치하게 되겠지요.
+1. 먼저 **언리얼 프로젝트 브라우저** 를 열고 **새 프로젝트** 탭으로 갑니다.
 
-1. **새 프로젝트** 에서 게임에 쓸 프로젝트를 새로 만듭니다:
+    ![](iOSQS_New_Project.png)(w:750)
 
-	![](create_project.png)(w:750)
+1. 다음, **블루프린트** 기반 **삼인칭** 템플릿을 다음 프로젝트 세팅으로 선택합니다. 완료되면 **프로젝트 생성** 버튼을 눌러 프로젝트를 만들고 UE4 에디터를 로드합니다.
+
+    * **모바일/태블릿**
+    * **스케일가능 3D 또는 2D**
+    * **시작용 콘텐츠 없음** 
+
+    ![](create_project.png)(w:750)
+
+## 최종 결과
+
+완료되면 UE4 에디터가 실행되고 아래 그림처럼 새로 생성된 프로젝트가 로드됩니다.
+
+![](iOSQS_Loaded_Project.png)
 
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#windows]
+    [/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#macos]
+    [/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [REGION:warning]
-여기서 설명된 PC 전용 작업방식은 블루프린트 전용 프로젝트가 필수입니다. 프로젝트에서 코드를 사용하려는 경우,
-코드 컴파일을 위해서는 Mac 도 필요할 것입니다. PC 에서 iOS 용 코드 기반 프로젝트 
-개발을 위해서는 [](Platforms/iOS/Windows) 페이지에 소개된 작업방식을 참고하시기 바랍니다.
+여기서 설명된 PC 전용 작업방식은 블루프린트 전용 프로젝트가 필수입니다. 프로젝트에서 코드를 사용하려는 경우, 코드 컴파일을 위해서는 Mac 도 필요할 것입니다. PC 에서 iOS 용 코드 기반 프로젝트 개발을 위해서는 
+[](Platforms/iOS/Windows) 페이지에 소개된 작업방식을 참고하시기 바랍니다.
 [/REGION]
 [/EXCERPT:windows]
 [EXCERPT:macos]
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

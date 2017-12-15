@@ -51,10 +51,10 @@ While reflections can help to breathe life and believability into your mobile pr
 
 	[OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Sphere Reflection Captures Off ](Reflection_Probes_Off.png)(w:800 h:473)
+	![Sphere Reflection Captures Off ](Reflection_Probes_Off.png)(w:800)
 	[/PARAM]
 	[PARAM:after]
-	![Sphere Reflection Captures On](Reflection_Probes_On.png)(w:800 h:473)
+	![Sphere Reflection Captures On](Reflection_Probes_On.png)(w:800)
 	[/PARAM]
 	[/OBJECT]
 
@@ -64,10 +64,10 @@ While reflections can help to breathe life and believability into your mobile pr
 
 		[OBJECT:ComparisonSlider]
 		[PARAM:before]
-		![Flat Normal Map ](Interesting_Normal_Map_00.png)(w:800 h:473)
+		![Flat Normal Map ](Interesting_Normal_Map_00.png)(w:800)
 		[/PARAM]
 		[PARAM:after]
-		![Rough Normal Map](Interesting_Normal_Map_01.png)(w:800 h:473)
+		![Rough Normal Map](Interesting_Normal_Map_01.png)(w:800)
 		[/PARAM]
 		[/OBJECT]
 
@@ -75,10 +75,10 @@ While reflections can help to breathe life and believability into your mobile pr
 
 		[OBJECT:ComparisonSlider]
 		[PARAM:before]
-		![Varying Roughness ](Interesting_Roughness_Map_00.png)(w:624 h:723)
+		![Varying Roughness ](Interesting_Roughness_Map_00.png)(w:624)
 		[/PARAM]
 		[PARAM:after]
-		![Flat Roughness](Interesting_Roughness_Map_01.png)(w:624 h:723)
+		![Flat Roughness](Interesting_Roughness_Map_01.png)(w:624)
 		[/PARAM]
 		[/OBJECT]
 
@@ -86,10 +86,10 @@ While reflections can help to breathe life and believability into your mobile pr
 
 		[OBJECT:ComparisonSlider]
 		[PARAM:before]
-		![Metallic Off](Metallic_Off.png)(w:341 h:600)
+		![Metallic Off](Metallic_Off.png)(w:341)
 		[/PARAM]
 		[PARAM:after]
-		![Metallic On](Metallic_On.png)(w:341 h:600)
+		![Metallic On](Metallic_On.png)(w:341)
 		[/PARAM]
 		[/OBJECT]
 
@@ -124,7 +124,7 @@ The following list highlights some of the features and restrictions Modulated sh
 * **Changing Shadow Color:** You can change the color of the shadow that Modulated shadows cast by adjusting the **Modulated Shadow Color** option in the **Light** section of the Directional Light. This is useful if you want to adjust the color of your shadows for game play or artistic reasons.
 
 	[REGION:lightbox]
-	[![](Change_Mod_Shadow_Color.png)(w:771 h:252)](Change_Mod_Shadow_Color.png)
+	[![](Change_Mod_Shadow_Color.png)(w:771)](Change_Mod_Shadow_Color.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -180,7 +180,8 @@ In the image below you can see what happens to the Modulated shadows when r.Shad
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SQ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -205,9 +206,11 @@ In the image below you can see what happens to the Modulated shadows when r.Shad
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SQ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SD]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -232,7 +235,8 @@ In the image below you can see what happens to the Modulated shadows when r.Shad
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SD]
--->
+
+[/COMMENT]
 
 
 

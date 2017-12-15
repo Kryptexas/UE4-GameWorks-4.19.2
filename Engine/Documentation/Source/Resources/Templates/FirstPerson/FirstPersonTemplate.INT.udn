@@ -4,45 +4,8 @@ Crumbs:%ROOT%
 Description:Links to various example scenes, sample games, and tutorials.
 Navigation:topic
 Version: 4.9
+topic-image:FP_FirstPersonBP_Preview.png
 
-[VAR:Params]
-[PARAM:image]
-	![](FP_FirstPersonBP_Preview.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Templates/FirstPerson:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Templates/FirstPerson:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Templates/FirstPerson]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 ![](templateMore1.png)(convert:false)
 

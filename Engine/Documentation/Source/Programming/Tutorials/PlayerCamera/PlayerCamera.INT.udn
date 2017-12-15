@@ -6,40 +6,8 @@ version:4.9
 type:how-to
 type:landing
 skilllevel:Intermediate
+topic-image:
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](newclass_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Programming\Tutorials\PlayerCamera:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming\Tutorials\PlayerCamera]
-	[/PARAM]
-	[PARAM:description]
-		%Programming\Tutorials\PlayerCamera:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](newclass_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Programming\Tutorials\PlayerCamera:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming\Tutorials\PlayerCamera]
-	[/PARAM]
-	[PARAM:description]
-		%Programming\Tutorials\PlayerCamera:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 This tutorial will show you how to activate a camera, and change your active camera from one to another.
 
@@ -55,22 +23,14 @@ This tutorial will show you how to activate a camera, and change your active cam
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\Tutorials\PlayerCamera\1 "%Programming\Tutorials\PlayerCamera\1:description%")
-	* [](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:description%")
-	* [](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:description%")
-	* [](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:description%")
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[REGION:buttonlist]
+* [](Programming\Tutorials\PlayerCamera\1 "%Programming\Tutorials\PlayerCamera\1:description%")
+* [](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:description%")
+* [](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:description%")
+* [](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:description%")
+[/REGION]
 
 
 

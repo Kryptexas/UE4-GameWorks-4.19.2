@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:3689149
+Availability: Public 
+Crumbs: %ROOT%
+Title: VR Splash Screen 노드 참고서
+Description: VR Splash Screen 각 노드의 기능에 대한 설명입니다.
+Type: Reference
+Version: 4.17
+Parent: Platforms/VR/SplashScreens
+Order:
+Tags: VR 
+
+[TOC(start:1)]
+
+## VR Splash Screen Node Reference
+
+다음은 VR 스플래시 화면 노드의 프로퍼티 각각이 하는 일에 대한 분석입니다. VR 스플래시 화면 노드를 살펴보면, 일반 유형과 Oculus 전용 유형이 있습니다. Oculus HMD 를 대상으로 삼을 때는 Oculus 전용 유형만 사용해야 할 것입니다. 다른 모든 HMD 는 일반 유형을 사용해야 합니다.
+
+## Generic Splash Screens
+
+### Enable Auto Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_EnableAutoLoading.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**In Auto Show Enabled**|true 면 레벨 로드 시 스플래시 화면을 로드합니다.|
+
+### Hide Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_Hide_Splash.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Hide Splash Screen**|스플래시 화면을 숨깁니다.|
+
+### Set Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_Set_Splash.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Texture**|스플래시에 사용할 텍스처입니다. B8R8G8A8 포맷이어야 합니다.|
+|**Scale**|텍스처의 스케일입니다.|
+|**Offest**|텍스처 렌더링을 시작할 위치입니다.|
+|**Show Loading Movie**|"로딩" 무비를 표시합니다.|
+|**Show on Set**|컴포지터 호출 시 지정된 텍스처를 표시합니다.|
+
+### Show Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_Show_Splash.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Show Splash Screen**|스플래시 화면 표시 - 스플래시 화면을 표시합니다.|
+
+## Oculus Specific Splash Screens
+
+Oculus 전용 스플래시 화면 노드 각각이 하는 일에 대한 분석은 다음과 같습니다. Oculus HMD 를 타겟으로 삼은 경우 다음 노드만 사용해야 한다는 점 유념해 주시기 바랍니다.
+
+### Add Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Add_Loading.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Texture**|스플래시 화면에 사용할 텍스처 애셋입니다. GearVR 에서는 로드 아이콘 경로로 사용하며, 다른 모든 파라미터는 현재 무시되고 있습니다.|
+|**Translation in Meters**|미터 단위 이동 - 스플래시 화면 중심의 미터 단위 초기 이동 값입니다. |
+|**Rotation**|회전 - 스플래시 화면 초기 회전으로, 피벗은 스플래시 화면 중앙에 있습니다. |
+|**Size in Meters**|미터 단위 크기 - 스플래시 화면 쿼드의 미터 단위 크기입니다. |
+|**Delta Rotation**|델타 회전 - 쿼드의 트랜스폼에 두 번째 프레임마다 더하는 증분 회전 값입니다. 쿼드는 중심을 기준으로 피벗합니다. |
+|**Clear Before Add**|true 면, 스플래시를 지운 뒤 새로 추가합니다.|
+
+### Clear Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Clear_Loading_Splash.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Clear Loading Splash Screen**|로딩 스플래시 화면 지우기 - 모든 스플래시 화면을 지웁니다.|
+
+### Enable Auto Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Enable_Auto_Load.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Auto Show Enabled**|자동 표시 활성화 - true 면, 맵이 로드중일 때 스플래시 화면 자동 표시가 활성화됩니다. |
+
+### Hide Loading Icon
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Hide_Loading.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Hide Loading Icon**|로드 아이콘 숨김 - 로드 아이콘을 지웁니다. 모든 스플래시도 지웁니다.|
+
+### Hide Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_OC_Hide_Loading_SS.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Clear**|지우기 - 숨긴 후 모든 스플래시 화면을 지웁니다.|
+
+### Is Auto Loading Splash Screen Enabled
+
+![](Platforms\VR\SplashScreens\VRLS_OC_IsAutoLoasding.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Is Auto Loading Splash Screen Enabled**| 스플래시 화면 자동 로딩 - LoadMap 이 호출되면 스플래시 화면을 자동 로드할지 여부를 반환합니다.|
+
+### Is Loading Icon Enabled
+
+![](Platforms\VR\SplashScreens\VRLS_OC_IsLoadingIconEnabled.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Is Loading Icon Enabled**| 아이콘 로딩 활성화 - 스플래시 화면이 아이콘 로딩 모드인 경우 true 를 반환합니다.|
+
+### Show Loading Splash Screen
+
+![](Platforms\VR\SplashScreens\VRLS_OC_ShowLoadingSplashScreen.png)
+
+|세팅 이름|설명|
+|---------------|----------------------------------------------------|
+|**Show Loading Splash Screen**| 로딩 스플래시 화면 표시 - 로딩 스플래시 화면을 표시합니다.|

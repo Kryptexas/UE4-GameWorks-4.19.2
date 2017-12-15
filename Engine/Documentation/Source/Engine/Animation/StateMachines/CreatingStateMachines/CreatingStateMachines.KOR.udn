@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3198499
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 스테이트 머신 생성
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
@@ -7,7 +7,7 @@ version: 4.14
 related:Engine\Animation\StateMachines\EditingStateMachines
 related:Engine\Animation\StateMachines\TransitionRules
 related:Engine\Animation\AnimBlueprints
-
+type:how-to
 
 실제로 [스테이트 머신](Engine\Animation\StateMachines\Overview) 을 생성하기 전, 시간을 조금 들여서 정확히 어떤 스테이트(상태)가 필요한지, 그리고 각 스테이트 사이의 트랜지션(이행)을 유발시키는 정황에 대해서도 미리 계획을 세우는 것이 좋습니다. 그러면 스테이트 머신 뿐만 아니라 그것을 구동시키는 변수는 물론, 어떤 애니메이션이 각 상태의 부분이 될 것인지에 대해 확고한 공략 계획이 서게 됩니다.
 

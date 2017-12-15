@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title: 优化的核心概念
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description: 优化特效时鉴别问题。
@@ -30,7 +30,8 @@ Version:4.9
 
 **`STAT PARTICLES`** 会列出与游戏线程和渲染线程相关的多个统计数据。 注意描画调用函数（渲染线程）和更新时间（游戏线程）。
 
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 
 
@@ -57,7 +58,8 @@ Version:4.9
 
 
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 
 

@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 There may be times when you want to toggle the visibility of entire [**Levels**](Engine/Levels/) during your sequences. You can do so with the **Level Visibility Track** by setting Levels to either **Visible** or **Hidden** within Sequencer. 
 This does not stream in/out the level but sets all the content within the level to either Visible or Hidden. 

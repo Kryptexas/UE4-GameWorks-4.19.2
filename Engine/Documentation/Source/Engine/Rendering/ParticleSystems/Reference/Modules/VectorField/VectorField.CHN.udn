@@ -110,7 +110,8 @@ Description:矢量场模块参考，提供了GPU粒子的3D运动网格数据
 
 
 
-<!---------Vector Field Includes--------
+[COMMENT:none]
+-------Vector Field Includes--------
 [EXCERPT:LocalTranslateNote]
 [REGION:note]
 	尽管您可以用改变数字的方法来平移本地矢量场，但通过 **预览** 面板的移动控件来进行这项操作要直观得多。 您可以在选中发射器列表的本地矢量场模块后，访问该控件。
@@ -121,4 +122,5 @@ Description:矢量场模块参考，提供了GPU粒子的3D运动网格数据
 
 
 
---------End Vector Field Includes----------->
+--------End Vector Field Includes---------
+[/COMMENT]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:폴리지, 인스턴싱된 메시
 Crumbs:%ROOT%, Engine
@@ -7,46 +7,8 @@ Version: 4.12
 SkillLevel:Intermediate
 parent:Engine
 order:11
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/foliage_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Foliage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Foliage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Foliage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/foliage_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Foliage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Foliage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Foliage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Foliage/foliage_topic.png
+topic-icon:%ROOT%/foliage_icon.png
 
 [REGION:header_img]
 ![Foliage Tool](Foliage_Banner.png)(w:900)
@@ -132,29 +94,35 @@ order:11
 박스 하나를 체크하면 폴리지 메시가 그 액터 유형 위에 툴을 사용한 것처럼 폴리지 메시가 추가됨을 나타냅니다.
 박스 체크를 해제하면 그 액터 유형에 폴리지 메시가 추가되지 않음을 나타냅니다.
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:PaintDensity]
 **왼쪽 마우스** 버튼으로 인스턴스를 칠할 때 목표로 삼을 밀도입니다.
 * 이 값의 범위는 0 에서 1 까지로, 1 은 각 메시에 대해 메시 프로퍼티에 나열된 최대 밀도로 메시 인스턴스를 칠합니다 (아래 참고).
 * 브러시 내 메시의 밀도가 이보다 크면, 메시가 추가되지 않습니다.
 [/EXCERPT:PaintDensity]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:EraseDensity]
 **Ctrl+Shift+클릭** 으로 인스턴스를 지울 때 목표로 삼을 밀도입니다.
 * 이 값의 범위는 0 에서 1 까지로, 0 은 메시가 없음을, 1 은 각 메시에 대한 메시 프로퍼티에 나열된 최대 밀도를 나타냅니다. 이 지우기 밀도보다 메시가 적은 경우, 메시를 더이상 지우지 않습니다.
 * 이미 칠해진 메시 인스턴스를 완전히 지우지는 않으면서 연하게 만들 수 있습니다.
 [/EXCERPT:EraseDensity]
---->
+-
+[/COMMENT]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:Filter]
 인스턴스를 어떤 종류의 오브젝트 위에 배치할 것인지 입니다.
 * 폴리지 구체 브러시가 필터 유형에 맞지 않는 오브젝트 위에 있으면 사라지는 것이 보입니다.
 * 참고로 활성 스트리밍 레벨에 있는 오브젝트에만 칠할 수 있습니다.
 [/EXCERPT:Filter]
---->
+-
+[/COMMENT]
 
 [REGION:note]
 태블릿 압력 감지 기능도 지원됩니다. 다른 모든 파라미터를 고려한 이후, 펜 압력을 통해 증감되는 폴리지 메시 인스턴스의 수가 변조됩니다.
@@ -471,7 +439,8 @@ foliage.DensityScale 세팅이 0.1 에서 1.0 까지 0.1 단위로 증가함에 
 [INCLUDE:Engine\Foliage\#FS]
 [/REGION]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:FS]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -500,7 +469,8 @@ foliage.DensityScale 세팅이 0.1 에서 1.0 까지 0.1 단위로 증가함에 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FS]
--->
+
+[/COMMENT]
 
 
 

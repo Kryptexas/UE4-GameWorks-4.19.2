@@ -65,13 +65,13 @@ This Material blends between two final looks based on the angle of the terrain s
 
 
 
-<!---
+[COMMENT:none]
 [EXCERPT:SlopeDiagram]
 [REGION:raw]
 ![](LandSlopeDiagram.png)
 [/REGION]
 [/EXCERPT:SlopeDiagram]
---->
+[/COMMENT]
 
 
 [VAR:GrassSize]
@@ -112,13 +112,15 @@ Below is a simplified example where we blend from red, to green, to blue to crea
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OutlineBlendNetwork]
 [REGION:lightbox]
 [![](OutlineBlend.png)(w:500)](Resources/Showcases/Stylized/Landscape/OutlineBlend.png)
 [/REGION]
 [/EXCERPT:OutlineBlendNetwork]
--->
+
+[/COMMENT]
 
 ### Landscape Splines
 

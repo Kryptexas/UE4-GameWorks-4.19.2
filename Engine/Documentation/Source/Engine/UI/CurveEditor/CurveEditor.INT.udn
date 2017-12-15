@@ -3,45 +3,7 @@ Title:Curve Editor
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Tool for interactively setting up and modifying curves to drive values of Distribution properties.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/CurveEditor:title%](Engine/UI/curveEditor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/CurveEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/CurveEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/CurveEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/CurveEditor:title%](Engine/UI/curveEditor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/CurveEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/CurveEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/CurveEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/UI/curveEditor_topic.png
 
 [TOC(start:2)]
 

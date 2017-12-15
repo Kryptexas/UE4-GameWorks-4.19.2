@@ -70,11 +70,11 @@ The **Selection** tool selects Landscape components, one at a time, for subseque
 
 The selection cursor is always limited to one component:
 
-![selection_cursor.jpg](Engine/Landscape/Editing/Brushes/selection_cursor.jpg)(w:900 h:453)
+![selection_cursor.jpg](Engine/Landscape/Editing/Brushes/selection_cursor.jpg)(w:900)
 
 When components have been selected, they become shaded red:
 
-![selection_components.jpg](selection_components.jpg)(w:900 h:453)
+![selection_components.jpg](selection_components.jpg)(w:900)
 
 | Option | Description |
 | ------ | ----------- |
@@ -93,11 +93,11 @@ The **Add** tool creates new components for the current Landscape, one at a time
 
 When the Add Landscape Component tool is active, the cursor shows a green wireframe where new components can be added:
 
-![selection_add_cursor.jpg](selection_add_cursor.jpg)(w:900 h:453)
+![selection_add_cursor.jpg](selection_add_cursor.jpg)(w:900)
 
 Using the tool adds a new component where the cursor is located:
 
-![selection_add.jpg](selection_add.jpg)(w:900 h:453)
+![selection_add.jpg](selection_add.jpg)(w:900)
 
 
 #### Delete
@@ -111,11 +111,11 @@ The **Delete** tool deletes selected components.
 | **Left Mouse Button click** | Deletes selected components selected by the Selection tool. If no components are currently selected, deletes the component highlighted by moving the mouse cursor over it. |
 
 
-![selection_remove_cursor.jpg](selection_remove_cursor.jpg)(w:900 h:453)
+![selection_remove_cursor.jpg](selection_remove_cursor.jpg)(w:900)
 
 Using the tool removes the selected components:
 
-![selection_remove.jpg](selection_remove.jpg)(w:900 h:453)
+![selection_remove.jpg](selection_remove.jpg)(w:900)
 
 [REGION:note]
 If you want more control over what areas of your Landscape the player can get through. Check out the [Landscape Hole Material](Engine/Landscape/Materials#landscapeholematerials).
@@ -129,11 +129,11 @@ This tool moves the selected components, via using the Selection tool, to the cu
 
 When the streaming level is visible, the Landscape renders all the components:
 
-![selection_movestream_visible.jpg](selection_movestream_visible.jpg)(w:900 h:453)
+![selection_movestream_visible.jpg](selection_movestream_visible.jpg)(w:900)
 
 You can toggle the visibility of the level by clicking the eye icon (![Level Window Eye Icon](icon_Landscape_LevelWindowEye.png)) for that level in the **Levels** window (accessible on the Level Editor's **Window** menu). Doing so causes the components in that level to no longer be rendered:
 
-![selection_movestream_invisible.jpg](selection_movestream_invisible.jpg)(w:900 h:453)
+![selection_movestream_invisible.jpg](selection_movestream_invisible.jpg)(w:900)
 
 
 #### Change Component Size

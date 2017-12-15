@@ -48,16 +48,10 @@ type:quickstart
 
 %Globals:OSSelect%
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Platforms/iOS/QuickStart/1 "%Platforms/iOS/QuickStart/1:description%")
 	* [](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:description%")
 	* [](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:description%")
@@ -67,5 +61,5 @@ type:quickstart
 	* [](Platforms/iOS/QuickStart/7 "%Platforms/iOS/QuickStart/7:description%")
 	* [](Platforms/iOS/QuickStart/8 "%Platforms/iOS/QuickStart/8:description%")
 	* [](Platforms/iOS/QuickStart/9 "%Platforms/iOS/QuickStart/9:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

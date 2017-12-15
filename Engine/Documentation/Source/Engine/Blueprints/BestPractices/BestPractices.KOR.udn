@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 실전 사례
 Crumbs:%ROOT%, Engine/Blueprints
@@ -6,39 +6,7 @@ Description:블루프린트를 언제 사용할 것인지와 그 최적의 구�
 version: 4.9
 parent:Engine/Blueprints
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](Engine/Blueprints/BestPractices_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![](Engine/Blueprints/BestPractices_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:BestPractices_Topic.png
 
 [TOC(start:2)]
 

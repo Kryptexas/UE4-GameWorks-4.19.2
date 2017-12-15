@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429233
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:애니메이션 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -138,7 +138,8 @@ tags:Getting Started
 | **Notifies** | 현재 발효중인 노티파이 스테이트를 표시합니다. |
 | **Graph** | 활성 포즈 그래프를 표시합니다. 최종 포즈를 나타내는 마지막 (루트) 노드로 시작해서 그 최종 포즈를 이루는 모든 노드가 나열됩니다. 노드는 계층구조가 유지되는 방식으로 표현되어, 사용자는 원본 블루프린트 애셋을 확인할 필요 없이 어떤 노드가 연결되었는지 확인할 수 있습니다. 활성 노드는 (`ShowDebugToggleSubCategory FullGraph` 명령으로 표시되도록 토글된 경우) 초록색, 비활성 노드는 회색으로 표시됩니다. |
 
-<!-- Pulled from the intro section (overkill for overview page).
+[COMMENT:none]
+ Pulled from the intro section (overkill for overview page).
 		
 		**Additive Animation**
 		
@@ -182,4 +183,5 @@ tags:Getting Started
 		**Morph Targets**
 
 		[INCLUDE:Engine/Content\FBX\MorphTargets#Intro]
--->
+
+[/COMMENT]

@@ -5,42 +5,9 @@ Availability:Public
 Parent:Platforms/iOS
 order:2
 type:how-to
+topic-image:topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/iOS/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/iOS/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-![](Platforms\Mobile\Achievements\iOSachievements.png)(w:320 convert:false)
+![](Platforms/Mobile/Achievements/iOSachievements.png)(w:320 convert:false)
 
 ## Configuration
 

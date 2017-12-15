@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:3622862
+Availability:Public
+Crumbs: %ROOT%
+Title:Rift 命令参考
+Description:Rift 可使用的诸多命令。
+Type:Reference
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+Tags:VR
+Tags:Platform
+topic-image:oculus_command_reff.png
+
+以下部分包含诸多 INI 和控制台命令，可用于调整 UE4 和 Oculus Rift 相互互动的方式。 
+ 
+
+## Oculus Rift VR Mirror 模式
+
+VR 镜像（VR Mirror）是视口窗口的名称，这个视口能使非 VR 用户看到 VR 用户看到的景象。使用 Oculus Rift 时，可使用几种方式修改 VR 镜像的显示方式。以下命令可用来修改 VR 镜像模式的显示方式，以及 VR 镜像所显示出的效果。
+
+[REGION:note]
+按下重音符 **`** 键打开 UE4 控制台，然后输入 **VR.MirrorMode** 和以下数字，即可输入命令。
+[/REGION]
+
+
+|命令|描述|图像|
+|-----------|-------------------|----------------|
+|VR.MirrorMode 0|禁用 VR 镜像|N/A|
+|VR.MirrorMode 1| 不带变形的单眼显示。|[REGION:lightbox][![](Rift_VRMode_1.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 2| 不带光学变形的双眼立体显示。|[REGION:lightbox][![](Rift_VRMode_2.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 3| 带光学变形和 Guardian 边界的双眼显示。|[REGION:lightbox][![](Rift_VRMode_3.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 4| 立体单眼显示。|[REGION:lightbox][![](Rift_VRMode_4.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 5| 宽银幕单眼显示。|[REGION:lightbox][![](Rift_VRMode_5.png)(w:160)](Rift_VRMode_1.png)[/REGION]|

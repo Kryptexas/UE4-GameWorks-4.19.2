@@ -51,22 +51,16 @@ Description:通过扩展Pawn类来对玩家输入进行响应、
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\PlayerInput\1 "%Programming\Tutorials\PlayerInput\1:description%")
 	* [](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:description%")
 	* [](Programming\Tutorials\PlayerInput\3 "%Programming\Tutorials\PlayerInput\3:description%")
 	* [](Programming\Tutorials\PlayerInput\4 "%Programming\Tutorials\PlayerInput\4:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

@@ -3,40 +3,8 @@ Title:Transform Bone
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Describes the Transform Modify Bone control which can be used to modify the transform of a specified bone. 
 version: 4.12
+topic-image:node_modifybone.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TransformBone:title%](Engine\Animation\NodeReference\SkeletalControls\TransformBone\node_modifybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TransformBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TransformBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TransformBone:title%](Engine\Animation\NodeReference\SkeletalControls\TransformBone\node_modifybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TransformBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TransformBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 The **Transform (Modify) Bone** control can be used to modify the transform of a specified bone. 
 

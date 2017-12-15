@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3474032
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title:렌즈 플레어
@@ -32,7 +32,8 @@ Topic-image:LensFlare_Topic.png
 
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:Tint]
 [OBJECT:ComparisonSlider]
@@ -77,4 +78,5 @@ Topic-image:LensFlare_Topic.png
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:BokehShape]
--->
+
+[/COMMENT]

@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 One of the methods real-world filmmakers use to produce smooth, sweeping shots, is by attaching a camera to a crane and controlling the shot with the crane's movement.
 You can create similar shots in Sequencer with the use of the **Camera Rig Crane** Actor and an attached **Camera**. You can keyframe the crane's Pitch, Yaw, or the length 

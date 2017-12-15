@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 생명력, 에너지, 탄창 표시하기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -23,7 +23,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ## 비주얼: 생명력, 에너지, 탄창
 
@@ -187,7 +187,7 @@ tags:UMG UI Designer
 	
 다음 섹션에서는 지금까지 구성한 게임을 로드하는 데 사용할 수 있는 메인 메뉴를 만들겠습니다.
 
-%Steps%
+
 
 
 

@@ -11,44 +11,26 @@ parent:Platforms/Mobile
 tags:Mobile
 tags:iOS
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Starting Out
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## Starting Out
+
+[REGION:buttonlist]
+
 		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quickstart")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		iOS 开发指南
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## iOS 开发指南
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		通用 iOS 开发
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 通用 iOS 开发
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

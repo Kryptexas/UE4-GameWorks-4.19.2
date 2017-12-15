@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3596779
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: Online Subsystem Steam
 Crumbs:%ROOT%, Programming
@@ -187,30 +187,23 @@ shipping 빌드에서 엔진은 로그인된 유저가 게임에 제대로 가�
 
 이 간략 안내를 마친 이후 어플리케이션의 `DefaultEngine.ini` 파일은 다음 세팅 블록같아 보일 것입니다. 다른 프로젝트에서 Online Subsystem 을 셋업하고 사용한 방법을 살펴보려면, Sample Project 라이브러리를 참고하세요.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Finished Settings
-    [/PARAM]
-    [PARAM:content]
-		**DefaultEngine.ini**
-			[/Script/Engine.GameEngine]
-			+NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
+#### 완성 세팅
+    
+**DefaultEngine.ini**
+
+	[/Script/Engine.GameEngine]
+	+NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
 			
-			[OnlineSubsystem]
-			DefaultPlatformService=Steam
+	[OnlineSubsystem]
+	DefaultPlatformService=Steam
 
-			[OnlineSubsystemSteam]
-			bEnabled=true
-			SteamDevAppId=480
+	[OnlineSubsystemSteam]
+	bEnabled=true
+	SteamDevAppId=480
 
-			[/Script/OnlineSubsystemSteam.SteamNetDriver]
-			NetConnectionClassName="OnlineSubsystemSteam.SteamNetConnection"
-    [/PARAM]
-[/OBJECT]
-
+	[/Script/OnlineSubsystemSteam.SteamNetDriver]
+	NetConnectionClassName="OnlineSubsystemSteam.SteamNetConnection"
+    
 ##추가 참고사항
 
 ### 모듈 셋업

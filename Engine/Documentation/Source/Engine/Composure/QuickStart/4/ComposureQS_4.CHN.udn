@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3600078
 Availability:Docs
-Title:4 - Composure Level Sequence Setup
+Title:4 - Composure 关卡序列设置
 Crumbs:%ROOT%
-Description:In this step, we will setup the level Sequence that Composure will use. 
+Description:在这步中我们将对 Composure 使用的关卡序列进行设置。 
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,61 +13,61 @@ tags:Composure
 
 [NAV]
 
-In the last section, we created the needed Level Sequence need for Composure to work. In the following section, we will set this Level Sequence up so that it will work with Composure when played.
+上一部分中我们创建了 Composure 所必需的关卡序列。下一部分中我们将对此关卡序列进行设置，使其在播放时与 Composure 兼容。
 
-## Steps
+## 步骤
 
-1. First, in the **Sequencer** tab add a new **Camera Cut** track by pressing the green **+Track** button and selecting **Camera Cut** from the displayed list.
+1. 首先点击绿色的 **+Track** 按钮并从出现的列表中选择 **Camera Cut**，在 **Sequencer** 标签中添加一个新的 **Camera Cut** 轨道。
 
     ![](ComposureQS_S4_1.png)
 
-1. Over in the **World Outliner**, select the **Cine Camera Actor** and then drag it from the World Outliner to the Sequencer window to add it to the timeline.
+1. 在 **World Outliner** 上选择 **Cine Camera Actor**，然后将其从 World Outliner 拖至 Sequencer 窗口，添加到时间轴。
 
     [REGION:lightbox]
     [![](ComposureQS_S4_2.png)(w:857)](ComposureQS_S4_2.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
 	[region:note]
-	When adding any content over the next few steps, make sure that the timeline is on frame 1098 or things will not match up correctly.
+	在之后数个步骤中进行内容添加时需要确保时间轴位于 1098 帧上，否则内容将无法正确匹配。
 	[/region]
 
-1. Then in the Camera Cut track, press the **+Camera** button and select the Cine Camera Actor that was just added to Sequencer.
+1. 然后在 Camera Cut 轨道中按下 **+Camera** 按钮，并选中之前被添加到 Sequencer 的电影摄像机 Actor。
 
     ![](ComposureQS_S4_3.png)
 
-1. Next, add the following Blueprints to Sequencer by selecting them in the World Outliner and then dragging them into Sequencer tracks, just like with the Cine Camera Actor and when completed, your Track view should look like the following image:
+1. 接下来在 World Outliner 中选中以下蓝图并将它们添加到 Sequencer 轨道中。完成操作后，轨道的视图与下图类似：
 
     * **BP_AdvancedCompositingSkeletalMesh**
     * **BP_AdvancedCompositing Blueprints**
 
     ![](ComposureQS_S4_4.png)
 
-1. In the Track list, under the BP_AdvancedCompositingSkeletalMesh Blueprint press the **Plus** sign next to the **Animation** section and from the displayed list, select the **mocap_patio_walk** animation.
+1. 在轨道列表中的 BP_AdvancedCompositingSkeletalMesh 蓝图下按下 **Animation** 旁的 **加号**，然后从显示的列表中选择 **mocap_patio_walk** 动画。
 
     ![](ComposureQS_S4_5.png)
 
-1. Make sure that the timeline is on frame **1098** and then in the **Transform** section of the BP_AdvancedCompositingSkeletalMesh, set the **Location** and **Rotation** to the following values:
+1. 确保时间轴位于第 **1098** 帧上，然后在 BP_AdvancedCompositingSkeletalMesh 的 **Transform** 部分将 **Location** 和 **Rotation** 设为如下数值：
 
-    *    **Location:** -20, -140, 0
-    *    **Rotation:** 0, 0, 5 
+    *    **Location:**-20, -140, 0
+    *    **Rotation:**0, 0, 5 
 
     [REGION:lightbox]
     [![](ComposureQS_S4_6.png)(w:857)](ComposureQS_S4_6.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Next, right - click on the **CineCameraActor1** in the Track list and from the menu select the **Import** option. From the displayed window, navigate to the **cam_SH03_undistorted_export_v01.fbx** file that was download in the first section of this Quick Start select it and then press the **Open** button to import it.
+1. 接下来在轨道列表中点击 **CineCameraActor1**，然后从菜单中选择 **Import** 选项。然后在显示的窗口中导航至本入门指南的第一部分中下载的 **shot0030_camera_export.fbx** 文件，将其选中后按下 **Open** 键导入。
 
     ![](ComposureQS_S4_7.png)
 
-1. In the **Camera Cut** track, click on the **Camera** icon to see through the camera and then scrub the timeline to see the camera and mannequin move in relation to one another.
+1. 在 **Camera Cut** 轨道中点击 **Camera** 图标，通过摄像机进行查看；然后拖动时间轴查看摄像机和人体模型之间的相互动作。
 
     [OBJECT:EmbeddedVideo]
         [PARAMLITERAL:videoid]
@@ -87,13 +87,13 @@ In the last section, we created the needed Level Sequence need for Composure to 
         [/PARAMLITERAL]
     [/OBJECT]
 
-1. Now, we need to add the following Composure specific inputs  by clicking on the **Plus** icon on the right hand side of the BP_AdvancedCompositing Blueprint and selecting the following items from the list:
+1. 现在我们需要添加以下 Composure 特定的输入：点击 BP_AdvancedCompositing 蓝图右侧的 **加号**，并从列表中选择以下项目：
 
     *    **Input 0**
     *    **Input 1**
     *    **Distortion Displacement Map**
 		[region:note]
-		The Distortion Displacement Map track will look empty after adding the image sequance due to the Image Plate asset having a frame rate of 0. 
+		添加图像序列后 Distortion Displacement Map 轨道将为空白，因为 Image Plate 资源的帧率设为 0。 
 		[/region]
     *    **Overscan Sensor Width**
     *    **Overscan Sensor Height**
@@ -105,10 +105,10 @@ In the last section, we created the needed Level Sequence need for Composure to 
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. With the required Composure tracks now added, make sure that the timeline is set to frame 1098 and then enter the following data by pressing the **Plus** sign next to each track and selecting the data or by inputting a number in the number input:
+1. 添加所需的 Composure 轨道后，将时间轴设为 1098 帧，然后按下每个轨道旁的 **加号** 输入选择数据、或在数字输入中进行输入，将以下数据输入：
 
     *    **Input 0** shot0030_background
     *    **Input 1** shot0030_matte
@@ -116,19 +116,19 @@ In the last section, we created the needed Level Sequence need for Composure to 
     *    **Overscan Sensor Width** 37.795
     *    **Overscan Sensor Height** 21.238
     *    **Compositing Mode** Shadow + Occlusion
-    *    **Shadow Color Grading > Gain** X: -0.28, Y: -0.35 Z: -0.25
+    *    **Shadow Color Grading > Gain** X:-0.28, Y:-0.35 Z:-0.25
 
     [REGION:lightbox]
     [![](ComposureQS_S4_9.png)(w:654)](ComposureQS_S4_9.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-## End Result
+## 最终结果
 
-With Sequencer and Composure now setup to be used together, in the next section we will take a look at setting up the needed Game Mode and Level Blueprint Logic that will help all of this work together when the play or simulate button is pressed.
+设置好 Sequencer 和 Composure 的兼容后，下一部分将设置所需的游戏模式和关卡蓝图逻辑，按下 Play 或 Simulate 键后即可将所有内容串联起来。
 
 
 [NAV]

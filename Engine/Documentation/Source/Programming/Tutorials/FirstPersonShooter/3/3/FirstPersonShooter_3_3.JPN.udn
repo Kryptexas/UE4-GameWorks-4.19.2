@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 現時点で、発射物 (プロジェクタイル) は以下のようになっています。
 
@@ -130,4 +130,3 @@ Version:4.15
 
 	![](BuildFPSProject.png)
 
-%Steps%

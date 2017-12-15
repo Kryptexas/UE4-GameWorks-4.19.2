@@ -17,14 +17,7 @@ Description:关于使用环境音Actor创建游戏中的环境音效和局部音
 ## Ambient Sound Actor（环境音Actor）
 
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](ambientActors.png)
-	[/PARAM]
-	[PARAM:description]
-	
-	[/PARAM]
-[/OBJECT]
+![](ambientActors.png)
 
 **Ambient Sound Actor** (左侧图片中的图标) 可以用于很多地方，比如循环播放的环境音及非循环播放的环境音。 
 一般， **Ambient Sound Actor** 和真实世界中的效果一致，您距离该声音越近，听上去声音就越大。 相反，一个正常时很大的声音，当您离远时听到的声音可能会变得更柔和。 

@@ -1,23 +1,24 @@
-﻿INTSourceChangelist:3602938
+﻿INTSourceChangelist:3717037
 Availability:Public
-Title:アニメーションとアニメーションのブレンド
+Title:アニメーションのブレンドとプロパティ
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:シーケンサーで Skeletal Mesh アクタにアニメーションを適用する方法とアニメーションのブレンドについて説明します。 
+Description:シーケンサーで Skeletal Mesh アクタにアニメーションを適用する方法、アニメーションのブレンド、ブレンドのプロパティ値についても説明します。 
 Type: how-to
 SkillLevel:Intermediate
-Version:4.15
+Version:4.17
 Parent:Engine/Sequencer/HowTo
 Order:1
 Tags:Sequencer
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
-
+type:how-to
 
 シネマティック シーケンスを作る場合、シーン内でキャラクターを動かしたり、何らかのアニメーションを実行させたいことがあるでしょう。
 **シーケンサー** では、Skeletal Mesh アクタをレベル シーケンスに追加してから、アニメーションのサブトラックを追加し、アクタに行わせたいアニメーションを指定することでこれが行われます。
-上記のプロセスを繰り返し、アクタに行わせたい様々なアニメーションを追加することでシネマティック シーケンスでキャラクターが生き生きとしたものになります。
+プロパティのトラックを既存のプロパティのトラックにドラッグ＆ドロップすることで、アニメーション (およびプロパティ値) のクロスフェードとブレンドを自動的に行うことができます。 
+これを行う場合、自動ブレンドが適用されます。これは、イージング プロパティを使って、または、独自のカスタム カーブ アセットを定義することで微調整することができます。 
 
-このガイドでは、キャラクターが歩行を開始し、歩行からジャンプのアニメーションにブレンドする小さなシーンを作ります。 
+このガイドでは、キャラクターの歩行からジャンプへ、そして再び歩行へと戻り、ブレンドするアニメーション シーケンスのサンプルを作成します。 
 
 ![](AnimationBlending.png)(w:720 h:480)
 
@@ -35,7 +36,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 
 	![](CharacterAnim_02.png)
 
-1.	**SK_Mannequin** アセットを選択したままの状態で、シーケンサー で **[Add]** ボタンをクリックして、レベル シーケンスに追加します。 
+1.	**[SK_Mannequin]** アセットを選択したままの状態で、シーケンサーで **[Track]** ボタンをクリックして、レベル シーケンスに追加します。 
 
 	![](CharacterAnim_03.png)
 
@@ -43,62 +44,56 @@ Related:Engine\Sequencer\ReferenceEditor\
 
 	![](CharacterAnim_04.png)
 
-1.	**Animation** を展開します。次に、**Timeline** を **30** フレームのマークまでドラッグします。 
+1.	タイムラインを **30** までスクラブして、**[Animation]** ボタンをクリックし、**ThirdPersonJump_Start** アニメーションを追加します。 
 
 	![](CharacterAnim_05.png)
 
-1.	**[Animation]** ボタンを再度クリックし、**ThirdPersonJump_Start** アニメーションを追加します。 
+1.	トラック ウィンドウの **ThirdPersonJump_Start** アニメーションを左クリックして、フレーム **25** に戻って **ThirdPersonWalk** にドラッグします。 
 
 	![](CharacterAnim_06.png)
 
-	これでアニメーションを再生すると、2 つのアニメーション間にポップがあるのがわかります。 
+	[REGION:tip]
+	タイムライン上でアニメーションをドラッグする場合、負の数字はタイムラインで戻るフレーム数を示し、正の数は、タイムラインで前方に進むフレーム数を示します。
+	[/REGION]
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:videoid]
-	oHjDpYPAdCo
-	[/PARAMLITERAL]
-	[PARAMLITERAL:width]
-	100
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	56.25
-	[/PARAMLITERAL]
-	[PARAMLITERAL:units]
-	%
-	[/PARAMLITERAL]
-	[PARAMLITERAL:type]
-	simple
-	[/PARAMLITERAL]
-	[/OBJECT]
-
-	アニメーションを追加する場合、ウェイト値を使って複数のアニメーションをブレンドすることが可能であり、これによりアニメーション間のポップに対処します。 
-
-1.	**ThirdPersonJump_Start** アニメーションを歩行アニメーションの下にドラッグし、シーケンスのフレーム **25** に戻します。 
+1.	フレーム **39** に、**ThirdPersonJump_Loop** を追加し、それを **ThirPersonJump_start** に後方にドラッグし、フレーム **34** からクロスフェードさせます。 
 
 	![](CharacterAnim_07.png)
 
-1.	両方のサブ アニメーション トラックを展開し、値 **1.0** の歩行トラック上と値 **0.0** のジャンプ開始アニメーション上で **add key** ボタンをクリックします。 
+1.	**ThirdPersonJump_End** アニメーションを追加し、それを **2** フレームでクロスフェードさせます。 
 
 	![](CharacterAnim_08.png)
 
-	ウェイト値が 0.0 であるため、これでジャンプ開始アニメーションの再生がオフになります。 
-
-1.	フレーム **30** までスクラブし、歩行のアニメーションに対して **0.0** とジャンプのアニメーションに対して **1.0** のそれぞれにキーを追加します。 
+1.	**ThirdPersonWalk** を追加し、それを **3** フレームでクロスフェードさせます。 
 
 	![](CharacterAnim_09.png)
 
-	これでジャンプ開始アニメーションにブレンドインし、歩行アニメーションからブレンド アウトします。 
+1.	いずれかのクロスフェードの開始地点で、上の三角アイコンを右クリックして、**[Easing Curve]** オプションを表示させます。 
 
-1.	アニメーションのブレンドを見るには、**[Preview Play]** ボタンをクリックします。 
+	![](CharacterAnim_10.png)
+
+1.	**[Options]** セクションで、必要な **Easing** オプションを選択して、カーブをどのように操作するかを定義します。 
+
+	![](CharacterAnim_11.png)
+
+	または、**[Method]** を **[Curve Asset]** に変更することができます。 
+
+	![](CharacterAnim_12.png)
+
+	これを行う場合、**[Option]** セクションで、どのカスタム **Curve** アセットを使用するかを定義することができます。 
+
+	![](CharacterAnim_13.png)
+
+1.	ブレンドを見るにはシーケンスのタイムラインをスクラブするか、**[Preview Play]** ボタンをクリックします。 
 
 
 ## 最終結果
 
-シーケンスは複数のアニメーションを持つスケルタルメッシュを含むようになります。アニメーション間でポッピングせずに滑らかにブレンドします。 
+シーケンスは複数のアニメーションを持つスケルタルメッシュを含むようになります。利用可能なイージング オプションを使ってブレンドを調整し、アニメーション間で滑らかにブレンドします。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
-kVotxriT1Y4
+ZV_jKfrmVM0
 [/PARAMLITERAL]
 [PARAMLITERAL:width]
 100
@@ -114,4 +109,44 @@ simple
 [/PARAMLITERAL]
 [/OBJECT]
 
-このサンプルで作業を続けてアニメーションのジャンプ ループとジャンプ エンドを追加してブレンドし、キャラクターをジャンプさせて、着地させることができます。 
+### ウェイト値でブレンドする
+
+アニメーションのブレンドのもうひとつの方法として、アニメーション トラックで **[Weight]** サブトラックを使うやり方があります。 
+
+以下ではウェイト値 **1.0** のアニメーションと、 **0.0** のもうひとつのアニメーションがあります。 
+
+![](CharacterAnim_14.png)
+
+次にタイムラインを前方にスクラブし、それぞれのウェイト値を逆にして 2 つの値の間で補間してアニメーションをブレンドさせます。
+
+![](CharacterAnim_15.png)
+
+### プロパティ値をブレンドする
+
+ブレンドはアニメーションだけに限定されません。2D/3D トランスフォーム、ベクター、色、浮動小数点も自動的にブレンドされます。 
+
+デフォルトでトランスフォーム、ベクター、色、および類似のトラックは **[Infinite]** に設定されます。つまり、プロパティ値はシーケンス全体で持続性があります。 
+このオプションをオフにしてプロパティ **セクション** を使用することで、こうしたセクションをブレンドすることができます。以下の動画では、このガイドに類似したやり方を用いてシーケンサー内でライトの色を一定時間ブレンドしました。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+w9j6RaMG9Nc
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+

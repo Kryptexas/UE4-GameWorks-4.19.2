@@ -1,29 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 1. 基本設定
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:coloroverride]
-		#000000
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このクイックスタートでは、プロジェクトで利用できるものを前提にしています。そのため、それに代わるものを作成したり、ただちに対処が難しい場合は、プロジェクトを以下のように設定します。
 
@@ -41,8 +27,8 @@ version:4.9
 新規プロジェクトの開始についての詳細情報が必要な場合は、[プロジェクト ブラウザ](Engine/Basics/Projects/Browser) ユーザーガイドをご覧ください。
 
 [/EXCERPT:AIProjectStart]
-%Steps%
 
+[NAV]
 
 
 

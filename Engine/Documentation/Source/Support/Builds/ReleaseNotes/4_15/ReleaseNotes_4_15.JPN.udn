@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3303749
+﻿INTSourceChangelist:3403469
 Availability:Public
 Title:アンリアル エンジン 4.15 リリース ノート
 Description:Unreal Engine 4.15 リリース ノート
@@ -376,7 +376,7 @@ Motion Controller コンポーネントで "Hand" の値を “Gun” に変え�
 	YbjqiNZr4K4
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
-	720		
+	720
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
 	408
@@ -385,7 +385,7 @@ Motion Controller コンポーネントで "Hand" の値を “Gun” に変え�
 	simple
 	[/PARAMLITERAL]
 [/OBJECT]
-
+th
 単に時間の関数のマテリアル頂点アニメーションが改善なしに既に機能していますが、マテリアル パラメータなどアニメーションに影響を与える他の変数を取ることができません。Previous Frame Switch (前フレーム スイッチ) を使用すると、例えば、ブループリントでこうしたパラメータがどのように変化するかを追跡できれば、アーティストはこの問題を手動で解決できます。
 
 この機能を使用する場合は、頂点変形からの正確なべロシティを有効にする必要があります。
@@ -493,7 +493,8 @@ Metal サポートには、開発のためにデフォルトで有効になる�
 | | |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlendspacePreview]
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -510,7 +511,8 @@ Metal サポートには、開発のためにデフォルトで有効になる�
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:BlendspacePreview]
--->
+
+[/COMMENT]
 
 * **サンプルのプロパティを変更する複数の方法** - サンプルをドラッグ＆ドロップする以外に、サンプル値やアニメーション シーケンスを変更するために、コンテキスト メニューとスピン ボックスが追加されました。
 
@@ -647,7 +649,7 @@ PhysX Vehicle サポートをオプションのプラグインにリファクタ
 古い 'TireType' アセット (非推奨) を新しい 'TireConfig' アセット (新規 PhysXVehicles プラグインで定義) に移行する場合は、手作業が必要になります。これを行うために UE4 エディタで利用可能な新しいコンソール コマンドを利用することができます。コンソールを呼び出し、'ConvertTireTypes' と入力するだけです。これで、新しい TireConfig アセットが作成されて、プロパティにコピーされ、それらを任意の VehicleWheel ブループリントに割り当てます。これで古い TireType アセットを取り除くことができます。
 [/REGION]
 
-**Release Notes**「訳注：以下は、非常に技術的な部分が含まれるため、翻訳を省略します。」
+**(以下の、細部に関するノートの翻訳は割愛します。)**
 
 **AI**
 

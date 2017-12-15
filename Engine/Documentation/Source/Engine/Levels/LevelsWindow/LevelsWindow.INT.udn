@@ -6,45 +6,8 @@ Version: 4.12
 parent:Engine/Levels
 type:reference
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Levels:title%](level_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Levels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Levels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Levels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Levels:title%](level_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Levels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Levels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Levels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:level_topic.png
+topic-icon:%ROOT%/levels_icon.png
 
 [TOC]
 

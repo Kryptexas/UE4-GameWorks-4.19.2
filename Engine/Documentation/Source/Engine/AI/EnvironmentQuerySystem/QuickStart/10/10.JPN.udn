@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654577
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:10.プレイヤーのコンテキストを作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:Environment Query System で使用する新しいコンテキストを作成します。
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,9 +21,9 @@ Description:Environment Query System で使用する新しいコンテキスト�
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-Environment Query はアクタのタイプの取得に基づき数多くのアイテムを生成できますが、コンテキストに対してはこれを行いません。そのため、コンテキストとしてプレイヤーのポーンを持つ方法が必要です。ここで、 **EnvQueryContext_BlueprintBase** が役立ちます。
+
+Environment Query はアクタのタイプを取得して数多くのアイテムを生成できますが、コンテキストに対してはこれを行いません。そのため、コンテキストとしてプレイヤーのポーンを持つ方法が必要です。ここで、 **EnvQueryContext_BlueprintBase** が役立ちます。
 
 
 ## ステップ
@@ -33,7 +33,7 @@ Environment Query はアクタのタイプの取得に基づき数多くのア�
 
 	[REGION:raw]![](override1.png)(convert:false)[/REGION]
 
-	**Override** ボタンは、**My Blueprint** パネルの Functions 部分にマウスオーバーするまで非表示になっています。
+	**[Override]** ボタンは、**[My Blueprint]** パネルの **関数** 部分にマウスオーバーするまで非表示になっています。
 
 	これで関数のデフォルトのビヘイビアが開いたブループリントのグラフでオーバーライドされます。
 
@@ -43,6 +43,6 @@ Environment Query はアクタのタイプの取得に基づき数多くのア�
 
 	![](finalGraph.png)
 
-1. **Get All Actors of Class** ノード の **Actor Class** を、 **Top Down Character** に設定し、 **Compile** し、**Save** します。
+1. **Get All Actors of Class** ノードの **Actor Class** を、 **Top Down Character** に設定し、 **Compile (コンパイル)** し、**Save (保存)** します。
 
-%Steps%
+

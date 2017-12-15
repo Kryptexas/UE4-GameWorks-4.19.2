@@ -11,7 +11,9 @@ tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
 The following **Blueprint and Render Targets - How To** pages provide step-by-step examples on how to use Blueprints and render targets together in your Unreal Engine 4 (UE4) projects. 
-<!--Reference links are also included to provide you with additional information.-->
+[COMMENT:none]
+Reference links are also included to provide you with additional information.
+[/COMMENT]
 
 ## Intermediate
 

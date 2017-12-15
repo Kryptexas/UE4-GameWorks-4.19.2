@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:3717107
+Availability:Public
+Title:複数のトランスフォーム トラックをブレンドする
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:複数のトランスフォーム トラックを使用して、絶対、加算、または相対的な空間でブレンドする方法を説明します。 
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
+type:how-to
+
+アクタをシーケンサーに追加すると、**トランスフォーム トラック** も追加されて、様々なトランスフォーム値に変更して、キーフレーム化することでアクタを動かすことができます。 
+新しいトランスフォーム トラックは、**Infinite** に設定されています。つまり、新しいトランスフォーム データを追加して、シーケンス中の任意の時に、アクタに影響を与えることができます。 
+これはアクタを動かす非常に一般的な方法ですが、任意のアクタの位置、回転、スケーリングにさらに変更を加えることがあるでしょう。
+これを行うには、トランスフォーム トラック内で新規 **トランスフォーム セクション** を作成します。これで、トランスフォーム データをいつ適用するかが定義可能になり、複数トランスフォーム間でブレンドする機能も使えます。 
+
+この例では、2 種類のトランスフォーム トラックを使用し、一緒にブレンドしてレベル内のボックスの動きを生成します。 
+
+![](MultipleTransforms.png)
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** を使います。 
+[/REGION]
+
+1.	プロジェクト内で、**[Modes]** パネルの **[Basic]** で、**Cube** アセットをレベルにドラッグします。
+
+	![](MultipleTransform_01.png)
+
+1.	メイン ツールバーから **[Cinematics (シネマティックス)]** ボタンをクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** を選択して、任意の名前を付けて保存します。 
+
+	![](MultipleTransform_02.png)
+
+1.	レベル内のキューブをシーケンサーに追加して、トランスフォーム トラック上で右クリックします。**[Properties]** で **[Is Infinite]** をクリアします。 
+
+	![](MultipleTransform_03.png)
+
+	デフォルトでトランスフォーム トラックは Infinite に設定されています。つまり全時間に広がり、通常使用するトランスフォーム トラックはひとつだけです。 
+	[Infinite] オプションをクリアすることで、トランスフォーム トラックがシーケンスのセクションを使用することを宣言します (追加するキーフレーム内で定義)。 
+
+1.	**Location** の **Y Track** にキーフレームを追加し、必要な動きのパスを生成します。 
+
+	![](MultipleTransform_04.png)
+
+1.	キーフレーム ウィンドウでトランスフォーム トラック上で右クリックして、Y 軸だけを **Active Channel** として設定します。 
+
+	![](MultipleTransform_05.png)
+
+	これで平行移動の Y 軸を別個に評価し、レベル内の任意の場所にキューブを動かし、Y 軸のキーフレーム データを維持します。 
+
+1.	トラック ウィンドウのトランスフォーム トラックで、**[Section]** ボタンをクリックして、**[Additive]** を選択します。 
+
+	![](MultipleTransform_06.png)
+
+	既存のトランスフォーム トラックに適用する新しいトランスフォーム セクションを追加します。
+
+1.	新しい加算トランスフォーム トラックのキーフレーム ウィンドウで右クリックして、平行移動の Z 軸のみを **Active Channel** として設定します。 
+
+	![](MultipleTransform_07.png)
+
+1.	加算トランスフォーム トラックで、**0** にキーフレームをデフォルト値で追加します。次に前方にスクラブし、**300** を **Z** 値に追加しキーフレーム化します。 
+
+	![](MultipleTransform_08.png)
+
+1.	**[Preview Play]** ボタンをクリックして動きをプレビューします。 
+
+## 最終結果
+
+シーケンスを再生すると、Z 軸の動きもブレンドしながらキューブは Y 軸に沿って動き、前方斜め上に動きます。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	G63cUldRjLQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+上の動画のように、各セクションを動かしてブレンド プロセスを変更することができます。この例では、加算セクションをシーケンスの後の方にシフトし、後でブレンドが開始するようにし、様々な動きができるようにします (キューブが上昇し始めると遅くなる)。 
+
+さらに、トランスフォーム セクション上で右クリックして、**Blend Type** を選ぶことでブレンドの種類を変更することができます。 
+
+![](MultipleTransform_09.png)
+
+以下は利用可能なオプションです。 
+
+| ブレンドの種類 | 意味 |
+| --- | --- |
+| **Absolute** | 合計ウェイトの平均として他のすべてのウェイト値を一緒にブレンドします。 |
+| **Additive** | 他のすべての加算の合計として値を適用します。 |
+| **Relative** | 他のすべての加算の合計とアニメーション前の初期値として値を適用します。 |

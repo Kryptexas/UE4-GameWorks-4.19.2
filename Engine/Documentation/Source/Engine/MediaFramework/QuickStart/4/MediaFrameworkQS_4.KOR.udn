@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Crumbs: %ROOT%
+Title:4 - TV 블루프린트 구성 - 컨스트럭션 스크립트
+Description:컨스트럭션 스크립트를 사용하여 에디터에서 TV 블루프린트를 변경할 수 있는 파라미터를 몇 가지 구성합니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:4
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+TV 블루프린트의 컴포넌트가 정의되었으니, 이제 레벨에 배치했을 때 콘텐츠를 변경할 수 있도록 [컨스트럭션 스크립트](Engine/Blueprints/UserGuide/UserConstructionScript) 구성을 해보겠습니다.
+
+## 단계
+
+1. **TV_Blueprint** 안에서 메인 툴바 아래 **컨스트럭션 스크립트** 탭을 클릭합니다.
+
+	![](Construct_01.png)
+
+1. 그래프에 우클릭하고 **Create Dynamic Material Instance** 노드를 추가합니다. **Parent** 를 **M_TV_Inst** 로 설정하고 아래와 같이 연결합니다.
+
+	![](Construct_02.png)
+
+	TV 에 적용된 머티리얼 내 미디어 텍스처를 변경하려면, 먼저 머티리얼을 기반으로 [Dynamic Material Instance](Engine/Rendering/Materials/MaterialInstances) 를 생성한 뒤 TV 에 할당해 줍니다.
+
+1.	**Create Dynamic Material Instance** 노드의 **Return Value** 에 우클릭하고 **변수로 승격** 한 뒤 **TV_MID** 라 합니다. 
+
+	![](Construct_03.png)
+
+	그러면 생성한 다이내믹 머티리얼에 대한 레퍼런스가 저장되고, 나중에 사용할 수 있습니다.
+
+1.	**컴포넌트** 창에서 **TV_Mesh** 를 선택한 뒤, 그래프에서 우클릭하고 **Set Material (TV_Mesh)** 를 선택합니다.
+
+	![](Construct_04.png)
+
+	그러면 TV 로의 레퍼런스와 Set Material 노드가 추가되는데, 나중에 여기세 Dynamic Material 을 할당합니다.
+
+1.	**내 블루프린트** 패널에서 **TV_MID** 변수를 끌어 **Set Material** 노드의 **Material** 핀에 놓고 다음과 같이 연결합니다.
+
+	![](Construct_05.png)
+
+1.	**TV_MID** 노드를 끌어놓고 **Set Texture Parameter Value** 노드를 사용합니다. 다음과 같이 연결합니다.
+
+	![](Construct_06.png)
+
+1.	**Parameter Name** 을 **TV_Texture** 로 설정한 뒤 **Value** 에 우클릭합니다. **변수로 승격** 시키고 **Texture for TV** 라 합니다.
+
+	![](Construct_07.png)
+
+	그러면 이제 변수가 되었으니, TV 별로 샘플링하고자 하는 미디어 텍스처를 정의할 수 있습니다.
+
+1.	**컴포넌트** 창에서 **Media Sound** 애셋을 끌어 그래프에 놓은 뒤, 그것을 끌어 놓고 **Set Media Player** 를 사용합니다.
+
+	![](Construct_08.png)
+
+1.	**Media Player** 핀에 우클릭하고 **변수로 승격** 시킵니다. 새 변수를 **Media Player for Sound** 라 하고 아래와 같이 연결합니다.
+
+	![](Construct_09.png)
+
+	텍스처 구성 방식과 비슷하게, 이렇게 하면 TV 별로 미디어 사운드에 연결해 줄 미디어 플레이어를 정의할 수 있습니다.
+
+	전체 그래프는 아래와 같이 보일 것입니다:
+
+	[REGION:lightbox]
+	[![](Construct_10.png)](Construct_10.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 원본을 확인합니다. 
+	[/REGION]
+
+1.	**내 블루프린트** 패널에서, **TextureForTV** 변수를 선택한 뒤 **Instance Editable** (인스턴스 편집가능) 설정하고 **MediaPlayer_01_Video** 미디어 텍스처를 할당합니다.
+
+	![](Construct_11.png)
+
+	여기서 텍스처에 사용할 기본값을 정의하고 인스턴스 편집가능 설정 덕에 이 블루프린트의 인스턴스마다 이 값을 변경할 수 있습니다.
+
+	[REGION:note]
+	**미디어 텍스처** 기본값 설정을 위해서는, 메인 툴바의 **컴파일** 버튼을 클릭해야 할 수 있습니다.
+	[/REGION]
+
+1.	**내 블루프린트** 패널에서 **MediaPlayerForSound** 변수를 선택한 뒤 **Instance Editable** (인스턴스 편집가능) 설정하고 **MediaPlayer_01** 미디어 플레이어를 할당합니다.
+
+	![](Construct_12.png)
+
+	예전 단계와 비슷하게, Default Value 를 할당하고 인스턴스 별로 이 값을 변경할 수 있는 방법을 제공하고 있습니다.
+
+	[REGION:note]
+	**미디어 플레이어** 기본값 설정을 위해서는, 메인 툴바의 **컴파일** 버튼을 클릭해야 할 수 있습니다.
+	[/REGION]
+
+## 최종 결과
+
+레벨에 배치한 TV 별로 연결해줄 미디어 사운드, 미디어 텍스처를 정의할 수 있도록 TV 블루프린트 구성을 마쳤고, 다음에는 미디어 플레이어 애셋을 정의하도록 하겠습니다. 해당 애셋에 대한 것을 변수로 만들고 Instance Editable (인스턴스 편집가능) 설정하면, 배치한 TV 마다 콘텐츠를 변경할 수 있는 유연성이 확보되면서, 플레이어가 TV 를 켜고 끌 수 있도록 하는 기능은 재사용할 수 있게 됩니다.
+
+[NAV]
+

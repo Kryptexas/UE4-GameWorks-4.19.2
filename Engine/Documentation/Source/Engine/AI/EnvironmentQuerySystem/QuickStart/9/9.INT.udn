@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Since you already have all the assets necessary to fill out the tree, you're going to be building this Behavior Tree:
 
@@ -96,6 +96,6 @@ Before we get into the steps to create this [Behavior Tree](Engine/AI/BehaviorTr
 
 With everything connected the Behavior Tree will is ready and no further edits to it will be necessary.
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

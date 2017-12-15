@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:3697586
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:Gear VR APK サイズを小さくする方法
+Description:Gear VR プロジェクトのサイズを小さくする方法
+Type: how-to
+SkillLevel:Advanced
+Version:4.17
+Parent:Platforms/GearVR
+Order:3
+Tags:GearVR
+prereq:Platforms/Android/ReducingAPKSize
+
+
+少しばかり計画的に UE4 のどの機能を使うべきか知っていれば、Gear VR プロジェクトの APK サイズをできるだけ小さくすることができます。この操作ガイドでは、完成した Gear VR プロジェクトのサイズを小さくする様々な方法を説明します。 
+
+
+## ASTC テキスト フォーマット
+
+Gear VR には様々なテクスチャ フォーマットが利用できますが、パッケージ化したプロジェクトのサイズを比較的小さくすることができるのが **ASTC** フォーマットです。
+
+![](Android_ASTC_Texture_Format.png)
+
+
+
+
+## すべてのプラットフォーム タイプに使える方法
+
+上記は Gear VR 用の方法ですが、ターゲット プラットフォームのタイプに関係なくパッケージ化されたゲーム サイズを小さくする方法は数多くあります。
+
+[INCLUDE:Engine/Performance/ReducingPackageSize#main(offset:1)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

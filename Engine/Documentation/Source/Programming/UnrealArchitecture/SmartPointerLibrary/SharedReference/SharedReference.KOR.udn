@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3681055
 Availability:Public
 Title:공유 레퍼런스
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
-Description:초기화되지 않거나(uninitialized) null 할당 불가능한 스마트 포인터 유형입니다.
+Description:초기화되지 않거나 null 할당 불가능한 스마트 포인터 유형입니다.
+Type:reference
 Version: 4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 

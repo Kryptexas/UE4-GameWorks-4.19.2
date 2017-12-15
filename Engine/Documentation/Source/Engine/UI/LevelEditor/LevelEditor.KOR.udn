@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:레벨 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -197,11 +197,13 @@ mac
 |---|---|---|
 |[INCLUDE:#SourceControlButtons] | **소스 콘트롤 상태** | 소스 콘트롤에 연결되었는지를 알려줍니다. 마우스 커서를 올리면 자세한 접속정보, 클릭하면 접속 환경설정입니다. Perforce 와 Subversion 이 지원됩니다. (자세한 것은 [소스 콘트롤 문서](Engine/UI/SourceControl) 참고.)|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SourceControlButtons]
 ![](button_SourceControl_On.png) = On ![](button_SourceControl_Off.png) = Off
 [/EXCERPT:SourceControlButtons]
--->
+
+[/COMMENT]
 
 ### 툴바
 

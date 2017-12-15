@@ -63,7 +63,8 @@ Android Works をインストールしたら、Android デバイスを開発用�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 1. Android デバイスを USB で開発用 PC に接続します。
@@ -210,7 +211,8 @@ Android Works をインストールしたら、Android デバイスを開発用�
 [EXCERPT:LinuxSetup]
 [INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]
 [/EXCERPT:LinuxSetup]
--->
+
+[/COMMENT]
 
 ## 最終結果
 以上の設定を完了すると、Android スマートフォンは UE4 プロジェクトをデプロイおよび実行できる状態になります。 

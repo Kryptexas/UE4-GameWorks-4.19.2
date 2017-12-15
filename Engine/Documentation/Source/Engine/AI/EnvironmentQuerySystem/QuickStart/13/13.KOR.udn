@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 13. 에디터에서 플레이 및 테스팅
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 앞에서 [비헤이비어 트리를 구성](Engine/AI/EnvironmentQuerySystem/QuickStart/9) 하고, 그것을 [AI Controller 더러 돌리도록](Engine/AI/EnvironmentQuerySystem/QuickStart/7) 했으면 테스트 준비가 다 되었습니다!
 
@@ -45,4 +45,4 @@ BWhnjDIhYwU
 [/OBJECT]
 
 
-%Steps%
+

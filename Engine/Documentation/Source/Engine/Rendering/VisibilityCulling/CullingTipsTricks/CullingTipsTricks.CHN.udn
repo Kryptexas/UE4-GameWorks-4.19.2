@@ -106,19 +106,15 @@ and [Precomputed Visibility Volumes](Engine\Rendering\VisibilityCulling\Precompu
 For more information on the [Game View](Engine\UI\LevelEditor\Viewports\Basics) mode, you can read about it in this page.
 
 
-<!---
-[OBJECT:TopicButtonList]
- [PARAM:icon]
-  ![](%ROOT%/related_icon.png)(convert:false)
- [/PARAM]
- [PARAM:title]
-  Related Links
- [/PARAM]
- [PARAM:description]
- [/PARAM]
- [PARAM:links]
+[COMMENT:none]
+-
+## Related Links
+
+[REGION:buttonlist]
+
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume)
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume)
- [/PARAM]
-[/OBJECT]
---->
+ 
+[/REGION]
+-
+[/COMMENT]

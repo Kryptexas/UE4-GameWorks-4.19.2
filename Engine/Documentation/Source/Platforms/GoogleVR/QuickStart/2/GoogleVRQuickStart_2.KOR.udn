@@ -1,24 +1,26 @@
-﻿INTSourceChangelist:3556577
+﻿INTSourceChangelist:3733053
 Availability:Public
 Title:2. 구글 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms/GoogleVR
 Description:구글 VR 작업용 UE4 프로젝트 구성법입니다.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.16
+Version: 4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:multi-step
 tags:VR
 tags:Google VR
-
+Checkpoint: GoogleVRQS
 [NAV]
+
+구글 VR 퀵 스타트 이번 회에서는 구글 VR 을 사용할 수 있도록 UE4 프로젝트를 구성하는 법을 다뤄보겠습니다.
 
 [region:note]
 Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것들이 총망라된 매우 자세한 문서를 제공하고 있습니다. [공식 Google Daydream Unreal](https://developers.google.com/vr/unreal/) 도움말 사이트에서 문서를 찾아보실 수 있습니다.
 [/region]
 
-구글 VR 퀵 스타트 이번 회에서는 구글 VR 을 사용할 수 있도록 UE4 프로젝트를 구성하는 법을 다뤄보겠습니다.
+## 단계
 
 1. UE4 에디터가 로드되면, **메인 툴바** 에서 **편집** 탭을 열고 **Plugins** 메뉴 항목을 선택합니다.
 
@@ -85,8 +87,9 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 		[PARAMLITERAL:type]
 		simple
 		[/PARAMLITERAL]
+	[/OBJECT]
 
-1. **Android** (안드로이드) 섹션 아래 **Platforms** (플랫폼) 부분에서 **APKPackaging** (APK 패키징)과 **Google Play Services** (구글 플레이 서비스) 섹션의 **Configure Now** (지금 환경설정) 버튼을 눌러 프로젝트가 패키징을 제대로 할 수 있도록 합니다.
+1. **Platforms** (플랫폼) 제목줄 **Android** (안드로이드) 섹션 아래 **APKPackaging** (APK 패키징)과 **Google Play Services** (구글 플레이 서비스) 양쪽의 **Configure Now** (지금 환경설정) 버튼을 눌러 프로젝트가 패키징을 제대로 할 수 있도록 합니다.
 
     [REGION:lightbox]
     [![](GVRQS_Config_Now_00.png)(w:500)](GVRQS_Config_Now_00.png)
@@ -96,7 +99,7 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
     클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. **APKPackaging** 섹션에서 다음 옵션이 설정되었는지 확인합니다:
+1. **APKPackaging** 카테고리에서 다음 옵션이 설정되었는지 확인합니다:
 
      * **Minimum SDK Version** (최소 SDK 버전) 및 **Target SDK Version:** (대상 SDK 버전) 24
      * **Disable verify OBB on first start/update:** (첫 시작/업데이트시 OBB 검증 끄기 - 체크
@@ -110,7 +113,7 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
     클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. **Build** 섹션을 찾아 다음과 같이 설정합니다:
+1. **Build** 카테고리를 찾아 다음과 같이 설정합니다:
 
 	* **Support armv7 (aka armeabi-v7a):** 꺼짐
 	* **Support arm64 (aka arm64-v8a):** 켜짐
@@ -124,10 +127,10 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
     클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. 다음, **Advanced APKPackaging** 섹션에서 다음 옵션을 켜줍니다:
+1. 다음, **Advanced APKPackaging** 카테고리에서 다음 옵션을 켜줍니다:
 
-    * **Configure GoogleVR Deployment Mode:** (GoogleVR 디플로이 모드 환경설정) Daydream & Cardboard
-    * **Configure GoogleVR for sustained-performance mode:** (GoogleVR 지속 퍼포먼스 모드 환경설정) 체크
+    * **Configure Google VR Deployment Mode:** (Google VR 디플로이 모드 환경설정) Daydream & Cardboard
+    * **Configure Google VR for sustained-performance mode:** (Google VR 지속 퍼포먼스 모드 환경설정) 체크
 
     [REGION:lightbox]
     [![](GVRQS_GoogleVR_Options_00.png)(w:500)](GVRQS_GoogleVR_Options_00.png)
@@ -138,24 +141,27 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
     [/REGION]
 
     [region:note]
-    Configure GoogleVR Deployment Mode 에는 여러가지 옵션이 있으며, 하는 일은 다음과 같습니다.
-    * **Cardboard:** GoogleVR 이 카드보드 전용 모드에서 실행되도록 환경설정합니다.
-    * **Daydream:** GoogleVR 이 데이드림 전용 모드에서만 실행되도록 환경설정합니다. 이 모드에서는, Daydream 미지원 폰에서 앱이 실행되지 않을 것입니다.
-    * **Daydream & Cardboard:** GoogleVR 이 Daydream 지원 폰에서는 Daydream 모드로, Daydream 미지원 폰에서는 카드보드 모드로 실행되도록 환경설정합니다.
+    Configure Google VR Deployment Mode 에는 여러가지 옵션이 있으며, 하는 일은 다음과 같습니다.
+    * **Cardboard:** Google VR 이 카드보드 전용 모드에서 실행되도록 환경설정합니다.
+    * **Daydream:** Google VR 이 데이드림 전용 모드에서만 실행되도록 환경설정합니다. 이 모드에서는, Daydream 미지원 폰에서 앱이 실행되지 않을 것입니다.
+    * **Daydream & Cardboard:** Google VR 이 Daydream 지원 폰에서는 Daydream 모드로, Daydream 미지원 폰에서는 카드보드 모드로 실행되도록 환경설정합니다.
 
     [/region]
 
-1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 을 **android-24** 로, **NDK API Level** 을 ** android-19 ** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
+1. **SDKConfig** (SDK 환경설정) 카테고리 아래 **Android SDK** (안드로이드 SDK) 섹션에서 **SDK API Level** 을 **android-24** 로, **NDK API Level** 을 ** android-19 ** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
 
     ![](GVRQS_Android_SDK_Options_00.png)
 
     [region:note]
         UE4 Daydream 프로젝트를 Daydream 디바이스에 제대로 디플로이하려면, CodeWorks 가 다음 컴포넌트를 설치했는지 확인해야 합니다.
-        * **Android API 24**
+        * **Android SDK Platform 24**
         * **Android NDK 12b**
         * **JDK 1.8**
+
+		추가적인 Android SDK 설치 방법은 [](Platforms\Android\InstallAdditionalAndroidSDK) 문서를 참고하세요.
     [/region]
 
+## 최종 결과
 
 구글 VR 퀵 스타트 다음 회에서는, UE4 프로젝트를 패키징하고 구글 VR 디바이스에서 실행시키는 법을 알아보도록 하겠습니다.
 

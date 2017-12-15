@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 The **Procedural Foliage Blocking Volume** is a Volume Actor that can be placed in a level and scaled to a desired size which will prevent the Procedural Foliage Spawner 
 from spawning any Foliage Actors inside of the bounds of the Procedural Foliage Blocking Volume.
 In the following section we will go over how you can add a **Procedural Foliage Blocking Volume** to your level and use it to prevent Foliage meshes from spawning.
@@ -59,4 +59,4 @@ We will be continuing to work with the **PFT_00** level that was used in the las
 	|2:| After Procedural Foliage Blocking Volume is added|
 
 
-%Steps%
+

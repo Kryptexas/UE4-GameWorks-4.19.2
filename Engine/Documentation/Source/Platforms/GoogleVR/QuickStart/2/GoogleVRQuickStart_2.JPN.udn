@@ -1,26 +1,28 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3733053
 Availability:Public
 Title:2.Google VR プロジェクトの設定
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:UE4 プロジェクトを Google VR 向けにセットアップする
+Description:アンリアル エンジン 4 プロジェクトを Google VR 向けにセットアップする
 Navigation:platform
 Skilllevel:Intermediate
-Version:4.16
+Version:4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:multi-step
 tags:VR
 tags:Google VR
-
+Checkpoint:GoogleVRQS
 [NAV]
+
+このセクションでは、アンリアル エンジン 4 プロジェクトを Google VR 向けにセットアップします。
 
 [region:note]
 Google のマニュアルに Daydream の使用方法に関する詳細な説明があります。[Google Daydream Unreal 公式サイト](https://developers.google.com/vr/unreal/) のヘルプをご覧ください。
 [/region]
 
- このセクションでは、UE4 プロジェクトを Google VR 向けにセットアップします。
+## ステップ
 
-1. UE4 エディタをロードしたら、**メイン ツールバー** から **[Edit (編集)]** タブを開き **[Plugins]** メニュー アイテムを選択します。
+1. エディタをロードしたら、**メイン ツールバー** から **[Edit (編集)]** タブを開き **[Plugins]** メニュー アイテムを選択します。
 
     ![](GVRQS_Pligin_Menu_00.png)
 
@@ -35,7 +37,7 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
     [/REGION]
 
     [region:note]
-    Google VR プラグインはデフォルトで有効にされています。有効にするには、**[Enabled (有効にする)]** の横のチェックボックスをクリックします。この変更を反映するために、UE4 エディタを再起動のプロンプトが表示されます。Google VR プラグインを有効にした場合、UE4 エディタを再起動しないとプラグインが正常に動作しません。
+    Google VR プラグインはデフォルトで有効にされています。有効にするには、**[Enabled (有効にする)]** の横のチェックボックスをクリックします。この変更を反映するために、エディタを再起動のプロンプトが表示されます。Google VR プラグインを有効にした場合、エディタを再起動しないとプラグインが正常に動作しません。
     [/region]
 
 1. メインツールバーから **[File]** オプションを選択して **[Save (保存する)]** オプションをクリックして **[Save Level As (名前をつけて保存)]** ウィンドウを表示します。
@@ -50,21 +52,20 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
 
     ![](GVRQS_Project_Settings_00.png)
 
-1. [Project Settings (プロジェクト設定)] メニューから **[Maps & Modes]** セクションの **[Default Maps]** セクションを開いて、**[Editor Startup Map]** と **[Game Default Map]** を EntryLevel map に変更して、プロジェクトが起動すると必ず EntryLevel map がロードされるようにします。
+1. [Project Settings (プロジェクト設定)] メニューから **[Maps & Modes]** セクションを開きます。**[Default Maps]** セクションで **[Editor Startup Map]** と **[Game Default Map]** を **[EntryLevel]** に変更して、プロジェクトが起動すると必ず **EntryLevel** がロードされるようにします。
 
     ![](GVRQS_Select_Level_00.png)
 
-1. 再び [Project Settings (プロジェクト設定)]で、**[Target Hardware (ターゲット ハードウェア)]** セクションの **[Target Hardware]** クラスが **「Mobile / Tablet」** そしてグラフィックス レベルが **「Scalable 3D or 2D」** になっていることを確認します。 
+1. 再び [Project Settings] で **[Target Hardware]** セクションの **[Target Hardware]** クラスが **「Mobile / Tablet」** そしてグラフィックス レベルが **「Scalable 3D or 2D」** になっていることを確認します。 
 
     ![](GVRQS_Target_Hardware_00.png)
 
     [region:note]
-    変更を反映するために **[Pending Changes (変更を保留)]** セクションの下に表示される **[Restart Editor (エディタを再起動)]** ボタンを必ず押してエディタを再起動してください。
-    再起動しないと、プロジェクトで Google VR が動きません。
+    **[Pending Changes (変更を保留)]** セクションの下に表示される **[Restart Editor (エディタを再起動)]** ボタンが表示されたら、変更を反映させるために、必ずこのボタンを押してエディタを再起動してください。再起動しないと、プロジェクトで Google VR が動きません。
     ![](GVRQS_Target_Hardware_01.png)
     [/region]
 
-1. ステレオスコピック レンダリングを正常に行うために **[Rendering (レンダリング)]** セクションの **[Mobile HDR]** が無効になっていることを確認します。
+1. **[Rendering (レンダリング)]** セクションの **[Mobile HDR]** が無効になっていることを確認します。ステレオスコピック レンダリングを正常に行うために必要です。
 
     ![](GVRQS_Moile_HDR_Off_00.png)
 
@@ -88,7 +89,7 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. プロジェクトが正しくパッケージ化されるように、**[Platforms]** > **[Android]** セクションの **[APKPackaging]** と **[Google Play Services]** セクションの中にある **[Configure Now (今すぐ設定する)]** ボタンを押します。
+1. **[Android]** セクション (**[Platforms]** の下の) で、**[APKPackaging]** と **[Google Play Services]** のそれぞれのセクションの中にある **[Configure Now (今すぐ設定する)]** ボタンを押して、プロジェクトが正しくパッケージを行うようにします。
 
     [REGION:lightbox]
     [![](GVRQS_Config_Now_00.png)(w:500)](GVRQS_Config_Now_00.png)
@@ -98,7 +99,7 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
     クリックしてフルサイズで表示
     [/REGION]
 
-1. **[APKPackaging]** セクションのオプションを以下の設定にしてください。
+1. **[APKPackaging]** カテゴリで、以下のオプションが設定されていることを確認してください。
 
      * **[Minimum SDK Version]** と **[Target SDK Version]:** 24
      * **[Disable verify OBB on first start/update]:** チェックを入れる
@@ -126,10 +127,10 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
     クリックしてフルサイズで表示
     [/REGION]
 
-1. **[Advanced APKPackaging]** セクションの以下のオプションを有効にします。
+1. 次に、**[Advanced APKPackaging]** カテゴリで、以下のオプションを有効にします。
 
-    * **[Configure GoogleVR Deployment Mode]:** Daydream & Cardboard
-    * **Configure GoogleVR for sustained-performance mode:** チェックを入れる
+    * **Configure Google VR Deployment Mode:** Daydream & Cardboard
+    * **Configure Google VR for sustained-performance mode:** チェックを入れる
 
     [REGION:lightbox]
     [![](GVRQS_GoogleVR_Options_00.png)(w:500)](GVRQS_GoogleVR_Options_00.png)
@@ -140,25 +141,28 @@ Google のマニュアルに Daydream の使用方法に関する詳細な説明
     [/REGION]
 
     [region:note]
-    [Configure GoogleVR Deployment Mode] には以下の機能がオプションで使えます。
-    * **[Cardboard]:** GoogleVR を Cardboard-only モードで実行します。
-    * **[Daydream]:** GoogleVR を Daydream-only モードで実行します。このモードの場合、アプリケーションは Daydream 非対応のスマートフォンでは動作しません。
-    * **[Daydream & Cardboard]:** Daydream 対応のスマートフォンで GoogleVR を Daydream モードで実行し、Daydream 非対応のスマートフォンでは Cardboard モードにフォールバックします。
+    [Configure Google VR Deployment Mode] には以下のオプション機能がついています。
+    * **[Cardboard]:** Google VR を Cardboard-only モードで実行します。
+    * **[Daydream]:** Google VR を Daydream-only モードで実行します。このモードの場合、アプリケーションは Daydream 非対応のスマートフォンでは動作しません。
+    * **[Daydream & Cardboard]:** Daydream 対応のスマートフォンで Google VR を Daydream モードで実行し、Daydream 非対応のスマートフォンでは Cardboard モードにフォールバックします。
 
     [/region]
 
-1. **[Android SDK]** セクションの **[SDKConfig]** セクションで、**[NDK API Level]** を **[matchndk]** に設定します。次に **[NDK API Level]** を **[android-24]** にして、プロジェクトが最新の Android SDK に対して確実にコンパイルされるようにします。
+1. **[Android SDK]** セクションの **[SDKConfig]** カテゴリで、**[SDK API Level]** を **[latest]** に、**[NDK API Level]** をデフォルトではなく **[android-19]** にして、プロジェクトが最新の Android SDK に対して確実にコンパイルされるようにします。
 
     ![](GVRQS_Android_SDK_Options_00.png)
 
     [region:note]
-        UE4 Daydream プロジェクトを Daydream デバイス上で正常にデプロイするために、CodeWorks を以下のコンポーネントにインストールする必要があります。
-        * **Android API 24**
+        アンリアル エンジン 4 Daydream プロジェクトを Daydream デバイス上で正常にデプロイするために、CodeWorks を以下のコンポーネントにインストールする必要があります。
+        * **Android SDK Platform 24**
         * **Android NDK 12b**
         * **JDK 1.8**
+
+		Android SDK の追加インストールに関しては、[Android SDK の追加インストール](Platforms\Android\InstallAdditionalAndroidSDK) を参照してください。
     [/region]
 
+## 最終結果
 
-次のセクションでは、UE4 プロジェクトをパッケージ化して、Google VR デバイスで動作するようにします。
+次のセクションでは、アンリアル エンジン 4 プロジェクトをパッケージ化して、Google VR デバイスで動作するようにします。
 
 [NAV]

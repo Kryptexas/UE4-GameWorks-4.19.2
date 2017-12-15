@@ -4,45 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Collapsed networks of nodes that can be executed, or called, from another graph.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Macros:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Macros:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Macros:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Macros:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/macro_topic_2.png
 
 
 [EXCERPT:Intro]
@@ -62,7 +24,7 @@ Blueprint Macros can be created within a Blueprint Class or Level Blueprint, jus
 
 To create a Blueprint Macro inside a Blueprint Class, Level Blueprint, or Blueprint Macro Library:
 
-1. In the **My Blueprint** tab create a new macro, by clicking on the **Add Button** ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) on the macros list header ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_macro.png).
+1. In the **My Blueprint** tab create a new macro, by clicking on the **Add Button** ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) on the macros list header ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_macro.png).
 
 1. Enter a name for your Blueprint Macro.
 

@@ -27,7 +27,7 @@ Order: 1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Before we can display a Widget in 3D world space, we must first create the [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) we want to display. In this tutorial we are creating a 3D menu that players can navigate however you can take this approach to create any type of 3D widget you want to display (health bars, interactive in-world UI elements, etc.)
 
@@ -124,7 +124,7 @@ For this guide, we have created a new project using the **Blueprint Third Person
 
 Our Widget Blueprint setup is complete and we can now use this as a **Widget Component** inside an Actor Blueprint which we will set up next. While we will not be hooking up functionality for the buttons when clicked, this will at least give us a menu that we can navigate in 3D world space which will respond to mouse interaction and will give you an idea on how to get started.
 
-%Steps%
+
 
 
 

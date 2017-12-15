@@ -1,49 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:라이트매스 기본
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Lightmass, 라이트매스에 대한 하이 레벨 소개서입니다.
 SkillLevel: Beginner
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/Lightmass/Basics:title%](LMass_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/Lightmass/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/Lightmass/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/Lightmass/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/Lightmass/Basics:title%](LMass_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/Lightmass/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/Lightmass/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/Lightmass/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:LMass_Topic.png
 
 [REGION:fullwidth raw]
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)

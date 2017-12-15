@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:에디터에서 플레이 세팅
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
@@ -61,7 +61,8 @@ Version: 4.9
 | Show Mouse Control Label | 마우스 콘트롤 라벨 표시 - %doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
 | Mouse Control Label Position | 마우스 콘트롤 라벨 위치 - %doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GameGetsMouseControl]
 %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% 
 [/EXCERPT]
@@ -74,7 +75,8 @@ Version: 4.9
 %doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## 새 창에서 플레이
 
@@ -86,7 +88,8 @@ Version: 4.9
 | New Window Position (in pixels) | 새 창 위치 (픽셀) - [INCLUDE:#NewWindowPosition] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NewWindowSize]
 독립 에디터에서 플레이 창의 폭과 높이를 (픽셀 단위로) 설정합니다:
 * %doxygen:ULevelEditorPlaySettings::NewWindowWidth% 
@@ -100,7 +103,8 @@ Version: 4.9
 * %doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 ## 독립형 게임에서 플레이
@@ -113,7 +117,8 @@ Version: 4.9
 | Standalone Window Size (in pixels) | 독립 창 크기 (픽셀) - [INCLUDE:#StandaloneWindowSize] |
 | Client Command Line Options | 클라이언트 명령줄 옵션 - [INCLUDE:#ClientCommandLineOptions]| 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:StandaloneWindowSize]
 독립형 게임 창의 폭과 높이를 (픽셀 단위로) 설정합니다:
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
@@ -126,7 +131,8 @@ Version: 4.9
 * %doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 ## 멀티플레이어 옵션
 
@@ -142,7 +148,8 @@ Version: 4.9
 | Route 1st Gamepad to 2nd Client | 1번 게임패드를 2번 클라이언트로 경우 - [INCLUDE:#RouteGamepadToSecondWindow]|
 | Use Single Process | 싱글 프로세스 사용 - [INCLUDE:#RunUnderOneProcess] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PlayNumberOfClients]
 %doxygen:ULevelEditorPlaySettings::PlayNumberOfClients% 
 [/EXCERPT:PlayNumberOfClients]
@@ -166,6 +173,7 @@ Version: 4.9
 %doxygen:ULevelEditorPlaySettings::RunUnderOneProcess% 
 [/EXCERPT:RunUnderOneProcess]
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:NetworkPIESettings]

@@ -22,7 +22,7 @@ spoken dialog from the characters, the audio in the game can make or break the u
 
 ## Starting Out
 
-[DIR(output:"role" parent:Engine/Audio" type:"!reference" type:"!how-to" org:"hierarchy" end:"1")]
+[DIR(output:"role" parent:Engine/Audio" type:"landing,overview,quick start" org:"hierarchy" end:"1")]
 
 ## Reference
 

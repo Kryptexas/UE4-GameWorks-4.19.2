@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: Stat 명령
 Crumbs: %ROOT%, Engine
@@ -42,7 +42,8 @@ version: 4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 Note: removed until this can be checked against profiler info. StatsViewer didn't appear to be in P4 or a binary build
 | **stat StartFile** **stat StopFile** | Generates a .ue4stats file that can be analyzed offline (With the StatsViewer tool from: UE4\Engine\Binaries\DotNET\StatsViewer). A GPU stall can appear as high workload the frame before.
 
@@ -75,7 +76,8 @@ Note: removed until this can be checked against profiler info. StatsViewer didn'
 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:FShaderCache
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -25,14 +25,16 @@ FShaderCache 기능을 켜고 끄는 데 사용할 수 있는 콘솔 명령이 �
 | `r.AccelTargetPrecompileFrameTime [(ms) 단위 시간]` | 로드 화면처럼 상호작용이 없는 모드에 있을 때의 비동기 미리 컴파일을 가속시키는 옵션입니다. r.TargetPrecompileFrameTime 사용을 위해서는 0 을 사용하세요. |
 | `r.InitialShaderLoadTime [(ms) 단위 시간]`| 실행시 이만큼 셰이더 로딩을 기다리다가 비동기 컴파일로 넘어갑니다. -1 은 동기식 로드입니다.|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UseShaderCaching]
 [REGION:plainlist]
 * 요청이 있을 경우만이 아닌, 셰이더 deserialisation 도중 이른 제출을 합니다.
 * 이른 제출 도중 미리 바운딩이 가능하도록 바운드 셰이더 상태의 기록을 유지합니다.
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 ## 사용

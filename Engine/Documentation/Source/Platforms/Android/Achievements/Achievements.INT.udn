@@ -7,42 +7,9 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:how-to
+topic-image:topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Android/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Android/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Android/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Android/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Android/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-![](Platforms\Mobile\Achievements\androidAchievements.png)(w:320 convert:false)
+![](Platforms/Mobile/Achievements/androidAchievements.png)(w:320 convert:false)
 
 
 ## Configuration
@@ -65,7 +32,7 @@ For your Unreal Project:
 
 1. In the **Achievement Map** you'll need to enter a **Name** that is only used within your Unreal Project and the **Achievement ID** you set up in your Google Play Services.
 
-	![](Platforms\Mobile\Achievements\androidSetup.png)
+	![](Platforms/Mobile/Achievements/androidSetup.png)
 
 	All of these values are available in the Google Play Developer Console for your App and Game Services.
 

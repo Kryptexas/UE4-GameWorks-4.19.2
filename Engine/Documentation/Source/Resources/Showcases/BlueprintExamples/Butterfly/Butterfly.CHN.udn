@@ -67,7 +67,8 @@ Related: Gameplay/AI
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:ButterflyCL]
 _Components List_ 会将蝴蝶按照以下方式进行组合(缩进代表父类）：
@@ -102,4 +103,5 @@ Event Graph （事件图表）执行以下任务：
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

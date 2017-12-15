@@ -12,11 +12,6 @@ Tags:Programming
 Tags:Slate
 Tags:UMG UI Designer
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
-
-
 [TOC(start:2 end:3)]
 
 [REGION:warning]
@@ -38,8 +33,8 @@ to use for your project's UI. The clipping system used in prior versions was lim
 example below:
 
 [REGION:imagetable]
-| --- | --- | --- | --- | --- | --- |
-| ![](OldClippingIssue1.png)(w:350) | | | | | ![](OldClippingIssue2.png)(w:350) |
+| --- | --- |
+| ![](OldClippingIssue1.png)(w:350) | ![](OldClippingIssue2.png)(w:350) |
 [/REGION]
 
 This example shows that while the Widget is rotated the clipping rect (white dots) is not, which causes the graphic not to render even though it is within the Canvas panel bounds. 
@@ -56,10 +51,10 @@ Because the new system supports clipping in the render space of the widgets inst
 the outermost widget. Now, any transform that is applied to the inner widgets will be correctly clipped at the edges (right).
 
 [REGION:imagetable]
-| ![](ClippingOld.png)(w:350) | | | | | ![](ClippingNew.png)(w:350) |
-| --- | --- | --- | --- | --- | --- |
-| 4.16 and earlier clipping and transforms. ||||| 4.17 and later, clipping applied at edges |
-|  ||||| along with transforms to the children. |
+| ![](ClippingOld.png)(w:350) | ![](ClippingNew.png)(w:350) |
+| --- | --- |
+| 4.16 and earlier clipping and transforms. | 4.17 and later, clipping applied at edges |
+|  | along with transforms to the children. |
 [/REGION]
 
 For the most part, you shouldn't need to worry about changing the clipping state of a widget. If you were to consider game UI as an example, you wouldn't really need to adjust the widget in UMG and mostly would change this for something like a scroll panel, or in cases, like the Editor, where you can't control the length of the text and need to clip it for resizing the windows or parts of the panel.
@@ -84,7 +79,8 @@ In addition to the simple axis-aligned examples of clipping, the system also sup
 While this example is extreme, being able to combine multiple arbitrary clipping zones is a prerequisite to being able to introduce 3D transforms and projections, since any widget being
 clipped with a projection would need to perform clipping in projected space. 
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:clipping1]
 * Axis-aligned clipping - Only functions in layout space
@@ -104,7 +100,8 @@ clipped with a projection would need to perform clipping in projected space.
 * Slate can no longer batch across clipping zones. This frees up six floats in the Slate vertex format, and no longer need to clip in the pixel shader
 [/EXCERPT:clipping2]
 
----->
+--
+[/COMMENT]
 
 
 ## Conversion Guide from 4.16 and Earlier to 4.17 and Later
@@ -236,7 +233,8 @@ Below are the available console variables that can be used to debug clipping and
 | **Slate.EnableDrawEvents** | When enabled, draw events will be enabled so that when you're debugging with RenderDoc or something similar that it's easier to understand the batches or clipping state transitions. This is enabled by default when using a Debug build. |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:showclipping]
 [REGION:lightbox]
@@ -257,7 +255,8 @@ Below are the available console variables that can be used to debug clipping and
 [![](Slate_Culling.png)(w:250)](Slate_Culling.png)
 [/REGION]
 [REGION:caption] Click image for full size view. [/REGION]
-[/EXCERPT:drawevents]--->
+[/EXCERPT:drawevents]-
+[/COMMENT]
 
 
 

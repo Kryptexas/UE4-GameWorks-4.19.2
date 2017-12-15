@@ -14,75 +14,16 @@ topic-image:particlereference_topic.png
 
 Reference material over the base classes that make up particle systems, such as the ParticleSystem class and the ParticleEmitter class.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Base Classes Technical Reference
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass:Description%
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass:Description%
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule:Description%
-	[/PARAM]
-[/OBJECT]
-
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass:Description%
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass:Description%
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule:Description%
 
 ## TypeData Modules
 
 The default type of an emitter when added to a ParticleSystem is that of a sprite emitter. It is also possible to create other types of emitters through the use of TypeData modules. These modules provide specific functionality for emitting other types of particles, such as beams, meshes, and ribbons.
 
 [EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam/psys_beam.gif)(w:256 convert:false)](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Beam#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites/GPUSprites.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh/LootBucket.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon/RibbonSmoke.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon#Intro]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems/Reference" tags:"TypeData")]
 [/EXCERPT:Types]
 
 
@@ -364,7 +305,8 @@ Modules are used to control various aspects of the particles that are released b
 
 
 
-<!-------------Random Seed Includes----------------
+[COMMENT:none]
+-----------Random Seed Includes----------------
 #### Includes
 
 [EXCERPT:RandomSeedInfo]
@@ -380,5 +322,6 @@ Modules are used to control various aspects of the particles that are released b
 [/EXCERPT:RandomSeedInfo]
 
 
--------------Random Seed Includes--------------->
+-------------Random Seed Includes-------------
+[/COMMENT]
 

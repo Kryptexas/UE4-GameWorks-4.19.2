@@ -50,5 +50,7 @@ Level Blueprint for the current level:
 The exec pin of the new event node will fire each time the particular event occurs - in the example above, any time an Actor 
 overlaps (or runs through) the Trigger:
 
-<!-- Add GIF/slider showing overlap during play and pin firing in graph -->
+[COMMENT:none]
+ Add GIF/slider showing overlap during play and pin firing in graph 
+[/COMMENT]
 

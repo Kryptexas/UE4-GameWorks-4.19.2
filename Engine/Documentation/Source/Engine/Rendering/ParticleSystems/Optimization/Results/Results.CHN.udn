@@ -79,7 +79,8 @@ Cascade 中的 LOD 为用户提供了根据玩家距离发射器的距离控制�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:LODFloat]
 Cascade 中的预览模式与编辑器透视图的工作方式不同。 为了可以在 Cascade 中正确预览，请确保设置 **View（视图）** -> **Detail Mode（细节模式）** 为 **High（高）** 。
 
@@ -89,7 +90,8 @@ Cascade 允许在 LOD 之间进行切换，并且显示指定的 LOD。  为了�
 
 重点是仔细考虑这个场景，然后了解为了看到正常状态的效果需要多少个单元的现实情况。  在环境粒子系统的实例中，可以发射 0.00 粒子，并且在可能看不到粒子系统的时候减少更新时间。  通过按住鼠标中间按钮然后在任何正交视图（正面、侧面、顶部）中拖拽可以测量距离。
 [/EXCERPT:LODFloat]
--->
+
+[/COMMENT]
 
 ### LOD 距离检查时间
 
@@ -249,7 +251,8 @@ Tick Time（更新时间）会直接受到您的场景中处于激活状态的 e
 检查您的评估计算消耗较高的效果，例如，Collisions（碰撞）、非固定边界以及每个单位生成粒子数量过高。  将边界设置为一个固定的状态可以显著提高性能，任何时候只要可能就应该使用固定边界。
 
 
-<!-- Old, UE3
+[COMMENT:none]
+ Old, UE3
 ## Non Directional Lighting Costs - Game Thread
 
 Non Directional lighting adds depth and realism to particle effects by doing a trace within the world to determine lighting information around emitters spawned into the scene.  Non Directional Lighting comes at a Game Thread evaluation cost.  Non directional lighting is often used for weapon effects, impact effects, character effects, ambient fog effects, and Binked cinematic effects .
@@ -264,4 +267,5 @@ Another option for matching particle color to a light environment would be to ut
 
 
 __It is recommended to use Non Directional Lighting in as many cases as performance allows, it can be helpful to setup your effects with a Particle Parameter in mind should you be required to use this method due to performance restrictions.__
--->
+
+[/COMMENT]

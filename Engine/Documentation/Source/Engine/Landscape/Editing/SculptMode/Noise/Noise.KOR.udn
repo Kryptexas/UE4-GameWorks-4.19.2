@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 노이즈
@@ -74,7 +74,8 @@ Topic-image:Noise_topic.png
 
 브러시 세기는 노이즈 툴을 사용할 때 높이거나 낮추는 정도를 결정합니다.
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:noise]
 |선택 | 설명 |
@@ -85,4 +86,5 @@ Topic-image:Noise_topic.png
 [/EXCERPT:noise]
 
 
---->
+-
+[/COMMENT]

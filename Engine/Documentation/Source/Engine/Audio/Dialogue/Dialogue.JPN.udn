@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Dialogue Voice と Dialogue Wave を使用する
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -13,45 +13,7 @@ skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Audio/audio_topic.png
 
 
 この例では、基本的なダイアログのセットアップについて説明します。長めの会話では、会話マネージャ システムが必要になるかもしれません。 
@@ -71,20 +33,9 @@ related:Engine/Audio/SoundCues/NodeReference
 		- Zoe は元軍人で、大きな戦いの Galactic Skirmish 後に Adam のチームに参加しました。
 
 
+## ステップ
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine/Audio/Dialogue/1 "%Engine/Audio/Dialogue/1:title%")

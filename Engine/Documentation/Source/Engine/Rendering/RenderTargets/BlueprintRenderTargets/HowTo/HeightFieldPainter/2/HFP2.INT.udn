@@ -81,7 +81,8 @@ Please note that the following is not specific to any UE4 project type. The foll
 
 With the required assets now setup, in the next section, we will take a look at creating a Blueprint that will link all of the assets together to create the height map painter.
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HFP]
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -236,9 +237,11 @@ With the required assets now setup, in the next section, we will take a look at 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:HFP]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ForceSplat]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -520,7 +523,8 @@ With the required assets now setup, in the next section, we will take a look at 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ForceSplat]
--->
+
+[/COMMENT]
 
 
 

@@ -12,4 +12,6 @@ APaperCharacter behaves like ACharacter, but uses a UPaperFlipbookComponent inst
 [/VAR]
 [/EXCERPT:APaperCharacter]
 
-<!-- ToDo: Paper Character link. --->
+[COMMENT:none]
+ ToDo: Paper Character link. -
+[/COMMENT]

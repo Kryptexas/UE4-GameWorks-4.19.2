@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 将新建游戏模式成功扩展为蓝图后，此步骤中我们将把 `BP_FPSProjectGameMode` 设为项目的默认 **游戏模式**。
 
@@ -100,4 +100,4 @@ Version:4.11
 
 下一部分将学习如何实现角色。
 
-%Steps%
+

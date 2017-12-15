@@ -21,7 +21,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将在游戏中设置一些动画。
 
@@ -97,4 +97,4 @@ Version:4.11
 	[/REGION]
 	_点击图片放大查看。_
 
-%Steps%
+

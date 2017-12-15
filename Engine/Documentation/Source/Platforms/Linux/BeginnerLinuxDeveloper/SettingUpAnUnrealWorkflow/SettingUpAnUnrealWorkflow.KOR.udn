@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3332303
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 리눅스 퀵스타트
 Crumbs:
@@ -33,19 +33,9 @@ topic-image:linuxQS_topic.png
 * 소스에서 언리얼 엔진 빌드 방법.
 * 리눅스 머신에서 언리얼 엔진 실행 방법.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[DIR(output:"checkpoint" parent:"Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/1:title%")

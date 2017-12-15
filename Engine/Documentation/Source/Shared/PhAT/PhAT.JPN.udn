@@ -398,7 +398,8 @@ Ground box を有効あるいは無効にします。Ground box ではコリジ�
 [/EXCERPT:ConstraintRenderingMode_AllLimits]
 
 
-<!--
+[COMMENT:none]
+
 MakeBodyFixed;
 MakeBodyUnfixed;
 MakeBodyDefault;
@@ -410,4 +411,5 @@ DeleteAllBodiesBelow;
 ToggleMotor;
 EnableMotorsBelow;
 DisableMotorsBelow;
--->
+
+[/COMMENT]

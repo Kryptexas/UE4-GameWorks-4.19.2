@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3453053
-Availability:Public
+﻿INTSourceChangelist:3782314
+Availability: Public
 Title:비히클 사용 안내서
 crumbs:%ROOT%
 Description:언리얼 엔진 4 블루프린트 비히클 사용 안내서입니다.
 Type:how-to
-SkillLevel: Advanced
+SkillLevel:Advanced
 Version:4.15
 Parent:Engine/Physics/Vehicles
 Prereq:Engine/Physics/Vehicles/VehcileContentCreation
@@ -69,19 +69,9 @@ topic-image:Vechicle_Topic.png
 * 축 매핑 및 바인딩으로 비히클 제어 방법
 * 비히클 스폰을 위한 새 게임 모드 생성 및 할당 방법
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine/Physics/Vehicles/VehicleUserGuide/1 "%Engine/Physics/Vehicles/VehicleUserGuide/1:title%")

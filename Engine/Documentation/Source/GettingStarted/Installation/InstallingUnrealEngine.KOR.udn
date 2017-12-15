@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3367474
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
@@ -59,7 +59,8 @@ SkillLevel: Beginner
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows_install]
 1.	**다운로드** 버튼을 눌러 인스톨러를 받습니다.
 	
@@ -73,7 +74,8 @@ SkillLevel: Beginner
 	
 	![](RunEpicLauncherSetup.png)
 [/EXCERPT:windows_install]
--->
+
+[/COMMENT]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -173,7 +175,8 @@ SkillLevel: Beginner
 
 이제 언리얼 엔진 사용을 시작할 준비가 되셨습니다.
 
-<!--Deprecated as it is redundant with the Related Topics section directly below it.
+[COMMENT:none]
+Deprecated as it is redundant with the Related Topics section directly below it.
 ## 언리얼 엔진 시작
 
 [](GettingStarted) 문서를 참고하여 언리얼 엔진 사용법을 배워봅니다!
@@ -186,8 +189,10 @@ UE4 를 빠르게 시작하고자 하는 분들께서는 다음 튜토리얼을 
 
 [REGION:note]
 UE4 의 에디터내 도움말 기능도 질문의 답을 구하는 데 뛰어난 방법입니다.
-[/REGION]-->
-<!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
+[/REGION]
+[/COMMENT]
+[COMMENT:none]
+Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
 ## 인스톨러 내려받기
@@ -252,8 +257,10 @@ Once you have the Unreal Engine Launcher running, you must sign in and download 
 1. Once the download is completed, you can launch Unreal Engine using the **Launch** button:
 
 	![](launch.png)
--->
-<!--Previously deprecated procedures
+
+[/COMMENT]
+[COMMENT:none]
+Previously deprecated procedures
 [EXCERPT:Windows]
 1. 내려받은 인스톨러를 실행하여 언리얼 엔진을 설치할 위치를 선택합니다:
 
@@ -278,4 +285,5 @@ Once you have the Unreal Engine Launcher running, you must sign in and download 
 1. Finder 가 파일 복사를 끝내면, **Launchpad** 에서 언리얼 엔진을 사용할 수 있습니다. 거기서 실행시킵니다.
 
 [/EXCERPT:MacOS]
--->
+
+[/COMMENT]

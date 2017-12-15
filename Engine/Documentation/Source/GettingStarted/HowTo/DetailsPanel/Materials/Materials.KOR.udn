@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2. 액터에 머티리얼 적용
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
@@ -26,7 +26,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 레벨에 작업할 액터가 생겼으니, **디테일** 패널을 통해 그 [머티리얼](Engine/Rendering/Materials) 을 변경하여 액터의 외형을 빠르게 변경할 수 있습니다.
 이번 단계에서는 디테일 패널의 머티리얼 프로퍼티를 통한 머티리얼 할당뿐 아니라 **콘텐츠 브라우저** 에서도 머티리얼을 할당해 보도록 하겠습니다.
@@ -83,4 +83,3 @@ checkpoint: editorqs
 다음 단계에서는 액터의 [](Engine/Physics) & [콜리전](Engine/Physics/Collision/Overview) 프로퍼티에서 구체에 피직스 시뮬레이션을 켜 게임을 시작하면 공이 계단으로 굴러떨어지다가 플레이어 캐릭터와 충돌하면 없어지도록 하겠습니다.
 
 
-%Steps%

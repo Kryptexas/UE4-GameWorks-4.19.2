@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3736250
 Availability: Public
 Title:GPUSprites 타입 데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:고밀도 파티클 시스템 제작에 좋은 GPU Sprites Type Data 모듈 참고서입니다.
+Description:GPUSprite 타입 데이터 모듈은 GPU 에서의 파티클 시뮬레이션을 지원하여 수십만 단위 파티클을 효율적으로 시뮬레이션 및 렌더링할 수 있습니다.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:2
+topic-image:GPUSprites.png
 
 [TOC(start:2 end:3)]
 

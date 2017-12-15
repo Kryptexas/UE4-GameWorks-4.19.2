@@ -1,48 +1,23 @@
-﻿INTSourceChangelist:3196780
+﻿INTSourceChangelist:3782314
 Availability: Public
-Title: 레이 트레이스 디스턴스 필드 소프트 섀도
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:동적인 에리어 섀도 입니다.
-Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:title%](DistanceFieldShadowing_Topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:title%](DistanceFieldShadowing_Topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Crumbs: %ROOT%
+Title: 레이 트레이스 디스턴스 필드 소프트 섀도우
+Description: 메시 디스턴스 필드를 사용하여 동적인 소프트 에리어 섀도잉을 만드는 법에 대한 개요입니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2
+Order:1
+Tags:Lighting
+Tags:Distance Fields
+Tags:Getting Started
+Topic-image:DistanceFieldShadowing_Topic.jpg
+Social-Image:DirectionalLightAreaShadows.jpg
+ 
 
 [REGION:fullwidth raw]
 ![](DistanceFieldShadowing_Header.jpg)
@@ -50,113 +25,262 @@ Version: 4.9
 
 [TOC(start:2 end:2)]
 
+무버블 라이트 소스에서의 그림자는 각 스태틱 메시의 오브젝트 디스턴스 필드를 사용하여 다이내믹 라이트 소스에서 효율적인 에리어 섀도우를 계산하는 식으로 제공됩니다. 언리얼 엔진 4 (UE4) 에서 이는 
+**Ray Traced Distance Field Shadows** (레이 트레이스 디스턴스 필드 섀도우, RTDF) 라 합니다. 그림자 계산을 위해 그림자를 받을 점에서 각 라이트 방향 씬의 Signed Distance Fields (부호화 디스턴스 필드, SDF)를 통해 레이 트레이싱을 합니다.
+차폐된 오브젝트까지 가장 가까운 거리를 사용하여 레이 트레이싱과 거의 같은 비용으로 콘 트레이싱을 추정합니다. 구면 광원 모양에서 높은 퀄리티의 
+에리어 섀도우를 얻을 수 있습니다.
 
 
-Ray Traced Distance Field shadow (레이 트레이스 디스턴스 필드 섀도)는 씬의 디스턴스 필드 표현의 프로퍼티를 활용하여 다이내믹 메시에서의 에리어 섀도를 효율적으로 계산해 냅니다. 이 기능은 [디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 과 같은 데이터를 사용하므로, 한계점 역시도 동일한 부분이 많습니다.
-
-섀도잉 계산을 위해서, 씬의 부호화 디스턴스 필드를 통해 셰이딩이 적용되는 지점에서 각 라이트를 향해 광선 추적을 (레이 트레이스) 합니다. 오클루더와의 최단거리를 사용하여 콘 트레이스 근사치를 구하는데, 레이 트레이스와 거의 비용이 같습니다. 그 덕에 구체형 광원 모양에서 고품질의 그림자를 내는 것이 가능합니다.
+## 씬 구성
 
 [REGION:note]
-디스턴스 필드 섀도는 프로젝트 세팅 중 렌더링 아래 **'Generate Mesh Distance Fields'** (메시 디스턴스 필드 생성) 옵션을 켜야 합니다. 이 세팅 값을 변경한 이후에는 에디터 재시작이 필요합니다.
+이 기능은 **프로젝트 세팅** 중 **Rendering** (렌더링) 섹션의 **Generate Mesh Distance Fields** (메시 디스턴스 필드 생성) 옵션을 켜야 합니다. 자세한 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
 [/REGION]
 
-## 포인트 / 스포트 라이트
+레이 트레이스 디스턴스 필드 섀도잉을 켜려면, **라이트** 를 끌어 씬에 놓고 모빌리티를 **무버블** 로 설정한 뒤 라이트 **디테일** 패널에서 
+**Ray Traced Distance Field Shadows** (레이 트레이스 디스턴스 필드 섀도우) 옵션을 켜면 됩니다.
 
-Source Radius '소스 반경'을 사용하여 포인트 라이트의 그림자와 빛이 만나는 부분의 반그늘 크기를 결정합니다. 에리어 섀도는 깔끔한 접선으로 계산하여 긴 거리에 걸쳐 부드러워집니다. 참고로 광원 구체가 씬과 교차하면 부작용이 생깁니다.
+![](DirectionalLightDFSettings1.png)
 
-[![](LightSourceVis.jpg)(w:288)](LightSourceVis.jpg)
-[REGION:caption]
-에디터에는 광원 모양이 노란 선으로 그려집니다.
+
+[REGION:note]
+단계별 안내서는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_1) 문서를 참고하세요.
 [/REGION]
 
-[REGION:fullwidth]
-	![](PointLightAreaShadows.jpg)
-[/REGION]
+### 에리어 섀도잉 세팅
 
-[REGION:caption]
-Source Radius 가 100 인 포인트 라이트의 부드러운 레이 트레이스 섀도 입니다.
-[/REGION]
-
-[_레이 트레이스 디스턴스 필드 섀도잉을 사용한 움직이는 포인트 라이트 비디오입니다._](https://www.youtube.com/watch?v=-xai0iBffUc&list=UUBobmJyzsJ6Ll7UbfhI4iwQ)
-
-## 디렉셔널 라이트
-
-'Light Source Angle' 은 디렉셔널 라이트의 그림자와 빛이 만나는 부분의 반그늘 크기를 결정하는 데 사용됩니다. 레이 트레이스 섀도는 셀프 교차 문제가 매우 적어서, 전통적인 섀도 매핑에서 창궐하는 원거리의 누수나 과편향 문제가 없습니다.
-
-[REGION:fullwidth]
-	![](DirectionalLightAreaShadows.jpg)
-[/REGION]
-[REGION:caption]
-Light Source Angle 이 2 인 디렉셔널 라이트에서 나오는 부드러운 레이 트레이스 섀도 입니다.
-[/REGION]
-
-전형적으로 캐스케이드 섀도 맵이 사용되는 때는 디렉셔널 라이트의 다이내믹 섀도를 위해서입니다. 거기에는 씬에 있는 메시를 여러 개의 캐스케이드 섀도 맵에 렌더링하는 것이 필요합니다. 그림자 거리가 클 수록 섀도잉 비용은 크게 증가하는데, 섀도 맵 속에 렌더링되는 메시와 트라이앵글 갯수 때문입니다.
-
-레이 트레이스 디스턴스 필드 섀도는 보이는 픽셀에 대해서만 그림자를 드리우므로 원거리에서 훨씬 효율이 좋습니다. 캐스케이드 섀도 맵을 사용하여 카메라 근처 구역을 커버하고, 레이 트레이스 섀도로 'DistanceField Shadow Distance' 까지의 구역을 커버하면 됩니다.
+각 라이트 유형은 디스턴스 필드 섀도우를 사용하여 소프트 에리어 섀도우를 만들 수 있습니다. 이 그림자는 선명하게 접한 그림자는 바탕에 가깝게 유지하고 멀어질 수록 그림자를 연하게 만드는 식으로 
+현실의 그림자를 흉내냅니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![100 미터까지는 CSM 으로 커버되는 폴리지 씬입니다.](CSM2.jpg)(w:800)
+	![Traditional Shadow Map](ShadowMap.png)(w:500)
 	[/PARAM]
 	[PARAM:after]
-	![100 미터까지는 CSM 으로, 1.2 킬로미터까지는 레이 트레이스 디스턴스 필드 섀도로 커버되는 폴리지 씬입니다.](RTDF2.jpg)(w:800)
+	![Distance Field Shadow](DistanceFieldShadowPointLight.png)(w:500)
 	[/PARAM]
 [/OBJECT]
 
+[REGION:note]
+라이트 소스 세팅 관련 자세한 정보와 예제는, [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서를 참고하세요.
+[/REGION]
 
-[_레이 트레이스 디스턴스 필드 섀도를 사용한 하루 시간 변화 비디오입니다._](https://www.youtube.com/watch?v=4249b94KtyA&list=UUBobmJyzsJ6Ll7UbfhI4iwQ)
+### 포인트 및 스포트 라이트 소스 반경
 
-## 퀄리티
+포인트 및 스포트 라이트의 경우, **Source Radius** (소스 반경)을 사용하여 라이트의 그림자 반그늘 크기를 결정합니다. 에리어 섀도우는 접점에서 선명했다가 긴 거리에 늘어지면서 부드러워지는 식으로 계산됩니다.
+포인트 및 스포트 라이트에서는, 노랑 구체로 표현됩니다.
 
-디스턴스 필드 충실도는 그림자 정확도에 큰 영향을 끼치며, DFAO 보다 더합니다. 필요한 스태틱 메시에는 빌드 세팅 아래 'Distance Field Resolution' 를 높게 설정합니다.
+![](LightSourceVis.jpg)
+[REGION:caption]
+에디터에서 라이트의 소스 모양을 노랑 선으로 그립니다.
+[/REGION]
 
-이 그림자는 깊이 인식 업샘플링을 가지고 절반 해상도로 계산합니다. 템포럴 AA 로 반해상도의 깜빡임을 크게 줄일 수 있지만, 가끔 그림자에 각진 부분이 보이긴 합니다.
+[REGION:note]
+라이티의 소스 반경 구체는 씬과 교차되지 않아야 하며, 그렇지 않으면 라이팅 부작용이 생깁니다.
+[/REGION]
 
-## 한계
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Source Radius: | 0 ](SourceRadius_0.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Source Radius: | 50 ](SourceRadius_100.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
 
-이 기법의 한계는 [디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 과 비슷합니다:
+포인트 라이트에서 나온 레이 트레이스 디스턴스 필드 섀도우에 소스 반경을 사용하여 출입구, 벤치, 피아노가 주면 지오메트리에 드리우는 그림자를
+부드럽게 하고 있습니다.
 
-* 스태틱 메시 컴포넌트, 인스턴스드 스태틱 메시 컴포넌트와 폴리지만 ("Affect Distance Field Lighting", 디스턴스 필드 라이팅 영향 옵션이 켜진 이후) 디스턴스 필드를 생성하고 그림자를 드리울 수 있습니다. 하지만 스켈레탈 메시는 'Cast Inset Shadow' (내부설정 그림자 드리우기) 옵션으로 여전히 그림자를 합성할 수 있습니다. 랜드스케이프는 "Far Shadow Cascade Count" (원거리 그림자 캐스케이드 수)로 활성화된 원거리 캐스케이드로 처리하는 것이 가장 좋습니다.
-* 메시에는 약간의 비균등 스케일 (찌부러지기)만 지원됩니다. 메시가 심하게 찌부러지면 반그늘에 부작용이 나타날 것입니다.
-* 월드 포지션 오프셋 또는 테셀레이션을 통한 변형(deform)은 표현할 수 없으며, 셀프 섀도잉 부작용이 생길 수 있습니다. 원거리에는 레이 트레이스 섀도를 사용하면서 근거리에는 CSM 을 사용하여 버텍스 애니메이션을 지원하도록 하는 것도 좋을 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	-xai0iBffUc
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+씬을 이동하는 포인트 라이트가 각각의 메시에서 에리어 섀도우를 드리우는 데모입니다.
+[/REGION]
+
+[REGION:note]
+포인트 및 스포트 라이트 세팅 관련 자세한 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서를 참고하세요.
+[/REGION]
+
+### 디렉셔널 라이트 소스 앵글
+
+디렉셔널 라이트의 경우, **Light Source Angle** (라이트 소스 앵글)을 사용하여 라이트의 그림자 반그늘 크기를 결정합니다. 레이 트레이스 섀도우에는 
+자체적으로 교차되는 문제가 매우 적어 전통적인 섀도우 매핑 방식이라면 발생할 원거리의 누수나 편향치가 과한 문제를 피할 수 있습니다.
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Light Source Angle: | 1 ](DF_LSA_1.png)(w:1000 h:650)
+	[/PARAM]
+	[PARAM:after]
+	![Light Source Angle: | 3 ](DF_LSA_3.png)(w:1000 h:650)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]
+ 
+[/REGION]
+[REGION:caption]
+디렉셔널 라이트에서의 레이 트레이스 디스턴스 필드 섀도우로, 부드러운 그림자를 위해 라이트 소스 앵글을 조절한 것입니다.
+[/REGION]
+
+대부분의 경우, 캐스케이드 섀도우 맵(CSM)을 사용하여 디렉셔널 라이트의 다이내믹 섀도우를 처리합니다. 그러기 위해서는 씬의 메시를 
+다수의 캐스케이드 섀도우 맵(, 섀도잉용 레벨 오브 디테일) 속에 렌더링해야 합니다. 섀도잉 비용은 섀도우 거리가 클 때 늘어나는데, 
+섀도우 맵 속에 렌더링되는 트라이앵글과 메시 수가 늘어나기 때문입니다.
+
+레이 트레이스 디스턴스 필드 섀도우는 원거리의 경우 섀도잉 작업을 보이는 픽셀에 대해서만 하는 방식으로 훨씬 잘 돌아갑니다. 캐스케이드 섀도우 맵은 카메라 근처 영역의 섀도잉에 사용할 수 있는 반면, 
+RTDF 섀도우는 설정된 **Distance Field Shadow Distance** (디스턴스 필드 섀도우 거리)까지 섀도잉에 사용할 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cascaded Shadow Maps Only ](CSM2.jpg)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Cascaded Shadow Maps & Ray Traced Distance Field Shadows ](RTDF2.jpg)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+레이 트레이스 디스턴스 필드 섀도우를 켜면, **Cascaded Shadow Map Distance** 에 설정된 값 이상에 대한 섀도잉은 
+디스턴스 필드를 사용합니다. CSM 과 RTDF 섀도잉을 둘 다 사용한 비교에서, CSM 섀도우는 1,000 CM (센티미터)로 설정되어, 디테일이 많은 카메라 근처에는 선명한 그림자가 나옵니다. 
+1,000 CM 이후에는 RTDF 섀도잉이 사용되어, 1.2 KM (킬로미터) 까지의 오브젝트 그림자를 담당합니다.
+먼 거리의 나무에 대해 캐스케이드 섀도우 맵으로 할 때 너무 비싼 경우에도 그림자를 드리울 수 있습니다.
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4249b94KtyA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+디렉셔널 라이트가 있는 씬에서 레이 트레이스 디스턴스 필드 섀도잉을 사용하여 하루 중 시간 변화를 나타낸 데모입니다.
+[/REGION]
+
+[REGION:note]
+디렉셔널 라이트 세팅 관련 자세한 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서를 참고하세요.
+[/REGION]
+
+[COMMENT:none]
+- Scene Representation Excerpt from MeshDistanceFields.INT.udn -
+[/COMMENT]
+[INCLUDE:Engine/Rendering/LightingAndShadows/MeshDistanceFields#scenerepresentation]
+
+
+### 메시 디스턴스 필드 퀄리티
+
+디스턴스 필드 섀도우 충실도는 그림자 정확도에 큰 영향을 미치는데, [디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 보다 더합니다. 
+메시 디스턴스 필드 해상도를 늘리면 스태틱 메시가 드리우는 그림자가 향상됩니다. 메시 디스턴스 필드 시각화를 통해 퀄리티를 조사해 보세요.
+
+[REGION:imagetable]
+| [INCLUDE:#quality1] | [INCLUDE:#quality2] |
+| --- | --- |
+| 디스턴스 필드 섀도잉 포함 씬 뷰 | 메시 디스턴스 필드 시각화 |
+[/REGION]
+
+메시 디스턴스 필드에 대한 그림자는 깊이를 인지하는 업샘플링과 함께 절반 해상도로 계산됩니다. **템포럴 안티 앨리어싱** (TAA) 는 절반 해상도로 인해 발생할 수 있는
+깜빡임을 줄이는 데 큰 도움이 되지만, 가끔씩 각진 선분이 나오기는 합니다.
+
+[REGION:note]
+메시 디스턴스 필드 퀄리티 관련 자세한 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#quality2]
+[EXCERPT:quality1]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Distance Field Resolution: | 1 ](DFQuality1a.png)(h:490)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Resolution: | 5 ](DFQuality1b.png)(h:490)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:quality1]
+
+[EXCERPT:quality2]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Distance Field Resolution: | 1 ](DFQuality2a.png)(h:490)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Resolution: | 5 ](DFQuality2b.png)(h:490)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:quality2]
+-
+[/COMMENT]
 
 ## 퍼포먼스
 
-디렉셔널 라이트에서, Light Source Angle 이 커 질수록, 각 섀도잉 지점에 대해 보다 많은 수의 오브젝트를 고려해야 하므로 비용이 늘어납니다. 'DistanceField Shadow Distance' 값이 클 수록 컬링 효율이 약간 줄어듭니다. "Generate Distance Field As If Two Sided" (양면인 것처럼 디스턴스 필드 생성) 옵션을 켠 메시에서의 그림자는 절대 완벽히 불투명해 지지 않으므로 비용이 더 듭니다.
+풀 게임 씬을 1920x1080 해상도로 Radeon 7870 에서 돌린 GPU 시간은 다음과 같습니다:
 
-아래 GPU 시간은 풀 게임 씬을 라데온 7870 의 1080p 해상도로 돌려 얻은 수치입니다.
+[REGION:simpletable]
+| 테스트 | 캐스케이드/큐브맵 섀도우 맵 비용 (ms)  | 디스턴스 필드 섀도우 비용 (ms) | 빠른 정도 (%) |
+| --- | ---- | ---- | ---- |
+| 디렉셔널 라이트에 거리 10k 유닛, 캐스케이드 섀도우 맵 3 개 | 3.1 | 2.3 | 25% |
+| 디렉셔널 라이트에 거리 30k 유닛, 캐스케이드 섀도우 맵 6 개 | 4.9 | 2.8 | 43% |
+| 포인트 라이트 하나에 커다란 반경 | 1.8 | 1.3 | 30% |
+| 포인트 라이트 다섯에 작은 반경 | 3.2 | 1.8 | 45% |
+||||
+[/REGION]
 
-디렉셔널 라이트, 거리 10k, 캐스케이드 3
-* 캐스케이드 섀도 맵 3.1ms
-* 디스턴스 필드 섀도 2.3ms (25% 빠름)
+### 최적화
 
-디렉셔널 라이트, 거리 30k, 캐스케이드 6
-* 캐스케이드 섀도 맵 4.9ms
-* 디스턴스 필드 섀도 2.8ms (43% 빠름)
+디스턴스 필드 섀도잉 최적화를 위해 할 수 있거나 고려해야 하는 몇 가지 사항입니다:
 
-커다란 포인트 라이트 1
-* 큐브맵 섀도 맵 1.8ms
-* 디스턴스 필드 섀도 1.3ms (30% 빠름)
+* 디렉셔널 라이트에서, **Light Source Angle** 값이 클 수록 비용이 늘어나는데, 섀도잉이 적용되는 점마다 많은 수의 오브젝트를 고려해야 하기 때문입니다. 
+* **Distance Field Shadow Distance** 값이 크면 컬링 효율이 떨어집니다.
+* (**빌드 세팅** 에서 켤 수 있는) **Two-Sided Distance Field Generation** (양면 디스턴스 필드 생성) 옵션을 켠 메시의 그림자는 완전히 불투명이 되지 않으므로 비용이 비싸질 것입니다.
 
-작은 포인트 라이트 5
-* 큐브맵 섀도 맵 3.2ms
-* 디스턴스 필드 섀도 1.8ms (45% 빠름)
 
-## 세팅
+언리얼 엔진 4.16 에서 켤 수 있는 최적화는 다음과 같습니다:
 
-### Light
-|프로퍼티 | 설명 |
-| -------- | ----------- |
-| **Use RayTraced DistanceField Shadows** | 레이 트레이스 디스턴스 필드 섀도 사용 - 섀도 매핑 기법을 디스턴스 필드 섀도잉으로 전환합니다. 
-| **Ray Start Offset Depth Scale** | 레이 시작 오프셋 깊이 스케일 - 카메라가 멀어지면서 레이 트레이스 섀도를 받는 표면에서 오프셋을 얼마나 적용시킬지 조절합니다. 거대한 스태틱 메시의 저해상도 디스턴스 필드에서 오는 셀프 섀도잉 부작용을 숨기는 데 좋습니다. |
+[COMMENT:none]
+- Excerpt from MeshDistanceFields.INT.udn -
+[/COMMENT]
+[INCLUDE:Engine/Rendering/LightingAndShadows/MeshDistanceFields#optimizations]
 
-### Point / Spot Light
-|프로퍼티 | 설명 |
-| -------- | ----------- |
-| **Source Radius** | 소스 반경 - 광원 구체 크기입니다. 값이 클 수록 빛과 그림자가 만나는 반그늘 크기도 커지지만, 퍼포먼스 비용도 늘어납니다. |
 
-### Directional Light
-|프로퍼티 | 설명 |
-| -------- | ----------- |
-| **DistanceField Shadow Distance** | 디스턴스 필드 섀도 거리 - 레이 트레이스 섀도가 커버할 거리입니다. 캐스케이드 섀도 맵에 사용되는 'Dynamic Shadow Distance' 보다 멀어야 레이 트레이스 섀도가 사용됩니다. |
-| **Light Source Angle** | 광원 각도 - 수신자 입장에서 디렉셔널 라이트 소스가 커버하는 절반 각도입니다. 각도가 클 수록 빛과 그림자가 만나는 반그늘 크기가 커지지만, 퍼포먼스 비용도 늘어납니다. |
+
+
+
+
+## 한계
+
+[REGION:note]
+레이 트레이스 디스턴스 필드 섀도잉은 메시 디스턴스 필드 기법의 일반적한 한계를 공유합니다. 이러한 한계 관련 자세한 정보는 
+[](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
+[/REGION]
+
+
+
+

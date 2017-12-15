@@ -151,7 +151,8 @@ Related: Engine/Rendering/ParticleSystems/Reference
 
 
 
-<!--------------------------------
+[COMMENT:none]
+------------------------------
 
 [EXCERPT:SnowTopic]
 [OBJECT:TopicCompact]
@@ -200,4 +201,5 @@ Related: Engine/Rendering/ParticleSystems/Reference
 
 
 
--------------------->
+------------------
+[/COMMENT]

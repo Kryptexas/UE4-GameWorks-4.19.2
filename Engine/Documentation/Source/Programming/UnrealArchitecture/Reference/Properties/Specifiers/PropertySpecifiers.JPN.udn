@@ -1,48 +1,65 @@
-﻿INTSourceChangelist:2704985
+﻿INTSourceChangelist:3738728
 Title:プロパティ指定子
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
-Description:エンジンおよびエディタの各種特性でのプロパティの動作を指定するゲームプレイ プロパティの宣言時に使用するキーワード
+Description:エンジンおよびエディタの各部でのプロパティの動作を指定するゲームプレイ プロパティの宣言時に使用するキーワード
 Availability:Public
-Version:4.9
+Version:4.17
 
 [EXCERPT:main]
-プロパティを宣言する時、エンジンおよびエディタの各種特性で、プロパティがどのように動作するのか制御する指定子を 
-追加することができます。
+プロパティを宣言する時、エンジンおよびエディタの各部で、プロパティがどのように動作するのかを制御する指定子を宣言に追加することができます。
 
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AdvancedDisplay)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AssetRegistrySearchable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintAssignable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintCallable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintReadOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintReadWrite)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Category)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Config)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Const)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/DuplicateTransient)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditAnywhere) 
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditDefaultsOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditFixedSize)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditInline)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditInstanceOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Export)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/GlobalConfig)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Interp)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Localized)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Native)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NoClear)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NoExport)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NonTransactional)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Ref)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Replicated)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/ReplicatedUsing)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/RepRetry)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SaveGame)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SerializeText)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SimpleDisplay)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Transient)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleAnywhere)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleDefaultsOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleInstanceOnly)
+| プロパティ タグ | 効果 |
+| --- | --- |
+| `AdvancedDisplay` | プロパティは **[Details (詳細)]** パネルの拡張ドロップダウンリストに表示されます。 |
+| `AssetRegistrySearchable` | **AssetRegistrySearchable** キーワードは、これをメンバー変数として格納するアセットクラスインスタンスに対して、このプロパティとその値が自動的にアセットレジストリへ追加されることを示します。構造体プロパティもしくはパラメータへの使用は不正です。 |
+| `BlueprintAssignable` | マルチキャスト デリゲートとのみ使用できます。ブループリントで割り当てるためにプロパティを公開します。 |
+| `BlueprintAuthorityOnly` | このプロパティはマルチキャスト デリゲートでなければなりません。ブループリントでは `BlueprintAuthorityOnly` というタグがついたイベントのみ受け入れます。 |
+| `BlueprintCallable` | マルチキャスト デリゲートのみです。ブループリントのコードで呼び出すためにプロパティは公開されなければいけません。 |
+| `BlueprintGetter = GetterFunctionName` | このプロパティはカスタム アクセサ関数を指定します。このプロパティに `BlueprintSetter` または `BlueprintReadWrite` のタグがなければ、暗黙的に `BlueprintReadOnly` です。
+| `BlueprintReadOnly` | このプロパティはブループリントで読み取り可能ですが、修正はできません。この演算子は `BlueprintReadWrite` 指定子とは互換性がありません。 |
+| `BlueprintReadWrite` | このプロパティはブループリントでの読み取りと書き込みが可能です。この演算子は `BlueprintReadOnly` 指定子とは互換性がありません。 |
+| `BlueprintSetter` | このプロパティは、カスタム ミューテータ関数を持ち、暗黙的に `BlueprintReadWrite` にタグ付けされています。ミューテータ関数を指定しなければなりません。例、"`BlueprintSetter=SetterFunctionName`" |
+| `Category = TopCategory|SubCategory|...` | ブループリントの編集ツールで表示される場合に、プロパティのカテゴリを指定します。 `|` 演算子を使ってネスティングするカテゴリを定義します。 |
+| `Config` | この変数は設定可能になります。現在の値をクラスに関連する ini ファイルに保存することができ、作成時にロードされます。デフォルトのプロパティでは、値を設定できません。`ReadOnly` を意味します。 |
+| `DuplicateTransient` | 複製のタイプ (コピー/貼り付け、バイナリの複製など)を問わず複製中は、変数の値は常にデフォルト値にリセットされることを示します 。 |
+| `EditAnywhere` | このプロパティはエディタのプロパティ ウィンドウでアーキタイプ上とインスタンス上での編集が可能なことを示します。
+| `EditDefaultsOnly` | このプロパティはプロパティ ウィンドウで編集が可能なことを示しますが、アーキタイプ上のみの編集が可能です。この演算子は "Visible" タグとは互換性がありません。 |
+| `EditFixedSize` | 動的配列に対してのみ有効です。ユーザーが、アンリアル エディタ プロパティ ウィンドウで配列の長さを変更してしまうことを防ぎます。 |
+| `EditInline` | ユーザーはこの変数に参照されたオブジェクトのプロパティを、アンリアル エディタのプロパティ インスペクタ内で編集できます (オブジェクト参照の配列を含むオブジェクト参照でのみ有用です)。 |
+| `EditInstanceOnly` | このプロパティはプロパティ ウィンドウで編集が可能なことを示しますが、インスタンス上のみでアーキタイプ上ではありません。この演算子は "Visible" タグとは互換性がありません。 |
+| `Export` | オブジェクト プロパティ (またはオブジェクトの配列) にのみ有用です。このプロパティに割り当てられたオブジェクトは、T3D へコピー (コピー / ペースト) あるいはエクスポートされる時、オブジェクト参照そのものを単に出力するのではなく、サブオブジェクト ブロックとしてそのままエクスポートされることを表します。 |
+| `GlobalConfig` | サブクラスではオーバーライドできない以外は、`Config` と機能は同じです。デフォルトのプロパティでは、値を設定できません。`ReadOnly` を意味します。 |
+| `Instanced` | オブジェクトの (`UCLASS`) プロパティのみです。このクラスのインスタンスが作成される場合、デフォルトでこの変数に割り当てられたオブジェクトのユニークなコピーが作成されます。クラスのデフォルト プロパティで定義されたサブオブジェクトのインスタンス化に使用されます。`EditInline` と `Export` を意味します。 |
+| `Interp` | マチネのトラックによって、経時的に値を操作できることを表します。 |
+| `Localized` | この変数の値は、ローカライズされた値を定義します。文字列に使用する場合が多いです。`ReadOnly` を意味します。 |
+| `Native` | プロパティはネイティブになります。C++ コードを使ってプロパティのシリアライズとガーベジ コレクションの対象にします。 |
+| `NoClear` | このオブジェクト参照がエディタから None に設定されないようにします。エディタの [Clear (および Browse)] ボタンを非表示にします。 |
+| `NoExport` | ネイティブ クラスに対してのみ有用です。この変数は自動生成クラス宣言に含まれてはいけません。 |
+| `NonPIEDuplicateTransient` | このプロパティは、PIE セッションのために複製中の場合を除いて、複製中にデフォルト値にリセットされます。 |
+| `NonTransactional` | この変数値に対する変更はエディタの元に戻す / やり直す操作の履歴に含まれないことを表します。 |
+| `NotReplicated` | 複製をスキップします。サービス要求関数の構造体メンバーとパラメータにのみ適用されます。 |
+| `Replicated` | 変数はネットワーク上でレプリケートされます。 |
+| `ReplicatedUsing = FunctionName` | `ReplicatedUsing` タグは、コールバック関数を指定します。これは、ネットワーク上で変数が更新されたときに実行されます。 |
+| `RepRetry` | 構造体のプロパティでのみ有用です。完全に送信されなかった場合 (例、ネットワーク上でのシリアライズにオブジェクト参照がまだ利用できない)、このプロパティのレプリケーションを再試行します。単純な参照では、このプロパティはデフォルトですが、構造体の場合は帯域幅の負荷を考えると好ましくありません。フラグが指定されていない限りは、使用しない方がいいでしょう。 |
+| `SaveGame` | SaveGame 指定子は、プロパティ レベルでチェックポイント / 保存システムにフィールドを明示的にインクルードする単純な方法です。保存したゲームの一部にするつもりの全フィールドにこのフラグを設定し、プロキシ アーカイバーを使って読み出し / 書き込むことができます。 |
+| `SerializeText` | ネイティブ プロパティはテキストとしてシリアライズしなくてはいけません (`ImportText`、 `ExportText`)。 |
+| `SkipSerialization` | このプロパティはシリアライズされませんが、テキスト形式でエクスポート可能です (例、コピー / 貼付け)。 |
+| `SimpleDisplay` | **[Details]** パネルに表示され、編集可能なプロパティが表示されます。[Advanced] セクションを開かなくても表示されます。 |
+| `TextExportTransient` | このプロパティはテキスト形式ではエクスポートされません (例、コピー / 貼付け)。 |
+| `Transient` | プロパティは一時的なものです。つまり、保存やロードはされません。このようにタグ付けされたプロパティは、ロード時にゼロで埋められます。 |
+| `VisibleAnywhere` | このプロパティはすべてのプロパティウィンドウで可視化できることを示しますが、編集は一切できません。このタグは Edit タグとは互換性がありません。 |
+| `VisibleDefaultsOnly` | このプロパティはアーキタイプからプロパティウィンドウのみで可視化できることを示しますが、編集は一切できません。このタグは Edit タグとは互換性がありません。 |
+| `VisibleInstanceOnly` | このプロパティはアーキタイプからではなく、インスタンスからプロパティウィンドウのみで可視化できることを示しますが、編集は一切できません。このタグは Edit タグとは互換性がありません。 |
+
+[COMMENT:none]
+- NonPIETransient - Unlisted due to deprecation. -
+[/COMMENT]
+[COMMENT:none]
+- Const - Removed because it causes compile failures!Row copied below in case it gets fixed. -
+[/COMMENT]
+[COMMENT:none]
+- | `Const` | This variable is `const` and should be exported as `const`. `const` properties will not be modifiable in the Editor. | 
+[/COMMENT]
+
 
 [/EXCERPT:main]

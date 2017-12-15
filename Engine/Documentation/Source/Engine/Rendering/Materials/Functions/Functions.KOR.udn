@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -25,8 +25,6 @@ tags:Materials
 일일이 수정하지 않아도 되는 것입니다.
 
 
-
-[REGION:topics half]
 [OBJECT:Topic]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/Functions/Overview:title%](Engine/Rendering/Materials/Functions/matfunc_topic.png)
@@ -98,7 +96,6 @@ tags:Materials
 		[RELATIVE:Engine/Rendering/Materials/Functions/Using]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
 ## 함수 참고서
 

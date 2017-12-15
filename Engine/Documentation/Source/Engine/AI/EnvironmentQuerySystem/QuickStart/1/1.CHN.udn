@@ -19,7 +19,7 @@ Description:使用顶视模板创建新项目。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 本快速入门将对项目中可用内容进行假定，如您不适应即时进行的替代或问题解决，建议以如下步骤设置项目。
 
@@ -31,4 +31,4 @@ Description:使用顶视模板创建新项目。
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/1#aiprojectstart]
 
-%Steps%
+

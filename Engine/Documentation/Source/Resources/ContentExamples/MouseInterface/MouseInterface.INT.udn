@@ -8,48 +8,7 @@ Related: Engine/Blueprints\Editor\Modes\Components
 Related: Engine/Blueprints\Editor\Modes\Defaults
 Related: Engine/Blueprints\Editor\Modes\GraphPanel
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MouseInterface:title%](MouseInterfaceTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MouseInterface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MouseInterface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MouseInterface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MouseInterface:title%](MouseInterfaceTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MouseInterface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MouseInterface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MouseInterface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:MouseInterfaceTopic.png
 
 
 [REGION:fullwidth]
@@ -71,9 +30,6 @@ Interaction can be broken down as follows:
 * Clicking and dragging on a sphere will cause it to follow the cursor, allowing spheres to be moved around the level. This is also true of touch events from a mobile device.
 * Clicking on the box in the background plays and stops a Matinee sequence, which causes the box to move back and forth behind the spheres.
 
-
-
-[REGION:topics fourth]
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -122,7 +78,6 @@ Interaction can be broken down as follows:
 		[RELATIVE:Resources\ContentExamples\MouseInterface\SettingsAndCursors]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
 
 

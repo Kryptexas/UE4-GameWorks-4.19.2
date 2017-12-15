@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now is a good time to compile our project so that we can see our code changes reflected in-game. 
 
@@ -67,4 +67,3 @@ C++ classes to Blueprints.
 
 1.	Make sure to save your `BP_FPSProjectGameMode` Blueprint before closing the Blueprint Editor.
 
-%Steps%

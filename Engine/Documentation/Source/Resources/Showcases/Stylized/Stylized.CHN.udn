@@ -100,11 +100,13 @@ Related: Engine/Landscape/Materials
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:InstanceNote]
 [REGION:note]
 大多数为此场景创建的材质实际上是通过[材质实例常量](Engine/Rendering/Materials/MaterialInstances)来进行应用的。 这使得我们可以快速调整属性而无需等待材质的重新编译。
 [/REGION]
 [/EXCERPT:InstanceNote]
 
---->
+-
+[/COMMENT]

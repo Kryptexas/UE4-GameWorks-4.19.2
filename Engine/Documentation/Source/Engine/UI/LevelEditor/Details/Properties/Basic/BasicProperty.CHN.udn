@@ -14,7 +14,8 @@ Availability:Public
 | **复选框** | 用于编辑简单的切换开关属性，比如 `布尔型` 属性。 [INCLUDE:#TypeBool] |
 | **下拉列表** | 用于编辑 `枚举型` 及其他提供了一列可用值的属性。 [INCLUDE:#TypeEnum] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TypeString]
 [REGION:none]
 **示例:**  
@@ -49,4 +50,5 @@ Availability:Public
 ![Dropdown control](enum.png)
 [/REGION]
 [/EXCERPT:TypeEnum]
--->
+
+[/COMMENT]

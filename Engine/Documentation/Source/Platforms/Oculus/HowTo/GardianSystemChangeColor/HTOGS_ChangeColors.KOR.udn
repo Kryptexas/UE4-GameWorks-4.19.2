@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:3719384
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title: Oculus Rift Guardian 시스템 색 변경
+Description: Rift Guardian 시스템의 색을 변경하는 방법입니다.
+Type: how-to
+Skilllevel: Intermediate
+Version: 4.17
+Parent: Platforms/Oculus
+Order: 2
+tags: Oculus
+topic-image:Platforms\Oculus\HowTo\GuardianSystem\HTGuardian_System_Topic_Image.png
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+prereq:Platforms\Oculus\HowTo\GuardianSystem
+
+ ![](HTGuardian_System_07.png)
+
+Oculus Guardian 시스템은 VR 상호작용 영역의 경계를 표시하는 데 사용됩니다. 트래킹 디바이스가 경계에 가까워지면, Oculus Runtime 은 비주얼 큐를 통해 사용자에게 자동으로 알립니다. 여기서는 Oculus Guardian 시스템에서 VR 상호작용 영역을 표시하는 데 사용하는 색을 변경하는 법을 살펴보겠습니다.
+
+[REGION:note]
+Guardian 시스템의 정상 작동을 위해서는, Oculus App 에서 구성해 줘야 합니다. 그 방법 관련 자세한 정보는 공식 [Oculus Guardian System](https://developer.oculus.com/documentation/pcsdk/latest/concepts/dg-guardian-system/) 셋업 페이지를 참고하세요.
+[/REGION]
+
+[REGION:warning]
+UE4 안에서 Guardian 시스템을 끄는 것은 가능하지도 **않고** 추천하지도 않습니다. 하지만 경계에 가까워지는 사용자에 대한 UE4 반응 방식을 조절할 수 있습니다.
+[/REGION]
+
+## 단계
+
+[REGION:note]
+폰에 **OculusRiftBoundy** 가 없으면 작동하지 않으니 추가했는지 확인합니다. 자세한 방법은 [](Platforms\Oculus\HowTo\GuardianSystem) 문서를 참고하세요:
+[/REGION]
+
+1. **Oculus Rift Boundary Color** 라는 **변수** 를 새로 만들고, 유형을 **Linear Color** 로, 색은 **빨강** 으로 설정합니다.
+
+    ![](HTGuardian_System_04.png)
+
+1. **이벤트 그래프** 에 **Event Begin Play** 와 **Set Tracking Origin** 노드를 추가합니다. Set Tracking Origin 에는 자체적으로 **Origin** 이 **Floor Level** 로 되어있는지 확인한 뒤 Event Begin Play 를 Set Tracking Origin 노드에 연결합니다.
+
+    ![](HTGuardian_System_02.png)(w:500)
+
+
+1. 이벤트 그래프에 우클릭하고 메뉴에서 **Set Outer Boundary Color** 를 검색, 클릭하여 그래프에 추가합니다.
+
+    ![](HTGuardian_System_03.png)
+
+1. **Oculus Rift Boundary Color** 변수와 **Oculus Rift Boundary** 컴포넌트 둘 다 이벤트 그래프에 끌어 놓습니다. Oculus Rift Boundary Color 변수를 Set Boundary Color 노드의 **In Boundary Color** 에 연결하고 Oculus Rift Boundary 를 **Target** 입력에 연결합니다.
+
+	![](HTGuardian_System_05.png)(w:492)
+ 
+
+1. Set Tracking Origin 노드의 출력을 Set Outer Boundary Color 노드의 입력에 연결합니다. 완성된 모습은 다음과 같습니다.
+
+    [REGION:lightbox]
+    [![](HTGuardian_System_06.png)(w:492)](HTGuardian_System_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+## 최종 결과
+
+이제 레벨을 실행하고 Oculus Rift 를 쓰면 경계가 Oculus Rift Boundary Color 변수에 설정한 색으로 표시될 것입니다.
+
+   ![](HTGuardian_System_07.png)
+
+## UE4 프로젝트 다운로드
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크는 아래와 같습니다.
+
+* [**Oculus Rift Guardian System Example Project**](https://epicgames.box.com/s/s4vvkb2i0ohtice8vtqude6i8ih7hy8i)
+

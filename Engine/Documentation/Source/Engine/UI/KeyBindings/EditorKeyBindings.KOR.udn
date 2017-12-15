@@ -1,48 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:키바인딩 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:언리얼 에디터의 일반적인 명령에 대한 단축키 설정을 위한 에디터입니다.
 Version: 4.9
+topic-image:Engine/UI/KeyBinding_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/KeyBindings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/KeyBindings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/KeyBindings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/KeyBindings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/KeyBindings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/KeyBindings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Intro]
 **Keyboard shortcuts** (키보드 단축키)란 특정 명령이나 동작을 수행하기 위해 누르는 키보드의 특정 키조합을 말합니다. 언리얼 에디터 4 의 기본 기능이나 다른 툴에서 흔히 쓰이는 명령을 설정할 수 있습니다. 특정 명령에 특정한 키나 키조합을 바인딩하여 개인의 기호와 작업방식에 맞게끔 언리얼 에디터의 키보드 단축키를 맞출 수 있는 것입니다.

@@ -1,50 +1,12 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 레이아웃 커스터마이징
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:다양한 패널과 탭을 재배치하고 도킹하여 유저 인터페이스의 외형과 느낌을 커스터마이징하는 법입니다.
 Navigation:topic
 Version: 4.9
+topic-image:(Engine/UI/CustomizingUI.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/UI/CustomizingUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/InterfaceOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/InterfaceOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/InterfaceOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](Engine/UI/CustomizingUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/InterfaceOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/InterfaceOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/InterfaceOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![](Engine/UI/UserGuideBanner_2.png)(convert:false)

@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title:3. 시네마틱 노출 변수 사용
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:이번 단계에서는 시네마틱 노출 변수를 시퀀스에 추가하고 시퀀스 재생 발동을 위한 메소드를 구성합니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:3
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[게임플레이 애니메이션 블렌딩 - 홈](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[다음](Engine\Sequencer\HowTo\GameplayAnimBlending\04_LevelBlueprintSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+여기서는 애니메이션 블루프린트의 interp 에 물려줄 **Default Slot Interp** 플로트 변수를 추가, 게임플레이 포즈를 슬롯 애니메이션으로 블렌딩하는 시점을 결정하도록 하겠습니다.
+또 레벨에 트리거 박스를 추가하여 다음단계에서 이를 사용하여 플레이어가 볼륨에 들어서면 레벨 시퀀스를 재생시킬 수 있도록 하겠습니다.
+
+1.	**Ue4ASP_Character** 에 대한 레벨 시퀀스 안에서, **Track** (트랙) 버튼을 클릭하고 새로운 **Default Slot Interp** 프로퍼티를 할당합니다.
+
+	![](GameBlend_13.png)
+
+1.	타임라인을 문질러 **25** (또는 원하는) 프레임 앞으로 이동한 뒤 **Default Slot Interp** 에 대한 키를 추가하고 값은 **1.0** 으로 합니다. 
+
+	![](GameBlend_14.png)
+
+1.	메인 레벨 에디터의 **모드** 패널에서 **Triggerbox** 를 끌어 레벨에 놓고 위치와 크기를 원하는 대로 조절합니다.
+
+	![](GameBlend_15.png)
+
+	옵션으로 **Actor Hidden In Game** (게임에서 액터 숨김)을 false 설정하면 재생 도중 트리거 볼륨을 확인할 수 있습니다.
+
+다음 마지막 단계에서는, 트리거 박스 볼륨에 들어서면 레벨 시퀀스를 재생하는 레벨 블루프린트를 구성하겠습니다.
+
+[nav]

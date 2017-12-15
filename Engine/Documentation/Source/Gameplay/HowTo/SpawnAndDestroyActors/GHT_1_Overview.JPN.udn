@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:アクタをスポーン/ 破壊する方法の概要
 Crumbs: %ROOT%, Gameplay
@@ -9,7 +9,9 @@ type:overview
 order:1
 SkillLevel:Intermediate
 
-ゲームプレイ中にアイテムを動的にレベルに追加する場合がよくあります。これをアクタをスポーンするといいます。スポーンするアイテムは、他のプレイヤーや敵からヘルス値、武器、報酬などのピックアップに至るまで、何でも選ぶことができます。このページでは、ブループリントを使ってアクタをスポーンする方法を説明します。<!-- as well as other information regarding **Actor Spawning** and links to more documentation.--> 
+ゲームプレイ中にアイテムを動的にレベルに追加する場合がよくあります。これをアクタをスポーンするといいます。スポーンするアイテムは、他のプレイヤーや敵からヘルス値、武器、報酬などのピックアップに至るまで、何でも選ぶことができます。このページでは、ブループリントを使ってアクタをスポーンする方法を説明します。[COMMENT:none]
+ さらに **アクタのスポーン** に関する情報と詳細ドキュメントへのリンクを紹介します。
+[/COMMENT] 
 
 ## 実装ガイド
 

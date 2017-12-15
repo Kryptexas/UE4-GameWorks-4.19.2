@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Depth 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -56,7 +56,8 @@ PixelDepth 는 현재 렌더링되고 있는 픽셀의 깊이 또는 카메라�
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PixelDepthNetworks]
 [REGION:lightbox]
 [![](PixelDepthNetwork.png)(w:570)](PixelDepthNetwork.png)
@@ -64,7 +65,8 @@ PixelDepth 는 현재 렌더링되고 있는 픽셀의 깊이 또는 카메라�
 [/EXCERPT:PixelDepthNetworks]
 
 
--->
+
+[/COMMENT]
 
 이 예제에서 머티리얼 네트워크는 바닥에 적용되었습니다. 바닥과의 거리가 2048 유닛 이상으로 멀어지면서 두 색이 어떻게 선형 보간 혼합되고 있는지 살펴봅시다. Power 표현식을 사용해서 두 색 간의 대비값을 증폭시켜 좀 더 유의미한 시각적 결과를 내고 있습니다.
 
@@ -88,7 +90,8 @@ SceneDepth 는 기존의 씬 깊이를 출력하는 표현식입니다. [PixelDe
 | :---: | :---: |
 | 결과 | 망 (클릭하면 확대) |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SceneDepthNetwork]
 [REGION:lightbox]
 [![](SceneDepthNetwork.png)(w:488)](SceneDepthNetwork.png)
@@ -96,12 +99,14 @@ SceneDepth 는 기존의 씬 깊이를 출력하는 표현식입니다. [PixelDe
 [/EXCERPT:SceneDepthNetwork]
 
 
--->
+
+[/COMMENT]
 
 
 이 예제에서는 반투명 구체에 머티리얼 네트워크를 적용시켰습니다. SceneDepth 노드가 구체 표면의 픽셀이 아닌 구체 뒤의 픽셀을 읽고 있는 것을 확인할 수 있습니다.
 
-<!--- Commented out Per Martin M's suggestion with UEDOC-2671---
+[COMMENT:none]
+- Commented out Per Martin M's suggestion with UEDOC-2671---
 [REGION:note]
 **프로그래머:** SceneDepth 는 순수한 깊이값(0 에서 2^24-1 까지의 정수)을 반환합니다. 선형이 아닌 깊이는 다음과 같이 정규화됩니다:
       
@@ -109,7 +114,8 @@ SceneDepth 는 기존의 씬 깊이를 출력하는 표현식입니다. [PixelDe
 	NormalizedDepth = 1 - MaxZ / (SceneDepth + MaxZ)
 
 [/REGION]
---->
+-
+[/COMMENT]
 깊이를 정규화한 결과는 0.0 에서 1.0 까지의 선형 범위입니다.
 
 [/REGION]

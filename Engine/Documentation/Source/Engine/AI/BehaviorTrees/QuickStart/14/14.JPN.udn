@@ -1,52 +1,40 @@
-﻿INTSourceChangelist:2774060
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:14.ビヘイビアツリーのビルド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 14ビヘイビアツリーのビルド
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:14
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/13 "%Engine/AI/BehaviorTrees/QuickStart/13:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/15 "%Engine/AI/BehaviorTrees/QuickStart/15:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 
-このビヘイビアツリーのビルドに必要な構成要素は全てそろいました。
+ビヘイビアツリーのビルドに必要な構成要素が全てそろいました。
 
 ![](DoneBehaviorTree.jpg)
 
-ここでは何が起こっているのか詳しく見てみましょう。
+何が起こっているのかを詳しく見てみましょう。
 
-* AI Character ではないポーンが探知されなければ、AI はただじっとしている。
+* AI Character ではないポーンが検出されなければ、AI はただじっとしている。
 * AgroCheck Service は常に適切なターゲットを探している。
 * ターゲットが見つかると、一番左のブランチがオープンになり、AI はターゲットにしたポーンに向かって走る。
 * ポーンの範囲に到達すると、ブランチの実行が妨げられるので、グラフの一番上に戻る。
-* ターゲットのポーンが非表示の場合、一番右のブランチが実行可能になるので、AI がターゲットのポーンが最後にいた位置へ移動する。
+* ターゲットのポーンが隠れている場合、一番右のブランチが実行可能になるので、AI がターゲットのポーンが最後にいた位置へ移動する。
 * 移動したら、待って、ホームに戻る。
 * どんな時にも、適切なターゲットが見つかると、一番右のブランチの実行が中止され、一番左のブランチがオープンになります。
 
-このツリーの作成をステップスルーしてみましょう。
+このツリーを手順に従い作成してみましょう。
 
 ## ステップ
 
 ### 基本設定
 
-このガイドのパート 8 で既に行ったと思いますが、この変更を保存していない場合のために、ビヘイビアツリーの基本的な構造を作成する手順を紹介します。
+このガイドのパート 8 で既に行ったと思いますが、この変更を保存していない場合のために、ビヘイビアツリーの基本的構造の作成手順を紹介します。
 
-1. ビヘイビアツリーが編集用に開いていない場合は、 **コンテンツ ブラウザ** で **ダブルクリック** して編集用に開きます。
+1. ビヘイビアツリーが編集用に開いていない場合は、 **コンテンツ ブラウザ** で **ダブルクリック** して開きます。
 1. Behavior Tree モードに切り替えます。
 
 	![](btMode.png)
@@ -64,11 +52,11 @@ version:4.9
 
 		![](selector.jpg)
 
-1. Selector ノードの 1 つへ Root ノードを接続します。
+1. Selector ノードの 1 つに Root ノードを接続します。
 
 	![](connectNodes.jpg)
 
-1. 新しく接続された Sequence ノードを Selector ノードとその他の Sequence ノードへ接続します。そしてそれらを調整します。
+1. 新しく接続された Sequence ノードを Selector ノードとその他の Sequence ノードに接続します。そして以下のようにします。
 
 	![](connectNodes2.jpg)
 
@@ -88,7 +76,7 @@ version:4.9
 
 ### タスクを追加
 
-1. グラフ内で **右クリック** をしてコンテキスト メニューを表示させ、以下の 4 つの **タスク** を追加します。**Rapid Move To** ノードが 1 つ、 **Wait** ノードが 1 つ、 Move To ノードが 2 つ。
+1. グラフ内で **右クリック** してコンテキスト メニューを表示させ、以下の 4 つの **タスク** を追加します。**Rapid Move To** ノードが 1 つ、 **Wait** ノードが 1 つ、 Move To ノードが 2 つ。
 
 	![](addTaskNodes.png)
 
@@ -100,7 +88,7 @@ version:4.9
 
 	_左から右に以下のようになります。**Rapid Move To**、**Move To**、**Wait**、**Move To**._
 
-1. 一番左にある **Move To** ノードを選び、 **[Details (詳細)]** パネルを使って、 **Blackboard Key** プロパティを [TargetLocation] に設定します。
+1. 一番左にある **Move To** ノードを選び、 **[Details (詳細)]** パネルを使って、 **Blackboard Key** プロパティを **[TargetLocation]** に設定します。
 1. 一番右にある **Move To** ノードの **Blackboard Key** プロパティを **[HomeLocation]** に設定します。
 
 	[REGION:raw]
@@ -148,7 +136,7 @@ version:4.9
 	![](propsSet.png)
 
 
-これで終わりです！**Play in Editor** の使用中は **ビヘイビアツリー** エディタを開いたままにしておけば、ツリーがどのように動くのか確認することができます。AI に十分近寄って、その視界に入ると、 AI が追跡を開始します。視界から消えると、 AI は最後に目撃した位置に行って、待機してから、開始した場所に戻ります。
+これで終わりです！**Play in Editor** の使用中は **ビヘイビアツリー** エディタを開いたままにしておけば、ツリーがどのように動くのかを確認することができます。AI に十分近寄って、その視界に入ると、 AI が追跡を開始します。視界から消えると、 AI は最後に目撃した位置に行って、待機してから、開始した場所に戻ります。
 
 
 [OBJECT:EmbeddedVideo]
@@ -163,7 +151,7 @@ q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 
-%Steps%
+[NAV]
 
 
 

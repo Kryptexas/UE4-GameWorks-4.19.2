@@ -25,14 +25,10 @@ Description:碰撞几何体创建和设置的内容指南。
 [/VAR]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		指导...
-	[/PARAM]
-	[PARAM:links]
+## 指导...
+
+[REGION:buttonlist]
+
 		* [](Engine/Physics/Collision/HowTo/AddConvexHulls "%Engine/Physics/Collision/HowTo/AddConvexHulls:description%")
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
@@ -41,8 +37,8 @@ Description:碰撞几何体创建和设置的内容指南。
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
 		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3152404
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:퀵 세팅
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -40,7 +40,8 @@ Version: 4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BrushPolys]
 [REGION:imagetable]
 | ![](brush_polys_enabled.png)(quality:100) | ![](brush_polys_disabled.png)(quality:100) |
@@ -65,4 +66,5 @@ Version: 4.9
 | 높음 |
 [/REGION]
 [/EXCERPT:MaterialQuality]
--->
+
+[/COMMENT]

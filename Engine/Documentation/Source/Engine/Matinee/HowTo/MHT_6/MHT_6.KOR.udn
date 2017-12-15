@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:머티리얼 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -7,19 +7,13 @@ Version: 4.9
 SkillLevel: Intermediate
 
 
----
 여기서는 오브젝트에 깜빡이는 **머티리얼**  을 만들어, 플레이어가 오브젝트에 다가가면 **머티리얼** 의 색이 변하도록 하겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네 액터, 소품, 트랙 추가
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네 액터** 및 씬에서 사용할 소품을 조금 추가하고, **마티네** 에서 사용할 트랙을 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네 액터, 소품, 트랙 추가
+
+여기서는 **마티네 액터** 및 씬에서 사용할 소품을 조금 추가하고, **마티네** 에서 사용할 트랙을 추가하겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 다음 **마티네 추가** 버튼을 클릭합니다.
 
@@ -81,15 +75,9 @@ SkillLevel: Intermediate
 
 	![](MHT6_AddFloatMaterialTrack.png)
 
+## 벡터 머티리얼 파라미터 마티네
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		벡터 머티리얼 파라미터 마티네
-	[/PARAM]
-	[PARAM:description]
-	다음 단계에서는 **마티네** 에서 **Vector Material Parameter** 트랙을 사용하여 플레이어가 의자 근처에 가면 의자 색을 바꾸도록 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+다음 단계에서는 **마티네** 에서 **Vector Material Parameter** 트랙을 사용하여 플레이어가 의자 근처에 가면 의자 색을 바꾸도록 하겠습니다.
 
 1.  레벨의 의자를 선택한 다음 **디테일** 패널에서 **Materials** 아래 (돋보기) 아이콘을 클릭합니다.
 
@@ -205,17 +193,11 @@ SkillLevel: Intermediate
 
 	_기본적으로 의자는 주황색이다가 플레이어가 가까이 가면 선택한 색으로 블렌딩되기 시작할 것입니다._
 
-	_의사에서 멀어지면 기본색으로 다시 블렌딩됩니다._
+	_의자에서 멀어지면 기본색으로 다시 블렌딩됩니다._
 
+## Float Material Parameter 마티네
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Float Material Parameter 마티네
-	[/PARAM]
-	[PARAM:description]
-	다음 단계에서는, **마티네** 의 **Float Material Parameter** 트랙을 사용하여 계단의; 발판에 적용할 깜빡이 **머티리얼** 을 만들도록 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+다음 단계에서는, **마티네** 의 **Float Material Parameter** 트랙을 사용하여 계단의; 발판에 적용할 깜빡이 **머티리얼** 을 만들도록 하겠습니다.
 
 1. **콘텐츠 브라우저** 에서 **Game/Mateirlas** 아래, **M_Basic_Wall Material** 에 우클릭한 다음 **사본 생성** 을 선택하고 이름을 짓습니다.
 
@@ -290,18 +272,4 @@ SkillLevel: Intermediate
 	_계단의 단이 검정에서 하양으로 앞뒤로 깜빡이는 것이 보일 것입니다._
 
 	_**마티네** 에서 키프레임 사이의 시간을 더욱 짧게 만들어 깜빡이는 속도를 높일 수 있습니다._
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

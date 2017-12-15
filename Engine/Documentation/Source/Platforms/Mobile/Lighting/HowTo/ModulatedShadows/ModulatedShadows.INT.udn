@@ -21,7 +21,7 @@ To enable Modulated shadows in your UE4 project you will need to do the followin
 1. Make sure that you have a **Directional Light** placed in your level and that it's **Mobility** has been set to **Stationary**. 
 	
 	[REGION:lightbox]
-	[![](Platforms\Mobile\Lighting\Mod_Setup_01.png)(w:342 h:137)](Platforms\Mobile\Lighting\Mod_Setup_01.png)
+	[![](Platforms\Mobile\Lighting\Mod_Setup_01.png)(w:342)](Platforms\Mobile\Lighting\Mod_Setup_01.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -35,7 +35,7 @@ To enable Modulated shadows in your UE4 project you will need to do the followin
 1. Select the Directional Light and in the **Details** panel under the **Light** section, click on the small white triangle to expand the **Advanced** options to expose the Modulated shadows options.
 
 	[REGION:lightbox]
-	[![](Platforms\Mobile\Lighting\Mod_Setup_02.png)(w:342 h:137)](Platforms\Mobile\Lighting\Mod_Setup_02.png)
+	[![](Platforms\Mobile\Lighting\Mod_Setup_02.png)(w:342)](Platforms\Mobile\Lighting\Mod_Setup_02.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -53,7 +53,7 @@ To enable Modulated shadows in your UE4 project you will need to do the followin
 1. To see what the Modulated shadows will look like you will need to run the game using either the **Mobile Previewer** or by deploying the project to a mobile device. As you can see in this example, the color of the Modulated shadow as changed from the default gray color to red to show off the effect better.
 
 	[REGION:lightbox]
-	[![](Platforms\Mobile\Lighting\Mod_Setup_04.png)(w:288 h:265)](Platforms\Mobile\Lighting\Mod_Setup_04.png)
+	[![](Platforms\Mobile\Lighting\Mod_Setup_04.png)(w:288)](Platforms\Mobile\Lighting\Mod_Setup_04.png)
 	[/REGION]
 
 	[REGION:caption]

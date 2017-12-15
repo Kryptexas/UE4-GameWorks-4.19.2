@@ -1,0 +1,92 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:2.Animation ブループリントと Character ブループリントの設定
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Character ブループリントと Animation ブループリントを設定して、シーケンサーでゲームプレイからスロットのアニメーションにどのようにブレンドするかを設定します。
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:2
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のセクション](Engine\Sequencer\HowTo\GameplayAnimBlending\01_SequenceSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ゲームプレイ アニメーションのブレンドのホーム](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[次のセクション](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+このステップでは、Animation ブループリントをセットアップし、ゲームプレイ ポーズを取り込んで、レベル シーケンスによって定義される Slot アニメーションにブレンドします。 
+
+1.	**コンテンツ ブラウザ** で、**UE4ASP_HeroTPP_AnimBlueprint** を探して開きます。次に、**[My Blueprint]** ウィンドウで **AnimGraph** 上でダブルクリックします。 
+
+	![](GameBlend_04.png)
+
+1.	**AnimGraph** で、既存の **Locomotion** ステートマシンから、**New Save Cached Pose** を作成し、**lococache** という名前を付けます。 
+
+	![](GameBlend_05.png)
+
+1.	**lococache** を 2 回使用します。ひとつを **Blend** ノードの **A** ピンに接続すると、それが **Final Animation Pose** に送られます。 
+
+	![](GameBlend_06.png)
+
+1.	もうひとつの **lococache** から、**Slot** ノードを使って、**Blend** の **B** ピンに接続します。次に、**Alpha** を右クリックして **Promote to Variable (変数化)** で、**Blend Interp** という名前を付けます。 
+
+	![](GameBlend_07.png)
+
+1.	**コンテンツ ブラウザ** で、**Ue4ASP_Character** ブループリントを開きます。**Crouching** セクションを以下のグラフで置き換えます。 
+
+	![](GameBlend_08.png)
+
+	上の図では、**InputAction Crouch** ノードを **C** keyboard event と置き換え、**Flip Flop** ノードで Crouching (かがむ) ステートを切り替えています。 
+
+	[REGION:note]
+	このブループリントは当初、別のプロジェクト用に作成されました。このプロジェクトには、テンプレート プロジェクトにはない Crouch の入力バインドが入っていました。InputAction Crouch を標準の C keyboard event に置き換えることで、ブループリントの警告メッセージをなくし、C key を押して、Crouching ステートと Non-crouching ステートの間で切り替えます。 
+	[/REGION]
+
+1.	**DefaultSlotInterp** という名前の新規 **Float** 変数を作成し、**Instance Editable** および **Expose to Cinematics** を **True** に設定します。 
+
+	![](GameBlend_09.png)
+
+	シーケンサー内でこの変数を使ってブレンドし、その値をブレンドを実際に処理する Animation ブループリントの変数、**Blend Interp** に渡します。 
+
+1.	**SetDefaultSlotInterp** という新規関数を作成し、**[Details]** パネルで **Float** 型の **Interp** と呼ばれる **Input** を追加します。 
+
+	![](GameBlend_10.png)
+
+	**Set (Property Value Name (プロパティ値の名前))** という関数を作成することで、関連するプロパティ値が変更される度にシーケンサーによって呼び出される **Proxy** 関数を作成しました。
+	この関数はプロパティの値が変更されたときだけ呼び出されるため、**Event Tick** または **Custom Event** と **Timeline** を使って、**DefaultSlotInterp** プロパティ値の変更を反映するよりも効率的です。 
+
+1.	**[Components]** ウィンドウから、**Mesh** をドラッグして、**Get Anim Instance** と **Cast to UE4ASP_HeroTPP_AnimBlueprint** を使用します。 
+
+	![](GameBlend_11.png)
+
+1.	**As UE4ASP Hero TPP Anim Blueprint** から **Set Blend Interp** を使って、**Interp** 値を **Blend Interp** の入力に渡します。 
+
+	![](GameBlend_12.png)
+
+	**DefaultSlotInterp** 値がシーケンサーを通して変更される度に、**SetDefaultSlotInterp** プロキシ関数が呼び出されて、float 値が Animation ブループリントの **Blend Interp** 値に渡されます。その結果、ポーズのブレンドに影響を与えます。 
+
+次のステップでは、**Default Slot Interp** プロパティをレベル シーケンスに追加し、Animation ブループリントで **Blend Interp** を制御できるようにします。 
+トリガー ボックスもレベルに追加し、レベル シーケンスをアクティベートし、プレイヤーがトリガー ボックス ボリュームに入ると再生できるようにします。 
+	[nav]

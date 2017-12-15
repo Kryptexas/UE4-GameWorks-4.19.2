@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3226913
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:AnimGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
@@ -67,7 +67,8 @@ AnimGraph 内でどのように機能するかの情報については以下の�
 * [Sync Groups](Engine\Animation\SyncGroups) は、異なる長さを持つ関連アニメーションを同期し続けます。 
 
 
-<!-- includes were just duplicating information when arriving at the linked page, commenting out. 
+[COMMENT:none]
+ includes were just duplicating information when arriving at the linked page, commenting out. 
 ###アニメーション シーケンス
 
 [INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
@@ -135,7 +136,8 @@ SpaceConversion (空間変換) ノードに関する詳細は、 [Convert Space 
 [REGION:note]
 Synch Group の使用方法および詳細は [Sync Groups](Engine\Animation\SyncGroups) を参照してください。
 [/REGION]
--->
+
+[/COMMENT]
 
 ## スレッド セーフティ
 

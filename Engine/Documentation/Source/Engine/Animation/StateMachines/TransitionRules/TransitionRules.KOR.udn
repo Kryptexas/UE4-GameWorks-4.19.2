@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3198499
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 트랜지션 룰
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
@@ -7,7 +7,7 @@ version: 4.14
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Blueprints/GettingStarted
-
+type:overview
 
 [TOC(start:2 end:2)]
 

@@ -115,10 +115,12 @@ Description:粒子光源是视觉特效美工人员的武器库中的另一个�
 
 
 
-<!--
+[COMMENT:none]
+
 ## Related
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef005]
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef007]
--->
+
+[/COMMENT]

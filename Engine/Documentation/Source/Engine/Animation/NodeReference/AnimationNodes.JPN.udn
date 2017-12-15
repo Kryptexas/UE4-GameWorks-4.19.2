@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Animation ノードの参照
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -13,37 +13,24 @@ Animation ブループリントは、ブレンディング、直接的な骨格�
 特徴的なものが幾つか存在します。
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	EventGraph ノード
-	[/PARAM]
-	[PARAM:description]
-	このグラフのノードは、入ってくるデータを処理するために使用され、こうしたデータは **AnimGraph** のポーズ データを操作するために使用されます。 
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
-	[/PARAM]
-[/OBJECT]
+## EventGraph ノード
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	AnimGraph ノード
-	[/PARAM]
-	[PARAM:description]
-	**EventGraph** からのデータを使って、このグラフのノードは、キャラクターに使用するフレーム毎の実際のポーズを決定します。 
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
-	* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
-	* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
-	* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
-	[/PARAM]
-[/OBJECT]
+このグラフのノードは、入ってくるデータを処理するために使用され、こうしたデータは **AnimGraph** のポーズ データを操作するために使用されます。 
 
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
+[/REGION]
+
+## AnimGraph ノード
+
+**EventGraph** からのデータを使って、このグラフのノードは、キャラクターに使用するフレーム毎の実際のポーズを決定します。 
+
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
+* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
+* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
+* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
+[/REGION]
 
 ## ピンとプロパティ
 
@@ -72,15 +59,15 @@ Animation ノードの **Pose Watching** では、**AnimGraph** の任意のポ�
 これを有効にするには、**AnimGraph** 内で、ポーズ データを含むノード上で **右クリック** して、**Toggle Pose Watch** を選択します。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-nabapYAeE7c
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	nabapYAeE7c
+	[/PARAMLITERAL]
 [/OBJECT]
 
 ノードの左上隅にあるアイコンをクリックして watched pose を色分けすることができます。 

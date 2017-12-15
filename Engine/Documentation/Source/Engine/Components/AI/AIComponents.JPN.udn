@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2696027
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:AI コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -9,7 +9,7 @@ Related:Gameplay/Framework/Controller
 Related:Engine/Blueprints/UserGuide/Components
 version:4.9
 
-AI Component は、ポーンが環境からのデータのような知覚を受信できるようにするある種のコンポーネントです。例えば、どこからノイズが発生しているか、ポーンから何かが見えているかなどのデータです。
+AI Component は、ポーンが環境からのデータのような知覚を受信できるようにするコンポーネントです。例えば、どこからノイズが発生しているか、ポーンから何かが見えているかなどのデータです。
 
 ## AI Perception コンポーネント
 

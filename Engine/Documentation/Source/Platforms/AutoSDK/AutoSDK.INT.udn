@@ -1,0 +1,208 @@
+Availability: Docs
+Crumbs: %ROOT%
+Title: How-to Enable AutoSDK
+Description: This page shows you how to set up your development environment to take advantage of UE4's AutoSDK system.
+Type: how-to
+SkillLevel:Advanced
+Version: 4.18
+Parent: Platforms
+Order: 
+Tags: Platform
+Related:Platforms/Linux/GettingStarted
+Related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
+
+[REGION:warning]
+The following page is for those teams choosing to opt into leveraging our AutoSDK feature as part of an automated build system.
+[/REGION]
+
+Manually installing Software Development Kits (SDKs) is supported; however, if you have to manage several SDK versions of a single platform, forcing you to build multiple versions of the same SDK, you might want to use our **AutoSDK** feature, which is available in Unreal Engine 4 (UE4). 
+The main advantage of using [AutoSDK](https://docs.unrealengine.com/latest/INT/API/Developer/DesktopPlatform/FPlatformInfo/index.html) is that you will enable [](Programming/UnrealBuildSystem) to automatically select the correct SDK version based on your project and branch. 
+After using AutoSDK, you'll be able to set up your machine to compile your project for all supported platforms.
+
+##Setting the Environment Variable
+
+Before you can get started using AutoSDK, you'll have to set up the **UE_SDKS_ROOT** Environment Variable.
+
+1.	Make note of the directory that holds all of the toolchains for your platforms (or a subset of those platforms). Your directory might look like `D:\YourPath\Host<Platform>`.
+
+	[REGION:note]
+	Generally, **AutoSDK** expects you to supply the `Host<Platform>` subdirectory, containing SDKs for target platforms (`Host<Platform>\TargetPlatform`). For example, the supplied subdirectory might look like `D:\YourPath\HostWin64\Linux_x64`.
+	[/REGION]
+
+1.	If needed, go ahead and add `//repo/YourDirectory` to your client workspace definition. As an example, in Perforce, you can add the directory to your [Client Spec](https://www.perforce.com/perforce/doc.081/manuals/p4web/help/client.html).
+
+	[REGION:note]
+	Pay attention to the directory path's casing, because AutoSDK's path detection makes sure that case sensitive platforms don't get confused with pre-existing platforms that might have different casing.
+	[/REGION]
+
+	Now that you've added the directory to your client workspace definition, it's time to set the **UE_SDKS_ROOT** Environment Variable.
+
+%Globals:OSSelect_Linux%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsConsoleSteps]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacTerminalSteps]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxTerminalSteps]
+	[/PARAM]
+[/OBJECT]
+
+##End Result
+
+At this point, you should have the **UE_SDKS_ROOT** Environment Variable defined the Unreal Build Tool (UBT) to take advantage of **AutoSDK**. 
+Now, whenever UBT switches to an SDK, the **Setup** and **Unsetup** batch (or bash) script files will be able to install or reinstall the SDK.
+
+[COMMENT:none]
+
+[EXCERPT:WindowsConsoleSteps]
+
+###Using the Console
+
+[REGION:tip]
+If you're more comfortable using the **System Settings** window, feel free to jump to set the Environment Variable by [using the System Settings Window.](#Bookmark1)
+[/REGION]
+
+1.	To set the **UE_SDKS_ROOT** Environment Variable, open a **Command Prompt**.
+
+	![](AutoSDK_Win_0.png)
+
+1.	Now, enter the following command into the console: `setx UE_SDKS_ROOT D:\YourPath`.
+
+	![](AutoSDK_Win_1.png)
+
+	[REGION:tip]
+	To learn more about the **setx** command, enter `setx /?` into the console.
+	[/REGION]
+
+###Using the System Settings Window
+
+(#Bookmark1)
+
+1.	To open the Windows **System** menu, press the **Windows+Pause/Break** keyboard combination.
+
+	![](AutoSDK_Win_2.png)
+
+1.	Click the **Advanced system settings** link to open the **System Properties** menu.
+
+	![](AutoSDK_Win_3.png)
+
+1.	Now, click the **Environment Variables...** button to open the **Environment Variables** menu.
+
+	![](AutoSDK_Win_4.png)
+
+1.	For this step, you can use either the **User variables** section or the **System variables** section of the **Environment Variables** menu. For illustrative purposes, go ahead and click the **New...** button in the **System variables** section of the **Environment Variables** menu.
+
+	![](AutoSDK_Win_5.png)
+
+1.	Enter `UE_SDKS_ROOT` in the **Variable name:** text field of the **New System Variable** menu.
+
+	![](AutoSDK_Win_6.png)
+
+1.	Now, enter the location of your directory path in the **Variable value:** field before clicking the **OK** button to save your new Environment Variable.
+
+	![](AutoSDK_Win_7.png)
+
+[/EXCERPT:WindowsConsoleSteps]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:LinuxTerminalSteps]
+
+###Using the Terminal
+
+1.	To set the **UE_SDKS_ROOT** Environment Variable, open a **Terminal**.
+
+	![](AutoSDK_Linux_0.png)
+
+1.	Now, enter the following command into the terminal: `sudo -H gedit /etc/environment`.
+
+	![](AutoSDK_Linux_1.png)
+
+	[REGION:note]
+	We're using **gedit** as our text editor for this example; however, if you want to use another text editor to update the Environment Variable text file, feel free to use the editor of your choice.
+	[/REGION]
+
+1.	Type your **sudo** password to open the Environment Variable text file with **gedit**.
+
+	![](AutoSDK_Linux_2.png)
+
+1.	To edit the newly opened Environment Variable text file, add `UE_SDKS_ROOT=YourPath` to the end of the file.
+
+	![](AutoSDK_Linux_3.png)
+
+1.	After saving and closing the file, you'll need to restart your operating system in order for the changes to take effect.
+
+	[REGION:tip]
+	If you want to verify your newly added Environment Variable, you can either use `echo` or type `printenv` into the terminal.
+	[/REGION]
+
+[/EXCERPT:LinuxTerminalSteps]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:MacTerminalSteps]
+
+###Using the Terminal
+
+1.	To set the **UE_SDKS_ROOT** Environment Variable, open a **Terminal**.
+
+	![](AutoSDK_Mac_0.png)
+
+1.	Now, enter the following command into the terminal: `sudo nano /etc/paths`.
+
+	![](AutoSDK_Mac_1.png)
+
+	[REGION:note]
+	We're using **nano** as our text editor for this example; however, if you want to use another text editor to update the Environment Variable text file, feel free to use the editor of your choice.
+	[/REGION]
+
+1.	Type your **sudo** password to open the Environment Variable text file with **nano**.
+
+	![](AutoSDK_Mac_2.png)
+
+1.	To edit the newly opened Environment Variable text file, add `UE_SDKS_ROOT=YourPath` to the end of the file.
+
+	![](AutoSDK_Mac_3.png)
+
+1.	After saving and closing the file, go ahead and close your terminal.
+	
+[/EXCERPT:MacTerminalSteps]
+
+[/COMMENT]

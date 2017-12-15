@@ -115,9 +115,11 @@ Contributor:yaakuro
 
 	[REGION:tip]
 	如不希望使用 Ubuntu 的 GUI，可在终端中输入 `sudo reboot` 重启电脑。 
-	<!-- 
+	[COMMENT:none]
+ 
 	![](LinuxAndroid_Step16.png)(w:900)
-	-->
+	
+[/COMMENT]
 	[/REGION]
 [/EXCERPT:AndroidLinux_1]
 

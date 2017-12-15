@@ -153,7 +153,9 @@ version: 4.9
 
 	![Casting Nodes](BP_Casting.png)
 
-<!----关于类型转换的更多信息，请查看（链接)。---->
+[COMMENT:none]
+--关于类型转换的更多信息，请查看（链接)。--
+[/COMMENT]
 
 ### 指定一种蓝图类型作为函数参数
 

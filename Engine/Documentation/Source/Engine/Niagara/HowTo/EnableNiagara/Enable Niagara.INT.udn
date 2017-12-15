@@ -1,0 +1,35 @@
+Availability: Docs
+Crumbs: %ROOT%, 
+Title:Enable the Niagara Plugin
+Description:Describes how you can enable the Niagara.
+Type: how-to
+SkillLevel:Beginner
+Version: 4.17
+parent:Engine/Niagara/HowTo
+order:1
+tags:Niagara
+topic-image:
+
+Before you can begin to create visual effects using Niagara you will need to enable it via the **Plugins** menu. In the following How - to we go over what needs to be done in your UE4 project so that you can use Niagara.
+
+![](HT_EnableNP_01.png)
+
+## Steps
+
+1. First we need to open the Plugins menu by going to **Edit** > **Plugins**.
+
+	![](HT_EnableNP_00.png)
+
+1. In the Plugins menu, locate the **FX** section and then under Niagara, click on the **Enabled** checkmark box.
+
+	![](HT_EnableNP_02.png)
+
+1. Now press the **Restart Now** button to restart the Unreal Engine 4 (UE4) Editor with the Niagara plugin enabled.
+
+	![](HT_EnableNP_04.png)
+
+## End Result
+
+Once the UE4 Editor has re-started, when you right - click in the **Content Browser** you will have a new **FX** section that will have all of the various items you can use with Niagara.
+
+![](HT_EnableNP_03.png)

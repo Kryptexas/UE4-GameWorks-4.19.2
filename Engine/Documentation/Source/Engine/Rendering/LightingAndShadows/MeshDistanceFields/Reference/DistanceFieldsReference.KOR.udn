@@ -1,0 +1,442 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 메시 디스턴스 필드 세팅 참고서
+Description: 프로젝트 세팅, 라이트 컴포넌트, 스태틱 메시, 개별 액터에서 찾을 수 있는 메시 디스턴스 필드 세팅 전체에 대한 참고서입니다.
+Type: Reference
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Order:3
+Tags:Lighting
+Tags:Distance Fields
+Tags:Getting Started
+Topic-image:DFRef_Topic.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:30 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+언리얼 엔진 4 (UE4) 의 [메시 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 시스템은 켜고 끌 수 있는 여러가지 다양한 시스템과 사용할 수 있습니다. 이 세팅과 프로퍼티는 
+프로젝트의 특정 스타일을 내거나 단순히 최적화용으로 사용할 수도 있습니다.
+
+여기서는 메시 디스턴스 필드 전용으로 사용할 수 있는 메뉴 시스템과 세팅 관련 세부사항을 찾아볼 수 있습니다.
+
+## 프로젝트 세팅
+
+**프로젝트 세팅** 에는 프로젝트 내 애셋에 대한 메시 디스턴스 필드 생성 활성화와 함께 특정 상황에서 효율 향상을 위해 사용할 수 있는 
+최적화 옵션도 같이 들어있습니다.
+
+이 세팅은 **프로젝트 세팅** > **Rendering** (렌더링) > **Lighting** (라이팅) 섹션에서 찾을 수 있습니다.
+
+[REGION:lightbox]
+[![](ProjectSettings.png)(w:500)](ProjectSettings.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | -------- | ----------- |
+| **Generate Mesh Distance Fields** || 메시 디스턴스 필드 생성 - 스태틱 메시의 디스턴스 필드를 빌드할지 여부입니다. 이는 디스턴스 필드 섀도우와 디스턴스 필드 앰비언트 오클루전에 사용됩니다. 이 옵션을 켜면 메시 빌드 시간과 메모리 사용량이 늘어나며, 에디터를 재시작해야 효과가 적용됩니다. |
+| **Eight Bit Mesh Distance Fields** || 8 비트 메시 디스턴스 필드 - 메시 디스턴스 필드를 16 비트 부동 소수점이 아닌 8 비트 고정 소수점 포맷으로 저장할지 여부입니다. 8 비트는 메모리를 절반만 사용하지만 크거나 얇은 메시에 부작용이 생길 수 있습니다. 이 세팅을 바꾸면 에디터를 재시작해야 합니다. |
+| **Generate Landscape Real-time GI Data** || 랜드스케이프 실시간 GI 데이터 생성 - 랜드스케이프에 대해 실시간 글로벌 일루미네이션 렌더링용 저해상도 베이스 컬러 텍스처 생성 여부입니다. 이 옵션을 켜면 메시 빌드 시간과 메모리 사용량이 늘어납니다. 이 세팅을 바꾸면 에디터를 재시작해야 합니다. |
+| **Compress Mesh Distance Fields** || 메시 디스턴스 필드 압축 - 메시 디스턴스 필드를 메모리에 압축해서 저장할지 여부입니다. 차지하는 메모리 양이 줄지만, 새 레벨을 보이게 만들 때 심각한 버벅임이 발생할 수 있습니다. 프로젝트가 게임내에서 레벨 스트리밍을 하지 않을 때만 켜야 합니다. 이 세팅을 바꾸면 에디터를 재시작해야 합니다. |
+[/REGION]
+
+## 라이트 컴포넌트
+
+아래는 각 [라이트 유형](Engine/Rendering/LightingAndShadows/LightTypes) 별로 설정할 수 있는 [메시 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 세팅과 프로퍼티입니다.
+
+### 디렉셔널 라이트
+
+아래는 [레이 트레이스 디스턴스 필드 섀도잉](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing) 에 영향을 주는 **디렉셔널 라이트** 세팅입니다.
+
+![Distance Field Shadow Settings](DirectionalLight.png)
+
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+|----------|----------|-------------|
+| [REGION:tablesection]Light 라이트[/REGION] |||
+| **Light Source Angle** || 라이트 소스 앵글 - 도 단위 광원의 앵글로, 디스턴스 필드 또는 캡슐 섀도우를 사용하는 다이내믹 섀도잉 메소드에 대해 부드러운 에리어 섀도우 지원을 위해 사용됩니다. | 
+| [REGION:tablesection]Distance Field Shadows 디스턴스 필드 섀도우[/REGION] |||
+| **DistanceField Shadow Distance** || 디스턴스 필드 섀도우 거리 - 디스턴스 필드 섀도잉이 적용되는 최대 거리입니다. 디스턴스 필드 섀도우는 이 값과 CSM 섀도우에 대한 **Dynamic Shadow Distance Movable Light** (다이내믹 섀도우 디스턴스 무버블 라이트) 사이 거리도 커버합니다. | 
+| **RayTraced DistanceField Shadows** || 레이 트레이스 디스턴스 필드 섀도우 - 라이트 소스에 대해 디스턴스 필드 섀도우를 켭니다. | 
+| [REGION:tablesection]Advanced Properties 고급 프로퍼티[/REGION] || |
+| **Distance Field Trace Distance**  || 디스턴스 필드 트레이스 거리 - 섀도우 캐스터로부터 그림자를 얼마나 멀리 드리울지 월드 유닛 단위 거리를 설정합니다. 큰 값을 사용하면, 씬의 섀도잉 비용이 늘어납니다. |
+| **Ray Start Offset Depth Scale** || 레이 시작 오프셋 뎁스 스케일 - 카메라가 멀어지면서 레이 트레이스 섀도우를 받는 표면에서 그 섀도우가 갖는 오프셋을 얼마나 크게 할지를 조절합니다. 커다란 스태틱 메시에서 저해상도 디스턴스 필드로부터 셀프 섀도잉 부작용을 숨기는 데 사용할 수 있습니다. | 
+[/REGION]
+
+
+#### 캐스케이드 섀도우 맵 vs 레이 트레이스 디스턴스 필드 섀도우
+
+캐스케이드 섀도우 맵은 매우 디테일한 섀도잉을 내지만 확장된 뷰 거리 전반에 걸쳐 잘 나오지는 않는 반면, 레이 트레이스 디스턴스 필드 섀도우는 훨씬 먼 거리까지도 보다 효율적인 섀도잉이 가능하나 
+메시 디스턴스 필드에 대해 생성된 볼륨 텍스처 해상도에 퀄리티가 큰 영향을 받습니다. [메시 디스턴스 필드 퀄리티](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 는
+보통은 섀도우 매핑으로 나타날 중요 디테일을 캡처하기 위해 보다 높은 해상도가 필요할 수 있습니다. 그런 이유로, 카메라가 가까운 영역엔 캐스케이드 섀도우 맵을, 
+먼 거리는 디스턴스 필드 섀도잉을 조합해서 쓰는 것을 추천합니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cascaded Shadow Maps](CascadedShadowMaps.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Ray Traced Distance Field Shadows](DistanceFieldShadow.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+바닥에서 리프트 모든 점까지의 거리에도 불구하고, 캐스케이드 섀도우 매핑을 사용하면 그림자가 빠삭하고 높은 디테일이 유지됩니다. 레이 트레이스 디스턴스 필드 섀도우는 **Light Source Radius** 와 
+표면에서부터 드리워지고 있는 그림자의 거리에 따라 그림자를 부드럽게 하여 보다 자연스러운 모양새를 만들 수 있습니다.
+
+#### 라이트 소스 앵글
+
+**Light Source Angle** 은 라이트의 회전 각과 입력한 값에 따라 그림자를 연하게 또는 선명하게 만듭니다. 그림자를 받는 표면에서 메시가 멀리 떨어져 있는 메시 지점에 대해 매우 부드러운 섀도잉이 가능합니다. 
+메시에 가깝고 그림자를 받는 표면의 그림자는 더욱 선명합니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Light Source Angle: | 1 (Default)](LightSourceAngle_1.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Light Source Angle: | 2 ](LightSourceAngle_2.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+그림자가 메시에서 멀리 늘어지거나 그림자를 받는 표면에서 멀리 있을 수록 그림자는 연해집니다.
+
+#### 디스턴스 필드 트레이스 거리
+
+**Distance Field Trace Distance** 는 그림자를 드리우는 메시에 대해 섀도잉용 레이 트레이스를 얼마나 확장시킬지를 조절합니다. 그림자는 받는 표면을 따라 매우 긴 거리 확장이 가능하므로, 
+밀도가 높은 씬에서는 섀도잉 비용을 비싸지게 만들 수 있습니다. 트레이스 거리를 낮추면 **Distance Field Shadow Distance** (디스턴스 필드 섀도우 거리)를 줄이지 않고도 
+특정 메시에서 디스턴스 필드 섀도우 한 점이 드리울 수 있는 거리를 제한시킵니다. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Distance Field Trace Distance: | 10000 (Default) ](DistanceTrace_10k.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Trace Distance: | 5000](DistanceTrace_1k.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+디렉셔널 라이트로 얕은 각도에서 (즉 일출이나 일몰 시) 라이팅을 받는 매우 큰 나무입니다. 트레이스 거리를 낮추면 나무 꼭대기가 그림자를 무한히 드리우는 것을 제한시킵니다.
+
+### 포인트/스포트 라이트
+ 
+아래는 [레이 트레이스 디스턴스 필드 섀도잉](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing) 에 영향을 주는 **포인트** 및 **스포트 라이트** 세팅입니다. 
+
+![](PointSpotLight.png)(w:450)
+ 
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+|----------|----------|-------------|
+| [REGION:tablesection]Light 라이트[/REGION] |||
+| **Source Radius** || 소스 반경 - 라이트 소스 구체 크기로 사용됩니다. 커다란 값을 사용하면, 반그늘 크기도 커지지만, 퍼포먼스 비용도 높아집니다. |
+| [REGION:tablesection]Distance Field Shadows 디스턴스 필드 섀도우[/REGION] |||
+| **RayTraced DistanceField Shadows** || 레이 트레이스 디스턴스 필드 섀도우 - 레이 트레이스 디스턴스 필드 에리어 섀도우 사용 여부입니다. |
+| **Ray Start Offset Depth Scale** || 레이 시작 오프셋 깊이 스케일 - 카메라가 멀어지면서 그림자를 받는 표면에서 레이 트레이스 섀도우가 갖는 오프셋 크기를 조절합니다. 커다란 스태틱 메시의 저해상도 디스턴스 필드로부터 생기는 셀프 섀도잉 부작용을 숨기기에 좋습니다. | 
+[/REGION]
+
+#### 전통적 섀도우 맵 vs 레이 트레이스 디스턴스 필드 섀도우
+
+포인트 및 스포트 라이트에 대한 섀도우 맵은 매우 디테일하고 선명한데, 디렉셔널 라이트에 대한 캐스케이트 섀도우 맵과 비슷합니다. 레이 트레이스 디스턴스 필드 섀도우의 퀄리티는 
+메시 디스턴스 필드 용으로 생성된 볼륨 텍스처의 해상도에 따라 크게 달라집니다. [메시 디스턴스 필드 퀄리티](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 는 
+해상도를 높여야 보통 섀도우 맵에서 나타나는 중요 디테일을 캡처할 수 있을 것입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Traditional Shadow Map](ShadowMap_SpotLight.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Shadow](DistanceFieldShadow_SpotLight.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+섀도우 매핑을 사용하면 바닥으로부터 리프트 모든 지점의 거리에도 불구하고 빠삭한 디테일의 그림자가 유지됩니다. 디스턴스 필드 섀도우는 **Source Radius** 에 따라 그림자를 부드럽게 만들고 
+표면으로부터 드리워지는 그림자의 거리가 보다 자연스러운 모양새를 내는 것이 가능합니다.
+
+#### 소스 반경
+
+라이트의 **Source Radius** (소스 반경)은 광원 자체의 크기 표현을 조절하는 것으로 에리어 섀도우를 연하게 또는 선명하게 하는 데 사용됩니다. 디렉셔널 라이트의 [라이트 소스 앵글](#라이트소스앵글) 과 마찬가지로, 
+그늘진 점이 받는 면에서 멀 수록 그림자가 부드러워집니다. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Source Radius: | 0 (Default) ](SourceRadius_0.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Source Radius: | 50 ](SourceRadius_50.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+이 데모에서, 기본값 0 은 하드 코딩된 소스 반경 20 을 사용하여 부드러운 에리어 섀도우를 자동으로 내주는 반면 큰 값 50 은 훨씬 부드러운 그림자를 내고 있습니다.
+
+[REGION:note]
+소스 반경 기본값 0 은 하드코딩된 값 20 으로 설정됩니다. 0 에서 20 사이 값을 사용하면, 그만큼 에리어 섀도우가 선명하게 유지됩니다.
+[/REGION] 
+
+#### Ray Start Offset Depth Scale
+
+**Ray Start Offset Depth Scale** 는 카메라가 멀어짐에 따라 그림자를 받는 표면의 레이 트레이싱 섀도우에 대해 광선이 시작되는 지점을 제어합니다. 저해상도 메시 디스턴스 필드 또는 
+지오메트리가 복잡해서 볼륨 텍스처에 제대로 캡처되지 못한 경우의 셀프 섀도잉 부작용을 방지하는 데 좋습니다.
+
+어떤 경우, [메시 디스턴스 필드 퀄리티](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 를 조절하면 광선 시작 지점을 조절할 필요 없이 이러한 부작용을 줄이거나 없앨 수 있습니다.
+또 한가지 유념할 점은 필요할 수도 있는 볼륨 텍스처 생성 비용을 높이고 싶지 않은 경우, 해당 라이트에 대해 **Ray Start Offset Depth Scale** 옵션이 
+도움될 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Ray Start Offset Depth Scale: | 0.003 (Default) ](RayStartOffset003.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Ray Start Offset Depth Scale: | 0.007 ](RayStartOffset007.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+틈이 있는 바위면에 셀프 섀도잉 부작용이 보이며, 디스턴스 필드 해상도가 그 디테일을 전부 잡아내지 못하고 있습니다. **Ray Start Offset Depth Scale** 을 최소량 조절하면 
+섀도우 트레이스 시작 지점이 안쪽으로 이동되어 바뀔 것입니다.
+
+[REGION:note]
+이 세팅은 최소한으로만 조절해야 하며, 이 세팅을 조절한 라이트 소스로부터 그림자를 드리우는 모든 메시에 영향을 줄 수 있습니다. 이 값을 조절할 때는 신중해야 하며, 
+레벨 여러 부분을 확인해야 합니다. 비주얼 퀄리티에 큰 영향을 줄 수 있는 디렉셔널 라이트와 원거리 오브젝트에 대해서는 특히 더욱 그렇습니다.
+[/REGION]
+
+
+### 스카이 라이트
+
+[디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 에 영향을 주는 **스카이 라이트** 세팅입니다. 레벨의 DFAO 에 대한 
+미적인 제어 대부분이 제공되는 세팅입니다.
+
+![](SkyLight.png)(w:450)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | -------- | ----------- |
+| **Occlusion Max Distance** || 오클루전 최대 거리 - 오클루더에서 최대 이 거리까지 오클루전 기여 계산을 합니다. 이 값을 올리면 디스턴스 필드 앰비언트 오클루전 비용이 늘어나지만, 더욱 멀리까지 오클루전이 가능합니다. |
+| **Occlusion Max Contrast** || 오클루전 최대 대비 - 계산된 오클루전의 대비값을 높이는 데 사용됩니다. |
+| **Occlusion Exponent** || 오클루전 지수 - 앰비언트 오클루전에 적용되는 지수입니다. 1 미만 값은 컨택트 섀도우를 잃지 않고 오클루전을 밝게 해줍니다. |
+| **Min Occlusion** || 최소 오클루전 - 오클루전이 완전 검정이 되지 않도록 하는 데 좋습니다. 현실에서처럼 특정 영역이 완전 까매지지 않도록 하는 다중 반사광 시뮬레이션에 좋습니다. |
+| **Occlusion Tint** || 오클루전 색조 - 오클루전 색을 입히는 데 사용되는 대비 색입니다. 물리적으로 올바르기 위해서는 검정이어야 하지만, 미적인 스타일을 위해 다른 색을 줄 수는 있습니다. |
+| **Occlusion Combine Mode** || 오클루전 합침 모드 - 디스턴스 필드 앰비언트 오클루전과 스크린 스페이스 앰비언트 오클루전을 합치는 방법을 제어합니다. [INCLUDE:#combinemode] |
+[/REGION]
+
+[COMMENT:none]
+-
+[EXCERPT:combinemode]
+| 선택 | %spacer2% | 설명 |
+| --- | --- | --- |
+| **OCM Minimum** || 최소 오클루전 값을 취합니다. 여러 메소드로부터 오클루전이 과해지는 것을 피하는 데 좋지만, 실내가 너무 밋밋해 보이게 만들 수 있습니다. |
+| **OCM Multiply** || 디스턴스 필드 앰비언트 오클루전과 스크린 스페이스 앰비언트 오클루전의 오클루전 값을 곱합니다. 전체적인 원근감은 좋지만 오클루전이 과할 수 있습니다. 스크린 스페이스 앰비언트 오클루전은 최소에 비해 강하지 않도록 트윅 조정을 해야 합니다. |
+[/EXCERPT:combinemode]
+-
+[/COMMENT]
+
+
+
+
+#### 오클루전 최대 거리
+
+**Occlusion Max Distance** 는 한 점의 오클루전이 다른 점에 영향을 줄 수 있는 두 점의 최대 거리를 제어합니다. 최대 거리를 조절하면, DFAO 가 씬의 다른 오브젝트와 같은 정확도를 조절하는 것입니다.
+즉 그 비용도 늘어난다는 뜻입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Distance: | 1000 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Distance: | 500 ](MaxDist_500.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+최대 거리를 낮추면 서로에게 영향을 줄 수 있는 범위가 줄어들어 오클루전에 섀도잉 디테일이 캡처되지 못한다는 뜻입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Distance: | 1000 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Distance: | 1500 ](MaxDist_1500.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+최대 거리를 높이면 섀도잉에 고려되는 점 수가 늘어나므로 오클루전 정확도가 높아지지만, 비용도 상승합니다.
+
+
+
+
+
+
+
+
+
+
+
+#### 오클루전 최대 대비
+
+**Occlusion Max Contrast** 는 DFAO 에 영향받은 오브젝트 사이 밝기 차를 조절합니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Max Contrast: | 0 (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Max Contrast: | 0.65](Contrast_065.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+대비 값을 높이면 여러 틈새와 씬에서 차폐가 심하게 된 영역이 어두워집니다.
+
+
+#### 오클루전 지수
+
+**Occlusion Exponent** 는 앰비언트 오클루전에 적용되고 있는 값의 지수를 조절합니다. 이 값을 낮추면 표면 근처 컨택트 섀도우 디테일을 잃지 않고 오클루전 섀도우만 
+밝게 해 줍니다.
+
+Occlusion Exponent 는 대부분의 씬에서 잘 통하는 기본 중간 값을 사용합니다. 아래는 낮은 범위 값과 높은 범위 값 비교입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Exponent: | 1 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Exponent: | 0.6](Exponent_06.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+DFAO 를 사용한 섀도잉 부분의 씬 오클루전이 밝아집니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Exponent: | 1 (Default) ](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Exponent: | 1.6](Exponent_16.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+DFAO 를 사용한 섀도잉 부분의 씬 오클루전이 어두워집니다.
+
+#### 최소 오클루전
+
+**Min Occlusion** 은 레벨의 풀 오클루전 영역이 얼마나 어두워질 수 있는지를 조절합니다. 오클루전 영역의 DFAO 를 얼마나 밝게 할지 아티스트가 추가로 제어할 수 있도록 해줍니다. 이 세팅은 
+차폐 영역을 너무 어둡게 만들 수 있는 **Occlusion Max Contrast** 과 함께 사용하여 그림자를 약간 밝게 만드는 데 좋습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Occlusion: | 0 (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Min Occlusion: | 1](MinOcclusion__05.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+여기서, 최소 오클루전이 씬의 DFAO 차폐 영역을 밝게 만들고 있습니다.
+
+
+#### 오클루전 색조
+
+**Occlusion Tint** 는 차폐 영역의 색을 바꾸어 DFAO 의 모양새를 아티스트가 조절할 수 있도록 해줍니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Tint Color: | Black (Default)](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Tint Color: | Purple](Tint_Purple.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+DFAO 섀도잉으로 차폐된 영역만 사용된 색 값에 따라 색조를 입힙니다.
+
+#### 오클루전 합침 모드
+
+**Occlusion Combine Mode** 로 스크린 스페이스 앰비언트 오클루전을 씬의 디스턴스 필드 앰비언트 오클루전과 합치는 방법을 선택할 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Combine Mode: | OCM Minimum](DefaultView.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Combine Mode: | OCM Multiply](CombineMode_Multiply.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+## 스태틱 메시 에디터
+
+**Static Mesh Editor** 에는 레벨에 배치된 이 액터의 인스턴스에 영향을 줄 수 있는 여러가지 액터 전용 세팅이 들어있습니다. 이 세팅은 빌드 세팅 및 일반 세팅에 들어있습니다.
+
+이 세팅은 스태틱 메시 에디터의 **디테일** 패널에서 찾을 수 있습니다.
+
+[REGION:lightbox]
+[![](StaticMeshEditor.png)(w:450)](StaticMeshEditor.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+### 빌드 세팅
+
+**Build Settings** 은 메시 디스턴스 필드의 퀄리티 제어, 폴리지같은 오브젝트의 양면 생성, 심지어 다른 메시의 디스턴스 필드를 현재 메시의 것으로 할당하는 
+작업도 가능합니다.
+
+![](BuildSettings.png)(w:400)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | -------- | ----------- |
+| **Distance Field Resolution Scale** || 디스턴스 필드 해상도 스케일 - 이 액터에 생성된 메시 디스턴스 필드 퀄리티를 조절할 수 있도록 해줍니다. 이 세팅은 생성되는 볼륨 텍스처 크기에 영향을 줍니다. |
+| **Two-Sided Distance Field Generation** || 양면 디스턴스 필드 생성 - 생성되는 메시 디스턴스 필드가 양면인지 아닌지 제어할 수 있도록 해줍니다. 겹치는 면이 여럿 있는 경우 부드러운 그림자를 낼 수 있지만, 퍼포먼스 비용도 높아집니다. |
+| **Distance Field Replacement Mesh** || 디스턴스 필드 대체 메시 - 현재 액터 자체 메시 디스턴스 필드 대신 다른 스태틱 메시의 디스턴스 필드를 사용할 수 있도록 해줍니다. |
+[/REGION]
+
+
+### 일반 세팅
+
+**General Settings** 에서는 퀄리티 관련되지 않은 옵션을 설정할 수 있습니다. 특정 메시에 대해서만 메시 디스턴스 필드를 생성하여 전체 프로젝트 단위로 켜지 않아도 
+되게 하는 옵션도 포함됩니다. 애니메이션이 적용된 스태틱 메시 또는 디스턴스 필드 안으로 버텍스가 이동되는 경우 발생할 수 있는 셀프 섀도잉 제어도 가능합니다.
+
+![](GeneralSettings.png)(w:400)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | -------- | ----------- |
+| **Generate Mesh Distance Field** || 메시 디스턴스 필드 생성 - 이 메시에 대한 디스턴스 필드 생성 여부로, [디스턴스 필드 섀도우 간접 섀도우](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 와 함께 사용할 수 있습니다. **Generate Mesh Distance Fields** 프로젝트 세팅이 켜진 경우 무시됩니다.  | [COMMENT:none]
+TODO FINISH THE LINK 
+[/COMMENT]
+| **Distance Field Self Shadow Bias** || 디스턴스 필드 셀프 섀도우 바이어스 - World Position Offset 을 사용하여 메시의 버텍스에 애니메이션을 줄 때 디스턴스 필드 메소드로부터 오는 셀프 섀도잉을 줄이는 데 사용됩니다. |
+[/REGION]
+
+## 액터 컴포넌트
+
+레벨에 배치된 개별 액터별로 켜고 끄거나 덮어쓸 수 있는 디스턴스 필드 세팅입니다.
+
+![](Actors.png)(w:450)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | -------- | ----------- |
+| **Distance Field Indirect Shadow** || 디스턴스 필드 간접 그림자 - 무버블 컴포넌트 상의 (라이트맵 또는 스카이라이트에서 오는) 간접광 그림자에 (있는 경우) 메시 디스턴스 필드 표현을 사용할지 여부입니다. 메시 디스턴스 필드를 사용한다는 점을 제외하고는 스켈레탈 메시의 [캡슐 섀도우](Engine/Rendering/LightingAndShadows/CapsuleShadows) 와 비슷합니다. 즉 피직스 애셋이 필요치 않습니다. 이 기능의 정상 작동을 위해서는 스태틱 메시에는 반드시 빌드 세팅 중 **Generate Mesh Distance Field** 옵션 또는 프로젝트에 **Generate Mesh Distance Fields** 옵션이 켜져있어야 합니다. |
+| **Distance Field Indirect Shadow Min Visibility** || 디스턴스 필드 간접 그림자 최소 비저빌리티 - 디스턴스 필드 간접 그림자를 얼마나 어둡게할 수 있을지를 조절합니다. |
+| **Override Distance Field Self Shadow Bias** || 디스턴스 필드 셀프 섀도우 바이어스 오버라이드 - 스태틱 메시 애셋의 Distance Field Self Shadow Bias 세팅을 이 컴포넌트의 Distance Field Shadow Bias 로 덮어쓸지 여부입니다. |
+| **Distance Field Self Shadow Bias** || 디스턴스 필드 셀프 섀도우 바이어스 - World Position Offset 을 사용하여 메시의 버텍스에 애니메이션을 줄 때 디스턴스 필드 메소드로부터의 셀프 섀도잉을 줄이는 데 좋습니다. |
+| **Affect Distance Field Lighting** || 디스턴스 필드 라이팅에 영향 - 프리미티브가 다이내믹 디스턴스 필드 라이팅 메소드에 영향을 줄지 여부를 조절합니다. Cast Shadow 옵션 역시 활성화되어 있어야 합니다. |
+[/REGION]
+
+#### 디스턴스 필드 간접 그림자 최소 비저빌리티
+
+[디스턴스 필드 간접 그림자](Engine\Rendering\LightingAndShadows\MeshDistanceFields\HowTo\DFHT_4) 사용 시, **Distance Field Indirect Shadow Min Visibility** 세팅으로 그림자 톤을 조절할 수 있습니다.
+이 그림자가 얼마나 어두워질 수 있는지를 아티스트가 제어하여, 주변의 스태틱 섀도우와 어우러지도록 할 수 있습니다.
+
+![](DFISMinVisibilitySetting.png)(w:450)
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Visibility: 0.1 ](DFISMinVisibility_1.png)(w:710)
+	[/PARAM]
+	[PARAM:after]
+	![Min Visibility: 0.6 ](DFISMinVisibility_2.png)(w:710)
+	[/PARAM]
+[/OBJECT]
+
+

@@ -164,7 +164,8 @@ Collision Mip Level と Simple Collision Mip Level の値を別の値にする�
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:VC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -189,9 +190,11 @@ Collision Mip Level と Simple Collision Mip Level の値を別の値にする�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VC]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:PC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -216,4 +219,5 @@ Collision Mip Level と Simple Collision Mip Level の値を別の値にする�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:PC]
--->
+
+[/COMMENT]

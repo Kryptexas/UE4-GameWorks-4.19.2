@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の方は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルでは、プロジェクトの作成とプロジェクトに C++ コードを追加できることを前提にしています。[/REGION]
 
@@ -218,4 +218,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

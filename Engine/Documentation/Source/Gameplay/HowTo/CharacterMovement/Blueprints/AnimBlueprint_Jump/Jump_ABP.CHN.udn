@@ -22,7 +22,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 接下来，我们配置**State Machine**内的**Jump**状态。我们将有两个跳跃状态，一个是当玩家站立不动并按下跳跃键时，另一个是当玩家活动时（慢跑、蹲走或行走）的状态。我们将使用两个不同的动画，一个用于静止，一个用于活动。 
 
@@ -88,4 +88,4 @@ SkillLevel:Advanced
 
 1.	**Compile**并**Save**动画蓝图。
 
-%Steps%
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.11 - 월드 디스플레이스먼트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -11,64 +11,8 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Version: 4.9
+topic-image:Resources\ContentExamples\MaterialNodes\Topic_1_11_WorldDisp.png
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/MaterialNodes/1_10 "%Resources/ContentExamples/MaterialNodes/1_10:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[머티리얼 노드 홈](Resources/ContentExamples/MaterialNodes)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/MaterialNodes/1_12 "%Resources/ContentExamples/MaterialNodes/1_12:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_11:title%](Resources\ContentExamples\MaterialNodes\Topic_1_11_WorldDisp.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_11:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_11:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_11]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialNodes/1_11:title%](Resources\ContentExamples\MaterialNodes\Topic_1_11_WorldDisp.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialNodes/1_11:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialNodes/1_11:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_11]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 [INCLUDE:Engine/Rendering/Materials\MaterialInputs#WorldDisp]

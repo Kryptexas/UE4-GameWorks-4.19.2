@@ -68,19 +68,9 @@ By the end of this guide you'll know how to setup each of these asset types and 
 * How to configure your Axis Mappings and Bindings to control your Vehicle.
 * How to create and assign a new Game Mode to spawn your vehicle.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Physics/Vehicles/VehicleUserGuide/1 "%Engine/Physics/Vehicles/VehicleUserGuide/1:title%")

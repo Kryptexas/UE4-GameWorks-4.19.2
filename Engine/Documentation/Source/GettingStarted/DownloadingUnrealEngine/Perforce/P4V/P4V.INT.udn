@@ -22,27 +22,34 @@ For other general tips, see the [Setting up Perforce](GettingStarted/Downloading
 1. Run the P4Vinst executable installer. 
 1. On the Perforce **Select Features** page, all features are selected by default. 
 
-	![install_features.jpg](install_features.jpg)(w:514 h:392)
+	![install_features.jpg](install_features.jpg)(w:514)
 
 	Press the **Next > ** button to continue.
 
 	If you previously used P4Win, you may be prompted that the SCC plugin will be replaced.
 
-	![install_plugin_warning.jpg](install_plugin_warning.jpg)(w:362 h:155)
+	![install_plugin_warning.jpg](install_plugin_warning.jpg)(w:362)
 
-1. On the **Perforce Client Configuration** page, enter the following information:
+1. On the **Perforce Client Configuration** page, enter the information below and press the **Next >** button to continue.:
 
-	* **Server Port** - `p4-licensee-proxy.epicgames.net:1667` (available through the US and East Asian VPN) or `p4-licensee-proxy-asia.epicgames.net:1667` (primary for those connected through the East Asian VPN)
-	* **Username** - Provided in original UDN welcome email, typically your Team Name 
+	* **Server Port** - _ssl:p4-licensee.epicgames.com:1667_
+		
+		[REGION:tip]
+			The address above should automatically direct you to a regional proxy with the best latency based on your geographic location. If for some reason you need to connect to a specific regional proxy, you can connect to them using the addresses below:
+			* **United States East (Virginia)**: _ssl:p4-licensee-east.us.epicgames.com:1667_
+			* **United States West (Oregon)**: _ssl:p4-licensee-west.us.epicgames.com:1667_
+			* **Asia Pacific Northeast (Tokyo)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1667_
+			* **Europe Central (Frankfurt)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
+		[/REGION]
+
+	* **Username** - Perforce username provided by Epic Games.
 	[REGION:note]
 	This is different from your UDN login information
 	[/REGION]
-	![install_client_config.jpg](install_client_config.jpg)(w:514 h:392)
 
-	Press the **Next >** button to continue.
 1. You are ready to begin the installation. Press the **Start** button to begin.
 
-	![install_complete.jpg](install_complete.jpg)(w:514 h:392)
+	![install_complete.jpg](install_complete.jpg)(w:514)
 
 	You may be prompted to close other programs during the installation. If that is not an option, you will have to reboot after installation.
 
@@ -60,7 +67,7 @@ For those that are familiar with P4Win, ClientSpecs are known as Workspaces in P
 1. Run P4V. Upon first start, you may be prompted to run the **Connection Setup Wizard**. You can choose _No_ since the connection was already set up during installation.
 1. The **Open Connection** dialog will open.
 
-![connect_dialog.jpg](connect_dialog.jpg)(w:512 h:265)
+![connect_dialog.jpg](connect_dialog.jpg)(w:512)
 
 Verify that the **Server** and **User** fields match up with the required information.
 1. For a client Workspace, if you previously used P4Win or reinstalled P4V, you can press the **Browse...** button to find a Workspace associated with your user.
@@ -70,16 +77,16 @@ Verify that the **Server** and **User** fields match up with the required inform
 	* If yu are a licensee: **Client Name**: **UE4_Licensee_[TEAMNAME]** (or otherwise ending with your UDN username or team name)
 	* If you are a contractor: **Client Name**: **UE4_Contractor_[USERNAME]** (or otherwise ending with your UDN username or team name)
 
-	![connect_workspace.jpg](connect_workspace.jpg)(w:219 h:131)
+	![connect_workspace.jpg](connect_workspace.jpg)(w:219)
 
 	Press the **Ok** button to create the new workspace.
 1. The workspace is now shown in the **Open Connection** dialog.
 
-	![connect_complete.jpg](connect_complete.jpg)(w:512 h:265)
+	![connect_complete.jpg](connect_complete.jpg)(w:512)
 
 	You can choose to open the window again when you start up P4V in the future.
 
-	![connect_startup.jpg](connect_startup.jpg)(w:140 h:26)
+	![connect_startup.jpg](connect_startup.jpg)(w:140)
 
 Press the **Ok** button to open the connection and the P4V client.
 1. You may be prompted about your ticket expiring. Simply choose to not see the message again in the future, and press the **Ok** button.
@@ -113,7 +120,7 @@ The two main ways sets of file revisions are identified are through labels and c
 
 The tree pane in P4V contains your Workspace and the Depot Tree. In the Depot Tree view, click the Depot node to expand and see the available directories.
 
-![p4v_depot_tree.jpg](p4v_depot_tree.jpg)(w:374 h:307)
+![p4v_depot_tree.jpg](p4v_depot_tree.jpg)(w:374)
 
 
 * **CodeDrop** - Contains various snapshots of games created by Epic that can be used as examples.
@@ -126,7 +133,7 @@ For more information, see the [directory layout](Engine/Basics/DirectoryStructur
 
 In the UnrealEngine3 directory are several subdirectories: Binaries, Development, and Engine; and two game directories: ExampleGame and UDKGame.
 
-![p4v_depot_tree_ue3.jpg](p4v_depot_tree_ue3.jpg)(w:374 h:307)
+![p4v_depot_tree_ue3.jpg](p4v_depot_tree_ue3.jpg)(w:374)
 
 ExampleGame is the most minimal game implementation offered by Epic, and can be a good place for getting started in creating your own game project if your game is not very similar to Unreal Tournament.  
 
@@ -134,7 +141,7 @@ UDKGame is Epic's current Unreal Engine 4 usage demo based off of Unreal Tournam
 
 For UnrealEngine3, most of Epic's content is located in the game-specific directories, so if all you want is the engine source, you can simply sync to the //depot/UnrealEngine3/Development directory. You can highlight specific directories as desired, for example, to grab the latest content for ExampleGame without updating UDKGame content.
 
-![p4v_depot_tree_ue3_examplegame.jpg](p4v_depot_tree_ue3_examplegame.jpg)(w:374 h:307)
+![p4v_depot_tree_ue3_examplegame.jpg](p4v_depot_tree_ue3_examplegame.jpg)(w:374)
 
 When getting a revision, lots of downloading will progress in the log window. "Sync completed with no warnings or errors" is what you are looking for when it is done.
 
@@ -145,29 +152,29 @@ To sync to a QA-approved build, follow the step below:
 
 1. In the Depot Tree, **Right-click** on the UnrealEngine3 directory and then choose **Get Revision...** from the context menu. Alternatively, you can select the UnrealEngine3 directory and choose **Get Revision...** from the **Actions** menu.
 
-	![p4v_depot_menu.jpg](p4v_depot_menu.jpg)(w:304 h:650)
+	![p4v_depot_menu.jpg](p4v_depot_menu.jpg)(w:304)
 1. The **Get Revision** window will open.
 
-	![p4v_get_revision.jpg](p4v_get_revision.jpg)(w:634 h:488)
+	![p4v_get_revision.jpg](p4v_get_revision.jpg)(w:634)
 
 	Select the **Specify revision using** radio button to enable the combobox and text field.
 
-	![p4v_specify_revision.jpg](p4v_specify_revision.jpg)(w:513 h:63)
+	![p4v_specify_revision.jpg](p4v_specify_revision.jpg)(w:513)
 1. Select **Label** from the dropdown box.
 
-	![p4v_revision_label.jpg](p4v_revision_label.jpg)(w:100 h:103)
+	![p4v_revision_label.jpg](p4v_revision_label.jpg)(w:100)
 
 	Press the **Browse...** button to open the **Select Label** window.
 
-	![p4v_select_label.jpg](p4v_select_label.jpg)(w:800 h:526)
+	![p4v_select_label.jpg](p4v_select_label.jpg)(w:800)
 1. Select the label you want to sync to. Usually this is the latest QA-approved build, designated by a label in the form of _QA_APPROVED_BUILD_[Month]_[Year]_. You may need to scroll down in the list a few times for all the labels to be loaded.
 
-	![p4v_label_build.jpg](p4v_label_build.jpg)(w:800 h:526)
+	![p4v_label_build.jpg](p4v_label_build.jpg)(w:800)
 
 	Press the **Ok** button to select the label and close the window.
 1. Press the **Get Revision** button to close the **Get Revision** window and begin the sync. The **Log** should show the progress of the sync.
 
-	![p4v_sync_progress.jpg](p4v_sync_progress.jpg)(w:800 h:117)
+	![p4v_sync_progress.jpg](p4v_sync_progress.jpg)(w:800)
 
 
 ## Working with Source Control

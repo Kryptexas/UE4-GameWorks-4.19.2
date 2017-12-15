@@ -20,11 +20,13 @@ tags:Decals
 エッジの周囲をラップするジオメトリやスプライン メッシュと一緒に使用し、 
 キャラクターの外見を美しくします。 
 
-<!---
+[COMMENT:none]
+-
 <div align= "center">
 ![](MeshDecalVsMasked.png)(w:700)
 </div>
---->
+-
+[/COMMENT]
 
 ## メッシュ デカールとマスク付きマテリアルの比較
 

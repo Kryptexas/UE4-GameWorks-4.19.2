@@ -48,21 +48,19 @@ Description:ほとんどの物理相互作用の基礎: 物理ボディ [ボデ�
 
 以下は物理ボディに関する情報のリンクです。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		基本
-	[/PARAM]
-	[PARAM:links]
+## 基本
+
+[REGION:buttonlist]
+
 		[PUBLISH:Docs]
 		* [](Engine/Physics/PhysicsBodies/Overview "%Engine/Physics/PhysicsBodies/Overview:description%")
 		[/PUBLISH:Docs]
-		<!-- * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") -->
+		[COMMENT:none]
+ * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") 
+[/COMMENT]
 		* [](Engine/Physics/PhysicsBodies/Reference "%Engine/Physics/PhysicsBodies/Reference:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

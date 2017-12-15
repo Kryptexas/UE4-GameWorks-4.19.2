@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Licensee
 Title:UDN 시작하기
 Crumbs:%ROOT%, GettingStarted
 Description:UDN 기초 입문서입니다.
 Version: 4.9
+parent:%ROOT%
+order:101
 
 
 
@@ -15,21 +17,12 @@ UDN (Unreal Developer Network, 언리얼 개발자 네트워크)은 라이선시
 	UDN 사용 도중 어떤 문제를 발견한 경우, 질문으로 올려 주세요. 도움이 필요한 경우 아래 **서포트 질문** 섹션을 사용해 주세요.
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		시작하기
-	[/PARAM]
-	[PARAM:description]
-		다음 섹션에서는 흔한 UDN 작업 관련 중요 정보를 다룹니다:
-	[/PARAM]
-	[PARAM:links]
-		* [콘텐츠 검색](Support\UDNGettingStarted\ContentSearches)
-		* [서포트 질문](Support\UDNGettingStarted\SupportQuestions)
-	[/PARAM]
-[/OBJECT]
+## 시작하기
+
+[REGION:buttonlist]
+* [](Support\UDNGettingStarted\ContentSearches)
+* [](Support\UDNGettingStarted\SupportQuestions)
+[/REGION]
 
 
 ## 비디오

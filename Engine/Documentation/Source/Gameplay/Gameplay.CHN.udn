@@ -78,17 +78,10 @@ type:landing
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		游戏性元素
-	[/PARAM]
-	[PARAM:description]
-		尽管每个游戏可能具有不同的字符、规则和视觉样式，但有一些核心元素是更为普遍的。 您可以搜寻从输入内容到保存内容的、位于此处的C++和/或蓝图的主题和示例设置的概述内容。
-	[/PARAM]
-	[PARAM:links]
+## 游戏性元素
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Input "%Gameplay/Input:description%")
 		* [](Gameplay/Networking "%Gameplay/Networking:description%")
 		* [](Gameplay/SaveGame "%Gameplay/SaveGame:description%")
@@ -96,24 +89,18 @@ type:landing
 		* [](Gameplay/AI "%Gameplay/AI:description%")
 		* [](Gameplay/Localization "%Gameplay/Localization:description%")
 		* [](Gameplay/Analytics "%Gameplay/Analytics:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		游戏性工具
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 游戏性工具
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Tools/GameplayDebugger "%Gameplay/Tools/GameplayDebugger:description%")
 		* [](Gameplay/Tools/NetworkProfiler "%Gameplay/Tools/NetworkProfiler:description%")
 		* [](Gameplay/Tools/VisualLogger "%Gameplay/Tools/VisualLogger:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [OBJECT:TopicList]
 	[PARAM:icon]

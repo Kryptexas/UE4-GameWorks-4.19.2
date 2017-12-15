@@ -4,46 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/UI
 Description:A look at how to customize the look and feel of the user interface by rearranging and docking various panels and tabs.
 Navigation:topic
 Version: 4.9
+topic-image:(Engine/UI/CustomizingUI.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/UI/CustomizingUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/InterfaceOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/InterfaceOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/InterfaceOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](Engine/UI/CustomizingUI.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/InterfaceOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/InterfaceOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/InterfaceOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![](Engine/UI/UserGuideBanner_2.png)(convert:false)

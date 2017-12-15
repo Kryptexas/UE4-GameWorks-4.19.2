@@ -1,29 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability: Public
 Title: 1. 필수 구성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 1. 필수 구성
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:coloroverride]
-		#000000
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이 퀵스타트는 프로젝트 관련 배경지식이 있는 분들을 대상으로 하므로, 대체 제작이 힘들거나 즉석 문제 해결이 어려운 경우, 다음과 같이 프로젝트를 구성해야 합니다.
 
@@ -41,8 +27,8 @@ version: 4.9
 새 프로젝트 시작에 대한 보다 자세한 설명이 필요한 경우, [](Engine/Basics/Projects/Browser) 문서를 참고하세요.
 
 [/EXCERPT:AIProjectStart]
-%Steps%
 
+[NAV]
 
 
 

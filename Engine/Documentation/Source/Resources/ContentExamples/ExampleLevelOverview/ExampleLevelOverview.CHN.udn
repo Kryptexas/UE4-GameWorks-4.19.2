@@ -88,7 +88,8 @@ TODO - ADD PIC OF EFFECTS GALLERY CROSS REFERENCE
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ExampleLevel]
 当您在关卡中移动时，您将会看到一系列标记的底座或显示。 每条显示信息都包含了一个数字和简短描述，这些数字和简短描述与相关教程中的相应内容一致。 通过对您在关卡中看到的内容与您在文件中读到的内容进行相互参照，您可以快速了解每个示例是如何被进行创建的。 如需获得关于如何使用该示例关卡的更多信息，请参阅我们的文件，位置为 [](Resources\ContentExamples\ExampleLevelOverview)。
 
@@ -104,4 +105,5 @@ TODO - ADD PIC OF EFFECTS GALLERY CROSS REFERENCE
 [/REGION]
 [/EXCERPT:PlaySim]
 
--->
+
+[/COMMENT]

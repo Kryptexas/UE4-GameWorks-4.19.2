@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In the following section we will be creating the required Actors and Materials the Grass Tool needs to function correctly.
 We will continue to work with the **GT_00** level that was created in the last step.
@@ -31,13 +31,13 @@ We will continue to work with the **GT_00** level that was created in the last s
 1. Create a Landscape Grass Type by **right - click** in the **Content Browser** and from the menu that is displayed go to **Miscellaneous** > **Landscape Grass Type** and then give it a name of **Grass_00**.
 
 	[REGION:lightbox]
-	[![](T_Create_LS_Grass.png)(w:196 h:342)](T_Create_LS_Grass.png)
+	[![](T_Create_LS_Grass.png)(w:196)](T_Create_LS_Grass.png)
 	[/REGION]
 
 1. Open up the Landscape Grass Type by **double - clicking** on it and once opened add a new item to the **Grass Varieties** array by pressing the **Plus** icon that is to the right of the **Grass Varieties** name.
 	
 	[REGION:lightbox]
-	[![](T_Add_New_GV.png)(w:298 h:288)](T_Add_New_GV.png)
+	[![](T_Add_New_GV.png)(w:298)](T_Add_New_GV.png)
 	[/REGION]
 
 1. Inside of the **Landscape Grass Type** Actor look for the **Grass Mesh** section and then click on the input box that says **None** and input **SM_FieldGrass_01** as the search term, then clicking on the **SM_FieldGrass_01** to load it as the **Grass Mesh**. 
@@ -47,7 +47,7 @@ We will continue to work with the **GT_00** level that was created in the last s
 1. With the Static Mesh added we need to set the following properties to ensure that we are spawning enough grass mesh and that those meshes are randomly rotated and aligned to the Landscape terrain.
 
 	[REGION:lightbox]
-	[![](T_Grass_Props.png)(w:330 h:387)](T_Grass_Props.png)
+	[![](T_Grass_Props.png)(w:330)](T_Grass_Props.png)
 	[/REGION]
 	
 	|Property Name | Value | The Why |
@@ -57,4 +57,4 @@ We will continue to work with the **GT_00** level that was created in the last s
 	|**Random Rotation**  |Enabled   | Giving the Static Meshes used for the plants and grasses a random rotation makes sure that the same side of the Static Mesh used is not seen all the time adding to the visual variety of the scene.|
 	|**Align to Surface** |Enabled   | This makes sure that the Static Mesh used conform to the surface of the Landscape terrain.|
 
-%Steps%
+

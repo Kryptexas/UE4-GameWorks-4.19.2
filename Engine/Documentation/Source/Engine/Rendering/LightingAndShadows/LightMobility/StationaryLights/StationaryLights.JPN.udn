@@ -1,7 +1,7 @@
 ﻿Availability:Public
 Title:Stationary lights (固定ライト)
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
-Description:ランタイム時において、色と輝度の変更は可能、移動、回転、サイズへの影響の変更は不可能なライトの説明です。
+Description:ランタイム時に、色と輝度の変更が可能、移動、回転、サイズの変更が不可能なライトの概要
 Version:4.9
 
 [VAR:Topic]

@@ -1,30 +1,16 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2 - 캐릭터 블루프린트 업데이트
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:여기서는 캐릭터 블루프린트에서 무기 발사 시뮬레이션을 하는 스크립트를 짜 봅니다.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:2
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전](Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[레이어 애니메이션 - 홈](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[다음](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 여기서는 캐릭터 블루프린트에서 약간의 스크립트 작업을 통해 무기를 발사하고 있다고 우리 블루프린트에 신호를 보낼 수 있도록 하겠습니다.
 
@@ -67,4 +53,4 @@ tags:Animation
 이제 웅크리거나 무기를 발사할 때 애니메이션 블루프린트에 신호를 보낼 수 있도록 하는 구성이 완료되었습니다.
 다음 단계에서는, 애니메이션 블루프린트 내 애니메이션 그래프에서 애님 몽타주와 일반 동작 애니메이션이 어우러지도록 블렌딩 처리 구성을 해주도록 하겠습니다.
 
-%Steps%
+[NAV]

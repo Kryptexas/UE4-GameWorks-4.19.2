@@ -1,6 +1,6 @@
 Availability:Public
-Title:Google VR Debugging
-Description:Information on how to debug applications for Google VR.
+Title:Google VR Performance Tuning
+Description:Information on checking the performance of your Google VR applications.
 Navigation:platform
 Crumbs:%ROOT%
 Platform:Google VR
@@ -31,12 +31,12 @@ In the following document we will take a look at the various ways you can go abo
 The Daydream Performance HUD is a performance overlay enabled for all Daydream applications built with Google VR SDK 1.60 and above.
 [/region]
 
-Google Daydream comes with a built in performance overlay that when enabled, will provide quick insight into performance issues  you might encounter. With this overlay enabled you are able to see the following stats:
+Google Daydream comes with a built-in performance overlay that when enabled, will provide quick insight into performance issues  you might encounter. With this overlay enabled, you can see the following stats:
 
-* **Application frame submit rate and whether frames were blocked on the GPU**
-* **Asynchronous Reprojection statistics**
-* **Process memory usage**
-* **How many degrees (°C) the device is from thermal throttling**
+* **Application frame submit rate, and whether frames were blocked on the GPU.**
+* **Asynchronous Reprojection statistics.**
+* **Process memory usage.**
+* **How many degrees (°C) the device is from thermal throttling.**
 
 ### Enabling Performance HUD
 
@@ -56,7 +56,7 @@ To enable the Performance HUD you will need to do the following.
 	Click for full image.
 	[/REGION]
 
-1. Select Developer Options > Enable performance heads-up display. Enabling this option also implicitly enables the Enable performance monitoring option.
+1. Select Developer Options > Enable performance heads-up display. Enabling this option also implicitly enables the **Enable Performance Monitoring** option.
 
 	[REGION:lightbox]
 	[![](GVDP_02.png)(w:320)](GVDP_02.png)
@@ -66,7 +66,7 @@ To enable the Performance HUD you will need to do the following.
 	Click for full image.
 	[/REGION]
 
-4. You should now see the performance overlay the next time you run a VR app like inthe following image.
+4. You should now see the performance overlay the next time you run a VR app, as in the following image:
 
 	[REGION:lightbox]
 	[![](GoogleDaydreamPerfHUD.png)(w:720)](GoogleDaydreamPerfHUD.png)
@@ -77,5 +77,5 @@ To enable the Performance HUD you will need to do the following.
 	[/REGION]
 
 	[region:note]
-	For more information on how to use Performance HUD, make sure to check out the offical [Google VR Performance HUD](https://developers.google.com/vr/tools/perfhud) for more detailed inforamtion on using Peformance HUD.
+	For more information on how to use Performance HUD, check the offical [Google VR Performance HUD documentation](https://developers.google.com/vr/tools/perfhud).
 	[/region]

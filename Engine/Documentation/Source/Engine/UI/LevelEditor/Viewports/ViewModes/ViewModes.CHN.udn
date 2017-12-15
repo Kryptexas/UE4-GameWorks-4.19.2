@@ -268,10 +268,12 @@ Version:4.9
 **底色** 模式允许您仅查看场景中材质的底色。
 
 
-<!---
+[COMMENT:none]
+-
 ### Custom Depth
 Not included until I can get an answer from Daniel 
--->
+
+[/COMMENT]
 
 
 ### 贴花蒙版
@@ -296,7 +298,8 @@ Not included until I can get an answer from Daniel
 **漫射颜色** 显示底色与材质环境光遮蔽输入的结果。
 
 
-<!--
+[COMMENT:none]
+
 ### Final Image
 Removed, since DanielW wasn't sure why it's here. 
 
@@ -304,7 +307,8 @@ Removed, since DanielW wasn't sure why it's here.
 aka no visualization
 not sure why it’s in there
 "
--->
+
+[/COMMENT]
 
 ### 明暗处理模型
 
@@ -521,10 +525,12 @@ not sure why it’s in there
 
 
 
-<!--
+[COMMENT:none]
+
 ### Layer Debug
 TODO
--->
+
+[/COMMENT]
 
 ## 曝光
 

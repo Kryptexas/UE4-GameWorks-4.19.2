@@ -3,7 +3,8 @@ Title: 状态机
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: 状态机允许把骨架动画分解为各种状态，并且可以充分地控制从一个状态到另个状态的混合方式。
 
-<!--
+[COMMENT:none]
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -23,7 +24,8 @@ Description: 状态机允许把骨架动画分解为各种状态，并且可以�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
--->
+
+[/COMMENT]
 
 [TOC(start:2)]
 

@@ -101,7 +101,8 @@ Click for full image.
 
 UE4 supports full-resolution skin shading for the Subsurface Profile shading model. This provides high-fidelity lighting for surface details, such as pores and wrinkles.
 
-<!--[OBJECT:ComparisonSlider]
+[COMMENT:none]
+[OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard.png)
     [/PARAM]
@@ -109,7 +110,8 @@ UE4 supports full-resolution skin shading for the Subsurface Profile shading mod
     ![Full Resolution Skin](FRSH_FullResolution.png)
     [/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 [OBJECT:ComparisonSlider]
     [PARAM:before]
     ![Checkboard Rendered Skin Layout](FRSH_Checkboard_Zoom.png)
@@ -239,7 +241,8 @@ _Please note that as this system becomes more and more polished, this list could
 Special thanks to Lee Perry-Smith and his company [Infinite Realities](http://ir-ltd.net) for providing the head model and assistance. 
 Also a very special thanks to [Jorge Jimenez](http://www.iryoku.com/) for releasing his implementation as this feature is based on his work.
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SSRScale]
 [OBJECT:SliderSequence]
     [PARAMLITERAL:max]
@@ -269,6 +272,7 @@ Also a very special thanks to [Jorge Jimenez](http://www.iryoku.com/) for releas
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SSRScale]
--->
+
+[/COMMENT]
 
 

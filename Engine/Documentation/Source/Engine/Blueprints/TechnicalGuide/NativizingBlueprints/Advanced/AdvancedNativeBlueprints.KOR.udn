@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 네이티브화 고급
 Crumbs:%ROOT%
@@ -88,7 +88,8 @@ C++ 코드가 이미 포함된 프로젝트 작업을 하는 경우, 기존 프�
 
 [/PUBLISH:Licensee]
 
-<!--Commented out per SME; however, it's being preserved for future review.
+[COMMENT:none]
+Commented out per SME; however, it's being preserved for future review.
 
 1. 다음 줄을 실행시킵니다. 네이티브화된 빌드가 패키징되면 출력 로그에서 찾을 수 있으니, 스위치가 자신의 환경에 맞게끔 붙어있는지 확인하려면 거기서 직접 복사하는 방법이 가장 쉽습니다.
 `Development` 스위치만 `Debug` 로 바꿔주면 됩니다. 
@@ -101,4 +102,5 @@ C++ 코드가 이미 포함된 프로젝트 작업을 하는 경우, 기존 프�
 
 3. Visual Studio 에서 디버그를 실행하되, Visual Studio 에서 프로젝트를 리컴파일하지는 마십시오.
 
--->
+
+[/COMMENT]

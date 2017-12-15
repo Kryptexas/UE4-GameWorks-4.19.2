@@ -34,11 +34,13 @@ You can also control play rate, play direction, looping, etc, with various other
 For information on setting up and working with Flipbook Components, see the [](Engine\Paper2D\Flipbooks\Components) documentation. 
 
 
-<!-- Hidden for now, still experimental
+[COMMENT:none]
+ Hidden for now, still experimental
 ## Paper Tile Map Render Component
 
 The **PaperTileMapRenderComponent** is a standard constructor, called after all reflected properties have been initialized. 
--->
+
+[/COMMENT]
 
 
 

@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:화면 속 화면
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:정확한 카메라 배치를 위해 화면 속 화면을 만드는 뷰포트 기능입니다.
 Version: 4.9
 SkillLevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](ViewportPIP_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/PIP:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/PIP:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/PIP]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](ViewportPIP_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/PIP:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/PIP:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/PIP]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:ViewportPIP_topic.png
 
 
 언리얼 에디터의 레벨 에디터 내 뷰포트는 월드에 놓은 카메라 액터를 선택했을 때 **그림속의 그림** 처럼 미리보는 (Picture-in-Picture) 기능을 제공합니다. 이로써 카메라의 위치나 방향을 잡는 것은 물론 그 프로퍼티를 조정도 매우 쉽게 직관적으로 할 수 있습니다.

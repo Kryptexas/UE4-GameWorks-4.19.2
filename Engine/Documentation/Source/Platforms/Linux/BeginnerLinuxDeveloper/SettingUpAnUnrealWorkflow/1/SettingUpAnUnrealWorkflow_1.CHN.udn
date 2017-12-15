@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 当前，我们尚未为 Linux 用户提供 UE4 二进制安装程序。但我们可以使用开发引擎的源代码编译虚幻引擎的二进制版本。如要访问源代码，您需要注册 Epic Games 账户、注册 GitHub 账户、将 GitHub 用户名为 Epic Games 账户关联，并在 Linux 电脑上设置 Git。
 
@@ -56,4 +56,4 @@ SkillLevel:Beginner
 
 现在您便已完成 Epic Games 账户的注册，并绑定到 GitHub 用户名。此外，您已安装 Git，可进入下一步，从虚幻引擎 GitHub 元库提交并复制 UE4 源代码。
 
-%Steps%
+

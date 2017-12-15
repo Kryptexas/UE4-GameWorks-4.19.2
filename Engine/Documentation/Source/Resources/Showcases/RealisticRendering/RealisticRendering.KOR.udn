@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:실사 렌더링
 Crumbs:%ROOT%, Resources
@@ -12,49 +12,7 @@ Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials/LayeredMaterials
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/RealisticRendering:title%](RealisticRendering_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/RealisticRendering:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/RealisticRendering:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/RealisticRendering]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/RealisticRendering:title%](RealisticRendering_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/RealisticRendering:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/RealisticRendering:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/RealisticRendering]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:RealisticRendering_Topic.png
 
 [REGION:fullwidth]
 ![](RealisticRenderingHeader.png)
@@ -228,7 +186,8 @@ UE4 의 물리 기반 머티리얼 시스템 관련 기술적 심도 깊은 정�
 
 
 
-<!--Inclusions-----
+[COMMENT:none]
+Inclusions-----
 [EXCERPT:BaseColor]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -390,4 +349,5 @@ UE4 의 물리 기반 머티리얼 시스템 관련 기술적 심도 깊은 정�
 
 [/EXCERPT:InverseSquared]
 
-------------------->
+-----------------
+[/COMMENT]

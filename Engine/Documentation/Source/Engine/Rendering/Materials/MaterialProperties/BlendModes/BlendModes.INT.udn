@@ -58,7 +58,7 @@ Further, since these features don't render in the masked area, they aren't calcu
 When using Masked Blend Mode, you need to pay special attention to the **Opacity Mask Clip Value** property. This property holds a 0-1 scalar value which controls what value of the opacity mask texture will be used as a cutoff point, beyond which all **darker** pixels will not render. 
 
 [REGION:imagetable]
-| [INCLUDE:#OpacityMaskClipValue] | ![](OpacityMaskMaterial.png)(w:445 h:465) |
+| [INCLUDE:#OpacityMaskClipValue] | ![](OpacityMaskMaterial.png)(w:445) |
 | --- | --- |
 | Opacity Mask Clip Value (Drag the slider to preview) | Material Network |
 [/REGION]

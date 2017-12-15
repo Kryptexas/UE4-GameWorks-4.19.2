@@ -1,4 +1,4 @@
-Title: Unreal Engine VR Editor
+Title: Unreal Engine VR Mode
 Description: Build worlds in a virtual reality environment using the full capabilities of the editor toolset with interactions designed specifically for VR.
 Crumbs:
 Availability:public
@@ -6,62 +6,33 @@ parent:Engine/Editor
 type:overview
 order:10
 tags:VR
-version:4.15
+version:4.17
 skilllevel:intermediate
 social-image:vreditor_social.png
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR:title%](Engine/Editor/VR/vreditor.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR:title%](Engine/Editor/VR/vr_editor.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Editor/VR/vreditor.png
 
 [EXCERPT:main]
-The VR Editor enables you to design and build worlds in a virtual reality environment using the full capabilities of the editor toolset combined with interaction models designed specifically for VR world building.
+VR Mode enables you to design and build worlds in a virtual reality environment using the full capabilities of the Unreal Editor toolset combined with interaction models designed specifically for Virtual Reality (VR) world building.
 
 Working directly in VR provides the proper sense of scale necessary to create realistic, believable worlds, while the use of motion controllers means you can build environments with natural motions and interactions.
 
-[PUBLISH:rocket,licensee]
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
 	JKO9fEjNiio
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
-	930
+	100
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	568
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
 	[/PARAMLITERAL]
 [/OBJECT]
-[/PUBLISH:rocket,licensee]
 
 ## Requirements
 
@@ -82,7 +53,6 @@ In order to use Unreal Editor in VR mode, your development environment must meet
 ## Getting Started
 
 %Engine/Editor/VR/ActivateVRMode:topic%
-%Engine/Editor/VR/Setup:topic%
 %Engine/Editor/VR/Controls:topic%
 
 ## Guides
@@ -95,7 +65,8 @@ In order to use Unreal Editor in VR mode, your development environment must meet
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VRHardware]
 [REGION:plainlist]
 * Oculus Rift with Oculus Touch controllers
@@ -112,4 +83,5 @@ Motion controllers are currently required for the VR Editor.  You cannot use thi
 * **For HTC Vive:** SteamVR
 [/REGION]
 [/EXCERPT:VRSoftware]
--->
+
+[/COMMENT]

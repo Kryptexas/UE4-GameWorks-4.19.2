@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Attractor 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -67,7 +67,8 @@ Ntf5chUK4jM
 |[REGION:tablesection]Location[/REGION]||
 | **SelectionMethod** | 선택 방법 - 이미터로부터의 어트랙터 타겟 파티클을 선택할 때 사용할 방법입니다. 다음 중 하나입니다:[INCLUDE:#SelectionMethod]|
 
-<!------Attractor Particle Includes--------------
+[COMMENT:none]
+----Attractor Particle Includes--------------
 
 [EXCERPT:SelectionMethod]
 [REGION:simpletable]
@@ -78,7 +79,8 @@ Ntf5chUK4jM
 [/REGION]
 [/EXCERPT:SelectionMethod]
 
---------End Attractor Particle Includes---------->
+--------End Attractor Particle Includes--------
+[/COMMENT]
 
 
 ## Point Attractor

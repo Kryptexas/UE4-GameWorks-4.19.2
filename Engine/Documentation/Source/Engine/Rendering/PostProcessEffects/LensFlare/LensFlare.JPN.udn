@@ -24,7 +24,8 @@ Version:4.9
 
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:Tint]
 [OBJECT:ComparisonSlider]
@@ -69,4 +70,5 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:BokehShape]
--->
+
+[/COMMENT]

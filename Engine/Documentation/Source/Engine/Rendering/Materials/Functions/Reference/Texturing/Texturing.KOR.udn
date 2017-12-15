@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 title:텍스처링
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -323,7 +323,8 @@ WorldCoordinate3Way (월드 좌표 3 방향) 함수는 오브젝트의 표면에
 
 
 ![WorldCoordinate3Way](WorldCoordinate3Way_Demo.png)
-<!---
+[COMMENT:none]
+-
 ### MF_TerrainHeightLerp
 
 MF_TerrainHeightLerp (터레인 높이 선형보간)은 하이트맵 값에 따라 두 텍스처를 블렌딩할 수 있다는 점에서 HeightLerp 함수와 비슷합니다. 그러나 다른 점은, 터레인 레이어 블렌딩 보조용으로 구성된 것이라는 점입니다. 베이스에는 어떤 텍스처를 배치하고, 상단에는 어떤 레이어를 두며, 그 둘에 대한 하이트 맵을 설정하여, 사실상 각 텍스처의 배치 위치를 제어할 수 있습니다.
@@ -352,4 +353,5 @@ MF_TerrainHeightLerp (터레인 높이 선형보간)은 하이트맵 값에 따�
  TODO
 ### WorldAlignedStain
 
--->
+
+[/COMMENT]

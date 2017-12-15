@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 제동
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -55,7 +55,8 @@ _두 Angular Swing Motions (각형 스윙 모션) 이 제동 값을 공유하고
 피직스 컨스트레인트에 사용할 수 있는 프로퍼티 관련 참고서: 
 [](Engine/Physics\Constraints\ConstraintsReference)
 
-<!--
+[COMMENT:none]
+
 ## 피지컬 머티리얼 제동 (PhysicalMaterial Damping)
 오브젝트에 적용되는 공기 저항같은 것으로 생각해 볼 수 있습니다. 바디에 적용되는 힘이 바디를 느리게 만들며, 그 힘의 세기는 오브젝트의 운동 속력에 비례합니다. 
 선/각 제동 세팅은 별도로 나뉘어 있어, 트랜슬레이션과 로테이션 운동에 저항력을 얼마나 가할지 제어할 수 있습니다. 
@@ -82,7 +83,8 @@ _두 Angular Swing Motions (각형 스윙 모션) 이 제동 값을 공유하고
 PhysicsVolume 의 ZoneVelocity 프로퍼티가 바로 그 볼륨에 있는 오브젝트가 도달했으면 하고 바라는 희망 속도입니다. 강의 유속이나 터널의 바람 세기로 생각해 봐도 되겠습니다. 
 RigidBodyDamping 프로퍼티를 변경하면 피직스 바디가 그 볼륨에 있을 때 희망 속도에 얼마나 강하게 도달하게 할지를 조절할 수 있습니다. 
 ZoneVelocity 는 0, RigidBodyDamping 은 높게 설정하면 볼륨이 젤리같아 집니다. ZoneVelocity 는 가로, RigidBodyDamping 는 적절히 설정하면 흐르는 강물같아 집니다.
--->
+
+[/COMMENT]
  
 
 

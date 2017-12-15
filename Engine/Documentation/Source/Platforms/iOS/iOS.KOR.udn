@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: iOS 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -12,44 +12,14 @@ tags:Mobile
 tags:iOS
 topic-image:iOSGameDevelopment_topic.png
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		시작하기
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
-	[/PARAM]
-[/OBJECT]
+## 시작하기
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		iOS 비법
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		일반 iOS 개발
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+## iOS 안내서
+
+[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
+
+## 일반 iOS 개발
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]

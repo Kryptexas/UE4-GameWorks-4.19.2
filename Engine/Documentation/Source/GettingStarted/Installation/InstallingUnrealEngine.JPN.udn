@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3367474
-Availability:Public
+﻿Availability:Public
 Title:アンリアル エンジンのインストール方法
 Description:アンリアル エンジンのインストール手順
 Crumbs: %ROOT%, GettingStarted
@@ -59,21 +58,23 @@ SkillLevel:Beginner
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows_install]
 1.	インストーラを入手するには、**[Download]** ボタンを **クリック** します。
-
 	![](Download_Screen.png)
 
-1.	ダウンロードが完了したら、インストーラを **実行** します。
+	1.	ダウンロードが完了したら、インストーラを **実行** します。
 
 	![](RunInstaller.png)
 
-1.	**[Epic Games Launcher Setup (エピック ゲームズのランチャー セットアップ)]** ダイアログ ボックスが表示されたら、**[Install]** ボタンを **クリック** します。
+	1.	**[Epic Games Launcher Setup (エピック ゲームズのランチャー セットアップ)]** ダイアログ ボックスが表示されたら、**[Install]** ボタンを **クリック** します。
 
 	![](RunEpicLauncherSetup.png)
+
 [/EXCERPT:windows_install]
--->
+
+[/COMMENT]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -91,9 +92,10 @@ SkillLevel:Beginner
 
 	1.新しい **Finder Window** を開くには、**Finder** で `EpicGamesLauncher.dmg` アイコンを **ダブルクリック** します。
 
-	1.	**[Epic Games Launcher]** アイコンを **「Applications」** フォルダに **ドラッグ** します。
 
+	1.	**[Epic Games Launcher]** アイコンを **「Applications」** フォルダに **ドラッグ** します。
 	![](InstallEpicLaucherMac.png)
+
 	[/PARAM]
 [/OBJECT]
 
@@ -149,8 +151,8 @@ SkillLevel:Beginner
 	![](AcceptEULALauncher.png)
 
 1.	システムの仕様に応じて、アンリアル エンジンの ダウンロードとインストール には、10 分から 40 分程度の時間がかかります。
-
 	![](DownloadingEngine.png)
+
 
 	_進捗インジケータの例 (上の画面)_
 
@@ -172,7 +174,8 @@ SkillLevel:Beginner
 
 これで、アンリアル エンジンの使用を開始する準備が整いました。
 
-<!--Deprecated as it is redundant with the Related Topics section directly below it.
+[COMMENT:none]
+Deprecated as it is redundant with the Related Topics section directly below it.
 ## アンリアル エンジンの使用を開始する
 
 [](GettingStarted) のドキュメントを参照してアンリアル エンジンの使用方法を学習しましょう！
@@ -185,8 +188,10 @@ UE4 の使用について取り急ぎ学習したい場合は、以下のチュ�
 
 [REGION:note]
 UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに役立ちます。
-[/REGION]-->
-<!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
+[/REGION]
+[/COMMENT]
+[COMMENT:none]
+Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
 ## インストーラーのダウンロード
@@ -251,8 +256,10 @@ UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに役立�
 1. ダウンロードが終了したら、**Launch** ボタンでアンリアル エンジンを起動できます。
 
 	![](launch.png)
--->
-<!--Previously deprecated procedures
+
+[/COMMENT]
+[COMMENT:none]
+Previously deprecated procedures
 [EXCERPT:Windows]
 1. ダウンロードしたインストーラを実行して、アンリアル エンジンのインストール先を選択します。
 
@@ -277,4 +284,5 @@ UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに役立�
 1. Finder でファイルのコピーが終了すると、アンリアルエンジンが **Launchpad** で利用出来るようになります。ここからアンリアル エンジンを起動します。 
 
 [/EXCERPT:MacOS]
--->
+
+[/COMMENT]

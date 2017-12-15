@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:글로벌 일루미네이션의 동적인 생성을 위한 시스템입니다.
 Version: 4.9
 SkillLevel: Advanced
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](lpv_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightPropagationVolumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](lpv_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightPropagationVolumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:lpv_topic.png
 
 [REGION:todo]
 Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로, 아직은 제작 단계에서 사용할 준비가 되어있지 않습니다.
@@ -86,7 +47,9 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 
 (마우스 커서를 올리면 뜨는) 툴팁에 세팅 관련 자세한 내용이 뜹니다.
 
-<!-- add setting descriptions -->
+[COMMENT:none]
+ add setting descriptions 
+[/COMMENT]
 
 볼륨에 이 세팅을 설정하면 카메라 위치에 따라 부드러운 블렌딩이 가능합니다 
 (예: 실내 환경이나 나무 아래 GI 반사광이 덜합니다).
@@ -180,7 +143,8 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 * 약간의 비용으로 꽤 나은 퀄리티를 내는 지오메트리 복셀화를 통한 이차 오클루전 (현재 미구현)
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VisualizeSlider]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:id]
@@ -216,7 +180,8 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
--->
+
+[/COMMENT]
 
 
 

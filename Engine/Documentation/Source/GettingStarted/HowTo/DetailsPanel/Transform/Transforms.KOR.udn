@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1. 액터 트랜스폼 작업
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 액터 작업시 중요한 부분은 [액터 트랜스폼](GettingStarted/HowTo/ManipulatingActors) 프로세스를 이해하는 것인데, 여기에는 액터의 이동, 회전, 스케일 조절은 물론 [모빌리티](Engine/Actors/Mobility) (게임플레이 도중의 액터 이동 또는 변화 허용 여부) 정의도 포함됩니다.
 
@@ -99,4 +99,4 @@ checkpoint: editorqs
 다음에는 디테일 패널을 통해 액터에 적용된 **머티리얼** 을 업데이트하도록 하겠습니다.
 
 
-%Steps%
+

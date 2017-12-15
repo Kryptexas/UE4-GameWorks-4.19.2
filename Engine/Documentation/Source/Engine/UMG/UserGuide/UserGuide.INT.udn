@@ -11,7 +11,7 @@ Tags:UMG UI Designer
 
 
 [REGION:fullwidth raw]
-![](UserGuideHeader.png)(w:940 h:160 convert:false)
+![](UserGuideHeader.png)(w:940 convert:false)
 [/REGION]
 
 [EXCERPT:umgheader]
@@ -19,12 +19,5 @@ Tags:UMG UI Designer
 [/EXCERPT:umgheader]
 
 
-## Getting Started
-
-[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"Getting Started" end:"1")]
-
-
-## Further Reading
-
-[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"!Getting Started" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" end:"1")]
 

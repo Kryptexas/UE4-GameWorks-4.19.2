@@ -32,7 +32,8 @@ related:Engine/Landscape/Creation
 
 ![](Photoshop_Layer_Example.png)
 
-<!--
+[COMMENT:none]
+
 ### ランドスケープのサイズとレイヤーのサイズ
 
 以下の表は、ランドスケープ 高さマップとランドスケープのレイヤー サイズの関係を表しています。ランドスケープ レイヤーを必ず正しいサイズにすることが非常に重要です。レイヤー サイズが正しくないと、UE4 にインポートされません。
@@ -52,7 +53,8 @@ related:Engine/Landscape/Creation
 レイヤーが正しいサイズで出力されないと、以下の警告がでます。  
 
 ![](Landscape_Layer_Import_Error.png)
--->
+
+[/COMMENT]
 
 
 ### レイヤのインポート 

@@ -88,7 +88,8 @@ version:4.9
 
 **骨骼网格（Skeletal Mesh）**允许您为现有的任何材质接口定义材质，并定义是否启用从材质投射阴影的功能。还提供了是否 **使用全精度 UV（Use Full Precision UVs）**的设置，如果启用，将使用 32 位 UV；如果禁用，将使用 16 位 UV 以节约内存。 
 
-<!--Commenting this section out as it no longer exists as of 4.9 Preview 4 
+[COMMENT:none]
+Commenting this section out as it no longer exists as of 4.9 Preview 4 
 ###Mirroring
 
 ![](MirroringSection.png)
@@ -99,7 +100,8 @@ There are two options available inside the **Mirroring** section that can be set
 |--- | --- |
 | **Skel Mirror Table** | This lists all the bones that should be mirrored.|
 | **Skel Mirror Axis** | Set the Mirror Axis to X, Y, Z or None.|
-| **Skel Mirror Flip Axis** | Set the Mirror Flip Axis to X, Y, Z or None.|-->
+| **Skel Mirror Flip Axis** | Set the Mirror Flip Axis to X, Y, Z or None.|
+[/COMMENT]
 
 ###物理（Physics）
 

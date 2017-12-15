@@ -1,47 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:2.1 - 레벨 스트리밍 볼륨
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelStreaming
 Description:Level Streaming 예제 레벨에 대한 개요로, 예제 2.1: Level Streaming Volumes, 레벨 스트리밍 볼륨 입니다.
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelStreaming/2_1:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelStreaming/2_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelStreaming/2_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/LevelStreaming/2_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelStreaming/2_1:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelStreaming/2_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelStreaming/2_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/LevelStreaming/2_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 **Level Streaming Volumes** (레벨 스트리밍 볼륨)은 레벨이 스트리밍되는 지역을 마킹할 수 있도록 해 주는 볼륨입니다.
 

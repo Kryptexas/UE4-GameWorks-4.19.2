@@ -1,28 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:프로젝트에 커스텀 오브젝트 유형 추가
 Crumbs: %ROOT%
 Description:언리얼 엔진 4 에 커스텀 피직스 오브젝트 채널을 추가하는 방법입니다.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Collision:/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Collision/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Collision/Reference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 Object Response Channel (오브젝트 반응 채널) 6 개와 Trace Response Channel (트레이스 반응 채널) 2 개로는 만들고자 하는 것을 충분히 담아낼 만큼 세밀하지 못할 때가 있습니다. 그럴 때 프로젝트 세팅의 콜리전 에디터를 쓰면 됩니다. 메뉴의 **편집** -> **프로젝트 세팅** -> **콜리전** 으로 접근할 수 있습니다:

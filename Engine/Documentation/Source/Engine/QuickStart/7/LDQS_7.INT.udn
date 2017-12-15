@@ -22,7 +22,7 @@ checkpoint: editorqs
 [/VAR]
 
 
-%Steps%
+
 
 Using the methods that were provided during the course of this guide, try do to the following on your own: 
 
@@ -59,5 +59,5 @@ As for specifics covered in this quick start:
 
 * For more information on Lighting, see: [Lighting Quick Start Guide](Engine/Rendering/LightingAndShadows/QuickStart)
 
-%Steps%
+
 

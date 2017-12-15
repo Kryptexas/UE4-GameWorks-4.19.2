@@ -5,46 +5,6 @@ Description:Lighting Channels ia a rendering feature that enables you to choose 
 Navigation:topic
 Version: 4.13
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightingChannels:title%](Engine/Rendering/LightingAndShadows/lighting_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightingChannels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightingChannels:title%](Engine/Rendering/LightingAndShadows/lighting_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightingChannels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 ![](image_39.png)
 
 **Lighting Channels** allow dynamic lights to only affect objects when their lighting channels overlap. This is primarily intended for cinematic use to give users powerful control over how **Actors** are lit. At the moment, Unreal Engine supports up to 3 lighting channels.
@@ -82,12 +42,14 @@ The performance impact of using **Lighting Channels** is minimal, but also non-z
 | **off** | 0.42ms   StandardDeferredLighting 1 draws 1 prims 3 verts |
 | **on**  | [INCLUDE:#per1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:per1]
 0.08ms   CopyStencilToLightingChannels 1 draws 1 prims 3 verts  
 0.45ms   StandardDeferredLighting 1 draws 1 prims 3 verts
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## On Mobile
 

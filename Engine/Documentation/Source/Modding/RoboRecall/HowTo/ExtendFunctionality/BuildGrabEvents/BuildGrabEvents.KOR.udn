@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4. 그랩 이벤트 만들기
 Crumbs:%ROOT%
@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 이번 단계에서는 GrenadeGunPistol 에 **Grab** 이벤트를 덮어써서 총이 무언가에 충돌했을 때 폭발하도록 할지 말지를 확인하도록 하겠습니다.
 
@@ -89,7 +93,8 @@ checkpoint:mod_extend
 
 [NAV]
  
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_7"
 
@@ -307,5 +312,6 @@ checkpoint:mod_extend
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

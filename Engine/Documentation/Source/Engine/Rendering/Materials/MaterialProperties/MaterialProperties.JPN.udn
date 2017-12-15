@@ -16,15 +16,18 @@ tags:Materials
 
 本ページでは、マテリアルで利用可能なプロパティを分類します。これらのプロパティを利用するには、マテリアル エディタで主なマテリアル ノードを選択します。
 
-<!---, 
+[COMMENT:none]
+-, 
 あるいは、**コンテンツ ブラウザ** でマテリアルを **右クリック** して **[Asset Actions]**、それから [Property Matrix](Engine/UI/PropertyMatrix) を選びます。
---->
+-
+[/COMMENT]
 
 * マテリアル内のプロパティ：
 
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
-<!---
+[COMMENT:none]
+-
 * [Property Matrix (プロパティマトリックス)] へのアクセス：
 
 ![](PropertiesContextMenu_Mat.png)(h:445) 
@@ -32,7 +35,8 @@ tags:Materials
 * プロパティマトリックス:
 
 ![](PropertyMatrix.png)(h:445)
---->
+-
+[/COMMENT]
 
 
 ベース マテリアル ノードには、マテリアルの動作に作用する多数のプロパティがあります。これらのプロパティを、各カテゴリの独自のドキュメントセクションに分けて **[Properties]** パネルに表示される順番で以下に説明します。
@@ -80,7 +84,9 @@ tags:Materials
 | **Enable Responsive AA (アンチ エイリアシング)** | 小さな移動オブジェクト、特にパーティクルなどは、アンチエイリアス処理によって消し去られます。このプロパティを _true_ に設定すれば、追加の定義を提供する別の AA アルゴリズムを使用できます。別の言い方をするならば、ブリザードや似たようなパーティクル システムを作成した場合、雪片が良く見えないと感じた時にこのプロパティをオンにすると役立ちます。ただし、背景にエイリアス アーティファクトを作成してしまうため、このプロパティは小さな移動オブジェクト _のみ_ に使用してください。 |
 | **Translucency Lighting Mode** | [INCLUDE:#TransLightingMode] [Lit の透過処理](Engine/Rendering/LightingAndShadows/LitTranslucency) を参照してください。. |
 | **Translucency Directional Lighting Intensity** | 透過処理に対するライティングの結果上に法線の影響を人工的に増加させる場合に便利です。値が 1 より大きいと法線の影響が増加し、1 より小さいとライティングがより環境色に近くなります。 |
-| **Disable Depth Test** | マテリアルの深度テストを無効にします。透過ブレンドモードのみに有意義です。深度テストを無効にすると、オクルードされたピクセルが Z カリングを取得できないため、レンダリングが非常に遅くなります。<!--- In short, you'll be able to---> |
+| **Disable Depth Test** | マテリアルの深度テストを無効にします。透過ブレンドモードのみに有意義です。深度テストを無効にすると、オクルードされたピクセルが Z カリングを取得できないため、レンダリングが非常に遅くなります。[COMMENT:none]
+- In short, you'll be able to-
+[/COMMENT] |
 | **Use Translucency Vertex Fog** | _true_ の場合、 透過マテリアルにフォグが付きます。デフォルトは _true_ です。 |
 
 
@@ -192,7 +198,8 @@ Usage フラグは、マテリアルを使用するオブジェクトタイプ�
 | **Orbit Zoom** | オブジェクトから境界球体の距離のオフセットを設定します。 |
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:ShadingModels]
 ライティング モデルは、最終カラーを作成するためにマテリアル入力 (例、エミッシブ、ディフューズ、スペキュラ、法線) の結合方法を決定します。  
@@ -289,4 +296,5 @@ Blend モードは、現在のマテリアルの出力と既に描画されて�
 
 [/EXCERPT:TessellationMode]
 
--->
+
+[/COMMENT]

@@ -66,7 +66,8 @@ Version:4.9
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:ButterflyCL]
  _Components List_ 以下の方法でバタフライを集めます (インデント付けは親の関係であることを意味します)。
@@ -101,4 +102,5 @@ Version:4.9
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

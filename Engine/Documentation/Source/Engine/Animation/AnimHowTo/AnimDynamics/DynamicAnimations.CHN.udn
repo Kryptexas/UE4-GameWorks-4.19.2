@@ -30,20 +30,14 @@ w7c3i2vpcUc
 如果您已经有一个角色具备随时可用 AnimDynamics 驱动的动画蓝图和骨骼，可以直接跳到第 2 步。 
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:description%")
 	* [](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:모바일 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -16,59 +16,19 @@ topic-image:MobileGameDevelopment_topic.png
 ![](mobile_banner.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		시작하기
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"topiccompact" type:"quick start" tags:"mobile")]
-	[/PARAM]
-[/OBJECT]
+## 시작하기
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		모바일 플랫폼
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" type:"quick start" tags:"mobile")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		모바일 서비스
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+## 모바일 플랫폼
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		일반 모바일 개발
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
+
+## 모바일 서비스
+
+[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Mobile")]
+
+## 일반 모바일 개발
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
 

@@ -48,11 +48,11 @@ The Spline tool is best used to make streets or paths in the environment, but in
 
 1. On the currently selected Landscape, press **Ctrl + Left-click** to set your spline's first control point. The control point's sprite looks like a bumpy, brown-and-white boulder.
 
-	![A Spline control point](control_point.jpg)(w:785 h:516 type:jpg)
+	![A Spline control point](control_point.jpg)(w:785 type:jpg)
 
 1. Press **Ctrl + Left-click** again to create another control point, connected to the first by a spline segment. The selection changes to the new control point so that you can repeat this to add more control points.
 
-	![A second spline control point](short_spline.jpg)(w:785 h:516 type:jpg)
+	![A second spline control point](short_spline.jpg)(w:785 type:jpg)
 
 
 **To join two splines:**
@@ -94,7 +94,7 @@ If you want to, you can also assign a Static Mesh to an individual control point
 
 Spline control points respond as you would expect to the translation and rotation tools, but the scale tool brings up a different UI:
 
-![Segment tangent scale tool](segment_scale.jpg)(w:785 h:516 type:jpg)
+![Segment tangent scale tool](segment_scale.jpg)(w:785 type:jpg)
 
 These are the spline tangents. If a segment is selected, it shows the tangents at each end of the segment, and if a control point is selected, it shows the tangents of all connected segments.
 You can adjust the scale of the tangent by dragging the end of it, which alters how curved the segment of spline is.
@@ -126,7 +126,8 @@ The properties of the selected control points or segments are displayed in the L
 
 ### Spline Segment Properties
 
-<!--
+[COMMENT:none]
+
 
 Sub Tables for the property table below
 
@@ -150,7 +151,8 @@ Sub Tables for the property table below
 | Up Axis        | Chooses the Up axis of the **Spline Mesh**. |
 [/EXCERPT:SplineSegProp002]
 
--->
+
+[/COMMENT]
 
 | Property | Description |
 | ------------- | ------------ |

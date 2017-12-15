@@ -60,7 +60,8 @@ SkillLevel: Advanced
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowscompile]
 
 [REGION:note]
@@ -174,9 +175,11 @@ SkillLevel: Advanced
 
 	![](CompiledEditor_Linux.png)
 [/EXCERPT:linuxcompile]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:windowsrun]
 
 1.	Set your startup project to **UE4**.
@@ -224,7 +227,8 @@ If you're unable to create an OpenGL context as you're working through these ste
 
 	![](CompiledEditor_Linux.png)
 [/EXCERPT:linuxrun]
--->
+
+[/COMMENT]
 
 ## 开始使用虚幻引擎
 
@@ -242,7 +246,8 @@ If you're unable to create an OpenGL context as you're working through these ste
 
 [/EXCERPT:Main]
 
-<!--Currently deprecated for the 'Building from Source' version
+[COMMENT:none]
+Currently deprecated for the 'Building from Source' version
 
 ## 编译虚幻引擎
 
@@ -410,4 +415,5 @@ If you're unable to create an OpenGL context as you're working through these ste
 		1. 在 **product** （产品）菜单，选择 **Build For > Running** （编译 > 运行）。
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]

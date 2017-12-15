@@ -1,0 +1,97 @@
+﻿INTSourceChangelist:3739387
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:Gear VR モーション コントローラのセットアップ
+Description:Gear VR モーション コントローラーを UE4 用にセットアップする
+Type: how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/GearVR
+Order:2
+Tags:GearVR
+topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
+prereq:Platforms\GearVR\Prerequisites
+prereq:Platforms\GearVR\QuickStart
+prereq:Platforms\GearVR\HowTo\CameraSetup
+
+Gear VR モーション コントローラーは、現実世界にいるかのようにオブジェクトを手に取ったり、これまでにないような UE4 プロジェクトとのインタラクトを可能にします。この操作ガイドでは、Gear VR モーション コントローラーを UE4 プロジェクト用に設定する方法を説明します。
+
+## ステップ
+
+1. まず、モーション コントローラーのサポートを追加するプレイヤー ポーンを開きます。ここでは **GearVR_Pawn_MotionController** というポーンを使います。**[Components]** タブで **[Add Component]** ボタンをクリックして **「GoogleVRMotionController」** を検索します。
+
+    ![](HTGearVR_MC_00.png)
+
+1. 追加した **Motion Controller** を既存の **VRCameraRoot** 上にドラッグして **VRCamera** と同じように子コンポーネントになるようにします。
+
+    ![](HTGearVR_MC_01.png)
+
+    [region:note]
+    ポーンを追加した時に Gear VR モーション コントローラーのデフォルト コンポーネント **位置** を [0,0,0] に設定します。何かの理由でそうならない場合に必ず [0,0,0] になるように位置を設定してください。
+    [/region]
+
+1. [Add Component (コンポーネントを追加)] ボタンをクリックして表示されたリストで **[Satic Mesh]** オプションを選択して、Static Mesh コンポーネントを追加します。
+
+	![](HTGearVR_MC_05.png)
+
+1. Static Mesh コンポーネントを選択してから、**[Details]** パネルの [Static Mesh] セクションに [Static Mesh] と入力して、モーション コントローラーに視覚情報を送ります。
+    
+	[REGION:lightbox]
+    [![](HTGearVR_MC_06.png)(w:660)](HTGearVR_MC_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. ブループリントをコンパイルおよび保存したら、**コンテンツ ブラウザ** から **GearVR_Pawn_MotionController** ポーンをレベルへドラッグします。
+
+    [REGION:lightbox]
+    [![](HTGearVR_MC_02.png)(w:660)](HTGearVR_MC_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. 追加したプレイヤーのポーンを選択し、**[Details]** パネルで必ず **[Auto Possess Player]** を **[Player 0]** に設定して、レベルの実行時にこのポーンが使用できる状態になるようにします。
+
+    ![](HTGearVR_MC_03.png)
+
+1. 最後に **[Launch]** ボタンを押して、このレベルを Samsung Galaxy スマートフォンで実行します。
+
+    ![](HTGearVR_MC_04.png)
+
+## 最終結果
+
+プロジェクトが起動したら、Gear VR ヘッドセットにスマートフォンを乗せて Gear VR モーション コントローラーを持ちます。現実世界でモーション コントローラーを動かすと、その移動が以下の動画のように UE4 プロジェクト内でリプリケートされるのが見えます。
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    WCf_N_JsHAQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+[region:note]
+Gear VR モーション コントローラーのメッシュがずれている場合、正面位置でモーション コントローラーを持った状態で **[Home]** ボタンを押すとモーション コントローラーの位置を再度キャリブレーションできます。
+[/region]
+
+### UE4 プロジェクトのダウンロード
+
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。 
+
+* [**Gear VR モーションコントローラー サンプル プロジェクト**](https://epicgames.box.com/s/u9bq98s1w8u7nv45968djx31kyznpuoi)
+
+

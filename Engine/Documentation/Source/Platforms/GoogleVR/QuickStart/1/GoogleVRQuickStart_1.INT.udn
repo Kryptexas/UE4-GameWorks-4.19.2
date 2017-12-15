@@ -17,7 +17,7 @@ Checkpoint:GoogleVRQS
  In this part of the Google VR Quick Start, we will go over how to create a new UE4 project that has the best settings for Google VR development.
 
 [region:note]
-Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
+Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Official Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
 [/region]
 
 ## Steps

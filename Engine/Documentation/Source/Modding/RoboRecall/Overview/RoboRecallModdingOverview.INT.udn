@@ -11,11 +11,13 @@ tags:Getting Started
 topic-image:RoboRecallModding_Overview_Topic.png
 social-image:RoboRecall_Overview_Social.png
 
-![image alt text](Overview.png)(w:934 h:490 convert:false)
+![image alt text](Overview.png)(w:934 convert:false)
 
 [Overview Text Here]
 
-<!-- Note the primary paths to creating mods, why the primary mod paths exist, how stacking works, and finally, it's UE4, you can also just do whatever -->
+[COMMENT:none]
+ Note the primary paths to creating mods, why the primary mod paths exist, how stacking works, and finally, it's UE4, you can also just do whatever 
+[/COMMENT]
 
 ## Weapons
 

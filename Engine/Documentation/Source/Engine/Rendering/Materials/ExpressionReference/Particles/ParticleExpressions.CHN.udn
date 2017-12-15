@@ -182,13 +182,15 @@ _单击查看大图。_
 [INCLUDE:#SPO]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SPO]
 [REGION:lightbox]
 [![](SPO_Network.png)(w:305)](SPO_Network.png)
 [/REGION]
 [/EXCERPT:SPO]
--->
+
+[/COMMENT]
 
 
 [EXCERPT:ParticleSubUV]

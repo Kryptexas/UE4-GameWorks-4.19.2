@@ -1,0 +1,104 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Using Distance Field Indirect Shadows
+Description: How to setup and use Distance Field Indirect Shadows.
+Type: how-to
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Related:Engine/Rendering/LightingAndShadows/VolumetricLightmaps
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Order:2
+Tags:Lighting
+Topic-image:DFIS_topic.png
+Social-image:DFISBanner1.png
+
+
+
+[REGION:fullwidth raw]
+![](DFISBanner.png)
+[/REGION]
+
+When your game relies on precomputed lighting with indirectly lit areas, it can be a challenge to blend movable objects because they will not have soft area shadowing. Sometimes you would need to fake this type of 
+effect to blend dynamic objects with the rest of the scene by using complex material setups or even decals. **Distance Field Indirect Shadows** (DFIS) enables you to generate a [Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields)
+for single Static Meshes for area shadowing in these indirectly lit areas where traditional shadow mapping techniques wouldn't work well.
+
+Distance Field Indirect Shadowing works similarly to [Capsule Shadows](Engine/Rendering/LightingAndShadows/CapsuleShadows/Overview) for Skeletal Meshes by using precomputed lighting samples generated during a 
+lighting build. The lighting samples use [Volumetric Lightmaps](Engine/Rendering/LightingAndShadows/VolumetricLightmaps) to determine the directionality and intensity of the indirect lighting.
+
+In this guide, you'll learn how to enable Distance Fields for individual meshes that can then be used in your levels for area shadowing in areas lit with static indirect lighting so that you see results
+similar to this:
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4Kd-w531mVg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	60
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	95
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+
+## Steps
+
+[REGION:note]
+Unlike other [Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields) features, DFIS does not require **Generate Mesh Distance Fields** to be enabled for the entire project. It 
+can be enabled per-mesh, as explained in the steps below.
+[/REGION]
+
+
+1. In the **Content Browser**, start by selecting any **Static Mesh** asset and double-clicking to open the Static Mesh Editor. 
+
+	![](ContentBrowser.png)(w:350)
+	
+	[REGION:note]
+	For this example, the Static Mesh **SM_Statue** from Sun Temple project (available on the Epic Games Launcher) will be used for this demonstration.
+	[/REGION]
+1. In the Static Mesh Editor, navigate to the **Details** panel. In the **Static Mesh Settings** section, set **Generate Mesh Distance Fields** to enabled. After enabling this, you can **save** and **close** the Static Mesh Editor.
+
+	[REGION:raw]
+	![](EnableDistanceField.png)(w:1050)
+	[/REGION]
+1. From the **Content Browser** select the **SM_Statue** mesh and drag it into the Level viewport where you'll notice there is no shadowing for the Static Mesh.
+
+	![](DragToWorld.png)(w:550)
+
+1. With the Actor selected in the level, go to the **Details** panel and set its **Mobility** to **Movable**. 
+
+	![](TransformMobility.png)(w:550)
+	
+1. Then, under the **Lighting** tab, enable **Distance Field Indirect Shadow**.
+	
+	![](EnableDFIS.png)(w:550)
+
+1. If your scene has not already had it's lighting built, use the main toolbar and click the **Build** button to build your lighting for the scene.
+	
+	![](BuildLightingButton.png)
+
+## End Result
+
+In your indirectly lit areas that get a good amount of bounce light, you should see that your movable Static Mesh can cast a soft shadow in indirectly lit areas whereas before there would be no shadow cast. 
+
+![](DFISMinVisibility_1.png)(w:550)
+
+Keep in mind, that indirect shadows will be practically non-existent in areas that are directly lit or areas that are brightly lit. 
+
+	
+## Additional Settings
+
+Use the [Distance Fields Reference](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#ActorComponents) to learn about settings specific to Distance Field Indirect Shadows for Static 
+Mesh Actors.
+

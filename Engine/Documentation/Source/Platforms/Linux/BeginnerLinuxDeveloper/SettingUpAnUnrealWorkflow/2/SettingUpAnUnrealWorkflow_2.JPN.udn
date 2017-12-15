@@ -26,7 +26,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Linux マシンに Git を設定したので、いよいよ [GitHub ウェブサイト](http://github.com/EpicGames) からアンリアル エンジンのソースコードをダウンロードします。UE4 のダウンロード方法は何通りかあります。 
 GitHub ページのダウンロード機能を使う方法と、 
@@ -83,4 +83,3 @@ Git を使ったクローニングが初めての場合は、次のステップ�
 [GitHub site](http://github.com/EpicGames) の **[Download ZIP]** ボタンを使ってアンリアル エンジンのソースコードをダウンロードしても、Git を使ってアンリアル エンジン レポジトリをクローンするにしても、 
 自分のハードディスクにダウンロードしたアンリアル エンジンのソースコードを使って、Linux で UE4 をビルドする状態が整いました。
 
-%Steps%

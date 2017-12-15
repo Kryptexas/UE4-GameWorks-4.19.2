@@ -23,7 +23,7 @@ checkpoint: editorqs
 [/VAR]
 
 
-%Steps%
+
 
 このガイドで説明した方法を使って、次の操作を行ってみましょう: 
 
@@ -60,5 +60,5 @@ checkpoint: editorqs
 
 * ライティングの基礎に関する詳細は、[ライティング クイックスタート ガイド](Engine/Rendering/LightingAndShadows/QuickStart) を参照してください。
 
-%Steps%
+
 

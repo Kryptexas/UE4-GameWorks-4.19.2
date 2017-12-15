@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:카메라 컷 작업
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 시네마틱에 쓸 콘텐츠가 생겼으니, 다양한 카메라 시점에서 콘텐츠 샷을 찍으면 좋겠습니다.
 그 방법은, 시퀀서에서 **카메라 컷 트랙** 으로 씬에서 어떤 시간에 어떤 카메라를 사용하겠다 선택하면 됩니다.

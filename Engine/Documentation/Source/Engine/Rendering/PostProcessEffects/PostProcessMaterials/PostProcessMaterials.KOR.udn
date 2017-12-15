@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3512328
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs:
 Title:포스트 프로세스 머티리얼
@@ -16,12 +16,14 @@ Topic-image:PPMaterials_Topic.png
 ![](Teaser_Banner.png)
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 ![](Teaser3.png)
 ![](Teaser0.png)
 ![](Teaser1.png)
 ![](Teaser2.png)
--->
+
+[/COMMENT]
 
 
 포스트 프로세스 머티리얼은 포스트 프로세스에서 사용할 수 있는 머티리얼 셋업을 통해 대미지, 광역 효과용 비주얼 스크린 이펙트를 만들거나, 
@@ -118,7 +120,8 @@ Topic-image:PPMaterials_Topic.png
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Green vignette material instance](VignetteG.png)(w:450)
@@ -127,7 +130,8 @@ Topic-image:PPMaterials_Topic.png
 	![Red vignette material instance](VignetteR.png)(w:450)
 	[/PARAM]
 [/OBJECT]
---->
+-
+[/COMMENT]
 
 카메라 이동을 통해 두 이펙트 세팅을 부드럽게 순서대로 전환시킬 수 있습니다.
 

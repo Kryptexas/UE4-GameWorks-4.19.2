@@ -1,28 +1,44 @@
-﻿INTSourceChangelist:3108692
-Title: 함수 지정자
-Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
-Description: 함수가 엔진과 에디터의 다양한 부분과 작동하는 방식을 지정하기 위해 게임플레이 함수 선언시 사용되는 키워드입니다.
+﻿INTSourceChangelist:3767127
 Availability:Public
+Title: 함수 지정자
+Crumbs:%ROOT%
+Description: 함수가 엔진과 에디터의 다양한 부분과 작동하는 방식을 지정하기 위해 UFunction 선언시 사용되는 키워드입니다.
+Version: 4.18
+parent:Programming/UnrealArchitecture/Reference/Functions
+order:0
+type:reference
+topic-image:components_topic.png
+tags:UFUNCTION
+tags:Specifiers
 
 [EXCERPT:main]
 
-함수 선언시, 지정자를 선언에 붙여 함수가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 
-제어할 수 있습니다.
+함수 선언시, **Function Specifier** (함수 지정자)를 선언에 붙여 함수가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 제어할 수 있습니다.
 
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintAuthorityOnly)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintCallable)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintCosmetic)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintImplementableEvent)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintNativeEvent)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintPure)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Category)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Client)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/CustomThunk)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Exec)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/NetMulticast)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Reliable)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Server)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Unreliable)
+| 함수 지정자 | 효과 |
+| --- | --- |
+| `BlueprintAuthorityOnly` | 네트워크 전권이 있는 머신(서버, 데디케이티드 서버, 싱글플레이어 게임)에서 이 함수를 실행하는 경우, 블루프린트 코드에서만 실행됩니다. |
+| `BlueprintCallable` | 이 함수는 **블루프린트** 또는 **레벨 블루프린트** 그래프에서 실행할 수 있습니다. |
+| `BlueprintCosmetic` | 이 함수는 장식성이라 데디케이티드 서버에서는 실행되지 않습니다. |
+| `BlueprintGetter` | 이 함수는 블루프린트 노출 프로퍼티에 대한 접근자로 사용됩니다. 이 지정자는 `BlueprintPure` 와 `BlueprintCallable` 을 내포합니다. |
+| `BlueprintImplementableEvent` | 이 함수는 **블루프린트** 또는 **레벨 블루프린트** 그래프에서 구현할 수 있습니다. |
+| `BlueprintInternalUseOnly` | 이 함수는 최종 사용자에게 노출시키지 말아야 함을 나타냅니다. |
+| `BlueprintNativeEvent` | 이 함수는 **블루프린트** 로 덮어쓰도록 디자인되었지만, 기본 내장 구현이 있기도 합니다. 메인 함수 이름 끝에 `_Implementation` 를 붙인 함수를 추가로 선언한 뒤 코드를 작성하면 됩니다. 자동생성 코드는 블루프린트 오버라이드를 찾지 못하면 "_Implementation" 메소드를 호출합니다. |
+| `BlueprintPure` | 이 함수는 어떤 식으로든 소유 오브젝트에 영향을 주지 않으며, **블루프린트** 또는 **레벨 블루프린트** 그래프에서 실행할 수 있습니다. |
+| `BlueprintSetter` | 이 함수는 블루프린트 노출 프로퍼티의 뮤테이터로 사용됩니다. 이 지정자는 `BlueprintCallable` 을 내포합니다. |
+| `CallInEditor` | 이 함수는 디테일 패널의 버튼을 통해 선택된 인스턴스 상의 에디터에서 호출할 수 있습니다. |
+| `Category = "TopCategory|SubCategory|Etc"` | 이 함수를 블루프린트 편집 툴에 표시할 때의 카테고리를 지정합니다. 중첩 카테고리는 `|` 연산자로 표시합니다. |
+| `Client` | 이 함수는 호출되는 오브젝트를 소유한 클라이언트에서만 실행됩니다. 메인 함수 이름 뒤에 `_Implementation` 를 붙인 함수를 추가로 선언합니다. 자동 생성 코드는 필요할 때 "_Implementation" 머소드를 호출합니다. |
+| `CustomThunk` | **UnrealHeaderTool** 코드 생성기는 이 함수에 대해 썽크를 생산하지 않으며, 사용자가 제공해 줘야 합니다. |
+| `Exec` | 이 함수는 게임 내 콘솔에서 실행할 수 있습니다. 실행 명령은 특정 클래스 안에서 선언했을 때만 작동합니다. |
+| `NetMulticast` | 이 함수는 서버 로컬 및 모든 클라이언트에 리플리케이트되는 상황 양쪽에서, 액터의 `NetOwner` 와 상관 없이 실행됩니다. |
+| `Reliable` | 이 함수는 네트워크로 리플리케이트되며, 대역폭이나 네트워크 오류와 상관 없이 도착이 보장됩니다. `Client` 또는 `Server` 와 함께 사용했을 때만 유효합니다. |
+| `SealedEvent` | 이 함수는 서브클래스에서 덮어쓸 수 없습니다. `SealedEvent` 키워드는 이벤트에만 사용할 수 있습니다. 이벤트가 아닌 함수의 경우, `static` 또는 `final` 로 선언하면 봉인할 수 있습니다. |
+| `ServiceRequest` | 이 함수는 RPC (Remote Procedure Call) 서비스 요청입니다. |
+| `ServiceResponse` | 이 함수는 RPC 서비스 반응입니다. |
+| `Server` | 이 함수는 서버에서만 실행됩니다. 메인 함수 이름 뒤에 `_Implementation` 를 붙인 함수를 추가로 선언하고, 기거서 코드를 작성합니다. 자동생성 코드는 필요할 때 "_Implementation" 메소드를 호출합니다. |
+| `Unreliable` | 이 함수는 네트워크로 리플리케이트되지만 대역폭 제한이나 네트워크 오류로 인해 실패할 수 있습니다. `Client` 또는 `Server` 와 함께 사용했을 때만 유효합니다. |
+| `WithValidation` | 메인 함수 이름 뒤에 `_Validation` 를 붙인 함수를 추가로 선언합니다. 이 함수는 같은 파라미터를 받으며, 메인 함수 호출 진행 여부를 나타내는 `bool` 을 반환합니다. |
 
 ## 메타데이터 지정자
 [INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]

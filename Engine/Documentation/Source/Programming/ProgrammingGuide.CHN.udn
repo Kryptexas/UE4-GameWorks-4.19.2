@@ -136,48 +136,35 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 [/OBJECT]
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		虚幻引擎开发设置
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 虚幻引擎开发设置
+
+[REGION:buttonlist]
+
 	* [](Programming/Development "%Programming/Development:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
+## 虚幻引擎 API 引用
+
+[OBJECT:Role]
 	[PARAM:icon]
-		![](%ROOT%/api_icon.png)(convert:false)
+	![](%ROOT%/ue4_icon.png)
 	[/PARAM]
 	[PARAM:title]
-		虚幻引擎 API 引用
+		Unreal Engine C++ API Reference
 	[/PARAM]
 	[PARAM:description]
+	API programming reference for Unreal Engine C++ source code
 	[/PARAM]
-	[PARAM:links]
-	* [虚幻引擎API](https://docs.unrealengine.com/latest/INT/API/index.html)
-		* [核心API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
-		* [核心UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
-		* [引擎API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
-	[/PARAM]
+	[PARAMLITERAL:path]
+		https://api.unrealengine.com/cpp
+	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		虚幻引擎架构
-	[/PARAM]
-	[PARAM:description]
-		无论您使用C++、蓝图还是同时使用两者来编程，底层的虚幻架构是相同的。 
-	[/PARAM]
-	[PARAM:links]
+## 虚幻引擎架构
+
+[REGION:buttonlist]
+
 	* [](Programming/UnrealArchitecture "%Programming/UnrealArchitecture:description%")
 		* [](Programming/UnrealArchitecture/Objects "%Programming/UnrealArchitecture/Objects:description%")
 			* [](Programming/UnrealArchitecture/Objects/Optimizations "%Programming/UnrealArchitecture/Objects/Optimizations:description%")
@@ -196,33 +183,21 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		* [](Programming/UnrealArchitecture/Reference/Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description%")
 	* [](Programming/Modules/Gameplay "%Programming/Modules/Gameplay:description%")
 	* [](Programming/Plugins "%Programming/Plugins:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		虚幻引擎游戏的游戏性
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 虚幻引擎游戏的游戏性
+
+[REGION:buttonlist]
+
 	* [](Gameplay "%Gameplay:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/engine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		系统指南
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 系统指南
+
+[REGION:buttonlist]
+
 		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
@@ -231,19 +206,13 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		* [](Programming/Rendering "%Programming/Rendering:description%")
 		* [](Programming/Slate "%Programming/Slate:description%")
 		* [](Programming/UnrealBuildSystem "%Programming/UnrealBuildSystem:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		资源处理参考指南
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 资源处理参考指南
+
+[REGION:buttonlist]
+
 		* [](Programming/Assets/AsyncLoading "%Programming/Assets/AsyncLoading:description%")
 		[PUBLISH:Docs]
 		* [](Programming/Assets/CustomImporters "%Programming/Assets/CustomImporters:description%")
@@ -253,5 +222,5 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		[PUBLISH:Docs]
 		* [](Programming/Assets/ThumbnailRendering "%Programming/Assets/ThumbnailRendering:description%")
 		[/PUBLISH:Docs]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

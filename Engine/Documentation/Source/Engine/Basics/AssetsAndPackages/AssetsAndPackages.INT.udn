@@ -38,9 +38,14 @@ When importing or creating an Asset, it is named by the user. The Asset's path i
 An Asset can be renamed in the Editor by selecting it in the **Content Browser**, then left-clicking on its name or pressing the F2 key. Assets can be moved or copied to different folders by being selected and dragged in the **Content Browser**. When renamed or moved in this way, other Assets that refer to the renamed or moved Asset will be updated appropriately, and an invisible **Redirector** will be left in place of the original Asset. Redirectors can be cleaned up by right-clicking in the **Content Browser** and choosing the "Fix Up Redirectors in Folder" option. This will make all Assets that referenced a Redirector point to the Asset in its new location, then remove the Redirector. Note that the Assets will need to be resaved. Assets can also be deleted within the **Content Browser**, either by using the right-click menu on the Asset, or by selecting the Asset and pressing the Delete key. If an Asset is referenced by other Assets, there will be a menu asking which existing Asset (if any) should be used in place of the deleted one.
 
 ![](FixupRedirectors.png)
-[REGION:caption]Right-clicking on a folder or anywhere in the **Sources Panel** of the **Content Browser** provides access to the "Fix Up Redirectors in Folder" option.[/REGION]
 
-[REGION:note]Moving or renaming Assets should be done in the **Content Browser**. If an Asset file is renamed, moved, or deleted outside of the Editor, such as via your operating system's file explorer, any Assets referencing the affected Asset will fail to find it, even if it still exists in the project.[/REGION]
+[REGION:caption]
+Right-clicking on a folder or anywhere in the **Sources Panel** of the **Content Browser** provides access to the "Fix Up Redirectors in Folder" option.
+[/REGION]
+
+[REGION:note]
+Moving or renaming Assets should be done in the **Content Browser**. If an Asset file is renamed, moved, or deleted outside of the Editor, such as via your operating system's file explorer, any Assets referencing the affected Asset will fail to find it, even if it still exists in the project.
+[/REGION]
 
 References to Assets contain the path in the reference, for example: Blueprint'/MyProject/Content/Characters/MyCharacter.MyCharacter'.
 
@@ -71,10 +76,17 @@ If you have downloaded Asset packs through the Launcher, you can add the entire 
 To add an Asset pack to your project:
 
 1. Find the Asset pack in your **Vault** which is located at the bottom of the **Learn** tab.
+	
 	![](Vault.png)
+
 1. Click on **Add to Project**.
+
 1. Select your project in the list that appears.
-	[REGION:lightbox]![](SelectedProject.png)[/REGION]
+	
+	[REGION:raw]
+	![](SelectedProject.png)
+	[/REGION]
+
 1. Click on **Add to Project**.
 
 The next time you open your project, all of the content will be there, inside a folder named after the Asset pack you added.

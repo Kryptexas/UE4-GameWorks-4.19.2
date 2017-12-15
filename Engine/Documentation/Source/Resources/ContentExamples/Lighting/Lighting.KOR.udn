@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:라이팅 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -13,41 +13,11 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
 Version: 4.9
+topic-image:Lighting_Compact.png
 
 [REGION:banner]
 ![](Lighting_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Lighting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Lighting:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Lighting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Lighting:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Lighting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -123,7 +93,8 @@ Content Examples (콘텐츠 예제) 프로젝트 안의 **Lighting** 맵에는 �
 | **[6.1 Shadow Bias](Resources\ContentExamples\Lighting\6_1)** | 셀프 섀도잉 정확도 - 오브젝트가 땅 위에 있다는 느낌을 살리기 위해 자기 위에다 그림자를 드리우는 법을 보여줍니다. |
 | **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | 그림자 필터 선명화 - 그림자 가장자리 부분의 선명도를 증폭시키는 데 사용되는 세팅입니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:RadiusNote]
 [REGION:note]
 라이트를 선택해야지만 그 반경이나 모양 표식을 확인할 수 있습니다.
@@ -143,4 +114,5 @@ Content Examples (콘텐츠 예제) 프로젝트 안의 **Lighting** 맵에는 �
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
 
--->
+
+[/COMMENT]

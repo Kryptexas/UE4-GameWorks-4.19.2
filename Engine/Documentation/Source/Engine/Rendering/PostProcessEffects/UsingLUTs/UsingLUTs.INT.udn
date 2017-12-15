@@ -12,10 +12,6 @@ Tags:Post Process
 Topic-image:ColorGrading_Topic.png
 Social-image:ColorGrading_Overview.png
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-[VAR:spacer3]![](%ROOT%/spacer.png)(w:0 convert:false)[/VAR]
-
 
 ![](Engine/Rendering/PostProcessEffects/ColorGrading/ColorGrading_Overview.png)
 
@@ -50,13 +46,14 @@ to a default scene in UE4, however, if you used the sepia toned one, you'd get s
 To make use of a LUT, use the following properties to assign the LUT texture to the Post Process Volume you want to use it with and adjust its intensity.
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| -------- | --------- | ----------- |
-| **Color Grading LUT Intensity** || A scaling factor that controls the effect of the color correction. |
-| **Color Grading LUT** || The LUT texture to use as a lookup table for color correction. [INCLUDE:#ColorGradingLUT] |
+| Property | Description |
+| -------- | ----------- |
+| **Color Grading LUT Intensity** | A scaling factor that controls the effect of the color correction. |
+| **Color Grading LUT** | The LUT texture to use as a lookup table for color correction. [INCLUDE:#ColorGradingLUT] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ColorGradingLUT]
 [REGION:imagetable]
 | [INCLUDE:#colorgradingnone] | [INCLUDE:#colorgradinggreen] | [INCLUDE:#colorgradingred] |
@@ -85,7 +82,8 @@ To make use of a LUT, use the following properties to assign the LUT texture to 
 [/REGION]
 [REGION:caption]Click image for full size.[/REGION]
 [/EXCERPT:colorgradingred]
--->
+
+[/COMMENT]
 
 ## Creating Your Own LUT Texture
 
@@ -160,7 +158,7 @@ for Vibrance and Brightness/Contrast have been adjusted to give the captured scr
 	[REGION:imagetable]
 	| ![](LUT6.png)(w:450) | [INCLUDE:#textureproperties] |
 	| --- | --- |
-	|||
+	||
 	[/REGION]
 
 1. Next, in the Post Process Volume, use the **Details** panel and under the **Color Grading** > **Global** section, enable **Color Grading LUT** and apply your LUT. 
@@ -168,10 +166,11 @@ for Vibrance and Brightness/Contrast have been adjusted to give the captured scr
 	[REGION:imagetable]
 	| ![](LUT8.png)(h:400) | [INCLUDE:#finalcomparison] |
 	| --- | --- |
-	|||
+	||
 	[/REGION]
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#textureproperties]
 [EXCERPT:textureproperties]
 * Mip Gen Settings: **NoMipMaps**
@@ -191,7 +190,8 @@ for Vibrance and Brightness/Contrast have been adjusted to give the captured scr
 [/OBJECT]
 [/EXCERPT:finalcomparison]
 
---->
+-
+[/COMMENT]
 
 ## Additional Notes
 

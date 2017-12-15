@@ -1,48 +1,11 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:클래스 뷰어
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:UE4 클래스 확인용 툴입니다.
 Version: 4.9
+topic-imge:Engine/UI/ClassViewer_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ClassViewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ClassViewer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 
@@ -109,7 +72,8 @@ Version: 4.9
 |**블루프린트 클래스**|[INCLUDE:#bpclassoptions]|[INCLUDE:#bpclassoptiondesc]|
 |**코드 클래스**|[INCLUDE:#codeclassoptions]|[INCLUDE:#codeclassoptiondesc]|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPClassOptions]
 [REGION:plain_list]
 * **블루프린트 생성...**
@@ -138,7 +102,8 @@ Version: 4.9
 * [](Programming\Development\ManagingGameCode\CppClassWizard) 를 열어 선택된 클래스를 부모 클래스로 하는 클래스를 새로 만듭니다. 
 [/REGION]
 [/EXCERPT:CodeClassOptionDesc]
--->
+
+[/COMMENT]
 
 ## 드래그 & 드롭
 블루프린트 클래스 액터를 뷰포트에 드롭하면 액터가 씬에 추가됩니다. 클래스를 드래그할 때 어떤 클래스가 잡혔는지 마우스에 표시됩니다. 한 번에 하나의 클래스만 드래그할 수 있습니다.

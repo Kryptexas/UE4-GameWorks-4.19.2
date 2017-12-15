@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3489715
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 기본 스크립팅
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,45 +7,9 @@ version: 4.12
 parent:Engine/Blueprints
 tags:Blueprints
 type:landing
+topic-image:Engine/Blueprints/UserGuide/using_interface_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Scripting:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Scripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Scripting:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Scripting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Scripting:title%](BasicScripting.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Scripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Scripting:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Scripting]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 블루프린트는 비주얼 방식의 스크립팅 언어입니다. 그렇기에, 이 시스템에는 데이터 유형 변수, 배열, 구조체 등 표준 스크립팅 언어의 미묘한 차이점을 공유하는 부분이 다수 있습니다.
 실행 흐름 역시, 블루프린트는 각 노드의 명시적 순차 실행이 필수이지만, 전형적인 스크립트 언어와 비슷한 방식으로 작동합니다. 

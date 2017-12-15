@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to set the run to jump start transition.
 
@@ -37,4 +37,3 @@ During this step, we're going to set the run to jump start transition.
 
 	![](IsFallingtoResult.png)
 
-%Steps%

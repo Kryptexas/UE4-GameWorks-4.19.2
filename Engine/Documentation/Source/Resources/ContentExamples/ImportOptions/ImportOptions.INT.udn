@@ -12,45 +12,11 @@ Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
 Version: 4.9
-
-
+topic-image:FBXImport_Compact.png
 
 [REGION:banner]
 ![](FBXImport_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/ImportOptions:title%](FBXImport_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/ImportOptionstitle%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/ImportOptions:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/ImportOptions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/ImportOptions:title%](FBXImport_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/ImportOptions:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/ImportOptions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---[TOC(start:2 end:2)]--->
 
 
 

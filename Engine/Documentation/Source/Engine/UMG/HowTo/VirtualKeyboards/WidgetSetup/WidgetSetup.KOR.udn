@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 위젯 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -23,7 +23,7 @@ Order: 2
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 여기서는 상호작용형 UI 위젯의 레이아웃을 만들어 버튼을 클릭했을 때 실행되는 스크립트를 만들도록 하겠습니다.
 
@@ -94,6 +94,5 @@ Order: 2
 키패드와 키패드 디스플레이 표시를 위한 위젯 블루프린트 구성이 완료되었습니다. 다음에는 이들을 액터 블루프린트에 위젯 컴포넌트로 추가시켜 레벨에 나타나도록 만들겠습니다.
 다음 단계가 끝날 즈음이면 시스템을 테스트하고 게임을 플레이하면서 두 요소를 상호작용해 볼 수 있을 것입니다.
 
-%Steps%
 
 

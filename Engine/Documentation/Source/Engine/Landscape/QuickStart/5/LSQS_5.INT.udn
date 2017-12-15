@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 With the Landscape material now created, it is now time to apply that Material to the Landscape and begin using the Landscape Paint tools to paint the Landscape. 
@@ -120,4 +120,4 @@ Another issue that you might run into is that the scale of the Textures that are
 [/REGION]
 
 
-%Steps%
+

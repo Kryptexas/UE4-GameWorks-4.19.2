@@ -2,19 +2,23 @@ Availability:Public
 Title:Animation Viewports
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:Overview of the Viewports displayed in each of the Animation Tools. 
+Parent:Engine/Animation/Persona
 Related: Engine\Animation\Persona\Modes\Skeleton
 Related: Engine\Animation\Persona\Modes\Mesh
 Related: Engine\Animation\Persona\Modes\Animation
 Related: Engine\Animation\Persona\Modes\Graph
-version: 4.14
+version: 4.18
+Order:
 type:reference
 topic-image:viewportsmall.png
 tags:animation
 
 
-<!--
+[COMMENT:none]
+
 [TOC (start:2 end:3)]
--->
+
+[/COMMENT]
 [EXCERPT:Overview]
 Each of the Animation Tools contains a **Viewport** window which allows you to preview playback of your animation assets. 
 [/EXCERPT:Overview]
@@ -36,10 +40,18 @@ The **Scene Setup** button provides the following options:
 
 | Option | Description |
 | ------ | ----------- |
+| [REGION:tablesection] Scene Setup [/REGION] ||
 | **Preview Scene Settings** | Allows you to alter lighting and post processing settings for the viewport. |
-| **Scene Setup** | Allows you to change the current preview animation and animation mode. Also allows you to change the current preview mesh or add meshes. |
-| **Turn Table** | Allows you to set up auto-rotation of the preview mesh and set rotation speeds. |
-| **Camera Follow** | Allows you to determine if the camera should or should not follow the bounds of the current mesh. |
+| **Floor Height Offset** | A height offset for the floor mesh. This is stored per-mesh. |
+| **Auto Align Floor to Mesh** | This auto-aligns the floor mesh to the bounds of the mesh. |
+| [REGION:tablesection] Camera [/REGION] ||
+| **Camera Follow** | Follow the bound of the mesh. |
+| **Focus Selected** | Moves the camera in front of the selection. |
+| **Field of View** | Adjust the viewports field of view. |
+| [REGION:tablesection] Default Camera [/REGION] ||
+| **Jump to Default Camera** | If a default camera is set, this will jump to its current position. |
+| **Save Camera as Default** | Saves the current camera as the default for this mesh. |
+| **Clear Default Camera** | Clears the default camera that is saved as default for this mesh.  |
 
 ### Perspective
 
@@ -83,26 +95,120 @@ The **Show** button provides the following options:
 
 | Option | Description |
 | ------ | ----------- |
-| **Field of View** | Adjust the viewports field of view. |
+| [REGION:tablesection] General Show Flags [/REGION] ||
+| **Grid** | Toggles whether the grid should be shown in the viewport. |
+| [REGION:tablesection] Physics Rendering [/REGION] ||
+| **Mass Properties** | Shows mass properties for physics bodies when **Simulate** is enabled. |
+| **Mesh** | Sets how the mesh should be drawn when editing and when simulating. |
+| **Bodies** | Shows physic bodies related options. [INCLUDE:#bodies] |
+| **Constraints** | Shows constraint related options. [INCLUDE:#constraints] |
+| [REGION:tablesection] Scene Elements [/REGION] ||
+| **Mesh** | Shows mesh related options. [INCLUDE:#mesh] |
+| **Animation** | Shows animation related options. [INCLUDE:#animation] |
+| **Bones** | Shows the bones related options. [INCLUDE:#bones] |
+| **Clothing** | Shows the clothing related options. [INCLUDE:#clothing] |
+| **Advanced** | Shows the advanced related options. [INCLUDE:#advanced]  |
+| [REGION:tablesection] Other Flags [/REGION] ||
 | **Mute Audio** | Mutes audio from the preview. |
-| **Process Root Motion** | Moves the preview based on the animation's root motion. |
-| **Retarget Base Pose** | Shows the Retargeted Base Pose on the preview mesh.  |
-| **Bound** | Shows the Bounds volume on the preview mesh.  |
-| **In-game Bound** | Whether or not to use the in-game bounds on the preview mesh.  |
-| **Mesh** | Shows the preview mesh. |
-| **MorphTargets** | Whether or not to display any applied Morph Targets on the preview mesh. |
+| **Use Audio Attenuation** | Use audio attenuation when playing back audio in the preview. |
+
+[COMMENT:none]
+-
+[INCLUDE:#advanced]
+
+[EXCERPT:Animation]
+| ------ | ----------- |
+| **Root Motion** | Moves the preview based on the animation's root motion. |
 | **Uncompressed Animation** | Displays the skeleton with uncompressed animation data. |
-| **NonRetargeted Animation** | Displays the skeleton with non-retargeted animation data.|
+| **NonRetargeted Animation** | Displays the skeleton with non-retargeted animation data. |
 | **Additive Base** | Displays the skeleton in an additive base pose. |
-| **Source Animation** | Display the Skeleton with uncompressed animation data.  |
+| **Source Animation** | Display the Skeleton with uncompressed animation data. |
 | **Baked Animation** | Display the Skeleton with non-retargeted animation data. |
-| **Bones** | The method in which to show or hide the bones from the preview mesh. |
+[/EXCERPT:Animation]
+
+[EXCERPT:Bones]
+| ------ | ----------- |
 | **Sockets** | Display socket hitpoints. |
 | **Bone Names** | Display Bone Names of the skeleton in the viewport. |
-| **Mesh Overlay** | Used to display Bone Weighting or Morph Target Vertices on the preview mesh. |
-| **Display Info** | Displays information about the mesh in the viewport. |
-| **Scene Setup** | Allows you to define settings such as auto-aligning the floor to the mesh, toggling the grid or the floor height offset.  |
-| **Advanced** | Allows for UV Visualization, CPU Skinning, Vertex Normal Visualization or how the bone axes are displayed.   |
+| **Bone Drawing** | Used to display Bone Weighting or Morph Target Vertices on the preview mesh. |
+[/EXCERPT:Bones]
+
+[EXCERPT:Clothing]
+| ------ | ----------- |
+| **Disable Cloth Simulation** | Disable cloth simulation and show non-simulated mesh. |
+| **Apply Wind** | Applies wind to clothing simulation. |
+| **Wind Strength** | Sets the strength of the wind for when **Apply Wind** is enabled. |
+| **Gravity Scale** | Sets the gravity scale to apply to clothing for simulation. |
+| **Collide with Cloth Children** | Enables collision detection between collision primitives in the base mesh and clothing on any attachments in the preview scene. |
+| **Pause with Animation** | When enabled, the clothing simulation will pause when the animation is paused using the scrub panel. |
+| **Sections Display Mode** | Sets how clothing should be displayed in the viewport. |
+| **Visualizations** | Enables visualization of different clothing properties.  |
+[/EXCERPT:Clothing]
+
+[EXCERPT:Advanced]
+| ------ | ----------- |
+| **UV** | Toggles display of the mesh's UVs for the specified channel. |
+| **Skinning** | Toggles display of CPU skinning in the viewport. |
+| **Vertex Normal Visualization** | Enables visualization of the Vert Normals, Tangents, and Binormals in the viewport. |
+| **Hierarchy Local Axes** | Sets how the hierarchy local axes should be displayed for bones; all , selected only, or none. |
+[/EXCERPT:Advanced]
+
+[EXCERPT:bodies]
+| ------ | ----------- |
+| **Only Selected Solid** | Only selected collision bodies will be displayed as "solid." |
+| **Collision Opacity** | Enables the transparency of the collision bodies to be adjusted. |
+| **Body Drawing** | Sets how collision bodies should be drawn for editing in the viewport or when simulating. |
+[/EXCERPT:bodies]
+
+[EXCERPT:constraints]
+| ------ | ----------- |
+| **Draw Constraints As Points** | When enabled, constraints will be drawn as points in the viewport. |
+| **Constraint Scale** | Scales the constraints in the viewport. |
+| **Constraint Drawing** | Sets how constraints should be drawn in the viewport; none, limits, or positions.  |
+[/EXCERPT:constraints]
+
+[EXCERPT:mesh]
+| ------ | ----------- |
+| **Retarget Base Pose** | Shows the Retargeted Base Pose on the preview mesh. |
+| **Bound** | Shows the Bounds volume on the preview mesh. |
+| **In-Game Bound** | Whether or not to use the in-game bounds on the preview mesh. |
+| **Mesh** | Shows the preview mesh. |
+| **MorphTargets** | Whether or not to display any applied Morph Targets on the preview mesh. |
+| **Vertex Colors** | Whether or not to display any painted Vertex Colors on the preview mesh. |
+| **Mesh Info** | How mesh info should be displayed in the viewport. |
+| **Mesh Overlay Drawing** | How the mesh should be displayed while in the viewport. |
+[/EXCERPT:mesh]
+
+-
+[/COMMENT]
+
+
+### Physics
+
+The **Physics** button provides the following options: 
+
+![](PhysicsMenu.png)
+
+| Option | Description |
+| ------ | ----------- |
+| [REGION:tablesection] Anim [/REGION] ||
+| **Physics Bend** | Lets you manually control the physics and animation. |
+| **Update Joint from Animations** | When enabled, any joints will update from its animations while simulating. |
+| **Physics Update Mode** | Determines whether the simulations of the root body also updates the component transform. |
+| **Poke Pause Time** | The time between poking the ragdoll and starting to blend back. |
+| **Poke Blend Time** | The time that is taken to blend from physics to the animation. |
+| [REGION:tablesection] Simulation [/REGION] ||
+| **Grav Scale** | Scale factor for the gravity used while simulating. |
+| **Max FPS** | The max frames per second (FPS) for simulation in the Physics Asset Editor. This is helpful for targeting the same FPS as your game. A value of -1 will disable a set Max FPS. |
+| [REGION:tablesection] Mouse Spring [/REGION] ||
+| **Handle Linear Damping** | Linear damping for mouse spring forces. |
+| **Handle Linear Stiffness** | Linear stiffness for mouse spring forces. |
+| **Handle Angular Damping** | Angular damping for mouse springs forces.  |
+| **Handle Angular Stiffness** | Angular stiffness for mouse spring forces. |
+| **Interpolation Speed** | How quickly interpolation takes place for the physics target transform for mouse spring forces. |
+| [REGION:tablesection] Poking [/REGION] ||
+| **Poke Strength** | The strength of the impulse used when poking with left mouse button. |
+
 
 ### Preview LODs
 
@@ -158,7 +264,8 @@ The **Viewport** displays a preview of the Skeletal Mesh and any options set in 
 
 ![Viewport Panel](ViewportPanel_Viewport.png)
 
-<!-- No longer contained in the viewport, leaving for now if it is included on another page. 
+[COMMENT:none]
+ No longer contained in the viewport, leaving for now if it is included on another page. 
 ## Timeline and Control Bar
 
 [EXCERPT:PreviewControls]
@@ -181,7 +288,8 @@ When opening a Blend Space or Aim Offset, the animation will play automatically 
 
 [/EXCERPT:PreviewControls]
 
--->
+
+[/COMMENT]
 
 
 

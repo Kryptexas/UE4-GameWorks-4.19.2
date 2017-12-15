@@ -24,7 +24,8 @@ Description:关于给网格物体着色和描画贴图混合权重的概述。
 
 
 
-<!--Includes--
+[COMMENT:none]
+Includes--
 
 
 [EXCERPT:TextureCount]
@@ -44,4 +45,5 @@ Description:关于给网格物体着色和描画贴图混合权重的概述。
 
 
 
---End Includes-->
+--End Includes
+[/COMMENT]

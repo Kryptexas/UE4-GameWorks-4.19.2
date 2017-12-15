@@ -15,15 +15,18 @@ tags:Materials
 
 This document breaks down the properties available on a Material. These properties are accessible by selecting the Main Material node in the Material Editor.
 
-<!---, 
+[COMMENT:none]
+-, 
 or by **Right-Clicking** the Material in the **Content Browser** then selecting **Asset Actions** then [Property Matrix](Engine/UI/PropertyMatrix).
---->
+-
+[/COMMENT]
 
 * Properties inside Material:
 
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
-<!---
+[COMMENT:none]
+-
 * Accessing the Property Matrix:
 
 ![](PropertiesContextMenu_Mat.png)(h:445) 
@@ -31,7 +34,8 @@ or by **Right-Clicking** the Material in the **Content Browser** then selecting 
 * The Property Matrix:
 
 ![](PropertyMatrix.png)(h:445)
---->
+-
+[/COMMENT]
 
 
 The base material node has a number of properties which affect how the material behaves. These properties are described below, with each category divided into its own document section, and presented in the order in which they appear in the **Properties** panel.
@@ -79,7 +83,9 @@ The base material node has a number of properties which affect how the material 
 | **Responsive AA (Ant aliasing)** | Small moving objects, especially particles, can sometimes get obliterated by ant aliasing; by setting this property to _true_, a different AA algorithm is used which provides more definition. Put another way, if you create a blizzard or similar particle system and you feel like you cannot really see your snowflakes, turn this on - it will help. However, this should _only_ be used on small moving objects, because it creates aliasing artifacts on the background. |
 | **Translucency Lighting Mode** | [INCLUDE:#TransLightingMode]  See [LitTranslucency](Engine/Rendering/LightingAndShadows/LitTranslucency). |
 | **Translucency Directional Lighting Intensity** | Useful for artificially increasing the influence of the normal on the lighting result for translucency. A value larger than 1 increases the influence for the normal, a value smaller than 1 makes the lighting more ambient. |
-| **Disable Depth Test** |  Allows the Material to disable depth tests, which is only meaningful with translucent blend modes.  Disabling depth tests will make rendering significantly slower since no occluded pixels can get Z-culled.<!--- In short, you'll be able to--->  |
+| **Disable Depth Test** |  Allows the Material to disable depth tests, which is only meaningful with translucent blend modes.  Disabling depth tests will make rendering significantly slower since no occluded pixels can get Z-culled.[COMMENT:none]
+- In short, you'll be able to-
+[/COMMENT]  |
 | **Use Translucency Vertex Fog** | When _true_, translucent materials are fogged. Defaults to _true_. |
 
 
@@ -191,7 +197,8 @@ Tessellation features allow you to add more physical detail to your meshes at ru
 | **Orbit Zoom**     | The offset from the bounds sphere distance from the asset. |
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:ShadingModels]
 Shading models determine how material inputs (e.g. Emissive, Diffuse, Specular, Normal) are combined to make the final color.  
@@ -288,4 +295,5 @@ This controls the type of tessellation that will be employed by your Material, i
 
 [/EXCERPT:TessellationMode]
 
--->
+
+[/COMMENT]

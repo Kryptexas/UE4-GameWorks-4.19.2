@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3782314
 Title: 모바일 서비스 업적 사용법
 Description:모바일 업적을 활용하여 플레이어 참여도를 높이는 방법입니다.
 Crumbs:
@@ -7,40 +7,7 @@ Parent:Platforms/Mobile
 order:2
 type:how-to
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 이루고자 하는 목표로써든, 명예의 훈장으로써든, 아니면 단순히 스토리 진행상황을 기록하기 위해서든, **Achievement** (업적)은 플레이어의 게임 참여도를 높이기에 좋은 방법입니다.
 

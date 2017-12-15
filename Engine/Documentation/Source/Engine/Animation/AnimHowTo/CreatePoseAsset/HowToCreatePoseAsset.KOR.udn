@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3211487
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:포즈 애셋 생성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:애니메이션 에디터를 사용하여 단일 프레임 포즈 애셋을 생성하는 법입니다.
 version: 4.14
 skilllevel: Intermediate
+tags:Pose Assets
 
 얼마간 애니메이션 시퀀스에서 애니메이션 단일 프레임을 추출하는 것이 가능은 했었지만, 블렌드는 직접 구성해야 했습니다. 
 이와 같은 방식은 **Pose Asset** (포즈 애셋) 구현을 통해 변경되었습니다. FACS(Facial Action Coding System) 또는 비짐(veseme) 커브로 포즈를 구동시켜 얼굴 표정 애니메이션을 지원하기 위해서였습니다.

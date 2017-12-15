@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Jump End から Idle への遷移を設定します。
 
@@ -40,4 +40,3 @@ Version:4.15
 
 	![](TimeRemaining.png)
 
-%Steps%

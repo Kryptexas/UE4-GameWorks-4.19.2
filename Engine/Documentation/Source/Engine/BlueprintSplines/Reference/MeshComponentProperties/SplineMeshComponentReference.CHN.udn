@@ -314,7 +314,8 @@ tags:Splines
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TextureStreamingProp]
 
 [REGION:raw]
@@ -338,7 +339,8 @@ tags:Splines
 [/REGION]
 
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 

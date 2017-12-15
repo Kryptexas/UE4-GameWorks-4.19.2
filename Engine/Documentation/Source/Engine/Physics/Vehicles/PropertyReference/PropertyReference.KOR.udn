@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:NoPublish
 Title:비히클 프로퍼티 참고서
 Crumbs:%ROOT%
@@ -37,7 +37,8 @@ Navigation:topic
 | **Clutch Strength** | %doxygen:FVehicleTransmissionData::ClutchStrength% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gearData]
 
 각 기어마다 세 가지 프로퍼티가 있습니다.
@@ -50,7 +51,8 @@ Navigation:topic
 | **Up Ratio** | %doxygen:FVehicleGearData::UpRatio% |
 [/REGION]
 [/EXCERPT:gearData]
--->
+
+[/COMMENT]
 
 ## 스티어링 셋업
 
@@ -77,7 +79,8 @@ Navigation:topic
 | **MaxNormalizedTireLoadFiltered** | %doxygen:UWheeledVehicleMovementComponent::MaxNormalizedTireLoadFiltered% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:wheelTable]
 [REGION:simpletable]
 | 휠 프로퍼티 | 설명 |
@@ -87,7 +90,8 @@ Navigation:topic
 | **AdditionalOffset** | %doxygen:FWheelSetup::AdditionalOffset% |
 [/REGION]
 [/EXCERPT:wheelTable]
--->
+
+[/COMMENT]
 
 ## 비히클 입력
 
@@ -103,7 +107,8 @@ Navigation:topic
 | **Steering Input** | %in4% [INCLUDE:#risefall] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:riseFall]
 [REGION:simpletable]
 | 인풋 프로퍼티 | 설명 |
@@ -128,12 +133,16 @@ Navigation:topic
 [VAR:in4]
 스티어링 입력이 오르고 내려가는 속도입니다.
 [/VAR]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 | **FVehicle Input Rate** | %doxygen:FVehicleInputRate::FVehicleInputRate% |
 | **Interp Input Value** | %doxygen:FVehicleInputRate::InterpInputValue% |
--->
+
+[/COMMENT]
+
 
 
 

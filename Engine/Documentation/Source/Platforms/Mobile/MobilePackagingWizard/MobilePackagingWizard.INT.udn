@@ -110,7 +110,8 @@ To access the Mobile Packaging Wizard, you will need to do the following.
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:android]
 ## Setting Up a Mobile Packaging Wizard Profile
 
@@ -342,7 +343,8 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 	[/OBJECT]
 
 	[region:warning]
-	You must package your project's files before you build the DLC. <!--Trying to package the DLC first and then packing your project will not.-->
+	You must package your project's files before you build the DLC. <!--Trying to package the DLC first and then packing your project will not.
+[/COMMENT]
 	[/region]
 
 1. Once the **Launch this Profile** button has been pressed, the Project Launcher will begin the packaging process. You can see the progress of the packaging process in the Project Launcher window.
@@ -738,7 +740,9 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 	[/OBJECT]
 
 	[region:warning]
-	You must package your project's files before you build the DLC. <!--Trying to package the DLC first and then packing your project will not.-->
+	You must package your project's files before you build the DLC. [COMMENT:none]
+Trying to package the DLC first and then packing your project will not.
+[/COMMENT]
 	[/region]
 
 1. Once the **Launch this Profile** button has been pressed, the Project Launcher will begin the packaging process. You can see the progress of the packaging process in the Project Launcher window.

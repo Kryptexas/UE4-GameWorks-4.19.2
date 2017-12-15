@@ -16,10 +16,12 @@ Availability:Public
 | ![Use Selected Asset button](button_use_selected.png) | 把内容浏览器中当前选中的资源分配给该属性。|
 | ![Pick Asset](button_object_picker.png) | [INCLUDE:#AssetPicker] |
 
-<!-- Table Includes
+[COMMENT:none]
+ Table Includes
 [EXCERPT:AssetPicker]
 打开 **资源选择器** ，用于选择一个赋予该属性的资源。
 
 ![Asset picker](asset_picker.png)
 [/EXCERPT:AssetPicker]
--->
+
+[/COMMENT]

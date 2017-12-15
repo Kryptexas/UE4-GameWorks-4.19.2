@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.1 - 새 캐릭터 만들기
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 엔진의 Character 베이스 클래스를 사용하여 새 캐릭터를 만들어 보겠습니다. (Pawn 클래스에서 파생된) Character 클래스에는 걷기, 달리기, 점프와 같은 이족보행 동작이 기본 내장되어 있습니다.
 
@@ -159,4 +159,3 @@ CPP FPS Character 클래스를 블루프린트로 확장하기 좋은 시점이 
 
 1.	다음 단계로 넘어가기 전, Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 눌러 에디터에서 플레이(PIE) 모드를 빠져나갑니다.
 
-%Steps%

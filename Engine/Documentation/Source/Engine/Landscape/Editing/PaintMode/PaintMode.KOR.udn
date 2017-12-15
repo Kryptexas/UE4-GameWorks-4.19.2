@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260884
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:페인트 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -102,11 +102,13 @@ Flatten (평탄화) 툴은 선택된 레이어의 웨이트 값을 **Tool Streng
 | --- | --- |
 | **Flatten Mode** | 평탄화 모드 - 선택된 레이어의 웨이트 적용을 높일지, 낮출지, 아니면 둘다 가능할지 결정합니다. |
 
-<!----
+[COMMENT:none]
+--
 | **Use Slope Flatten** | 경사면 평탄화 사용 - 체크하면, 수평면이 아닌 랜드스케이프의 기존 경사면을 기준으로 평탄화시킵니다. |
 | **Pick Value Per Apply** | 적용시마다 값 선택 - 체크하면, 처음 클릭한 지점만 사용하는 대신, 평탄화를 진행하면서 계속해서 새 값을 선택합니다. |
 | **Flatten Target** | 평탄화 목표 - 평탄화 목표 높이를 설정합니다. |
----->
+--
+[/COMMENT]
 
 
 ### 노이즈
@@ -162,7 +164,9 @@ Layer Info (레이어 인포) 오브젝트는 랜드스케이프 레이어에 �
 ![](WeightBlended_NonWeightBlended.png)
 1. 레이어 인포 오브젝트를 저장할 위치를 선택합니다.
 
-<!-- what's the difference between weight-blended and non weight-blended? -->
+[COMMENT:none]
+ what's the difference between weight-blended and non weight-blended? 
+[/COMMENT]
 
 생성 이후, 레이어 인포 오브젝트는 다음과 같이 콘텐츠 브라우저에 애셋으로 존재합니다:
 

@@ -3,46 +3,13 @@ Title:Level Scripting
 Crumbs:%ROOT%, Resources
 Description:An overview of the Level Scripting example level
 Version: 4.9
+topic-image:level_scripting_topic.png
 
 [REGION:banner]
 ![](level_scripting_header.png)(convert:false)
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelScripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelScripting:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/LevelScripting:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/LevelScripting:description%
-	[/PARAM]
-	[PARAM:path]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!--Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]-->
 
 Welcome to the **Level Scripting** example level!
 
@@ -55,14 +22,12 @@ You can [open the Level Blueprint](Engine/Blueprints\UserGuide\Types\LevelBluepr
 
 ## Examples
 
-[REGION:topics fourth]
 %Resources/ContentExamples/LevelScripting/1_1:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_2:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_3:TopicCompact%
 %Resources/ContentExamples/LevelScripting/1_4:TopicCompact%
-[/REGION]
-
 
 ## Related Topics and Further Reading
+
 * [Blueprints](Engine/Blueprints)
 * [Matinee and Cinematics](Engine/Matinee)

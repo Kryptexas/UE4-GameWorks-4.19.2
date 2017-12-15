@@ -41,8 +41,11 @@ ParticleSystemクラスにには以下のパブリック変数が含まれます
 | **Occlusion Bounds Method** | ParticleSystemのオクルージョンの計算時に使用する手法です。 [INCLUDE:#OcclusionBounds] |
 
 
-<!-- Begin ParticleSystem Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleSystem Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | 値 | 範囲 | 選択されるLODレベル |
@@ -78,6 +81,9 @@ ParticleSystemクラスにには以下のパブリック変数が含まれます
 [/REGION]
 `EPSUM_FixedTime` は使用しているフレームレートに関係なく一定の間隔でシステムを更新します。このモードは、エミッタとアニメーションの連携など、効果のタイミングが他のシステムにとって重要でない場合のみ使用してください。
 [/EXCERPT:SystemUpdate]
--->
-<!-- End ParticleSystem Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleSystem Includes 
+[/COMMENT]
 

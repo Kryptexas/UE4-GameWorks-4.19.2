@@ -44,7 +44,8 @@ This is the only orbit module implemented. It allows for offsetting and rotating
 
 
 
-<!-------------Orbit Includes----------------
+[COMMENT:none]
+-----------Orbit Includes----------------
 #### Includes
 
 
@@ -68,4 +69,5 @@ This is the only orbit module implemented. It allows for offsetting and rotating
 [/REGION]
 [/EXCERPT:OffsetOptions]
 
--------------End Orbit Includes--------------->
+-------------End Orbit Includes-------------
+[/COMMENT]

@@ -87,11 +87,13 @@ DirectionalLight (指向性ライト) は、はるか遠くにある光源から
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 [![](directional_001.png)(w:450)](directional_001.png) [![](directional_002.png)(w:450)](directional_002.png)
 [/REGION]
--->
+
+[/COMMENT]
 
 図の左側はライトのみ、右側は **シャドウ視錘台** を有効にして指向性ライトが平行光線をキャストしているのがわかります。 
 

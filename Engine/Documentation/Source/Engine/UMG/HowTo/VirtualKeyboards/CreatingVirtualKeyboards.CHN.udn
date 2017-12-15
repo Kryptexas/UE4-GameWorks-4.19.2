@@ -31,21 +31,15 @@ _完成此指南后，您将设置好一个可在 3D 游戏中进行交互的小
 
 第一步是使用控件交互组件设置角色，并创建资源显示 UI。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup)
 	* [](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup)
 	* [](Engine\UMG\HowTo\VirtualKeyboards\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")

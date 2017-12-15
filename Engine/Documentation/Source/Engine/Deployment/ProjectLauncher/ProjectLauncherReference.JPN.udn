@@ -1,0 +1,320 @@
+﻿INTSourceChangelist:3782314
+Availability:Docs
+Crumbs: %ROOT%
+Title:プロジェクト ランチャーのリファレンス
+Description:アンリアル エンジン 4 で使用するプロジェクトをデプロイするプロジェクト ランチャーのリファレンス
+Type: reference
+Version:4.18
+Parent:Engine/Deployment
+related:Engine/Deployment/Releasing
+related:Engine/Deployment/BuildOperations
+Order:1
+Tags:Packaging
+Topic-image:ProjectLauncher_Topic.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+
+プロジェクト ランチャーは、プロジェクトのテスト、デバッグ、リリースをするために、プロジェクトのビルドをクックして、指定したプラットフォームにデプロイします。以下のリファレンスは、プロジェクト ランチャーを構成している要素と、コンテンツを異なるプラットフォームにデプロイするためのカスタム ローンチ プロジェクトの作成時に使用可能な設定の詳細です。
+
+![](ProjectLauncher.png)(w:900)
+
+
+
+## プロジェクト ランチャー インターフェース
+
+プロジェクト ランチャー インターフェースは大きく 2 つの領域に分かれます。
+
+![](ProjectLauncherHighlights.png)(w:900)
+
+
+1. デフォルトのローンチ プロファイル
+1. カスタム ローンチ プロファイルを使う
+
+
+**[Default Launch Profiles]** ウィンドウで使用可能なプラットフォームを確認し、ビルドのデプロイ先のデバイスの中から選択することができます。ウィンドウの上部で **[Project]** (現在開いているプロジェクトと異なる場合) とこれらのデフォルト ローンチ プロファイルの **[Advanced]** 設定の切り替えを指定することができます。
+
+**[Advanced]** トグルボタンをクリックすると、デフォルト ローンチ プロファイルの隣に追加オプションができて、**[Build Configuration]** と **[Cook]** メソッドを選択することができます。
+
+![](AdvancedDefautlLaunchProfile.png)
+
+**[Custom Launch Profiles]** ウィンドウで、コンテンツのビルドやデプロイ方法を細かく指定することができる自分のプロファイルを作成することができます。詳細は [カスタム ローンチ プロファイル](#カスタムローンチプロファイル) セクションをご覧ください。
+
+
+
+
+## カスタム ローンチ プロファイル
+
+プロジェクト ランチャーを使って、すべてのプラットフォームまたは Nintendo Switch のような特定のプラットフォームで使用できる **カスタム ローンチ プロファイル (Custom Launch Profile)** を作成することができます。ビルド作業で行うクック、パッケージ、デプロイ方法を設定して、特別な方法でコンテンツをビルドすることができます。
+
+[Custom Launch Profiles] ウィンドウの **プラス** (**+**) 記号をクリックすれば、独自のカスタム ローンチ プロファイルの追加も可能です。
+
+![](AddCustomProfile.png)(w:950)
+
+[Custom Launcher Profile] ウィンドウがすぐに開きます。わかりやすい名前を付けて、後になっても特定できるようにしておきましょう。
+
+![](CustomLaunchProfile.png)(w:950)
+
+
+
+### 名前と説明
+
+ヘッダー バーにこのカスタム プロファイルに適用できる **[Name]** と **[Description]** があります。いずれかのセクションのテキストをダブルクリックして編集を開始します。
+
+![](NameDescription.png)
+
+
+### Project
+
+**[Project]** セクションでは、このプロファイルを関連づけたいプロジェクトを指定したり、他のプロジェクトと一緒に使用するかどうかを指定することができます。デフォルト設定は **[Any Projec]t** ですが、どれかに指定して設定することもできます。複数のプラットフォームからプロジェクトを開発していて、それらのプラットフォームが特殊な方法によるデプロイ、テスト、デバッグ、リリースを要求する場合に有用です。
+
+![](Project.png)
+
+
+### Build
+
+**[Build]** セクションで、プロジェクトの開発段階に応じてビルドおよびデプロイするコンフィギュレーションの種類や、プロジェクトのテスト、デバッグ、リリース方法を指定することができます。
+
+![](Build.png)
+
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Build Configuration** || プロジェクトのビルトとテストを行いたいコンフィギュレーションを選択します。 [INCLUDE:#buildconfig] |
+| **Build UAT** || 有効にすると [Unreal Automation Tool](Programming/Automation) がビルドの一部としてビルドされます。 |
+[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#buildconfig]
+[EXCERPT:buildconfig]
+
+![](BuildConfigSelection.png)
+
+| コンフィギュレーション | 説明 |
+| --- | --- |
+| **Debug** | このコンフィギュレーションはデバッグ作業に使用するシンボルを含みます。このコンフィギュレーションはエンジンとゲームコードの両方をビルドするので、このコンフィギュレーションを使ってプロジェクトをコンパイルしアンリアル エディタでプロジェクトを開く場合、プロジェクトでコード変更が反映されているかを確認するには、コマンドライン パラメータ "-debug" を使わなければなりません。 |
+| **DebugGame** | このコンフィギュレーションはエンジンを最適化してビルドしますが、ゲームコードはデバッグ可能な状態のままです。ゲーム モジュールのみをデバッグする場合に理想的です。  |
+| **Development** | このコンフィギュレーションはリリース ビルドと同じです。アンリアル エディタではデフォルトで Development を使用します。このコンフィギュレーションを使ってプロジェクトをコンパイルすると、プロジェクトに対して行ったコード変更がエディタで反映されているかを確認することができます。 |
+| **Shipping** | 最適なパフォーマンスを実現し、ゲームを出荷するためのコンフィギュレーションです。このコンフィギュレーションはコンソール コマンド、統計情報、プロファイリング ツールを削除します。また、ゲームがリリースできる状態になった時に使用してください。 |
+| **Testing** | このコンフィギュレーションは、**Shipping** コンフィギュレーションですが、一部のコンソール コマンド、統計情報、プロファイリング ツールが有効になっています。  |
+[/EXCERPT:buildconfig]
+
+
+-
+[/COMMENT]
+
+
+### Cook
+
+**[Cook]** セクションには **by the book** と **on the fly** の 2 通りの方法でクックすることができます。
+
+#### By the Book
+
+Cook **by the book** オプションを使うと、どのコンテンツをクックするのか指定することができるようになるので、ゲームを起動する前に予めすべてをクックします。
+
+![](bythebook.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Cooked Platform** ||このカスタム ローンチ プロファイルがコンテンツをクックする ターゲット プラットフォームをリストから選択します。 |
+| **Cooked Cultures** || このコンテンツをクックするローカリゼーション カルチャーから選択します。 |
+| **Cooked Maps** || クックするタイトルで利用できるマップから選択します。 |
+| [REGION:tablesection] リリース / DLC / パッチ処理の設定 [/REGION] |||
+| **Create a release version of the game for distribution** || 配布に使われるタイトルのリリース バージョンの作成ができるようになります。 |
+| **Name of the new release to create** || クック中に使用する新しい名前をリリースに付けることができます。 |
+| **Release version this is based on** || 次回のリリース / DLC / パッチ処理の元になるリリース バージョンです。 |
+| **Generate patch** || 有効にすると、ソース コンテンツに対する差分を取り、変更のあったファイルのみが新しい pak ファイルにインクルードされます。 |
+| **Build DLC** || 有効にすると、オリジナル ゲームでリリースされたコンテンツなしの DLC がビルドされます。 |
+| **Name of the DLC to build** || ビルドされる DLC 名を付けます。 |
+| **Include Engine Content** || 有効にすると、オリジナル リリースには含まれなかった Engine の中のコンテンツが DLC に含まれます。チェックが入っていない場合、Engine ディレクトリからコンテンツにアクセスする時にエラーが発生します。 |
+| [REGION:tablesection] 詳細設定 [/REGION] |||
+| **Iterative Cooking:Only cook content modified from previous cook** || 有効にすると、変更されたコンテンツのみがクックされるので、クック処理が速くなります。可能な限りこのオプションを使用することを推奨します。 |
+| **Stage base release pak files** || 有効にすると、基本のリリース バージョンに存在する変更のない pak ファイルをステージングします。 |
+| **Compress Content** || 有効にすると、生成されたコンテンツが圧縮されます。圧縮すると小さくなりますが、解凍が必要なためロード時間は長くなる可能性があります。 |
+| **Add a new patch tier** || 有効にすると、パッチ コンテンツで pak ファイルが生成され新しい番号が付けられます。 |
+| **Save Packages Without Versions** || 有効にすると、最新のバージョンと見なしてロードされます。リスクがありますが、パッチサイズは小さくなります。 |
+| **Number of cookers to spawn** || Cook by the book を使う場合にスポーンするクッカ数です。 |
+| **Store all content in a single file (UnrealPak)** || 有効にすると、コンテンツは個々の多数のファイルではなく、1 つの UnrealPak ファイルとしてデプロイされます。 |
+| **Encrypt INI files (Use Pak File を有効にした場合のみ)** || 有効にすると、UnrealPak ファイル内に格納されている ini ファイルが暗号化されます。 |
+| **Generate Chunks** || 有効にすると、コンテンツは1 つの UnrealPak ファイルではなく、個々の多数のファイルとしてデプロイされます。  |
+| **Don't Include Editor Content in the Build** || 有効にすると、クッカは Editor 内のコンテンツをスキップしてビルド内には含みません。 |
+| **HTTP Chunk Install Data Path** || [INCLUDE:#httpchunks] |
+| **Cooker Build Configuration** || クック コマンドレットに使用するビルド コンフィギュレーションを設定します。 |
+| **Additional Cooker Options** || 追加のクッカ コマンドライン パラメータを指定することができます。 |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[INCLUDE:#httpchunks]
+[EXCERPT:httpchunks]
+| --- | --- | --- |
+| **Create HTTP Chunk Install Data** || 有効にすると、コンテンツは複数の Pak ファイルに分割されて、ダウンロード可能なデータとして格納されます。  |
+| **HTTP Chunk Install Data Path** || Chunk Install Data 用のファイル パスを指定します。 |
+| **HTTP Chunk Install Release Name** || このバージョンの HTTP Chunk Install Data の名前です。  |
+[/EXCERPT:httpchunks]
+
+-
+[/COMMENT]
+
+
+
+
+#### On the Fly
+
+Cook **on the fly** オプションは、必要に応じて、デバイスに送る前にランタイム時にコンテンツをクックすることができます。 
+
+![](onthefly.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Only Cook Modified Content** || 有効にすると、変更されたコンテンツのみがクックされるので、クック処理が速くなります。可能な限りこのオプションを有効にすることを推奨します。 |
+| **Additional Cooker Options** || 追加のクッカ コマンドライン パラメータを指定することができます。 |
+[/REGION]
+
+
+
+
+
+
+
+
+### Package
+
+**[Package]** セクションでは、ビルドのパッケージ方法と、格納方法 (ローカルにするのか、それとも共有レポジトリでアクセス可能にするのか) を選択することができます。
+
+![](Package.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Package Method** || [INCLUDE:#packagepath] |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[INCLUDE:#packagepath]
+[EXCERPT:packagepath]
+| --- | --- | --- |
+| [REGION:tablesection] パッケージしてロカールに格納する場合 [/REGION] |||
+| **ローカル ディレクトリ パス** ||  |
+| **このビルドは公開用配布なのか** ||  |
+| [REGION:tablesection] パッケージ化してレポジトリに格納する場合 [/REGION] |||
+| **レポジトリ パス** ||  |
+[/EXCERPT:packagepath]
+
+-
+[/COMMENT]
+
+
+### Archive
+
+**[Archive]** セクションでは、後の参照のためのアーカイブにする場合、ビルドとディレクトリ パスをアーカイブするかどうかを指定することができます。
+
+![](Archive.png)
+
+
+
+### Deploy
+
+**[Deploy]** セクションでは、**[file server]**、**[copying to device]**、**[copying from a repository to device]** を使って、現在のビルドのデバイスへのデプロイ方法を決める必要があります。
+
+
+以下のデプロイ方法の中から選択します。
+
+![](DeploySelection.png)
+
+
+[INCLUDE:Engine/Deployment/BuildOperations#deployingabuild]
+
+
+#### File Server
+
+[File Server] を選択すると、以下の設定が利用できます。
+
+![](FileServer.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Default Deploy Platform** || コンテンツをデプロイするデフォルトのターゲット プラットフォームを設定します。|
+| [REGION:tablesection] 詳細設定 [/REGION] |||
+| **Hide the file server's console window** || 有効にすると、ファイル サーバーのコンソール ウィンドウがデスクトップで非表示になります。 |
+| **Streaming Server** || 有効にすると、ファイル サーバーは、複数のファイルに同時に機能する実験的な実装を使用します。 |
+[/REGION]
+
+
+#### Copy to Device
+
+[Copy to Device] を選択すると、以下の設定が利用できます。
+
+![](CopyToDevice.png)
+
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Default Deploy Platform** || コンテンツをデプロイするデフォルトのターゲット プラットフォームを設定します。|
+| [REGION:tablesection] 詳細設定 [/REGION] |||
+| **Only Cook Modified Content** || 有効にすると、変更されたコンテンツのみがクックされるので、クック処理が速くなります。可能な限りこのオプションを有効にすることを推奨します。 |
+[/REGION]
+
+
+#### Copy Repository
+
+[Copy Repository] を選択すると、以下の設定が利用できます。
+
+![](CopyToRepository.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Repository Path** || コンテンツをデプロイするレポジトリへのファイル パスを設定します。 |
+| **Default Deploy Platform** || コンテンツをデプロイするデフォルトのターゲット プラットフォームを設定します。|
+[/REGION]
+
+### Launch
+
+![](Launch.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| --- | --- | --- |
+| **Launch As** || ビルドのこのインスタンスの起動方法を選択します。 [INCLUDE:#launchas] |
+| **Initial Culture** || ビルドを起動する時に、最初に使用しようとするカルチャーを選択します。  |
+| **Initial Map** || ビルドを起動する時に、最初に使用しようとするマップを選択します。 |
+| **Additional Command Line Parameters** || ビルドを起動する時に、使用する必要なコマンドライン パラメータを入力します。 |
+| **Synchronize Screen Refresh Rate (VSync)** || ビルドがプロジェクトをモニターと同じ更新レートで実行するために有効にします。  |
+
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#launchas]
+
+[EXCERPT:launchas]
+
+![](launchas.png)
+
+| --- | --- | --- |
+| **Standalone Client** || スタンドアローン ゲーム クライアントとしてこのインスタンスを起動します。 |
+| **Listen Server** || 他のクライアントからの接続を許可することができるゲーム クライアントにこのインスタンスを起動します。 |
+| **Dedicated Server** || このインスタンスを Dedicated ゲームサーバーとして起動します。 |
+| **Unreal Editor** || このインスタンスをアンリアル エディタとして起動します。 |
+[/EXCERPT:launchas]
+
+-
+[/COMMENT]
+

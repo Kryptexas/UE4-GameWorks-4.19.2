@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Crumbs: %ROOT%
+Title:Rift コマンドのリファレンス
+Description:Rift で使用可能な各種コマンドの概要です。
+Type:Reference
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+Tags:VR
+Tags:Platform
+topic-image:oculus_command_reff.png
+
+以下の各種 INI およびコンソール コマンドを使って、UE4 と Oculus Rift のインタラクト方法を調節することができます。 
+
+
+ 
+[COMMENT:none]
+
+## Oculus Rift VR Mirror Mode
+
+VR Mirror は、VR を使っていない人が VR ユーザーの見ているものを共有できるビューポート ウィンドウ名です。Oculus Rift を使う場合、VR Mirror の表示を変える方法が何通りかあります。以下は、VR Mirror モードを変更するコマンド、および VR Mirror がどのように変更するかの説明です。
+
+[REGION:note]
+以下のコマンドを入力するには、Backtick **`** キーを押して UE4 コンソールを開き、**VR.MirrorMode** の後に番号を付けて入力します。
+[/REGION]
+
+
+|コマンド|説明|イメージ|
+|-----------|-------------------|----------------|
+|VR.MirrorMode 0|VR Mirror を無効にします。|N/A|
+|VR.MirrorMode 1| 歪みなしの片目の映像を表示します。|[REGION:lightbox][![](Rift_VRMode_1.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 2|  歪みなしの両目の映像をステレオ表示します。|[REGION:lightbox][![](Rift_VRMode_2.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 3| レンズの歪みと Guardian 境界を付けて両目の映像をステレオ表示します。|[REGION:lightbox][![](Rift_VRMode_3.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 4| 片目の映像をステレオ表示します。|[REGION:lightbox][![](Rift_VRMode_4.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+|VR.MirrorMode 5| 片目の映像をレターボックス表示します。.|[REGION:lightbox][![](Rift_VRMode_5.png)(w:160)](Rift_VRMode_1.png)[/REGION]|
+
+[/COMMENT]
+
+
+|コマンド|説明|
+|-----------|-------------------|
+|**vr.oculus.bHQBuffer**|目のレイヤーへの浮動小数点のテクスチャ形式の使用を有効または無効にします。|
+|**vr.oculus.bHQBuffer**|目のレイヤーへの複数のミップマップ レベルの使用を有効または無効にします。|
+|**vr.oculus.bUpdateOnRenderThread**| レンダー スレッド上でのアップデートを有効または無効にします。|
+|**vr.oculus.Debug.bShowStats**| 統計情報のレンダリングを有効または無効にします。|
+|**vr.oculus.Debug.CaptureCubemap**| Oculus Home のキューブマップをキャプチャします。オプションの引数 (数値による引数のデフォルト値はすべてゼロ) :xoff= -- X 軸方向における原点からのオフセット、yoff = -- Y 軸方向における原点からのオフセット、zoff=-Z 軸方向における原点からのオフセット、yaw= -- 見る方向 (ロールとピッチはゼロに固定)、gearvrb -- GearVR 形式のキューブマップを生成 (キャプチャされたキューブマップの高さは 2048 ピクセルではなく 1024)。|
+|**vr.oculus.Debug.EnforceHeadTracking**| ステレオ モードではない場合、ヘッド トラッキングを強制するように設定します。|
+|**vr.oculus.Debug.FCP**|現在の遠くのクリッピング平面を表示またはオーバーライドします。|
+|**vr.oculus.Debug.IPD**|現在の瞳孔間距離を表示または変更します。|
+|**vr.oculus.Debug.NCP**|現在の近くのクリッピング平面を表示またはオーバーライドします。|
+|**vr.oculus.Debug.Reset**|各種レンダリング パラメータを元の設定にリセットします。|
+|**vr.oculus.Debug.Show**|各種ステレオ レンダリング パラメータの現在の値を表示します。|
+|**vr.oculus.PixelDensity**|ピクセル密度はレンダ ターゲットのテクスチャ サイズを推奨テクスチャ サイズの係数に設定します。ネイティブ解像度より若干大きくなる場合があるため、PixelDensity を 1.0 に設定しても、通常は r.ScreenPercentage を 100 に設定するのと同じにはなりません。
+|**vr.oculus.PixelDensity.adaptive**|適応ピクセル密度を有効または無効にします。|
+|**vr.oculus.PixelDensity.max**|適応ピクセル密度を有効にした場合の最大ピクセル密度です。|
+|**vr.oculus.PixelDensity.min**|適応ピクセル密度を有効にした場合の最小ピクセル密度です。|
+|**vr.oculus.ShowGlobalMenu**|グローバル メニューを開きます。|
+|**vr.oculus.ShowQuitMenu**|終了メニューを開きます。|
+|**vr.oculus.Stress.CPU**|	CPU ストレス テストを開始します。Usage: vr.oculus.Stress.CPU [PerFrameTime [TotalTimeLimit]]|
+|**vr.oculus.Stress.GPU**|GPU ストレス テストを開始します。Usage: vr.oculus.Stress.GPU [LoadMultiplier [TimeLimit]]|
+|**vr.oculus.Stress.PD**|ピクセル密度が TotalTimeLimit 秒に対してフレーム毎に変わる時、ピクセル密度ストレス テストを開始します。Usage: vr.oculus.Stress.PD [TotalTimeLimit]|
+|**vr.oculus.Stress.Reset**|ストレス テストをリセットして、現在実行中のストレス テストをすべて停止します。Usage: vr.oculus.Stress.Reset|
+
+
+
+
+
+
+
+
+

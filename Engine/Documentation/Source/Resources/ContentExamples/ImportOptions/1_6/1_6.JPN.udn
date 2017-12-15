@@ -30,7 +30,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 [VAR:TopicCompact]
@@ -76,7 +76,9 @@ Version:4.9
 ![](CE_1_6_001.png)
 [/REGION]
 
-<!-- This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs -->
+[COMMENT:none]
+ This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs 
+[/COMMENT]
 
 ワールドの同じ場所にとどまる間アニメーションをループさせる **スケルタル メッシュ** は必要ですか？これを行うには、スケルタルメッシュをワールドへドラッグしてから、再生したいアニメーションをこのスケルタルメッシュ上へドラッグするだけでできます。
 

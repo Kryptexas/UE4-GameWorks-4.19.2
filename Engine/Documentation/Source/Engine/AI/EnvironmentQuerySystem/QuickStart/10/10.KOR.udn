@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 10. 플레이어 컨텍스트 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 인바이언먼트 쿼리는 구하는 액터 유형에 따라 다수의 아이템 생성이 가능하지만, Context (컨텍스트, 맥락)에 대해서는 생성해 주지 않습니다. 그래서 플레이어의 폰을 컨텍스트로 둘 필요가 있는데, 이 때 **EnvQueryContext_BlueprintBase** 가 쓰입니다.
 
@@ -45,4 +45,4 @@ version: 4.9
 
 1. 마지막으로 **Get All Actors Of Class** 노드의 **Actor Class** 를 **Top Down Character** 로 설정하고, **컴파일** 후 **저장** 합니다.
 
-%Steps%
+

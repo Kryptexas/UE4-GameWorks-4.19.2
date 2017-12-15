@@ -66,7 +66,8 @@ The exposed variables in the system control the central location for the Attract
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:ButterflyCL]
 The _Components List_ assembles the butterfly in the following manner (indentation represents parenting):
@@ -101,4 +102,5 @@ At the beginning of play -
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

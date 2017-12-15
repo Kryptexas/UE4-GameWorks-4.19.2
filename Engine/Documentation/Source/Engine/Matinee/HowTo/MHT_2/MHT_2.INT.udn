@@ -6,19 +6,13 @@ Version: 4.9
 SkillLevel: Intermediate
 
 
----
 In the following steps, we are going to create two lifts that move from one point to another automatically.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Creating the Lifts
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will create both lifts and platforms using basic shapes. 
-	[/PARAM]
-[/OBJECT]
+## Creating the Lifts
+
+In this step, we will create both lifts and platforms using basic shapes. 
 
 1.  Inside the **Content Browser** and the **Shapes** folder, drag a **Shape_Cube** into the level in front of the **PlayerStart**. 
 
@@ -56,15 +50,9 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_LastCubeAdded.png)
 
+## Adding the Matinee and Moving the First Lift
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Matinee and Moving the First Lift
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add the **Matinee** and create a **Movement Track** for the first lift. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will add the **Matinee** and create a **Movement Track** for the first lift. 
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -154,15 +142,9 @@ In the following steps, we are going to create two lifts that move from one poin
 	[/PARAMLITERAL]
 	[/OBJECT]
 
+## Moving the Second Lift Using the Curve Editor
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Moving the Second Lift Using the Curve Editor
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will move the second lift by adjusting Keyframes inside the **Curve Editor**. 
-	[/PARAM]
-[/OBJECT]
+In this step, we will move the second lift by adjusting Keyframes inside the **Curve Editor**. 
 
 1. From the **World Outliner**, select the **Matinee Actor** and in the Details panel, select the **Open Matinee** option. 
 
@@ -270,14 +252,3 @@ In the following steps, we are going to create two lifts that move from one poin
 	[/PARAMLITERAL]
 	[/OBJECT]
 	
-
----
-
-
-
-
-
-
-
-
-

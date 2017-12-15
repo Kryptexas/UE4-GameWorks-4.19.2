@@ -1,0 +1,126 @@
+﻿INTSourceChangelist:3735117
+Availability:Public
+Crumbs: %ROOT%
+Title:ボディとコンストレイントのプロファイルの使用方法
+Description:物理アセット エディタにおけるボディとコンストレイントのプロファイルの使い方
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/ToolsAndProfiles
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/PhysicsBodies
+Order:4
+Tags:Physics
+Topic-image:Engine/Physics/physics_topic.png
+Social-image:
+
+
+[TOC(start:2 end:2)]
+
+
+[物理アセット エディタ](Engine/Physics/PhAT/PhysicsAssetEditor) は、物理アニメーション設定の [ボディ](Engine/Physics/PhysicsBodies) への割り当てとコンストレイント設定の [コンストレイント](Engine/Physics/Constraints/ConstraintsReference) への割り当てに使用する
+独自の [プロファイル](Engine/Physics/PhAT/ToolsAndProfiles) の作成を可能にします。 
+
+![](Engine\Physics\PhAT\ToolsAndProfiles\Profiles.png)
+
+それでは、独自のプロファイルの作成、削除、割り当て解除方法を説明します。
+
+
+## プロファイルの作成と割り当て
+
+プロファイルの **作成および割り当て** は以下のステップで行います。
+
+1. Skeleton Tree から **ボディ** と **コンストレイント** を選びます。 
+
+	[REGION:lightbox]
+	[![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)(w:300)](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+1. **[Profiles]** タブで、作成したいプロファイル タイプ (**[Physical Animation]** あるいは **[Constraint]**) の横の **[New]** ボタンをクリックします。次にテキスト ボックスの **[Current Profile]** の下に 
+プロファイル名を付けて、後で参照できるようにしておきます。
+
+	[REGION:lightbox]
+	[![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_02.png)(w:500)](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_02.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+	[REGION:note]
+	プロファイルが作成されると、この欄は初期化されてデフォルト状態の「未入力」になります。
+	[/REGION]
+
+1. **グラフ** または **Skeleton Tree** を使って、プロファイルに割り当てるボディまたはコンストレイントを選択します。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03.png)
+	[REGION:caption] 選択したボディのグラフ [/REGION]
+
+	次に **[Profiles]** タブで、使用する方の **[Current Profile]** を設定して **[Assign]** ボタンをクリックします。選択したノードの色が影付きから塗りつぶしに変わります。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03a.png)
+
+	選択したノードは、このプロファイルに割り当てられたことを示す塗りつぶし色を使うように変更されます。他の Body ノード (影付き) は変更されません。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03b.png)
+
+1. 選択したボディの **[Details]** パネルの中に、現在割り当てられているプロファイルが表示され、作成中のプロファイルのタイプのプロパティを調整することができます。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_04.png)
+	[REGION:caption]
+	この選択したボディに物理アニメーション プロファイルを割り当てます。
+	[/REGION]
+
+
+## プロファイルの割り当て解除
+
+プロファイルからボディまたはコンストレイントの **割り当て解除** は以下のステップで行います。
+
+1. Skeleton Tree で編集する **ボディ** と **コンストレイント** を選びます。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)
+
+1. 次に **[Profiles]** タブで、編集したい方の **[Current Profile]** に設定します。**矢印** ドロップダウンを使って割り当てたプロファイルを選択します (適宜)。  
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/Unassign_02.png)
+
+	**グラフ** では、選択したプロファイルに割り当てたノードが影付きから塗りつぶし色になっています。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03b.png)
+
+1. プロファイルから割り当てを解除したいノードを選択した状態で、**[Profiles]** タブの **Unassign** ボタンをクリックします。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/Unassign_03.png)
+
+	すると、グラフの中ではそれがまったく使われていないため、選択したノードが選択中のプロファイルに対して影付きになります。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03.png)
+
+## プロファイルの削除
+
+プロファイルの **削除** は以下のステップで行います。
+
+1. **[Profiles]** タブで **矢印** ドロップダウンを使って、削除したい方の **[Current Profile]** に設定します。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/DeleteProfiles_01.png)
+	[REGION:caption]
+	ドロップダウンの下の部分に作成されたすべてのプロファイルが一覧表示される
+	[/REGION]
+
+1. **[Delete]** ボタンを押して、利用可能なプロファイルのリストから削除します。
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/DeleteProfile_02.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

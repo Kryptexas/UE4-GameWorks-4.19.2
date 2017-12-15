@@ -1,9 +1,12 @@
 Availability: Public
 Title:GPUSprites Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Reference for the GPU Sprites Type Data module, useful for creating high-density particle systems.
+Description:The GPUSprite type data module supports simulating particles on the GPU allowing for hundreds of thousands of particles to be simulated and rendered efficiently. 
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:2
+topic-image:GPUSprites.png
 
 [TOC(start:2 end:3)]
 

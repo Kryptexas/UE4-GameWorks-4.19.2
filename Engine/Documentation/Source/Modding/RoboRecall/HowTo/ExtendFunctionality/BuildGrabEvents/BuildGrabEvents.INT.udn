@@ -11,11 +11,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 In this step you will be overriding the **Grab Events** on our GrenadeGunPistol so we can check to see if we want the gun to explode or not when it collides with things.
 
@@ -23,7 +27,7 @@ In this step you will be overriding the **Grab Events** on our GrenadeGunPistol 
 
 1. **Right-click** in the [Event Graph](Engine/Blueprints/UserGuide/EventGraph) and search for **Begin Primary Grab**. Select **Event Begin Primary Grab** to add the node to the Event GRaph.
 
-	![image alt text](image_0.png)(w:409 h:409 convert:false)
+	![image alt text](image_0.png)(w:409 convert:false)
 
 2. Repeat this process for:
 
@@ -33,31 +37,31 @@ In this step you will be overriding the **Grab Events** on our GrenadeGunPistol 
 
 3. For each of these Event nodes, you need to make a call to the same Event in the parent Blueprint to make sure that any existing functionality is still executed. To do this, **Right-click** the four event nodes you just created and select **Add call to parent function**.
 
-	![image alt text](image_1.png)(w:169 h:489 convert:false)
+	![image alt text](image_1.png)(w:169 convert:false)
 
 4. Connect the Event Nodes to their Parent Nodes.
 
-	![image alt text](image_3.png)(w:522 h:460 convert:false)
+	![image alt text](image_3.png)(w:522 convert:false)
 
 5. Click the **+** button next to **Variables** in the **My Blueprint** panel to create a new variable and name it **bCanExplode**.
 
-	![image alt text](image_4.png)(w:381 h:368 convert:false) ![image alt text](image_5.png)(w:381 h:388 convert:false)
+	![image alt text](image_4.png)(w:381 convert:false) ![image alt text](image_5.png)(w:381 convert:false)
 
 	[REGION:note]
 	If you haven't created a new variable in this session in Unreal Editor, it will automatically be a **Bool** (the red icon indicates that it is a **Bool**). However, if you need to change it, select the variable in the **My Blueprint** tab and then you can change it in the **Details** panel: 
 
-	![image alt text](image_6.png)(w:636 h:392 convert:false)
+	![image alt text](image_6.png)(w:636 convert:false)
 	[/REGION]
 
 6. **Click + Drag** the **bCanExplode** variable into the **Event Graph**, and select the **Set** option.
 
 	[REGION:raw]
-	![image alt text](image_7.png)(w:793 h:328 convert:false)
+	![image alt text](image_7.png)(w:793 convert:false)
 	[/REGION]
 
 7. Duplicate the **Set Can Explode** node using **Ctrl + W** and click the checkbox in the new node to set the value of **bCanExplode** to **True**.
 
-	![image alt text](image_8.png)(w:201 h:184 convert:false)
+	![image alt text](image_8.png)(w:201 convert:false)
 
 8. Finally, connect the Parent nodes to the corresponding **Set Can Explode** nodes as shown below.
 
@@ -69,7 +73,7 @@ In this step you will be overriding the **Grab Events** on our GrenadeGunPistol 
 		blueprint
 		[/PARAMLITERAL]
 		[PARAM:image]
-		![image alt text](image_9.png)(w:786 h:464 convert:false)
+		![image alt text](image_9.png)(w:786 convert:false)
 		[/PARAM]
 		[PARAM:snippet]
 			[INCLUDE:#snippet]
@@ -88,7 +92,8 @@ These sets of Events are called when our gun is grabbed and released. You'll use
 
 [NAV]
  
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_7"
 
@@ -306,5 +311,6 @@ These sets of Events are called when our gun is grabbed and released. You'll use
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

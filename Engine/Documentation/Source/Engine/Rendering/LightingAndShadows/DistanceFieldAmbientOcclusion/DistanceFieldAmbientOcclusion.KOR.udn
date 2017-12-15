@@ -1,48 +1,23 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
+Crumbs: %ROOT%
 Title: 디스턴스 필드 앰비언트 오클루전
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:무버블 스카이라이트용 다이내믹 앰비언트 오클루전입니다.
-Version: 4.9
+Description: 메시 디스턴스 필드를 사용하여 스카이라이트에 다이내믹 앰비언트 오클루전 효과를 내는 법에 대한 개요입니다.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2
+Order:2
+Tags:Lighting
+Tags:Distance Fields
+Tags:Getting Started
+Topic-image:DistanceFieldAmbientOcclusion_Topic.png
+Social-Image:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/DFAOBanner.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:title%](DistanceFieldAmbientOcclusion_Topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:title%](DistanceFieldAmbientOcclusion_Topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth raw]
 ![](DistanceFieldAmbientOcclusion_Header.jpg)
@@ -50,218 +25,369 @@ Version: 4.9
 
 [TOC(start:2 end:2)]
 
+무버블 스카이 라이트에 대한 그림자는 각 스태틱 메시마다 미리 계산하는 Signed Distance Field Volume (부호화 디스턴스 필드 볼륨)을 사용하여 중간 스케일 앰비언트 오클루전을 생성하는 것으로 이루어집니다. 언리얼 엔진 4 (UE4) 에서 
+이는 **디스턴스 필드 앰비언트 오클루전** (DFAO) 라 합니다. 동적인 씬 변화를 지원하므로, 스태틱 메시를 옮기거나 숨기면 오클루전에 영향을 줍니다.
+[스크린 스페이스 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/AmbientOcclusion) (SSAO) 과는 달리, 오클루전 계산이 월드 스페이스 오클루더에서 일어나므로, 화면 밖으로 나간 데이터로 인한 부작용이 없습니다.
+
+이 다이내믹 AO 솔루션은 모든 프로젝트에 통하지는 않는데, 동적인 씬 변화를 지원하기 위해 약간의 침습성 한계가 있기 때문입니다. 특히나 비균등 스케일(찌부러짐)은 약간만 지원됩니다. 
+또한 커다란 스태틱 메시는 퀄리티가 안좋게 나오는데, 작은 볼륨 텍스처가 모든 오브젝트에 매핑되기 때문입니다.
+
+## 씬 구성
+
+[REGION:note]
+이 기능은 **프로젝트 세팅** 의 **Rendering** (렌더링) 섹션 아래 **Generate Mesh Distance Fields** (메시 디스턴스 필드 생성) 옵션을 켜야 합니다. 자세한 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
+[/REGION]
+
+디스턴스 필드 앰비언트 오클루전을 켜려면, **Sky Light** (스카이 라이트)를 끌어 씬에 놓고 모빌리티를 **무버블** 로 설정합니다.
+
+[REGION:note]
+단계별 안내서로 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2) 문서를 참고하시기 바랍니다.
+[/REGION]
+
+## 스카이 라이트
+
+**Sky Light** 컴포넌트에서는 **Distance Field Ambient Occlusion** (디스턴스 필드 앰비언트 오클루전) 아래 나열된 다양한 세팅을 조절할 수 있습니다. 조절할 수 있는 세팅 몇 가지에 대한 비교입니다:
+
+[REGION:imagetable]
+| [INCLUDE:#occlusioncontrast] | [INCLUDE:#MinOcclusion] | [INCLUDE:#OcclusionTint] |
+|  ----- | ----- | ----- |
+| Occlusion Contrast | Min Occlusion | Occlusion Tint |
+[/REGION]
+
+[REGION:note]
+스카이 라이트 세팅 관련 추가 정보나 예제는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서를 참고하세요.
+[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#occlusioncontrast]
+
+[EXCERPT:OcclusionContrast]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion | Contrast: 0 ](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_Contrast_0.png)(w:390)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion | Contrast: 1 ](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_Contrast_1.png)(w:390)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:OcclusionContrast]
+
+[EXCERPT:MinOcclusion]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Occlusion: 0](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_MinOccl_0.png)(w:390)
+	[/PARAM]
+	[PARAM:after]
+	![Min Occlusion: 1](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_MinOccl_1.png)(w:390)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:MinOcclusion]
+
+[EXCERPT:OcclusionTint]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Occlusion Tint: | Black](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_OccTint_0.png)(w:390)
+	[/PARAM]
+	[PARAM:after]
+	![Occlusion Tint: | Red](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2/1_OccTint_1.png)(w:390)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:OcclusionTint]
 
 
-무버블 스카이 라이트에 대한 그림자는, 각 리짓 오브젝트를 중심으로 미리계산된 부호화 디스턴스 필드 볼륨에서 중간 스케일의 앰비언트 오클루전을 생성하는 신기능으로 제공됩니다. 동적인 씬 변화를 지원하므로, 리짓 메시의 이동이나 숨김이 가능하고 오클루전에 영향을 끼칩니다. 스크린 스페이스 앰비언트 오클루전과는 달리, 오클루전은 월드 스페이스 오클루더에서 계산되므로 화면밖 데이터가 없는 데서 오는 부작용이 없습니다.
+-
+[/COMMENT]
 
-이 다이내믹 AO 솔루션은 모든 프로젝트에 통하지는 않는데, 동적인 씬 변화를 지원하기 위해 약간의 침습성 한계가 있기 때문입니다. 특히나 비균등 스케일(찌부러짐)은 약간만 지원됩니다. 또한 커다란 스태틱 메시는 퀄리티가 안좋게 나오는데, 작은 볼륨 텍스처가 모든 오브젝트에 매핑되기 때문입니다.
 
-스태틱 메시 컴포넌트, 인스턴스드 스태틱 메시 컴포넌트, 폴리지, 랜드스케이프에만 오클루전이 지원됩니다. 폴리지에는 폴리지 세팅에서 "Affect Distance Field Lighting" (디스턴스 필드 라이팅 영향) 옵션을 켜야 합니다. 그 외 오브젝트는 여전히 오클루전을 받을 수 있습니다.
 
-## 구성
-* 먼저 프로젝트 세팅에서 렌더링 아래 Generate Mesh Distance Fields 를 켠 다음 에디터를 재시작합니다. 다음 번 로드시 백그라운드로 디스턴스 필드가 생성됩니다. 이 프로세스는 멀티스레드로 진행되므로, 코어가 많으면 더욱 빨라집니다.
-* 엔진 퀄리티(Scalability) 세팅이 섀도잉에 에픽으로 설정되어 있는지 확인합니다. 그 아래 세팅에서 디스턴스 필드 AO 는 꺼집니다.
-* 스카이라이트를 배치하고, 모빌리티를 무버블로 변경합니다.
-* 이제 레벨을 편집하면 스태틱 메시에서의 AO 가 동적으로 업데이트됩니다.
 
-기본적으로, 생성된 디스턴스 필드의 해상도가 꽤 낮아서 라이팅이 얼룩질 수 있습니다. 스태틱 메시의 **Distance Field Resolution Scale** (디스턴스 필드 해상도 스케일) 옵션을 높여 보정해 주세요.
+
+## 씬 표현
+ 
+디스턴스 필드 AO 에 대한 뷰 모드를 통해 다른 라이팅 현상과 관계 없이 레벨에 DFAO 가 어때 보이는지를 확인할 수 있습니다.
+
+씬 앰비언트 오클루전을 나타내는 디스턴스 필드 시각화는 레벨 뷰포트의 뷰 모드 중 **표시** > **시각화** > **Distance Fields Ambient Occlusion** (디스턴스 필드 앰비언트 오클루전)을 선택하면 됩니다.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](DFAOVisualize.png)(w:400 h:450)](DFAOVisualize.png) [/REGION] | [REGION:lightbox] [![](DFAOView.png)(w:750 h:450)](DFAOView.png) [/REGION] |
+| --- | --- |
+| _이미지를 클릭하면 원본을 확인합니다._ | _이미지를 클릭하면 원본을 확인합니다._ |
+[/REGION]
+
+이 뷰모드에서 영향을 주는 유일한 [스카이 라이트 세팅](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 은 **Occlusion Max Distance** (오클루전 최대 거리) 입니다.
+
+
+### 퀄리티
+
+디스턴스 필드 AO 퀄리티는 그것이 표현하는 메시 디스턴스 필드의 해상도로 결정됩니다. AO 는 매우 연한 그림자이므로, 표면이 제대로 표현되지 않는다 해도, 
+오클루전이 발생하는 위치가 표면에서 멀 수록 정확할 것입니다. 스카이 오클루전에는 종종 눈에 띄지 않습니다. 하지만 메시 디스턴스 필드에 메시의 커다란 디테일이 
+잘 표현되도록 해야 결과가 좋습니다. 퀄리티를 조사하려면 [메시 디스턴스 필드 시각화](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 
+를 사용하면 됩니다.
+
+[REGION:note]
+메시 디스턴스 필드 퀄리티 관련 상세 정보는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
+[/REGION]
+
 
 ## 결과
 
-#### 디퓨즈 오클루전
+### 디퓨즈
 
 DFAO (디스턴스 필드 앰비언트 오클루전)은 오클루전 팩터와 함께 스카이라이트 디퓨즈 계산을 변경하는 데 사용되는 (최소 오클루전 방향) 굽은 노멀을 생성합니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![디스턴스 필드 앰비언트 오클루전 없음](Original2.jpg)(w:600)
+	![No Distance Field Ambient Occlusion](Original2.jpg)(w:850)
 	[/PARAM]
 	[PARAM:after]
-	![디스턴스 필드 앰비언트 오클루전 있음](DistanceFieldAO2.jpg)(w:600)
+	![Distance Field Ambient Occlusion](DistanceFieldAO2.jpg)(w:850)
 	[/PARAM]
 [/OBJECT]
-_포트나이트에서 한낮의 레벨입니다. 포트나이트에서 플레이어는 어떤 벽, 바닥, 천정이든 부순 다음 새로 세울 수 있으므로, 라이팅도 그에 맞게 업데이트되어야 합니다. DFAO 는 이러한 변화를 지원합니다.
+[REGION:caption]
+[/REGION]
 
-[_DFAO 실시간 업데이트를 켜고 레벨 에디터에서 오브젝트 상호작용을 하는 비디오입니다._](http://youtu.be/FmbrnbpHT9E)
+포트나이트에서 한낮의 레벨입니다. 포트나이트에서 플레이어는 어떤 벽, 바닥, 천정이든 부순 다음 새로 세울 수 있으므로, 라이팅도 그에 맞게 업데이트되어야 합니다. 
+DFAO 는 레벨에서 자신 주변의 이러한 동적인 유형의 변화를 지원합니다.
 
-#### 스페큘러 오클루전
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	FmbrnbpHT9E
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	71.5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+포트나이트의 레벨 예제로, 에디터에서 애셋을 숨기고 이동함에 따라 AO 가 실시간 업데이트되고 있습니다.
+
+### 스페큘러
 
 DFAO 는 스카이라이트에 추정된 스페큘러 오클루전을 제공하기도 합니다. 이는 (머티리얼 러프니스에 따라 크기가 달라지는) 리플렉션 콘과 디렉셔널 오클루전 콘을 교차시켜 계산합니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![](0Original.jpg)(w:600)
+	![No Specular Occlusion](0Original.jpg)(w:850)
 	[/PARAM]
 	[PARAM:after]
-	![](0SpecularOcclusion.jpg)(w:600)
+	![Specular Occlusion](0SpecularOcclusion.jpg)(w:850)
 	[/PARAM]
 [/OBJECT]
+[REGION:caption]
+[/REGION]
+[REGION:caption]
+파이프의 스페큘러 오클루전입니다.
+[/REGION]
 
-_파이프의 스페큘러 오클루전입니다._
+기본적으로 스페큘러에는 방향성이 없는 AO 가 적용됩니다. **r.AOSpecularOcclusionMode** 를 사용하면 리플렉션 원뿔과 DFAO 로 생성된 미차폐 원뿔을 교차시키는 방식으로 기본 방식보다 정확한 오클루전 결과를 낼 수 있습니다. 참고로 이 방식은 DFAO 샘플링 부작용이 생길 수 있습니다.
 
-## 폴리지 오클루전
+### 폴리지
 
-DFAO 가 표면에 작용하기는 하지만, 여러 개의 작은 나뭇잎을 시트로 합친 폴리지 처리도 가능합니다. 폴리지 메시에서 "Generate Distance Field As If Two Sided" (양면인 것처럼 디스턴스 필드 생성) 옵션을 켜면 계산된 오클루전을 부드럽게 만들어 최적의 결과를 얻을 수 있습니다. 스카이 라이트의 "Min Occlusion" (최소 오클루전) 옵션은 내부가 새까매지는 것을 방지하는 데 좋습니다.
+[폴리지 툴](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 로 칠한 액터의 경우, 먼저 툴 세팅에서 **Affect Distance Field Lighting** (디스턴스 필드 라이팅에 영향) 옵션을 켜줘야 합니다.
+
+![](Engine/Rendering/LightingAndShadows/MeshDistanceFields/FoliageToolSettings.png)
+
+DFAO 가 표면에서 작동하기는 하지만, 여러 장의 작은 나뭇잎이 시트로 합쳐진 폴리지 처리도 여전히 가능합니다. 폴리지 유형 애셋은 **스태틱 메시 에디터** 의 **빌드 세팅** 옵션 중 
+**Two-Sided Distance Field Generation** (양면 디스턴스 필드 생성) 옵션을 켜는 것으로 최적의 결과를 낼 수 있습니다. 계산된 오클루전 결과를 부드럽게 만들어 줍니다.
+
+[REGION:tip]
+스카이 라이트 옵션 중 **Min Occlusion** (최소 오클루전) 값을 높이면 애셋의 내부 부분이 완전히 까매지는 것을 방지할 수 있습니다.
+[/REGION]
+
+![](Engine/Rendering/LightingAndShadows/MeshDistanceFields/BuildSettings_TwoSided.png)
+
+DFAO 옵션을 켜고 양면 디스턴스 필드 생성 옵션을 사용한 예제입니다:
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![스크린 스페이스 앰비언트 오클루전만](NoDFAO2.jpg)(w:600)
+	![Screen Space Ambient Occlusion only](NoDFAO2.jpg)(w:850)
 	[/PARAM]
 	[PARAM:after]
-	![폴리지에 디스턴스 필드 앰비언트 오클루전](DFAO2.jpg)(w:600)
+	![Distance Field Ambient Occlusion on foliage](DFAO2.jpg)(w:850)
 	[/PARAM]
 [/OBJECT]
+[REGION:caption]
+[/REGION]
 
+LOD (레벨 오브 디테일)을 사용하는 폴리지 애셋의 경우, DFAO 의 오클루전이 과해지는 문제가 생길 수 있습니다. [메시 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 가 원거리에서 정확도가 유지되는데, 
+LOD 레벨은 트라이앵글 수가 적은 것을 사용하고 생성된 메시 디스턴스 필드 범위 내로 수축될 수가 있기에 발생하는 문제입니다.
 
-LOD 가 있는 폴리지는, 트라이앵글 메시가 디스턴스 필드 안에서 축소되므로 DFAO 에 오버 오클루전 문제가 생길 수 있습니다. 원거리에서 디스턴스 필드는 여전히 정확한데 트라이앵글 메시 LOD 는 그렇지 않을 경우 발생합니다.
-
-이 문제 해결을 위해, 해당 LOD 에 World Position Offset 을 사용하여 버텍스를 디스턴스 필드 밖으로 끌어냅니다. 전형적으로 오프셋을 카메라쪽으로 조금만 줘도 됩니다. 빌보드의 경우 새로운 Pixel Depth Offset (픽셀 뎁스 오프셋) 기능을 사용하여 원본 3D 트라이앵글 메시를 더욱 잘 나타내는 유효 깊이값을 만들어 주면 됩니다.
+이 문제 해결을 위해서는, 그 LOD 에 **World Position Offset** 을 사용하여 버텍스를 디스턴스 필드 밖으로 끌어내면 됩니다. 보통은 카메라쪽으로 오프셋을 약간만 주면 부작용이 해결됩니다.
+빌보드의 경우 [Pixel Depth Offset](Engine/Content/Tools/RenderToTextureTools/4) 기능을 사용하여 원본 3D 트라이앵글 메시를 더욱 잘 표현하는 유효 깊이 값을 내주면 됩니다.
+이 기법은 "소년과 연" GDC 데모의 가시거리가 긴 디스턴스 필드에 사용했습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![픽셀 뎁스 오프셋 없음](0Billboard.jpg)(w:600)
+	![No Pixel Depth Offset ](0Billboard.jpg)(w:850)
 	[/PARAM]
 	[PARAM:after]
-	![픽셀 뎁스 오프셋 있음](0BillboardWithPixelDepthOffset.jpg)(w:600)
+	![Pixel Depth Offset](0BillboardWithPixelDepthOffset.jpg)(w:850)
 	[/PARAM]
 [/OBJECT]
-_원거리의 나무 빌보드에 스카이 라이트의 오버 오클루전 현상이 보이고 있는데, Pixel Depth Offset 을 사용하니 개선되었습니다._
+[REGION:caption]   
+[/REGION]
+[REGION:caption]
+원거리 트리 빌보드에 과한 오클루전이 보이고 있습니다. Pixel Depth Offset 과 Skylight Min Occlusion 를 사용하여 과한 오클루전을 덜어냅니다.
+[/REGION]
 
-## 작동 방식은 어떻게 되나요?
 
-이 기법에 사용된 디스턴스 필드는 기술적으로 메시 표면을 나타내는 Signed Distance Field 입니다. Signed Distance Field 는 모든 점에서 가장 가까운 표면까지의 거리를 저장합니다. 메시 안의 점은 음수 거리값을 저장합니다.
 
-[![](DistanceField.jpg)](DistanceField.jpg)
 
-디스턴스 필드를 유용하게 만드는 첫 번째 속성은, 레이 트레이싱을 할 때 가장 가까운 표면까지의 거리를 알기 때문에 빈 공간을 안전하게 건너뛸 수 있다는 것입니다. 이를 통해 몇 단계만으로도 교차 부분을 결정하는 것이 가능합니다. 디스턴스 필드에 대한 레이 트레이싱으로 섀도잉에 사용되는 비저빌리티 결과를 얻을 수 있습니다.
+### 랜드스케이프
 
-[![](RayTrace.jpg)](RayTrace.jpg)
+랜드스케이프는 메시 디스턴스 필드가 아닌 하이트 필드를 사용하여 표현됩니다. 여기에는 추정 원뿔 교차 방식을 사용하는데, 이에 대한 계산은 하이트 필드에 대해 이루어져 
+디스턴스 필드 표현이 없는 픽셀이 오클루전을 받도록 하고 있습니다. 하지만, 셀프 섀도잉이나 디스턴스 필드 섀도잉이 없습니다. 대신 랜드스케이프는 원거리 그림자에 캐스케이드 섀도우 맵(CSM)과 함께 
+**Far Shadows** 를 사용합니다.
 
-디스턴스 필드를 유용하게 만드는 두 번째 속성은, 레이 트레이싱을 할 때 추가 비용 없이 원뿔 교차 추정치를 얻을 수 있다는 점입니다. 이로써 디스턴스 필드에 대한 레이 트레이싱으로 매우 부드러운 에리어 섀도를 얻을 수 있습니다. 이 속성은 DFAO 의 핵심으로, 소수의 원뿔만으로도 한 지점에서의 전체 반구에 대해 부드러운 표시여부 결과를 계산할 수 있기 때문입니다.
+![](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Landscape.png)(w:700)
+[REGION:caption] 랜드스케이프 오클루전을 보여주는 DFAO 비각화 뷰 모드입니다. [/REGION]
 
-[![](ConeTrace.jpg)](ConeTrace.jpg)
+## 퍼포먼스
 
-전체 레벨은 볼륨 텍스처에 저장된 인스턴스드 디스턴스 필드로 나타납니다. 랜드스케이프에는 하이트필드를 통한 별도의 표현이 있습니다.
+DFAO 의 비용은 주로 GPU 시간과 비디오 메모리입니다. DFAO 는 중간 사양 PC, PlayStation 4, Xbox One 에서 실행 가능하도록 최적화되어 있습니다. 현재 비용이 훨씬 많이 안정화되어 
+(오브젝트 밀도에 따라 아주 약간 달라지긴 하지만) 거의 고정적인 비용을 보이고 있습니다.
 
+스태틱 카메라에 거의 평평한 표면의 경우, DFAO 는 기존 구현에 비해 1.6 배 빨라졌습니다. 폴리지가 있고 카메라가 빨리 움직이는 복잡한 씬의 경우, 최신 최적화를 통해 
+5.5 배 빨라졌습니다. PlayStation 4 에서 전체 게임 씬의 DFAO 비용은 약 3.7ms 입니다.
+
+
+### 최적화
+
+DFAO 의 속도, 효율, 모양 개선을 위한 최적화 몇 가지는 다음과 같습니다.
+
+
+#### 일반 개선사항
+
+언리얼 엔진 4.16 부로 PlayStation 4 에서 테스트한 결과 DFAO 의 개선사항은 다음과 같습니다:
+
+[REGION:simpletable]
+| 최적화 | 원래 비용 (ms) | 새로운 비용 (ms) | 절약 (ms) |
+| ------------ | ------------ | -------- | ------- |
+| 원래 반대로 하던 것을, 각 오브젝트에 대해 교차 화면 타일 목록을 생성하도록 컬링 알고리즘을 변경했습니다. 각 타일/오브젝트 교차마다 원뿔 트레이싱 스레드 그룹을 구하여, 각 파면이 훨씬 작아지고 스케쥴 방식도 개선되었습니다. | 3.63 | 3.48 | 0.15 |
+| 내부 루프의 느린 인스트럭션을 빠른 추정법으로 대체했습니다. [COMMENT:none]
+-(exp2 -> sqr + 1, rcpFast, lengthFast)-
+[/COMMENT] | 3.25 | 3.09 | 0.16 |
+| 트랜스폼을 내부 루프에서 꺼내어 월드에서 로컬 스페이스로 이동시켰습니다 (샘플 위치는 로컬 스페이스 위치 + 방향으로 구성했습니다). | 3.09 | 3.04 | 0.05 |
+| ClearUAV 에 컴퓨트 셰이더를 사용했습니다.  | 3.04 | 2.62 | 0.42 |
+[/REGION]
+
+
+#### 스무드 샘플링
+
+DFAO 에 스무드 샘플링을 사용하기 전에는 적응형(adaptive) 샘플링을 사용했습니다. 평평한 표면은 폴리지처럼 다수의 표면으로 된 빽빽한 씬과 비교할 때 작업량이 적을 수는 있어도, 
+깨끗한 환경에서는 얼룩이 많이 생길 수도 있다는 뜻이기도 했습니다.
+
+아래 예제에서, 적응형 샘플링을 제거해도 될 정도로 AO 계산이 빨라져, 오클루전이 훨씬 부드러워졌습니다.
+
+[REGION:imagetable]
+| [INCLUDE:#comp1] | [INCLUDE:#comp2] |
+| --- | --- |
+| 씬 뷰 | DFAO 시각화 |
+[/REGION]
+
+스무드 샘플링은 더욱 긴 히스토리 필터를 요하며, 이는 "고스트" (움직이는 오브젝트에 자취가 남는) 현상이 생길 수 있었습니다. 그림자를 드리우는 것이 움직일 때는 특히나 그렇습니다. 언리얼 엔진 4.16 이상에서는, 
+디스턴스 필드 임시 필터에 신뢰도 값을 저장하도록 하여 고스트 현상을 개선시켰습니다. 이를 통해 업샘플 도중 오클루전 누수를 트래킹한 뒤, 히스토리를 통해 그 누수된 값을 보다 빠르게 비워냅니다.
+전반적으로, 카메라 또는 다이내믹 오브젝트가 빠르게 움직일 때 발생할 수 있는 고스트 현상이 줄어들 것입니다.
+
+
+[COMMENT:none]
+--
+
+[INCLUDE:#comp2]
+
+[EXCERPT:comp1]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![씬 뷰](TriangleScene.jpg)(w:600)
+	![Adaptive Sampling](DFAO_Scene_OldMethod.png)(w:590)
 	[/PARAM]
 	[PARAM:after]
-	![메시 디스턴스 필드 뷰](MeshDistanceFieldScene.jpg)(w:600)
+	![Smooth Sampling](DFAO_Scene_NewMethod.png)(w:590)
 	[/PARAM]
 [/OBJECT]
+[REGION:caption]
+[/REGION]
+[/EXCERPT:comp1]
+
+[EXCERPT:comp2]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Sampling](DFAO_View_OldMethod.png)(w:590)
+	[/PARAM]
+	[PARAM:after]
+	![Smooth Sampling](DFAO_View_NewMethod.png)(w:590)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]
+[/REGION]
+[/EXCERPT:comp2]
+
+-
+[/COMMENT]
 
 
-[디스턴스 필드를 사용한 라이팅 관련 추가 자료입니다.](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+#### 글로벌 디스턴스 필드
 
-## 세팅
+[COMMENT:none]
+-- EXCERPT taken from MeshDistanceFields.INT.udn --
+[/COMMENT]
+[INCLUDE:Engine/Rendering/LightingAndShadows/MeshDistanceFields#visualizeglobaldf1]
 
-### 스카이 라이트
+카메라 주변 클립맵을 네 개의 슬라이스로 나누어 필요할 때만 업데이트합니다. 그러한 상황은 카메라 이동으로 새로운 슬라이스가 드러날 때만 발생하며, 오브젝트가 이동하지 않아 영향력 경계가 더티 상태가 되는 경우는 발생하지 않습니다. 
+클립맵 유지 평균 비용은 거의 0 에 가깝지만, 최악의 경우 텔레포트같은 것을 할 때는 업데이트 비용이 더욱 높아질 수도 
+있습니다.
 
- * **Cast Shadow** 그림자 드리우기 - DFAO 는 라이트가 그림자를 드리울 때만 계산됩니다. 
- * **Occlusion Max Distance** 오클루전 최대 거리 - 오클루더에서 최대 이 거리까지 오클루전 공헌도를 계산합니다. 이 값을 올리면 DFAO 비용이 늘어나지만, 조금 더 먼 거리까지의 오클루전이 가능합니다. 
- * **Contrast** 대비 - 계산된 오클루전의 대비를 올리는 데 사용됩니다.
- * **Min Occlusion** 최소 오클루전 - 오클루전이 완전 새까매지는 것을 방지하고자 할 때 좋습니다. 현실에서 여러 번의 반사광을 통해 완전히 어두워지는 부분이 없는 현상을 시뮬레이션하는 데 좋습니다.
- * **Occlusion Tint** 오클루전 색조 - 오클루전의 색을 입히는 데 사용할 고정 색입니다. 물리적으로 맞으려면 검정이 되어야 하지만, 미적인 스타일을 내기 위해 다른 값을 쓸 수도 있습니다.
+![](DF_ClipMap.png)(w:750)
+[REGION:caption] 클립맵 텍셀 크기 시각화로, 각 클립맵을 각기 다른 색으로 나타낸 것입니다. [/REGION]
 
-### 프리미티브 컴포넌트
 
- * **Affect Distance Field Lighting** 디스턴스 필드 라이팅 영향 - 디스턴스 필드 라이팅 메소드에서 프리미티브의 영향력을 끄고자 할 때 사용할 수 있습니다.
+[COMMENT:none]
+-- EXCERPT taken from MeshDistanceFields.INT.udn --
+[/COMMENT]
+[INCLUDE:Engine/Rendering/LightingAndShadows/MeshDistanceFields#visualizeglobaldf2]
 
-### 메시 빌드 세팅
+글로벌 디스턴스 필드는 그에 해당하는 오브젝트 디스턴스 필드 부분보다 저해상도라, 근처 표면의 글로벌 디스턴스 필드 정확도가 떨어집니다. 
+콘 트레이스가 발생하면, 오클루전 콘 시작 부분 근처에는 오브젝트 디스턴스 필드를 사용하고 트레이스 나머지에는 글로벌 디스턴스 필드를 사용하여, 정확한 셀프 오클루전과 효율적인 원거리 트레이스를 둘 다 취하는 더 나은 결과를 얻을 수 있습니다.
+그 덕에 스카이 오클루전의 경우 실제 최대 오브젝트 영향력 거리가 크게 감소하여 퍼포먼스가 다섯 배 정도 향상되었습니다.
 
-[![](MeshSettings.jpg)](MeshSettings.jpg)
 
- * **Distance Field Resolution Scale** 디스턴스 필드 해상도 스케일 - 기본적으로 디스턴스 필드는 기본 스케일 1 로 월드에 배치된다 가정하고 각 스태틱 메시에 대해 할당됩니다. 다른 스케일 값으로 배치되는 메시에 대한 보정이나, 그냥 DFAO 퀄리티 향상을 위해 이 값을 사용합니다.
- * **Generate Distance Field As If Two Sided** 양면인 것처럼 디스턴스 필드 생성 - 폴리지처럼 트라이앵글 양쪽 면 모두 보이는 메시에는 이 옵션을 체크합니다. 이 옵션이 설정된 메시는 셀프 섀도 부작용이 적어, 제한된 폴리지 애니메이션이 가능합니다.
- * **Distance Field Replacement Mesh** 디스턴스 필드 대체 메시 - 이 것의 라이팅에 사용될 디스턴스 필드 생성시 사용할 수 있는 대체 스태틱 메시입니다. World Position Offset 을 사용하여 메시의 시작 위치에서 그 모양을 크게 바꾸고자 할 때 유용하게 쓰일 수 있습니다.
 
 ## 한계
 
 **기술적 한계**
-* DX11 전용으로, 고사양 기능입니다.
 * 앰비언트 오클루전만 제공되며, 블로킹 거리가 제한된 스카이 오클루전과는 다릅니다.
-* 동적으로 움직일 수 있음에도 리짓 메시에서만 그림자를 드리웁니다.
-* 월드 포지션 오프셋 또는 디스플레이스먼트를 통해 메시를 변형하는 머티리얼에는 부작용이 생기는데, 디스턴스 필드 표현은 이 변형에 대해 알지 못하기 때문입니다.
+* 스태틱(rigid) 메시에서만 그림자를 드리웁니다. 스켈레탈 메시의 경우 간접광 영역에는 [캡슐 섀도우](Engine/Rendering/LightingAndShadows/CapsuleShadows) 를 사용하세요.
 
 **현재 구현상 한계 (추후 개선 가능)**
-* 비균등 스케일이 제대로 처리되지 않습니다 (미러링은 괜찮습니다).  하지만 2 배 이하로 찌부러지는 것은 보통 눈에 띄지 않습니다.
-* 스태틱 메시 컴포넌트, 인스턴스트 스태틱 메시 컴포넌트, 폴리지, 랜드스케이프만 지원됩니다. 폴리지는 폴리지 세팅에서 bAffectDistanceFieldLighting 옵션을 켜야 합니다.
-* 동적인 씬 변화의 AO 업데이트가 약간 지연되는데, 작업이 여러 프레임에 걸쳐 일어나기 때문입니다. 샘플을 새로 생성하면서 오클루전이 약간 어긋날 수 있습니다.
+* 동적인 씬 변화의 AO 업데이트가 약간 지연되는데, 작업이 여러 프레임에 걸쳐 일어나기 때문입니다. 샘플을 새로 생성하면서 오클루전이 약간 어긋날 수 있습니다. 이 부분은 4.16 이후 디스턴스 필드 임시 필터에 신뢰도 값을 저장하게 한 뒤 업샘플 도중 오클루전 누수를 트래킹하고 그 후 히스토리를 통해 누수된 값을 빠르게 비우도록 하는 방식으로 개선되었습니다. 카메라가 움직일 때 발생할 수 있는 고스트 현상을 줄이는 데 도움이 됩니다.
 * 각 메시마다 하나의 볼륨 텍스처가 매핑되므로, 커다란 오브젝트에는 디스턴스 필드 해상도가 조악하여 AO 퀄리티가 떨어질 것입니다.
 
-## 퍼포먼스
-
-디스턴스 필드 AO 비용은 주로 GPU 시간과 비디오 메모리에서 발생합니다. 디스턴스 필드 AO 는 중간 정도 사양의 PC 와 PS4 에서 실행될 수 있도록 최적화되었습니다. 이제 비용도 훨씬 많이 안정화되어서, 거의 고정적이고, 오브젝트 밀도에 따라 살짝 달라지는 정도입니다.
-
-고정 카메라에 거의 평면 표면인 경우, 새로운 메소드는 기존 메소드에 비해 약 1.6 배 빨라졌습니다. 폴리지가 있고 카메라가 빠르게 이동하는 복잡한 씬에서, 새로운 메소드가 약 5.5 배 빨라졌습니다. PS4 에서 전체 씬의 디스턴스 필드 AO 비용은 3.7 ms 입니다.
+디스턴스 필드 한계 관련 추가 정보는, [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 문서를 참고하세요.
 
 
-기존 메소드에서는 적응형 샘플링을 했는데, 평평한 표면에는 작업을 덜 하지만, 깨끗한 환경에서는 얼룩이 많이 생기기도 했습니다.
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![예전 메소드 - 적응형](DFAO_Scene_OldMethod.png)(w:700)
-	[/PARAM]
-	[PARAM:after]
-	![새로운 메소드 - 스무드](DFAO_Scene_NewMethod.png)(w:700)
-	[/PARAM]
-[/OBJECT]
+## 팁
 
-AO 계산이 적응형 샘플링을 제거해도 괜찮을 만큼 빨라져서, 오클루전이 훨씬 부드러워 졌습니다.
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![예전 메소드 - 적응형](DFAO_View_OldMethod.png)(w:700)
-	[/PARAM]
-	[PARAM:after]
-	![새로운 메소드 - 스무드](DFAO_View_NewMethod.png)(w:700)
-	[/PARAM]
-[/OBJECT]
+### 저렴한 바운스 라이팅
 
-주의할 점은, 새로운 메소드는 더욱 긴 히스토리 필터를 필요로 하여 고스팅 현상이 생길 수 있는데, 특히나 그림자를 드리우는 것이 움직였을 때는 더욱 그러합니다. 앞으로 개선의 여지가 있는 부분입니다.
+스카이 라이트의 **Lower Hemisphere is Solid Color** (하반구는 단색) 옵션 체크를 해제하고 큐브맵에 바닥 색을 약간 칠해주는 것으로, 추가 비용 없이 태양빛이 반사되는 효과를 얻을 수 있습니다. 
+이는 디렉셔널 라이트의 섀도잉을 따르지 않기에 실내에서 빛샘 현상이 있을 수 있지만, 야외 씬에서는 효과적일 수 있습니다.
 
-<!---
-DFAO 비용은 주로 GPU 시간과 비디오 메모리입니다. 포트나이트의 꽤나 큰 레벨에서는 카메라를 고정한 상태로 라데온 7870 에서 1080p 해상도로 3.5ms 비용이 듭니다. 카메라가 빠르게 회전하는 최악의 상황에서는 최대 6ms 듭니다. 참고로 이 셋업에서 SSAO 비용은 1ms 입니다. 최대 150 mb 의 디스턴스 필드 볼륨 텍스처가 사용되었습니다.
 
-셰이딩은 적응형으로 이루어져, 평평한 표면과 이동하지 않는 표면은 비용이 낮습니다. 역으로 폴리지같은 작은 표면이 많은 씬이나 프레임 사이에 움직이는 것이 많으면 GPU 비용이 높아집니다.
 
-DFAO 주요 비용은 오브젝트 밀도에서 오는데, 각 오브젝트마다 오클루전에 별도로 간주되어야 하기 때문입니다. 근처에 나무가 많이 있는 빽빽한 숲이 이 기법에 가장 안좋은 예라 할 수 있습니다.
---->
 
-## Technical Details
 
-The main optimization is the use of a global distance field, which follows the camera around. This is created by compositing all the usual per-object distance fields into a few volume textures centered around the camera, called clipmaps. Only newly visible areas or those affected by a scene modification need to be updated, so the composition doesn't cost much.
 
-Visualization of the texel size of the clipmaps - each clipmap is a different color
 
-![](DF_ClipMap.png)(w:700)
 
-The global distance field is lower resolution than the object distance fields, so it can't be used for everything. When computing cone traces for sky occlusion, the object distance fields are sampled near the point being shaded, while the much faster global distance field is sampled further away.
 
-This is a visualization of ray tracing the global distance field vs object distance fields. Surfaces in the global distance field have become blobby and thin objects disappear.
 
-![](DF_GlobalDF.png)(w:700)
 
-## 문제해결 및 퀄리티
 
-기술적으로 지원되는 메시에 있어 퀄리티를 결정짓는 주요 요인은 실질적인 디스턴스 필드 해상도입니다. 이는 `DistanceFieldResolutionScale` 로 변경 가능합니다. 커다란 메시는 오류가 많이 생기는 경향이 있기에, 비슷한 크기의 메시로 만든 레벨의 퀄리티가 가장 좋습니다. 포트나이트에서는, 그리드에 맞는 메시나 그 주변에 배치한 소품의 결과물이 가장 좋았습니다. 랜드스케이프는 별도로 처리되며 디스턴스 필드 해상도에 영향받지 않습니다.
-
- * 에디터에서 뷰 -> 라이팅 기능 아래 'Distance Field AO' 표시 옵션을 사용하여 이 기능을 토글합니다. 게임에서는 'show distancefieldao' 명령입니다.
- * 뷰 -> 시각화 아래 'Distance Field AO' 표시 옵션을 사용하여 이 기능의 앰비언트 오클루전만 고립시켜 낼 수 있습니다.
- * 뷰 -> 시각화 아래 'Mesh Distance Fields' 표시 옵션을 사용하여 씬의 디스턴스 필드 표현을 확인할 수 있습니다.
-
-[![](VisualizeMeshDistanceFields.jpg)(w:600)](VisualizeMeshDistanceFields.jpg)  
-_레벨의 메시 디스턴스 필드 시각화입니다._
-
-[![](Mesh.jpg)](Mesh.jpg)  
-_원본 메시입니다._
-
-[![](LowResDistanceField.jpg)](LowResDistanceField.jpg)  
-_디스턴스 필드 해상도가 너무 낮아 중요한 특징이 손실되고 AO 에 부작용이 생깁니다._
-
-[![](HighResDistanceField.jpg)](HighResDistanceField.jpg)  
-_DistanceFieldResolutionScale 을 3 으로 설정하니, 중요한 특징이 살아납니다._
-
-## 저렴한 바운스 라이팅
-
-스카이 라이트의 "Lower Hemisphere Is Black" (하반구가 검정) 옵션 체크를 해제하고 큐브맵에 바닥 색을 약간 칠해주는 것으로, 추가 비용 없이 태양빛이 반사되는 효과를 얻을 수 있습니다. 이는 디렉셔널 라이트의 섀도잉을 존중하지 않기에 실내에서 빛샘 현상이 있을 수 있지만, 야외 씬에서는 효과적일 수 있습니다.

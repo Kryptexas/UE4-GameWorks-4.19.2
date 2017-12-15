@@ -5,39 +5,8 @@ Description:Reference covering Blueprint shortcuts and useful actions.
 version: 4.9
 order:1
 tags:Blueprints
+topic-image:Engine/Blueprints/blueprintcheatsheet.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CheatSheet:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CheatSheet:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CheatSheet:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CheatSheet:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

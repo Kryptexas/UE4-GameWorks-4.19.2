@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3587677
-Availability:Docs
+﻿INTSourceChangelist:3728507
+Availability:Public
 Title:1 - Composure レベル シーケンスのセットアップ
 Crumbs:%ROOT%
 Description:Composure が使用するレベル シーケンスをセットアップします。 
@@ -63,7 +63,7 @@ tags:Composure
     クリックしてフルサイズで表示
     [/REGION]
 
-1. 次に Track リストで**[CineCameraActor1]** 上で右クリックして、メニューから **[Import]** オプションを選択します。表示されるウィンドウからクイックスタートの最初のセクションでダウンロードした **cam_SH03_undistorted_export_v01.fbx** ファイルに移動し、**[Open]** ボタンを押してインポートします。
+1. 次に Track リストで**[CineCameraActor1]** 上で右クリックして、メニューから **[Import]** オプションを選択します。表示されるウィンドウからクイックスタートの最初のセクションでダウンロードした **shot0030_camera_export.fbx** ファイルに移動し、**[Open]** ボタンを押してインポートします。
 
     ![](ComposureQS_S4_7.png)
 

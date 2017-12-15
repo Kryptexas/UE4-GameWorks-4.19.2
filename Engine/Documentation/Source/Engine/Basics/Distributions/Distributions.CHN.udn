@@ -176,11 +176,13 @@ version: 4.9
 |DPM_Direct|直接使用输入值(没有重新映射)。|
 
 
-<!--
+[COMMENT:none]
+
 ### DistributionFloatSoundParameter(浮点型声效参数分布)
 
 这种类型和DistributionFloatParticleParam类似，但是它用于SoundCue(声效)。它用于从代码中修改SoundCue的属性。比如，如果当您想在开动汽车时使引擎噪声的音调升高，那么您需要为那个噪声创建一个SoundCue，并添加一个SoundNodeModulatorContinuous节点。然后，在PitchModulation(音调调制)属性上使用DistributionFloatSoundParameter。
--->
+
+[/COMMENT]
 
 ## Vector Distributions (向量分布)
 

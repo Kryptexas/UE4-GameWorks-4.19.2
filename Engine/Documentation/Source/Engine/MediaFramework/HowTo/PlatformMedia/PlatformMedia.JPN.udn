@@ -1,0 +1,154 @@
+﻿INTSourceChangelist:3703447
+Availability:Public
+Title:プラットフォームに特化したメディアをプレイする方法
+Crumbs:%ROOT%, Engine
+Description:プラットフォーム メディア ソース アセットを使ってプラットフォーム特化メディアのプレイ方法を説明します。 
+Type: how-to
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/MediaFramework/HowTo
+Order:3
+Tags:Media Framework
+Tags:Video Playback
+Related:Engine\MediaFramework
+
+マルチ プラットフォーム プロジェクトを使用している時に、使用しているプラットフォームに特化したメディアをプレイしたい場合があります。 
+例えば、PlayStation 4 (PS4) を使う時にはある特定の動画をプレイし、Xbox One の時は別の特定の動画をプレイする場合です。 
+あるいは、メディアのタイプは同じであっても、パフォーマンスの都合によりエンコード方法が異なるため、これらの異なるフォーマットを別のプラットフォームでプレイする場合です。 
+
+**プラットフォーム メディア ソース アセット** アセットを使って、実行中のプラットフォームに応じでプレイするメディア ソース アセットを決定することができます。 
+プラットフォーム メディア ソース アセットを開く / プレイすると、それを実行しているプラットフォームを確認し、自動的にメディア ソースが割り当てられます。 
+
+この操作ガイドでは、プラットフォーム メディア ソース アセットを作成し、Android と Windows の 2 種類のプラットフォームにそれぞれ異なるメディア ソースを割り当てます。 
+
+![](PlatformHero.png)
+
+## ステップ
+
+[REGION:note]
+この操作ガイドでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
+また、サンプル動画も 2 種類使用します。こちらの [プラットフォーム動画](PlatformVideos.rar) リンクをクリックして、コンテンツを端末上に展開してください。 
+[/REGION]
+
+1.	**[コンテンツ ブラウザ]** の **[Sources Panel]** を展開し **「Movies」** という名前で新規フォルダを追加したら右クリックして **[Show in Explorer]** を選択します。
+ 
+	![](Platform_01.png)
+
+1.	サンプル動画または使用したいメディア ファイルをプロジェクトの **「Content/Moviｄes」** フォルダにドラッグします。 
+
+	![](Platform_02.png)
+
+	[REGION:warning]
+	プロジェクトあるいは他のメディア ファイルをパッケージ化およびデプロイするためには、プロジェクトの **「Content/Movies」** フォルダ内にメディアを置く必要があります。 
+	[/REGION]
+
+1.	プロジェクトの **[コンテンツ ブラウザ]** の **「Content/Movies」** フォルダを右クリックして、**[Media]** で **[File Media Source]** を選択し **[Android_Movie]** と名前を付けます。 
+
+	![](Platform_03.png)
+
+	ここで、Android デバイスで実行している場合に **Platform Media Source** アセットが指定および使用可能な Media Source アセットを作成します。 
+
+1.	**File Media Source** アセットをもう 1 つ作成して **「Windows_Movie」** と名前を付けます。 
+
+	![](Platform_04.png)
+
+1.	**[Android_Movie]** メディア ソースを開き、**[File Path]** に **[Gideon_720x480]** (または使用したい動画) を選択して **[Open]** をクリックします。 
+
+	![](Platform_05.png)
+
+	この Android の動画には Android デバイスでの再生に適している .3GP 動画ファイルを使用しています ( Windows の動画であれば .MP4 が適しています)。 
+
+1.	**[Android_Movie]** メディア ソースを開き、**[File Path]** に **[Infiltrator Demo]** (または使用したい動画) を選択して **[Open]** をクリックします。 
+
+1.	**「Content/Movies」** フォルダを右クリックして **[Media]** から **[Platform Media Source]** を選択して **[Platform_Source]** と名前を付けます。  
+
+	![](Platform_06.png)
+
+	これでメディア ソース アセットが複数になったので、**Platform Media Source** アセットを使っている時にどちらのメディア ソースをプレイするか定義可能になりました。 
+
+1.	**[Platform_Source]** を開き、**[Android]** から **[Android_Movie]** を、そして **[Windows]** からは **[Windows_Movie]** をそれぞれ選択します。 
+
+	![](Platform_07.png)
+
+	今は 2 つの異なるサンプルを使用しましたが、同じ動画を、使用するデバイスに適したエンコード方法あるいはフォーマットに変更した場合も使用できます。 
+	例えば、異なるメディア ソース タイプを Windows で使う場合は [Media Stream](Engine\MediaFramework\HowTo\StreamMediaSource\) を使えば、ディスク上のファイルを使用する代わりにウェブからコンテンツを取り出すことができます。 
+
+1.	**「Content/Movies」** フォルダを右クリックして **[Media]** から **[Media Player]** を選択します。 
+
+	![](Platform_08.png)
+
+	この場合も、**Platform Media Source** アセットをプレイするには **[Media Player]** を開かなければなりません。 
+
+1.	**[Create Media Player]** ウィンドウで **[Video output Media Texture asset]** オプションを有効にして **[OK]** ボタンをクリックして、**[Media Player]** アセットを呼び出します。
+
+	![](Platform_09.png)
+
+	すると、このメディア プレイヤーと紐づいた [Material](Engine/Rendering/Materials/) で使用する可能な **メディア テクスチャ** が自動作成され、コンテンツのプレイ先となるレベルにメッシュを適用します。 
+
+1.	**[Media Player]** アセットの **[Media Library]** ウィンドウの **[Platform_Media]** アセットをダブルクリックします。 
+
+	![](Platform_10.png)
+
+	**[Platform_Source]** アセットをダブルクリックすると (実行中のプラットフォームは Windows なので).**Windows** に対して割り当てたプラットフォーム メディア ソースの再生が開始します。 
+	ブループリントあるいは C++ から **[Android_Movie]** メディア ソースを開いて再生ができますが[Platform_Source] を開いた場合は Windows に割り当てたメディアソースのみが再生されます。 
+	さらに **[Play on Open]** オプションを使うと、デフォルトでメディア ソースを開いた時にメディア プレイヤーが再生を開始することができます。 
+
+1.	メイン エディタ ウィンドウの **[Modes]** パネルの **[Basic]** から、**[Plane]** をレベルへドラッグし、好きなサイズに変更し、**MediaPlayer_Video** テクスチャをその上にドラッグします。 
+
+	![](Platform_11.png)
+
+	**Media Texture** アセットをレベルのスタティックメッシュ上にドラッグすると、マテリアルが作成および適用され、メディアを再生します。 
+
+1.	**[Plane]** を選択した状態で **[Details]** パネルから **[Media Sound]** コンポーネントを追加し、**[Media Player]** オプションで使用するアセットを **[MediaPlayer]** に設定します。 
+
+	![](Platform_11b.png)
+
+1.	メイン ツールバーで **[Blueprints]** オプションをクリックし **[Open Level Blueprint]** を選択します。 
+
+	![](Platform_12.png)
+
+1.	**[MyBlueprint]** パネルで **「Media Player Object Reference」** という型の **「MediaPlayer」** という変数を作成し、**メディア プレイヤー** として **[MyPlayer]** に割り当てます。 
+
+	![](Platform_13.png)
+
+	すると、Media Player アセットへの参照が作成され、後にブループリントでの使用してアクションの呼び出しが可能になります。 
+
+	[REGION:note]
+	変数の **デフォルト値** を設定するには、まず **[Compile]** をクリックしてブループリントをコンパイルします。 
+	[/REGION]
+
+1.	**[Ctrl]** を押しながら **[MediaPlayer]** 変数をグラフへドラッグしたら、**1** キーボード イベントを追加して **Platform_Source** を指定する **Open Source** ノードへ接続します。 
+
+	![](Platform_14.png)
+
+	ここでは、実行先のプラットフォームに応じて別の Media Source アセットを開くように設定されているMedia Player に **Platform Media Source** アセットを開くように伝えています。 
+
+1.	**Level ブループリント** を終了して、**[Play]** ボタンをクリックしてエディタで再生します。 
+
+
+## 最終結果
+
+エディタでプレイする場合、1 を押すと Windows で定義されたメディア ソースがプラットフォーム メディア ソース中で開きます。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	DfZz5ZSksug
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+このプロジェクトを Android デバイスにデプロイする場合は、Android を割り当てた Media Source アセットがプレイされます。 
+
+
+

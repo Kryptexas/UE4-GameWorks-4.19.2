@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:仮想キーボードのインタラクションを作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -33,21 +33,13 @@ _このガイドの最後まで進むと、 3D ゲーム ワールド内で表�
 
 最初のステップは、Widget Interaction コンポーネントで文字を設定し、 UI を表示するアセットを作成します。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup)
-	* [](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup)
-	* [](Engine\UMG\HowTo\VirtualKeyboards\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup)
+* [](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup)
+* [](Engine\UMG\HowTo\VirtualKeyboards\ActorSetup)
+[/REGION]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")

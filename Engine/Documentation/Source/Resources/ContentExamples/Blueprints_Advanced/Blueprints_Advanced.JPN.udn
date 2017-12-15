@@ -42,7 +42,9 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-<!-- insert to PARAM:path when complete! [RELATIVE:Resources/ContentExamples/Blueprints_Advanced]-->
+[COMMENT:none]
+ insert to PARAM:path when complete! [RELATIVE:Resources/ContentExamples/Blueprints_Advanced]
+[/COMMENT]
 
 **高度なブループリント** のサンプル レベルへようこそ!
 

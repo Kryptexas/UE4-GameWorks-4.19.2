@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 페이퍼 2D
 Crumbs: %ROOT%, Engine
@@ -19,11 +19,11 @@ Topic-image:Paper2D_Topic.png
 
 ## 시작하기
 
-[DIR(output:"topic" parent:"Engine/Paper2D" org:"hierarchy" path:"!Engine/Paper2D/HowTo")]
+[DIR(output:"topic" parent:"Engine/Paper2D" org:"hierarchy" type:"landing,overview,quick start, reference")]
 
 ## 안내서
 
-[DIR(output:"fancy" parent:"Engine/Paper2D/HowTo" org:"hierarchy")]
+[DIR(output:"fancy" parent:"Engine/Paper2D/HowTo" org:"hierarchy" type:"how-to")]
 
 ## 비디오 시리즈
 

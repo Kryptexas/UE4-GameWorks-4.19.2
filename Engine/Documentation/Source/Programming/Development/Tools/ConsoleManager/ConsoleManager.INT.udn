@@ -285,8 +285,12 @@ The **UnregisterConsoleVariable** method allows you to remove the console variab
 The variable is still kept (with the unregistered flags) to not crash when pointers access the data. If a new variable is registered with the same name,
 the old variable is restored and flags get copied from the new variable. This way DLL loading and unloading can work even without losing the variable state.
 Note that this will not work for console variable references. 
-<!--Sentence below deprecated for clarification.-->
-<!--This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.-->
+[COMMENT:none]
+Sentence below deprecated for clarification.
+[/COMMENT]
+[COMMENT:none]
+This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.
+[/COMMENT]
 
 
 

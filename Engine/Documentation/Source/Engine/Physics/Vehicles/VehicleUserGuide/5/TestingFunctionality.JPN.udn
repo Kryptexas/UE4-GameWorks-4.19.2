@@ -25,7 +25,9 @@ Tags:Vehicles
 
 	![](input.png)(w:950)
 
-1. [Bindings ] メニューで、以下の制御をセットアップします (現在、リストされていない場合)。リストされていたら、ビークルが正しく動作するように、ここでリストされているものと同様であるかを確認するとよいでしょう。<!-- TODO, add images for this steps and all of the sub-steps contained herein. -->
+1. [Bindings ] メニューで、以下の制御をセットアップします (現在、リストされていない場合)。リストされていたら、ビークルが正しく動作するように、ここでリストされているものと同様であるかを確認するとよいでしょう。[COMMENT:none]
+ TODO, add images for this steps and all of the sub-steps contained herein. 
+[/COMMENT]
 
 	1. 最初に、 [Action Mappings (アクション マッピング)] プロパティの隣にある **+** 記号をクリックして、**Action Mapping** をセットアップします。
 

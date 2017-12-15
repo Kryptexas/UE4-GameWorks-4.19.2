@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:3769397
+Availability: Public
+Crumbs: %ROOT%
+Title: SteamVR 사전 요구사항
+Description: UE4 에서 SteamVR 을 사용할 수 있도록 구성하는 데 관련된 정보입니다.
+Type:Reference
+Version:4.17
+Parent:Platforms/SteamVR
+Order:1
+Tags:SteamVR
+Tags:Platform
+tags:Getting Started
+topic-image:PreRecProfiling_Topic_Image.png
+related: Platforms/SteamVR/QuickStart/
+related: Platforms/SteamVR/HowTo/SeatedCamera/
+related: Platforms/SteamVR/HowTo/StandingCamera/
+
+
+SteamVR 작업이 가능하도록 UE4 프로젝트를 구성하는 방법 관련 정보입니다.
+
+## SteamVR 설치
+
+어떤 HMD 를 사용하든 관계 없이 SteamVR 을 사용하는 VR 프로젝트를 개발중이라면 Steam 을 다운로드하고 설치해야 SteamVR 접근이 가능합니다. 여기서는 Steam VR 다운로드 및 설치에 관련해서 알아야 하는 모든 것에 대해 살펴보도록 하겠습니다.
+
+1. 먼저, [Steam 클라이언트](http://store.steampowered.com/) 를 [Steam 웹사이트](http://store.steampowered.com/) 에서 다운로드하여 설치합니다.
+
+1. Steam 이 설치되면 SteamVR 을 다음 두 가지 방법 중 하나로 실행합니다:
+
+    * Steam 클라이언트 상단에 위치한 Start SteamVR 버튼을 누릅니다.
+
+        ![](SteamVRPreRec_00.png)
+
+    * **Library** (라이브러리) > **Tools** (툴)로 가서 **SteamVR [beta]** 옵션을 찾아 클릭합니다.
+
+        ![](SteamVRPreRec_01.png)
+
+SteamVR 툴이 실행되어 있어야 UE4 프로젝트를 확인할 수 있다는 점 기억해 주세요. SteamVR 툴을 최소화시키는 것은 괜찮지만, 종료하지는 마세요.
+
+## SteamVR 문제해결
+
+SteamVR 실행이나 HMD 감지 관련 문제가 있으면, SteamVR 및 HTC Vive 기술지원 페이지에서 대부분 도움을 받을 수 있습니다.
+
+* [SteamVR Support](https://support.steampowered.com/kb_article.php?ref=8566-SDZC-9326)
+
+* [HTC Vive Support](https://www.vive.com/us/support/)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

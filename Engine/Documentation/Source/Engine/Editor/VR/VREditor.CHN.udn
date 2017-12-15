@@ -93,7 +93,8 @@ social-image:vreditor_social.png
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VRHardware]
 [REGION:plainlist]
 * Oculus Rift 以及 Oculus 触摸控制器
@@ -110,4 +111,5 @@ VR 编辑器当前需要运动控制器。无法单独使用头戴设备。
 * **HTC Vive：**SteamVR
 [/REGION]
 [/EXCERPT:VRSoftware]
--->
+
+[/COMMENT]

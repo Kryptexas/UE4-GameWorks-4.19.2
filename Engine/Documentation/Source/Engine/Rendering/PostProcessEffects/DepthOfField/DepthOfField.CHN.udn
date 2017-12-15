@@ -98,13 +98,16 @@ Version:4.9
 | **Max Bokeh Size** | 散景景深模糊的最大尺寸（以视图宽度的百分比计）（**注意：** 性能消耗按尺寸乘尺寸计算）。用于计算任意距离散景尺寸的函数近似表示如下图所示：[INCLUDE:#MaxBokehSize] |
 | **Near Blur Size** | 高斯景深近景模糊的最大尺寸（以视图宽度的百分比计）。（**注意：** 性能消耗按尺寸计算）[INCLUDE:#NearBlurSize] |
 | **Far Blur Size** | 高斯景深远景模糊的最大尺寸（以视图宽度的百分比计）。（**注意：** 性能消耗按尺寸计算）[INCLUDE:#FarBlurSize] |
-| **Shape** | 定义物体离开焦距时散景形状的纹理（无法进行混合）。<!--待处理：展示一些示例图--> |
+| **Shape** | 定义物体离开焦距时散景形状的纹理（无法进行混合）。[COMMENT:none]
+待处理：展示一些示例图
+[/COMMENT] |
 | **Occlusion** | 控制模糊几何体常规轮廓和不透明度的延伸量。将数值设为 0.18 即可获得十分自然的遮挡效果。将数值设为 0.4 可解决图层颜色泄露问题。设较小的数值（小于 0.18）通常会将模糊效果取消，物体十分靠近摄像机时十分有效。[INCLUDE:#Occlusion] |
 | **Color Threshold** | 设置阈值，使自适应景深基于颜色切换使用全分辨率。数值越小，使用全分辨率处理的场景部分越多。|
 | **Size Threshold** | 设置阈值，使自适应景深基于尺寸切换使用全分辨率。数值越大，使用全分辨率处理的场景部分越多。|
 | **Sky Distance** | 使天空方块处于焦距中的虚拟距离（如 200000）。如数值小于等于 0，此功能将关闭。只可用于高斯景深，对性能消耗较大。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:FocalDistance]
 [REGION:imagetable]
 | ![DoF Focal Distance - Near](dof_focaldist_0.png)(w:240) | ![DoF Focal Distance - Mid](dof_focaldist_1.png)(w:240) | ![DoF Focal Distance - Far](dof_focaldist_2.png)(w:240) |
@@ -171,7 +174,8 @@ Version:4.9
 | 比例 = 0.0 | 比例 = 0.375 | 比例 = 1.0 |
 [/REGION] 
 [/EXCERPT:Scale]
--->
+
+[/COMMENT]
 
 (#adaptivedof)
 ## 自适应景深

@@ -3,9 +3,9 @@ Crumbs: %ROOT%
 Title: Use the Gear VR HMD Touchpad 
 Description: Setting up the Gear VR HMD Touchpad 
 Type: how-to
-SkillLevel: Intermidate
+SkillLevel: Intermediate
 Version: 4.17
-Parent: Platforms/GearVR/HowTo
+Parent: Platforms/GearVR
 Order: 3
 Tags: GearVR
 prereq: Platforms\GearVR\Prerequisites
@@ -13,14 +13,11 @@ prereq: Platforms\GearVR\QuickStart
 prereq: Platforms\GearVR\HowTo\CameraSetup
 topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
 
-Located on the side of the Gear VR HMD is a touchpad that allows users to interact with the VR project they are currently viewing. Users can interact with the VR projects by tapping or swipe their finger along this touchpad. In the following How - To we will go over setting up the Gear VR HMD touchpad to display different text based on various touchpad inputs.
+![](HTTouchPad.png)
 
-[region:note]
-This How - To will utilize the pawn the that was created in the [Set Up Cameras for Gear VR How - To](Platforms\GearVR\HowTo\CameraSetup). If you have not completed this How - To it is highly suggested you do before continuing.
-[/region]
+Located on the side of the Gear VR HMD is a touchpad that allows users to interact with the VR project they are currently viewing. Users can interact with the VR projects by tapping or swiping their finger along this touchpad. In the following How - To we will go over setting up the Gear VR HMD touchpad to display different text based on various touchpad inputs.
 
-
-## Pawn Setup
+## Steps
 
 Below you will find instructions on how your player Pawn needs to be setup so that we can display what type of action is being performed on the Gear VR touchpad.
 
@@ -42,19 +39,19 @@ Below you will find instructions on how your player Pawn needs to be setup so th
     | **Horizontal Alignment** |  Center |
     | **Vertical Alignment** |  Text Center |
 
-1. Next, to determine if the input was a tap or a swipe we need to track the distance between the first touch and the last touch. If the distance between these numbers is under a certain amount, then a tap was performed. If the distance between these numbers is over a certain amount, then a swipe took place. To accomplish this, over in the  **Event Graph** create two **Vector 2D** variables with the following names:
+1. Next, to determine if the input was a tap or a swipe we need to track the distance between the first touch and the last touch. If the distance between these numbers is under a certain amount, then a tap was performed. If the distance between these numbers is over a certain amount, then a swipe took place. To accomplish this, over in the **Variables** section, create two **Vector 2D** variables with the following names:
+
+    ![](HTTouchPad_Var_Setup.png)
 
     * **TouchStart**
     * **TouchEnd**
-
-    ![](HTTouchPad_Var_Setup.png)
 
 1. Finally, we need to add **five** **Text** variables that will be used to display if a tap or swipe took place and what direction the swipe originated. Add the following Text variables with the following names and values to your GearVR_Pawn Blueprint now.
 
     ![](HTTouchPad_Var_TouchSwipe.png)
 
-    |Node Name         | Default Value|
-    |----------         |--------------|
+    |Node Name       | Default Value|
+    |----------      |--------------|
     | **TouchTap**   |  TouchTap    |
     | **SwipeLeft**  |  SwipeLeft   |
     | **SwipeRight** |  SwipeRight  |
@@ -63,7 +60,7 @@ Below you will find instructions on how your player Pawn needs to be setup so th
 
 With all of the needed components and variables added to the Pawn, in the next section we will take a look what we need to do to detect if a tap or swipe took place.
 
-## Touch & Swipe Input Setup
+### Touch & Swipe Input Setup
 
 In the following section, we will go over how to setup the initial logic in our GearVR_Pawn Blueprint to determine if the user has just tapped or swiped the touchpad.
 
@@ -86,7 +83,7 @@ In the following section, we will go over how to setup the initial logic in our 
     |**Get Input Touch State ** | N/A |
     |**Make Vector 2D** | N/A |
 
-1. Next, we will need to record and then store the location of the first and last touch as we can use the distance between these two numbers to see if a tap or swipe has taken place. To accomplish this, first, connect the Get Player Controller node to the Get Input Touch Start so that we can track when the first touch input the user does. To make things easier to work with, connect the Location X and Y to the Make Vector 2D node and then connect the Make Vector 2D node output to the inputs on both the Touch Start and Touch End variables. Finally, connect the Input Touch Pressed to the Touch Start variable and then connect the Input Touch Released to the Touch End variable. When completed this part of the Blueprint should look like the following image.
+1. Next, we will need to record and then store the location of the first and last touch as we can use the distance between these two numbers to see if a tap or swipe has taken place. To accomplish this, first, connect the Get Player Controller node to the Get Input Touch Start so that we can track when the first touch input the user does. To make things easier to work with, connect the Location X and Y to the Make Vector 2D node and then connect the Make Vector 2D node output to the inputs on both the Touch Start and Touch End variables as this will help us to easily store the start and end touch. Finally, connect the Input Touch Pressed to the Touch Start variable and then connect the Input Touch Released to the Touch End variable. When completed this part of the Blueprint should look like the following image.
 
     [REGION:lightbox]
     [![](HTTouch_TouchStartEndSetup.png)(w:499)](HTTouch_TouchStartEndSetup.png)
@@ -163,7 +160,7 @@ In the following section, we will go over how to setup the initial logic in our 
 
 With the Blueprint logic to determine if we are tapping or swiping now completed in the next section, we will take a look at how to use this to display some text that tells the user if the tapped or swiped and which direction the swipe started from.
 
-## Determining Between Taps & Swipes
+### Determining Between Taps & Swipes
 
  In the following section, we will setup the Blueprint to detect the difference between a tap and a swipe and also give it the ability to display some text that shows what type of action took place.
 
@@ -223,7 +220,7 @@ With the Blueprint logic to determine if we are tapping or swiping now completed
 
 With our Blueprint tap and swipe functionality now set up, in the next section we will take a look at displaying differing text based on what type of input is applied to the Gear VR touchpad.
 
-## Performing Different Actions on Touch & Swipe
+### Performing Different Actions on Touch & Swipe
 
 With the ability to not only the determined difference between a tap and a swipe but also the direction a swipe came from, in this part of the How - To we are going to set up our GearVR_Pawn Blueprint to display text that will show what type of input took place.
 
@@ -261,39 +258,42 @@ With the ability to not only the determined difference between a tap and a swipe
     You can copy the finished version of this Blueprint into your Blueprint by clicking on the Copy Node Graph option and then copying the supplied text and pasting it into your Blueprint.
     [/region]
 
-1. Once you have Compiled and Saved the GearVR_Pawn Blueprint, deploy the UE4 project on your Samsung Galaxy Smartphone and then put your phone into your Gear VR HMD. Now when you tap or swipe the touchpad with your finger, you should see texts that will display the action you performed like in the video below. 
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        n-8tTaIK7pg
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Once you have Compiled and Saved the GearVR_Pawn Blueprint, deploy the UE4 project on your Samsung Galaxy Smartphone and then put your phone into your Gear VR HMD. Now when you tap or swipe the touchpad with your finger, you should see texts that will display the action you performed like in the video below. 
 
-    [region:note]
-    If the text fails to show up when you tap or swipe the Gear Vr touchpad, make sure that text has been input into the Default Value of the Text variable. 
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    n-8tTaIK7pg
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
-    ![](HTTouch_TapOrSwipeDisplayText_03.png)
-    [/region]
+[region:note]
+If the text fails to show up when you tap or swipe the Gear Vr touchpad, make sure that text has been input into the Default Value of the Text variable. 
 
-## UE4 Project Downloads
+![](HTTouch_TapOrSwipeDisplayText_03.png)
+[/region]
+
+### UE4 Project Downloads
 
 Below you will find a link to where you can download the UE4 project that was used to create this example. 
 
 * [**Gear VR HMD Touchpad Example Project**](https://epicgames.box.com/s/19b1w5nk9srv7y3dwkv9c4mdem28rt0z)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GearVRTouch]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -821,7 +821,8 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:GearVRTouch]
--->
+
+[/COMMENT]
 
 
 

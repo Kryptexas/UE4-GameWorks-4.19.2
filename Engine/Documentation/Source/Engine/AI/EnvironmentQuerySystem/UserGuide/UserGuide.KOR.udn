@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3750407
 Availability:Public
 Title:인바이언먼트 쿼리 시스템 사용 안내서
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -6,44 +6,6 @@ Description:이 문서는 비헤이비어 트리 내 인바이언먼트 쿼리 �
 Version: 4.9
 SkillLevel: Advanced
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ## 인바이언먼트 쿼리 시스템 켜기
 
@@ -184,20 +146,14 @@ Generator (생성기)는 **Item** (아이템)이라고도 하는 위치 또는 �
 
 새로 생성된 EnvQueryContext 블루프린트에는 구현가능한 함수가 넷 있을 것입니다:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](implementableFunctions.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-		* **Provide Single Location** 단일 위치 제공
-		* **Provide Single Actor** 단일 액터 제공
-		* **Provide Locations Set** 위치 세트 제공
-		* **Provide Actors Set** 액터 세트 제공
+* **Provide Single Location** 단일 위치 제공
+* **Provide Single Actor** 단일 액터 제공
+* **Provide Locations Set** 위치 세트 제공
+* **Provide Actors Set** 액터 세트 제공
 
-		이들 중 하나 이상을 구현하면, 쿼리의 테스트 안에서 사용할 수 있는 별도의 커스텀 컨텍스트를 만들 수 있습니다. 함수 또는 구현하고자 하는 함수에 우클릭한 다음 **Implement Function** (함수 구현)을 선택하세요.
-	[/PARAM]
-[/OBJECT]
+이들 중 하나 이상을 구현하면, 쿼리의 테스트 안에서 사용할 수 있는 별도의 커스텀 컨텍스트를 만들 수 있습니다. 함수 또는 구현하고자 하는 함수에 우클릭한 다음 **Implement Function** (함수 구현)을 선택하세요.
 
+![](implementableFunctions.png)(convert:false)
 
 ### 단일 위치 제공
 

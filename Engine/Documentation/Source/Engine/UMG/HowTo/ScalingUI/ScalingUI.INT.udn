@@ -9,45 +9,7 @@ Related: Resources\SampleGames\UnrealMatch3
 Version: 4.10
 SkillLevel: Intermediate
 tags:UMG UI Designer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/ScalingUI:title%](UIScaling.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/ScalingUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/ScalingUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/ScalingUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/ScalingUI:title%](UIScaling.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/ScalingUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/ScalingUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/ScalingUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:UIScaling.png
 
 [REGION:note]
 It is recommended that you have a general understanding of the [](Engine/UMG) before proceeding with this How-to. 

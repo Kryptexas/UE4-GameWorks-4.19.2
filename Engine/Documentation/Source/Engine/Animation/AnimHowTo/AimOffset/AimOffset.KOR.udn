@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:에임 오프셋 만들기
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo
 Description:에임 오프셋을 사용하여, 캐릭터가 마우스 또는 콘트롤러 방향으로 무기를 조준하도록 합니다.
 version: 4.14
 skilllevel: Advanced
@@ -26,21 +26,12 @@ CEIeNE9lKxI
 
 이 강의를 완료하면 위 영상과 비슷한 캐릭터가 나올 것입니다:
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Animation\AnimHowTo\AimOffset\01_CreatingAimPoses "%Engine\Animation\AnimHowTo\AimOffset\01_CreatingAimPoses:description%")
-	* [](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset "%Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset:description%")
-	* [](Engine\Animation\AnimHowTo\AimOffset\03_ImplementingAimOffset "%Engine\Animation\AnimHowTo\AimOffset\03_ImplementingAimOffset:description%")
-	* [](Engine\Animation\AnimHowTo\AimOffset\04_FinishingUp "%Engine\Animation\AnimHowTo\AimOffset\04_FinishingUp:description%")
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine/Animation/AnimHowTo/AimOffset")]
+
+[REGION:call_to_action]
+[클릭하면 시작합니다.](Engine/Animation/AnimHowTo/AimOffset/01_CreatingAimPoses "%Engine/Animation/AnimHowTo/AimOffset/01_CreatingAimPoses:description%")
+[/REGION]
 
 

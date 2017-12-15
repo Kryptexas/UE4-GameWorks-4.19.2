@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717059
 Availability:Docs
 Title: 문서 작성 프로세스와 지침
 Crumbs:
 Description:문서 작성시의 스타일과 문법 지침서입니다.
+parent:%ROOT%
+order:500
 
 언리얼 엔진 4 (UE4) 문서의 경우 자체적으로 확장된 마크다운 문법이 사용되며, 그 파일들은 엔진과 함께 P4 에 보관됩니다. 이로써 문서 추가/업데이트가 한결 수월해 지기를 바랍니다.
 

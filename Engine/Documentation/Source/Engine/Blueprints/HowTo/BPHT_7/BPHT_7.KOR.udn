@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:7. 직접 해보기!
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -22,7 +22,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이 프로젝트에서 배운 내용을 토대로, 다음과 같은 작업을 해 봅니다:
 
@@ -58,7 +58,7 @@ yut5Feu1KxI
 * **언리얼 모션 그래픽** (UMG) 로 HUD 요소를 만드는 법 관련 상세 정보: [**언리얼 모션 그래픽**](Engine/UMG)
 
 
-%Steps%
+
 
 
 

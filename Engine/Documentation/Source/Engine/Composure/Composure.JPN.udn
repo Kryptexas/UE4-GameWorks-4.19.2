@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3587677
-Availability:Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Title:Composure エディタ
 Crumbs: %ROOT%, Engine
 Description:Composure は、UE4 の合成エディタです。デジタルと現実世界のフッテージを UE4 でリアルタイムで合成します。 
 Type:Landing
 Version:4.17
 parent:Engine
+order:4
 topic-image:ComposureTopic.png
 related:Engine/Sequencer
 tags:Sequencer
@@ -20,7 +21,8 @@ tags:Sequencer
 
 [DIR(output:"topic" parent:"Engine/Composure" org:"hierarchy" end:"1" tags:"Getting Started")]
 
-<!--
+[COMMENT:none]
+
 ## 基本
 
 
@@ -33,7 +35,8 @@ tags:Sequencer
 
 ## サンプル
 
--->
+
+[/COMMENT]
 
 
 

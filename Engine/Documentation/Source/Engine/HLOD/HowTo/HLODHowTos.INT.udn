@@ -21,8 +21,10 @@ These guides walk you through enabling the **Hierarchical Level of Detail** (HLO
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"intermediate")]
 
-<!--
+[COMMENT:none]
+
 ## Advanced
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"advanced")]
--->
+
+[/COMMENT]

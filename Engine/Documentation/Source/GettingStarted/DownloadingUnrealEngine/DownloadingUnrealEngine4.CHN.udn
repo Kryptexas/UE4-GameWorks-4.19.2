@@ -19,9 +19,11 @@ SkillLevel: Advanced
 
 我们的订阅者也能从虚幻引擎的 GitHub 库来下载虚幻引擎 4 （UE4）。你必须要先注册为虚幻引擎的订约用户并关联 GitHub 的账号才能访问到 GitHub 上的虚幻引擎目录[repository](https://github.com/EpicGames/UnrealEngine)。查看 [GitHub 上的 UE4](https://www.unrealengine.com/ue4-on-github) 页面了解如何关联你的 GitHub 账户到虚幻引擎账户。
 
-<!-- The following is commented out per LaurenR's request during Peer Review on 23.07.15
+[COMMENT:none]
+ The following is commented out per LaurenR's request during Peer Review on 23.07.15
 通过获取我们的源代码，订阅者们可以根据各自的需要，来自行修改引擎和工具。我们有很多订阅者在 Windows，Mac，Linux 下自行打造编辑器，为 Android 和 iOS 编译游戏。我们的所有工具（比如 Unreal Lightmass 和 Frontend 工具）的源代码页都包含在内。
--->
+
+[/COMMENT]
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/SourceBranches]
 

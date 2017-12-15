@@ -54,14 +54,16 @@ Version:4.9
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Functions#TextureObject]
 
 
-<!---
+[COMMENT:none]
+-
 ## Scene Texture
 
 
 ## Texture Object
 
 
---->
+-
+[/COMMENT]
 
 (#TextureSample)
 ## TextureSample（纹理取样）

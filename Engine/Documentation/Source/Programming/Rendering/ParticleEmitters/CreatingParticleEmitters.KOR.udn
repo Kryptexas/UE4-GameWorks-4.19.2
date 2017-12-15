@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:파티클 이미터 테크니컬 가이드
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -224,7 +224,8 @@ ParticleEmitterInstance 구조체에서 기본 함수성을 덮어쓸 수 있는
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::AdjustComponentRotation()`[/REGION] | `AdjustComponentRotation()` 함수는 이미터 인스턴스 로테이션을 감안하도록 컴포넌트의 `LocalToWorld` 를 변경합니다. [INCLUDE:#AdjustComponentRotation] |
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::RestoreComponentRotation()`[/REGION] | `RestoreComponentRotation()` 함수는 컴포넌트의 LocalToWorld 에서 이미터 인스턴스 로테이션을 제거합니다. [INCLUDE:#RestoreComponentRotation] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Constructor]
 [REGION:transparenttable]
 | --- | --- |
@@ -379,7 +380,8 @@ ParticleEmitterInstance 구조체에서 기본 함수성을 덮어쓸 수 있는
 	   Component->SetTransformedToWorld();
 	}
 [/EXCERPT:RestoreComponentRotation]
--->
+
+[/COMMENT]
 
 ### 결과
 

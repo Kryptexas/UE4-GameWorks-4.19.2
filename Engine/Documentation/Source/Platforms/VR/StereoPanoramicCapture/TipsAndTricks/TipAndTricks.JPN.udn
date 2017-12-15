@@ -190,7 +190,8 @@ Stereo Panoramic image capture ツールは、スクリーン空間で作成さ�
 
 [![](Hellblade_Link_Image.png)](https://www.unrealengine.com/blog/capturing-stereoscopic-360-screenshots-videos-movies-unreal-engine-4)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:StereoBP]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -376,5 +377,6 @@ Stereo Panoramic image capture ツールは、スクリーン空間で作成さ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:StereoBP]
--->
+
+[/COMMENT]
 

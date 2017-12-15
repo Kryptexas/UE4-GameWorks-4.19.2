@@ -22,7 +22,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在此步骤中，我们将创建程序化植物工具所需的新关卡、地形地貌和全部 Actors。
 
@@ -70,7 +70,7 @@ Version:4.8
 
 	![](T_Save_All.png)
 
-%Steps%
+
 
 
 

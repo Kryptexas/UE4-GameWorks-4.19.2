@@ -1,0 +1,62 @@
+﻿INTSourceChangelist:3714454
+Availability:Public
+Crumbs: %ROOT%
+Title:追加の Android SDK をインストールする
+Description:追加の Android SDK のインストール方法の説明
+Type: how-to
+SkillLevel: advanced
+Version:4.17
+parent:Platforms/Android
+Order:1
+Tags:Android
+
+アンリアル エンジン 4 (UE4) プロジェクトを実行するために開発している Android デバイスのタイプにより、追加で Android SDK のインストールする必要な場合があります。この文書では Android SDK の追加インストールについて説明します。 
+
+
+## ステップ
+
+追加で Android SDK をインストールするには、以下の手順でまず **Android SDK Manager** を開きます。
+
+1. まず、**NVPACK** のインストール先を探します。
+
+	![](AddSDK_01.png)
+
+1. **[Shift]** キーを押しながら、「NVPACK」フォルダを右クリックし、
+ 表示されたメニューから **[Open command_window here]** を選択します。 
+
+ 	![](AddSDK_02.png)
+
+1. コマンド ウィンドウに **「android.bat」** と入力し **[Enter]** キーを押すと **Android SDK Manager** が起動します。
+
+ 	![](AddSDK_03.png)
+
+1. **Android SDK Manager** がロードされたら、必ず **[Deselect All]** オプションを押して、必要な SDK がアンインストールされないようにします。
+
+ 	![](AddSDK_04.png)
+
+1. 次に、インストールする Android API バージョンを見つけて使用可能なオプションを展開します。この例では **Android 7.1.1 (API 25)** を使用しているので、[Android 7.1.1 (API 25)] セクションにある **[SDK Platform]** の横のチェックマーク ボックスを必ずクリックします。
+
+ 	![](AddSDK_05.png)
+
+1. 最後に **[Install 1 package]** ボタンを押して、ダウンロードとインストールを開始します。 
+
+ 	![](AddSDK_06.png)
+
+
+## 最終結果
+
+完了すると、**[Status]** がフォルダ アイコンにインストール済みを表すチェックマークが付いたフォルダ アイコンに変わります。 
+
+![](AddSDK_07.png)
+
+
+
+
+
+
+
+
+
+
+
+

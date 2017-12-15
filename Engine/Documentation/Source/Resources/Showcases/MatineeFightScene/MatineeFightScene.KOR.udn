@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -12,48 +12,7 @@ Related: Engine/Rendering/ParticleSystems
 Related: Engine/Blueprints
 Related: Engine/Basics/Projects/CreatingTemplates
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/MatineeFightScene:title%](MatineeTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/MatineeFightScene:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/MatineeFightScene:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/MatineeFightScene]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/MatineeFightScene:title%](MatineeTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/MatineeFightScene:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/MatineeFightScene:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/MatineeFightScene]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:MatineeTopic.png
 
 
 [REGION:fullwidth]
@@ -135,15 +94,6 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 [/REGION]
 
 **게임 뷰** 가 켜진 상태로 **마티네 에디터** 창에서 **마티네** 시퀀스를 재생해 보면 에디터 아이콘 표시 없이도 최종 결과가 어때 보이는지 개념을 잡을 수 있습니다.
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Game View Off](GameViewOff.png)(w:600)
-	[/PARAM]
-	[PARAM:after]
-	![Game View Om](GameViewOn.png)(w:600)
-	[/PARAM]
-[/OBJECT]
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -649,7 +599,8 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 | 센터 샷 vs 삼등분 법칙 샷 | 마티네 예제 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:v11]
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -663,7 +614,8 @@ xnuP2mepDjs
 [/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 #### 샷 프레임 잡기
 

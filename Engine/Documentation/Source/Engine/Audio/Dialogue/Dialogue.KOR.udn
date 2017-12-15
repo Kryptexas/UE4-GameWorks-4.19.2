@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:다이얼로그 보이스 및 웨이브 사용법
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -13,45 +13,7 @@ skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image: Engine/Audio/audio_topic.png
 
 
 매우 기본적인 대화 구성에 대한 예제입니다. 긴 대화의 경우 보통 컨버세이션 매니저 시스템을 사용하여 만드는 것이 좋습니다.
@@ -71,20 +33,9 @@ related:Engine/Audio/SoundCues/NodeReference
 		- 조는 퇴역 군인으로, 지난 번 있었던 은하계 내전 이후 아담의 팀에 합류했습니다.
 
 
+## 단계
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine/Audio/Dialogue/1 "%Engine/Audio/Dialogue/1:title%")

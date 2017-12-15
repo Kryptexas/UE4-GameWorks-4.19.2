@@ -11,15 +11,18 @@ Version:4.9
 
 本文详细说明材质的属性。您可通过在材质编辑器中选择主材质节点来访问这些属性。
 
-<!---， 
+[COMMENT:none]
+-， 
 或者在 **内容浏览器** 中 **右键单击** 材质，选择 **资产操作（Asset Actions）**，然后选择 [属性矩阵](Engine/UI/PropertyMatrix)。
---->
+-
+[/COMMENT]
 
 * 材质内的属性：
 
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
-<!---
+[COMMENT:none]
+-
 * 访问属性矩阵：
 
 ![](PropertiesContextMenu_Mat.png)(h:445) 
@@ -27,7 +30,8 @@ Version:4.9
 * 属性矩阵：
 
 ![](PropertyMatrix.png)(h:445)
---->
+-
+[/COMMENT]
 
 
 基本材质节点具有多个属性，这些属性将影响材质的行为。这些属性说明如下，其中每个类别都有相应的文档小节，并按它们在 **属性（Properties）**面板中的显示顺序排列。
@@ -75,7 +79,9 @@ Version:4.9
 | **回应性 AA（抗锯齿）（Responsive AA (Ant aliasing)）** | 较小的移动对象（尤其是粒子）有时会因为抗锯齿而变得模糊不清；通过将此属性设置为 _true_，可使用另一种 AA 算法，该算法将提供更高的清晰度。换而言之，如果您创建暴风雪或类似的粒子系统，并且感觉无法真正看到雪花，请开启此属性，这将有所帮助。但是，此属性应该 _仅_ 用于较小的移动对象，因为会在背景产生锯齿失真。|
 | **半透明照明模式（Translucency Lighting Mode）** | [INCLUDE:#TransLightingMode]  请参阅 [带光照的半透明物体](Engine/Rendering/LightingAndShadows/LitTranslucency)。|
 | **半透明方向性照明强度（Translucency Directional Lighting Intensity）** | 用于人为增加法线对半透明照明结果的影响。大于 1 的值将增加法线的影响，而小于 1 的值将使照明更加环境化。|
-| **禁用深度测试（Disable Depth Test）** |  允许材质禁用深度测试，这仅在半透明混合模式下有意义。禁用深度测试将显著减慢渲染速度，这是因为没有任何被遮挡的像素可进行 Z 剔除。<!--- In short, you'll be able to--->  |
+| **禁用深度测试（Disable Depth Test）** |  允许材质禁用深度测试，这仅在半透明混合模式下有意义。禁用深度测试将显著减慢渲染速度，这是因为没有任何被遮挡的像素可进行 Z 剔除。[COMMENT:none]
+- In short, you'll be able to-
+[/COMMENT]  |
 | **使用半透明顶点雾（Use Translucency Vertex Fog）** | 设置为 _true_ 时，半透明材质将被雾笼罩。默认值为 _true_。|
 
 ## 半透明自身阴影（Translucency Self Shadowing）
@@ -186,7 +192,8 @@ Version:4.9
 | **轨道缩放（Orbit Zoom）**     | 相对于资产的界限球体距离的偏移。|
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:ShadingModels]
 明暗处理模型确定材质输入（例如自发光、漫射、镜面反射和法线）如何进行组合以确定最终颜色。  
@@ -280,4 +287,5 @@ Version:4.9
 
 [/EXCERPT:TessellationMode]
 
--->
+
+[/COMMENT]

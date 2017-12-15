@@ -1,29 +1,17 @@
-﻿INTSourceChangelist:2654417
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title:4.基本アセットの作成
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:EQS のクイック スタートに必要な 7 つのアセットを作成します。
-バージョン：4.9
+version:4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/3 "%Engine/AI/EnvironmentQuerySystem/QuickStart/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/5 "%Engine/AI/EnvironmentQuerySystem/QuickStart/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-まず初めに、 **コンテンツ ブラウザ** に以下の 7 つのアセットを作成する必要があります。AI Controller ブループリント 1．、Character ブループリント 1、および Behavior Tree アセット 1、Blackboard アセット 1、EnvQueryContext_BlueprintBase (EQS Context) ブループリント 1、および Environment Query テンプレートが 2 つです。このクイックスタートを完了するには、こうしたアセットのすべてが必要です。
+まず初めに、 **コンテンツ ブラウザ** で以下の 7 つのアセットを作成する必要があります。AI Controller ブループリント 1．、Character ブループリント 1、および Behavior Tree アセット 1、Blackboard アセット 1、EnvQueryContext_BlueprintBase (EQS Context) ブループリント 1、および Environment Query テンプレートが 2 つです。このクイックスタートを完了するには、こうしたアセットのすべてが必要です。
 
 [REGION:raw]
 ![](Assets.png)(convert:false)
@@ -32,7 +20,7 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 
 ## ステップ
 
-1. [REGION:raw]**New** %arrow% **Blueprint** %arrow% **AI Controller**.[/REGION] 
+1. [REGION:raw]**[New (新規)]** > **[Blueprint (ブループリント)]** > **[AI Controller (AI コントローラ)]**[/REGION] の順に選択します。 
 
 	AI Controller は Player Controller とは異なるため、検索する必要があります。
 
@@ -40,13 +28,13 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 
 	この **ブループリント** に "Runner_AI_CON" という名前を付けます。
 
-1. [REGION:raw]**New** %arrow% **Blueprint** %arrow% **Character**.[/REGION]
+1. [REGION:raw]**[New (新規)]** > **[Blueprint (ブループリント)]** > **[Character (キャラクター)]**[/REGION] の順に選択します。
 
 	![](Engine/AI/BehaviorTrees/QuickStart/3/charBP.png)
 
 	この **ブループリント** に "AI_Character" という名前を付けます。
 
-1. [REGION:raw]**New** %arrow% **Artificial Intelligence** %arrow% **Behavior Tree**.[/REGION]
+1. [REGION:raw]**[New (新規)]** > **[Artificial Intelligence]** > **[Behavior Tree (ビヘイビアツリー)]**[/REGION] の順に選択します。
 
 	[REGION:raw]
 	![](Engine/AI/BehaviorTrees/QuickStart/3/newBT.png)
@@ -54,7 +42,7 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 
 	この **ビヘイビアツリー** に "RunnerBT" という名前を付けます。
 
-1. [REGION:raw]**New** %arrow% **Artificial Intelligence** %arrow%  **Blackboard**.[/REGION]
+1. [REGION:raw]**[New (新規)]** > **[Artificial Intelligence]** > **[Blackboard]**[/REGION] の順に選択します。
 
 	[REGION:raw]
 	![](Engine/AI/BehaviorTrees/QuickStart/3/newBB.png)
@@ -62,7 +50,7 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 
 	この **Blackboard** に "RunnerBlackboard" という名前を付けます。
 
-1. 以下のように **Environment Query**: を作成します。[REGION:raw]**New** %arrow% **Artificial Intelligence** %arrow%  **Environment Query**.[/REGION]
+1. 以下のように **Environment Query**: を作成します。[REGION:raw]**[New (新規)]** > **[Artificial Intelligence]** > **[Environment Query]**[/REGION] の順に選択します。
 
 	[REGION:raw]
 	![](newEQ.PNG)
@@ -72,12 +60,10 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 
 1. もうひとつの **Environment Query** に "FindPlayer" と名前を付けます。
 
-1. [REGION:raw]**New** %arrow% **Blueprint** %arrow%  **EnvQueryContext_BlueprintBase**.[/REGION]
+1. [REGION:raw]**[New (新規)]** > **[Blueprint (ブループリント)]** > **[EnvQueryContext_BlueprintBase]**[/REGION] の順に選択します。
 
 	![](newContext.png)
 
 	**Environment Query** に "PlayerContext" と名前を付けます。
 
-%Steps%
-
-[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+[NAV]

@@ -114,7 +114,8 @@ version:4.9
 有一点需要牢记，虽然许多蒙太奇控制将发生在动画蓝图的 **事件图** 中，但槽实际上是在 **动画图** 中受到处理的。这是通过槽节点来完成的，这类节点会提取槽的名称。将此节点放置在动画图执行的关键点上，就可以设置多个使用同一槽名称的蒙太奇。
 [/EXCERPT:Slots]
 
-<!---------------- Branch moved to Notify page.
+[COMMENT:none]
+-------------- Branch moved to Notify page.
 ### 分支点
 
 Branch Points allow you to create events that coincide with animation playback.These Branch Point Events can be used in code or Blueprint to cause other things to happen, but specifically, Branch Points are useful for switching to other animation Sections within a Montage. 
@@ -127,7 +128,8 @@ High precision is important when you need to jump to a specific animation at a v
 Due to their synchronous nature and the precision resulting from it, Branch Points are more performance expensive than Notifies.You should only use them when an event must be fired at a precise moment along the animation timeline, such as jumping directly to another animation that matches up frame-to-frame.If being off by a frame (or some percentage of one) is not important, you should use Notifies instead.
 [/REGION]
 
--------------------->
+------------------
+[/COMMENT]
 
 (#SectionsArea)
 ## 片段（Sections）区域
@@ -265,7 +267,8 @@ Due to their synchronous nature and the precision resulting from it, Branch Poin
 * 已经改进了蒙太奇蓝图和 C++ API，使其能引用蒙太奇资产。您可以通过此方式控制同时播放的不同蒙太奇。例如，请参见 **蒙太奇设置播放速率** 功能。 
 
 
-<!-------------------- Example removed.This should be a HowTo.
+[COMMENT:none]
+------------------ Example removed.This should be a HowTo.
 
 ## Montage Practical Example
 
@@ -386,7 +389,8 @@ And that is it!If we compile, we will now see that the character continues to sw
 [/PARAMLITERAL]
 [/OBJECT]
 
--------------------->
+------------------
+[/COMMENT]
 
 
 

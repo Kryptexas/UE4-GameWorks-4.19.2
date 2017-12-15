@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.ウィジェットのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -31,7 +31,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 左マウスボタンが押されたことを判断し、スクリーン スペースで押された場所を保存します。 
 **DetectDragIfPressed** を使って、プレイヤーが指定されたキーでドラッグしているかを判断します。 
@@ -83,5 +83,5 @@ type:how-to
 
 プレイヤーが所定の位置をドラッグしているかを検知する機能を使って、次にドラッグが検知されると何が起こるかを設定して完成させます。 
 
-%Steps%
+
 

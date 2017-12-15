@@ -4,27 +4,45 @@ Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a new project with the specifications we need
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:1
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Programming Quick Start Home](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Programming\QuickStart\2 "%Programming\QuickStart\2:title%")
+[NAV]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:note]
+	You should have a copy of **Visual Studio 2015** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial. For setup instructions, please see [](Programming/Development/VisualStudioSetup).
+	[/REGION]
 	[/PARAM]
 [/OBJECT]
-[/VAR]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:note]
+	You should have a copy of **Xcode 9** installed before starting this tutorial.
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
 
-%Steps%
-
-[REGION:note]
-You should have a copy of **Visual Studio 2015** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
-[/REGION]
 
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
 
@@ -34,4 +52,4 @@ You should have a copy of **Visual Studio 2015** for Desktop (Preferably Communi
 
 The **Unreal Editor** will now open our new project. **Visual Studio** will also open and load the solution file that our project has created.
 
-%Steps%
+[NAV]
