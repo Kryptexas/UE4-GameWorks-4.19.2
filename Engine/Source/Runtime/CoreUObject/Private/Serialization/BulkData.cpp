@@ -1433,8 +1433,17 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 	{
 		// load from the specied filename when the linker has been cleared
 		checkf( Filename != TEXT(""), TEXT( "Attempted to load bulk data without a proper filename." ) );
-	
-		UE_CLOG(GEventDrivenLoaderEnabled && (IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
+		static auto CVarTextureStreamingEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TextureStreaming"));
+		check(CVarTextureStreamingEnabled);
+		// Because "r.TextureStreaming" is driven by the project setting as well as the command line option "-NoTextureStreaming", 
+		// is it possible for streaming mips to be loaded in non streaming ways.
+		if (CVarTextureStreamingEnabled->GetValueOnAnyThread() != 0)
+		{
+			UE_CLOG(GEventDrivenLoaderEnabled && (IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+		}
+#endif
 
 		if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 		{
