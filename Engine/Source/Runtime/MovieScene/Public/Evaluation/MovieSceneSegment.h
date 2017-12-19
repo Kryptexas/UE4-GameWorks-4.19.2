@@ -49,7 +49,7 @@ struct FMovieSceneSegmentIdentifier
 		return true;
 	}
 
-	friend FArchive& operator<<(FArchive& Ar, FMovieSceneSegmentIdentifier ID)
+	friend FArchive& operator<<(FArchive& Ar, FMovieSceneSegmentIdentifier& ID)
 	{
 		ID.Serialize(Ar);
 		return Ar;
