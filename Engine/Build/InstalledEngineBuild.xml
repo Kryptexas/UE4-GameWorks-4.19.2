@@ -468,7 +468,8 @@
 			<CsCompile Project="$(CsToolsDir)/Engine/Source/Programs/HTML5/HTML5LaunchHelper/HTML5LaunchHelper.csproj" Configuration="Development" Platform="AnyCPU" Arguments="/verbosity:minimal /target:Rebuild" Tag="#Build Tools CS Binaries" TagReferences="#Build Tools CS Binaries"/>
 		
 			<!-- Sign the binaries -->
-			<Sign Files="#Build Tools CS Binaries" If="'$(SignExecutables)' == true"/>
+			<Tag Files="#Build Tools CS Binaries" Except=".../ThirdParty/..." With="#Sign Binaries"/>
+			<Sign Files="#Sign Binaries" If="'$(SignExecutables)' == true"/>
 		</Node>
 		<Node Name="Make Feature Packs" Requires="Update Version Files">
 			<!--Delete any pre-existing feature packs-->
