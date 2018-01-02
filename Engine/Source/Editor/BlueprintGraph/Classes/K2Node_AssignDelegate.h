@@ -25,9 +25,13 @@ public:
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
 	virtual void PostPlacedNewNode() override;
+	virtual void AllocateDefaultPins() override;
 	// End of UEdGraphNode interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedListTitle;
+
+	/** If true, should try to spawn a bound custom event node on next allocate */
+	bool bShouldSpawnCustomEvent;
 };
