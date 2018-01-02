@@ -149,6 +149,7 @@ void FBlueprintCompilationManagerImpl::AddReferencedObjects(FReferenceCollector&
 	}
 
 	Collector.AddReferencedObjects(ClassesToReinstance);
+	Collector.AddReferencedObjects(OldCDOs);
 }
 
 void FBlueprintCompilationManagerImpl::QueueForCompilation(const FBPCompileRequest& CompileJob)
@@ -250,6 +251,9 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 		}
 		CompiledBlueprintsToSave.Empty();
 	}
+
+	// We've done our GC, so release old CDO references
+	OldCDOs.Empty();
 }
 
 static double GTimeCompiling = 0.f;
@@ -931,7 +935,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			FScopedDurationTimer ReinstTimer(GTimeReinstancing);
 			ReinstanceBatch(Reinstancers, ClassesToReinstance, ObjLoaded);
 
-			OldCDOs.Empty();
+			// We purposefully do not remove the OldCDOs yet, need to keep them in memory past first GC
 		}
 		
 		// STAGE XV: CLEAR TEMPORARY FLAGS
