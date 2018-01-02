@@ -1,4 +1,4 @@
-// Copyight 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "DummyMeshReconstructor.h"
 

@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "PIEPreviewWindowCoreStyle.h"
 #include "Styling/CoreStyle.h"
 #include "PIEPreviewWindowStyle.h"

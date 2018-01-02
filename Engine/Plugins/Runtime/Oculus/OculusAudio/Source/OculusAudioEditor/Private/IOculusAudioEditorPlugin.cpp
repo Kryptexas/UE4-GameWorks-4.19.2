@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "IOculusAudioEditorPlugin.h"
 #include "OculusAudioSettings.h"
 #include "OculusAudioSourceSettingsFactory.h"

@@ -11,8 +11,6 @@
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters,TEXT("NiagaraMeshVF"));
 
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
 class FNiagaraMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
