@@ -8114,16 +8114,7 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 	bool bSucceeded = true;
 	if (OutForm.IsEmpty())
 	{
-		const uint8* DefaultValue = DirectValue;
-
-		UUserDefinedStruct* UserDefinedStruct = StructProperty ? Cast<UUserDefinedStruct>(StructProperty->Struct) : nullptr;
-		FStructOnScope StructOnScope(UserDefinedStruct);
-		if (UserDefinedStruct && StructOnScope.IsValid())
-		{
-			UserDefinedStruct->InitializeDefaultValue(StructOnScope.GetStructMemory());
-			DefaultValue = StructOnScope.GetStructMemory();
-		}
-		
+		const uint8* DefaultValue = DirectValue;	
 		bSucceeded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, PPF_SerializedAsImportText);
 	}
 	return bSucceeded;
