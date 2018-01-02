@@ -705,6 +705,7 @@ public:
 
 	//~ Begin AActor Interface.
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
 	//~ End AActor Interface
 
 	//~ Begin UObject Interface.
