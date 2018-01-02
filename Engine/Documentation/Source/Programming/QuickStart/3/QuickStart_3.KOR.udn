@@ -134,7 +134,7 @@ type:multi-step
 ## 완성 코드
 
 **FloatingActor.h**
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -163,7 +163,7 @@ type:multi-step
 
 **FloatingActor.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "QuickStart.h"
 	#include "FloatingActor.h"

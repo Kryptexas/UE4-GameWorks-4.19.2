@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PortableObjectFormatDOM.h"
 #include "Internationalization/Culture.h"
@@ -746,7 +746,7 @@ void FPortableObjectFormatDOM::CreateNewHeader()
 	//Hard code some header entries for now in the following format
 	/*
 	# Engine English translation
-	# Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	# Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#
 	msgid ""
 	msgstr ""
@@ -775,7 +775,7 @@ void FPortableObjectFormatDOM::CreateNewHeader()
 	Header.SetEntryValue( TEXT("Plural-Forms"), Language.GetPluralForms() );
 
 	Header.Comments.Add( FString::Printf(TEXT("%s %s translation."), *GetProjectName(), *Language.EnglishName() ) );
-	Header.Comments.Add( TEXT("Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.") );
+	Header.Comments.Add( TEXT("Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.") );
 	Header.Comments.Add( FString(TEXT("")) );
 }
 

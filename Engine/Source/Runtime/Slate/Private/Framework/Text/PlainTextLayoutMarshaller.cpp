@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Text/PlainTextLayoutMarshaller.h"
 #include "Framework/Text/TextRange.h"

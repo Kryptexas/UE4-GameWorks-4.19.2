@@ -1,7 +1,7 @@
 @echo off
 
 rem ## Unreal Engine 4 utility script
-rem ## Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+rem ## Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 rem ##
 rem ## This script determines the path to MSBuild necessary to compile C# tools for the current version of the engine.
 rem ## The discovered path is set to the MSBUILD_EXE environment variable on success.

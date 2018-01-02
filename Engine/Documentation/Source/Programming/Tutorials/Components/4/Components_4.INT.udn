@@ -109,7 +109,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 
 **CollidingPawn.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -149,7 +149,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 
 **CollidingPawn.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_Components.h"
 	#include "CollidingPawn.h"
@@ -273,7 +273,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 
 **CollidingPawnMovementComponent.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -294,7 +294,7 @@ Our programming work is done, and we can now place our custom Pawn in the world 
 
 **CollidingPawnMovementComponent.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_Components.h"
 	#include "CollidingPawnMovementComponent.h"

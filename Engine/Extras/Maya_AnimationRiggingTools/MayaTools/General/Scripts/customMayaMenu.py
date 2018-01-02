@@ -193,7 +193,7 @@ def launchARTSettings(*args):
 #############################################################################################
 def aboutARTTools(*args):
     
-    cmds.confirmDialog(title = "About", message = "Copyright 2013-2017 Epic Games, Inc.\nCreated by: Jeremy Ernst\njeremy.ernst@epicgames.com\nVisit www.epicgames.com", icon = "information")
+    cmds.confirmDialog(title = "About", message = "Copyright 2013-2018 Epic Games, Inc.\nCreated by: Jeremy Ernst\njeremy.ernst@epicgames.com\nVisit www.epicgames.com", icon = "information")
     
 #############################################################################################
 #############################################################################################

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraph/EdGraphNode.h"
 #include "UObject/BlueprintsObjectVersion.h"

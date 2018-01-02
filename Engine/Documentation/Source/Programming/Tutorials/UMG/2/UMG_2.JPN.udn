@@ -110,7 +110,7 @@ version:4.14
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -138,7 +138,7 @@ version:4.14
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -173,7 +173,7 @@ version:4.14
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -202,7 +202,7 @@ version:4.14
 			}
 			**HowTo_UMGPlayerController.h**
 
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -222,7 +222,7 @@ version:4.14
 			};
 
 		**HowTo_UMGPlayerController.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGPlayerController.h"

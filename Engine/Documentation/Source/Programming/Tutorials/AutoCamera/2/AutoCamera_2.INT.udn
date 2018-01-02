@@ -78,7 +78,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
 ## Finished Code
 
 **MyPawn.h**
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -113,7 +113,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
 
 **MyPawn.cpp**
 			
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_AutoCamera.h"
 	#include "CameraDirector.h"

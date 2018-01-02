@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/LinuxPlatformSplash.h"
 
@@ -715,7 +715,7 @@ void FLinuxPlatformSplash::Show( )
 
 		// Display copyright information in editor splash screen
 		{
-			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2017   Epic Games, Inc.   All rights reserved." );
+			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2018   Epic Games, Inc.   All rights reserved." );
 			GSplashState->SetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 		}
 	}

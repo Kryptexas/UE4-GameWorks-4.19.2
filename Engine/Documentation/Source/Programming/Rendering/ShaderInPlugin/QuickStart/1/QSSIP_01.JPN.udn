@@ -74,7 +74,7 @@ Checkpoint:shaderqs
     ファイルの拡張子を **.USF** に必ず変更してください。そうしないと、これがシェーダーファイルであることを UE4 が認識しません。
     [/region]
 
-        // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
         /*=============================================================================
             LensDistortionUVGeneration.usf:Generate lens distortion and undistortion
@@ -266,7 +266,7 @@ Checkpoint:shaderqs
     このファイルの FLensDistortionCameraModel を **FFooCameraModel** に置き換えます。
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
             #pragma once
 
@@ -373,7 +373,7 @@ Checkpoint:shaderqs
     このファイルの中で、FLensDistortionCameraModel を FFooCameraModel に **6** 回置き換えな変えればなりません。
     [/region]
 
-        // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
         #pragma once
 
@@ -446,7 +446,7 @@ Checkpoint:shaderqs
     FLensDistortionCameraModel を FFooCameraModel に **2** 回置き換えて ULensDistortionBlueprintLibrary を UFooBlueprintLibrary に **4** 回置き換えます。
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
             #include "LensDistortionBlueprintLibrary.h"
 
@@ -487,7 +487,7 @@ Checkpoint:shaderqs
     [region:note]
     このファイルの中で、FLensDistortionCameraModel を FFooCameraModel に **6** 回置き換えな変えればなりません。
     [/region]
-            // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
             #include "LensDistortionAPI.h"
             #include "Classes/Engine/TextureRenderTarget2D.h"
@@ -874,7 +874,7 @@ Checkpoint:shaderqs
 
 1. 次に**Foo.Build.cs** の **PrivateDependencyModuleNames.AddRange** セクションで、**Slate** と **SlateCore** を削除します。すると 「Foo.Build.cs」 ファイルはこのようにないｒます。
 
-        // Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
         using UnrealBuildTool;
 

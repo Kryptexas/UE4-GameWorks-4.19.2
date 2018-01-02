@@ -31,7 +31,7 @@ Version:4.11
 
 エピックが配布目的で提供するすべてのソースファイル (.h、 .cpp、 .xaml、等) は、ファイルの最初の行に必ず著作権表示がされてなくてはいけません。表示フォーマットは下記の例と正確に一致させてください。
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 この行の表示がない場合やフォーマットに誤りがある場合、CIS がエラーとなり失敗します。
 

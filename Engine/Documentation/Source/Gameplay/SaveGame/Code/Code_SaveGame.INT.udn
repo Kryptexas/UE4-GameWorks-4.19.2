@@ -31,7 +31,7 @@ In this example, there are also variables declared that will be used to store de
 [REGION:codetitlebar]
 MySaveGame.h
 [/REGION:codetitlebar]
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -70,7 +70,7 @@ This example does define the values of `SaveSlotName` and `UserIndex` in the cla
 [REGION:codetitlebar]
 MySaveGame.cpp
 [/REGION:codetitlebar]
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "[ProjectName].h"
 	#include "MySaveGame.h"

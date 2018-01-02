@@ -50,7 +50,7 @@ Below is a simple class which collects game specific data:
 
 GDTComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -68,7 +68,7 @@ GDTComponent.h
 
 GDTComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
@@ -96,7 +96,7 @@ Next class is used to display new data on screen:
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -112,7 +112,7 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"
@@ -151,7 +151,7 @@ Let's extend GDTComponent class:
 
 GDTComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -171,7 +171,7 @@ GDTComponent.h
 
 GDTComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
@@ -214,7 +214,7 @@ Extended HUD component, to display data in new view:
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -232,7 +232,7 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"

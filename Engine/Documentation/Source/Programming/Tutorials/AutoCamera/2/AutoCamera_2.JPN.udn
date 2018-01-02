@@ -79,7 +79,7 @@ version:4.9
 ## 完成コード
 
 **MyPawn.h**
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -114,7 +114,7 @@ version:4.9
 
 **MyPawn.cpp**
 
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_AutoCamera.h"
 	#include "CameraDirector.h"

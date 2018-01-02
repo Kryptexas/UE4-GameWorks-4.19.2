@@ -63,7 +63,7 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
 
 **PawnWithCamera.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -99,7 +99,7 @@ We now have a simple Pawn that will allow us to control our camera comfortably. 
 
 **PawnWithCamera.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_PlayerCamera.h"
 	#include "PawnWithCamera.h"

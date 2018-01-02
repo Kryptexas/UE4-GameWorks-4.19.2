@@ -71,7 +71,7 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 
 **MyPawn.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -104,7 +104,7 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 
 **MyPawn.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_PlayerInput.h"
 	#include "MyPawn.h"

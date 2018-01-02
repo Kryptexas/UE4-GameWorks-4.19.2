@@ -74,7 +74,7 @@ With our Pawn Movement Component's behavior defined, we can now write the code t
 
 **CollidingPawn.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -106,7 +106,7 @@ With our Pawn Movement Component's behavior defined, we can now write the code t
 
 **CollidingPawn.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_Components.h"
 	#include "CollidingPawn.h"
@@ -184,7 +184,7 @@ With our Pawn Movement Component's behavior defined, we can now write the code t
 
 **CollidingPawnMovementComponent.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -205,7 +205,7 @@ With our Pawn Movement Component's behavior defined, we can now write the code t
 
 **CollidingPawnMovementComponent.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_Components.h"
 	#include "CollidingPawnMovementComponent.h"

@@ -2,7 +2,7 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #include <Metal/MTLHeap.h>

@@ -76,7 +76,7 @@
 /* Line 268 of yacc.c  */
 #line 1 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/hlsl_parser.yy"
 
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/

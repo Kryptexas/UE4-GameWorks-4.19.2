@@ -35,7 +35,7 @@ With the additional specifiers in the `UPROPERTY()` and `UFUNCTION()` macros, th
 LightSwitchBoth.h
 [/REGION:codetitlebar]
 		
-		// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+		// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 		#pragma once
 
@@ -92,7 +92,7 @@ With the change to the `OnOverlapBegin` and `OnOverlapEnd` definitions, the sour
 LightSwitchBoth.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchBoth.h"

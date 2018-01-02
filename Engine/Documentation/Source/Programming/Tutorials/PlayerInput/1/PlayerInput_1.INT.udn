@@ -66,7 +66,7 @@ Now that we have a customized Pawn to react to our game's input, we'll need to d
 
 **MyPawn.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -99,7 +99,7 @@ Now that we have a customized Pawn to react to our game's input, we'll need to d
 
 **MyPawn.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_PlayerInput.h"
 	#include "MyPawn.h"

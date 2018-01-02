@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //  AActor  used to controll matinee's and to replicate activation, playback, and other relevant flags to net clients
 

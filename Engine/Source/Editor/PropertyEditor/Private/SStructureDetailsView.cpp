@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SStructureDetailsView.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"

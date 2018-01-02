@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialSharedInputCollection.h - defines an asset that has a list of inputs, which can be referenced by any material to connect supply defined inputs to layers and blends

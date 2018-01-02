@@ -95,7 +95,7 @@ version:4.9
    
 **CollidingPawn.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -127,7 +127,7 @@ version:4.9
 
 **CollidingPawn.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_Components.h"
 	#include "CollidingPawn.h"

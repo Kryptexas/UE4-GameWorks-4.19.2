@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "CryptoKeysSettings.h"
 #include "Settings/ProjectPackagingSettings.h"
 #include "Misc/ConfigCacheIni.h"

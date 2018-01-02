@@ -102,7 +102,7 @@ We have built the code framework to create and display menus, and remove them wh
 
 **HowTo_UMG.Build.cs**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 
@@ -131,7 +131,7 @@ We have built the code framework to create and display menus, and remove them wh
 
 **HowTo_UMGGameMode.h**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -167,7 +167,7 @@ We have built the code framework to create and display menus, and remove them wh
 
 **HowTo_UMGGameMode.cpp**
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_UMG.h"
 	#include "HowTo_UMGGameMode.h"
@@ -197,7 +197,7 @@ We have built the code framework to create and display menus, and remove them wh
 			
 **HowTo_UMGPlayerController.h**
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -218,7 +218,7 @@ We have built the code framework to create and display menus, and remove them wh
 
 **HowTo_UMGPlayerController.cpp**
 
-	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "HowTo_UMG.h"
 	#include "HowTo_UMGPlayerController.h"

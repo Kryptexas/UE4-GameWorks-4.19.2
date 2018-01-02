@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	Texture2DPreview.h: Implementation for previewing 2D Textures and normal maps.

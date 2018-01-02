@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformTLS.h: Apple platform TLS (Thread local storage and thread ID) functions

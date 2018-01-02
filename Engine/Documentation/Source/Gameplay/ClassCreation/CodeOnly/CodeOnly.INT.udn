@@ -76,7 +76,7 @@ The resulting header file looks like:
 LightSwitchCodeOnly.h
 [/REGION:codetitlebar]
 
-		// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+		// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 		#pragma once
 
@@ -157,7 +157,7 @@ the PointLightComponent by calling `ToggleLight`.  Combined with the class const
 LightSwitchCodeOnly.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchCodeOnly.h"

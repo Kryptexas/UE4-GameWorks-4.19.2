@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugViewModeVertexShader.hlsl: Debug shader used for special viewmode that need to preserve the geometry shape.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GpuSkinCacheComputeShader.usf: Perform vertex skinning into a buffer to avoid skinning in the vertex shader.
