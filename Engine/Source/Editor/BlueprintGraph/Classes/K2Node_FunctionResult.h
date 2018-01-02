@@ -50,5 +50,9 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 protected:
 	void SyncWithEntryNode();
 	void SyncWithPrimaryResultNode();
+
+private:
+	// This node was just placed and needs to be synched on next allocate pins
+	bool bShouldSyncOnAllocate;
 };
 
