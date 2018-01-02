@@ -2460,16 +2460,13 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 			// Make sure that this package has been unloaded after GC pass.
 			LevelPackageNames.Add( LevelPackage->GetFName() );
 
-			// Mark level as pending kill so references to it get deleted.
-			UWorld* LevelWorld = CastChecked<UWorld>(Level->GetOuter());
-			LevelWorld->MarkObjectsPendingKill();
-			LevelWorld->MarkPendingKill();
-#if WITH_EDITORONLY_DATA
-			if (LevelPackage->MetaData)
+			// Mark world and all other package subobjects as pending kill
+			// This will destroy metadata objects and any other objects left behind
+			auto MarkObjectPendingKill = [](UObject* Object)
 			{
-				LevelPackage->MetaData->MarkPendingKill();
-			}
-#endif
+				Object->MarkPendingKill();
+			};
+			ForEachObjectWithOuter(Level->GetOutermost(), MarkObjectPendingKill, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 		}
 	}
 

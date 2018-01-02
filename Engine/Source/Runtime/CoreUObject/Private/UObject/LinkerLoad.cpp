@@ -2789,7 +2789,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 	// Try to find MetaData and load it first as other objects can depend on it.
 	for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
-		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData)
+		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData && ExportMap[ExportIndex].OuterIndex.IsNull())
 		{
 			MetaData = Cast<UMetaData>(CreateExportAndPreload(ExportIndex, bForcePreload));
 			MetaDataIndex = ExportIndex;
@@ -2802,7 +2802,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 	{
 		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 		{
-			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName())
+			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName() && ExportMap[ExportIndex].OuterIndex.IsNull())
 			{
 				UObject* Object = CreateExportAndPreload(ExportIndex, bForcePreload);
 				Object->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
