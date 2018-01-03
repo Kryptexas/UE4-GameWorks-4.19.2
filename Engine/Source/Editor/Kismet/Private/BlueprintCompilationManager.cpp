@@ -2114,8 +2114,9 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 	{
 		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false, nullptr);
 
-		// we can't support save on compile when reinstancing is deferred:
+		// We can't support save on compile or keeping old CDOs from GCing when reinstancing is deferred:
 		BPCMImpl->CompiledBlueprintsToSave.Empty();
+		BPCMImpl->OldCDOs.Empty();
 	}
 }
 
@@ -2125,6 +2126,8 @@ void FBlueprintCompilationManager::FlushCompilationQueueAndReinstance()
 	{
 		BPCMImpl->FlushCompilationQueueImpl(nullptr, false, nullptr);
 		BPCMImpl->FlushReinstancingQueueImpl();
+
+		BPCMImpl->OldCDOs.Empty();
 	}
 }
 
