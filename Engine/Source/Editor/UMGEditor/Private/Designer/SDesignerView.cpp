@@ -2865,7 +2865,7 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	
 	const bool bIsPreview = false;
 	ProcessDropAndAddWidget(MyGeometry, DragDropEvent, bIsPreview);
-
+	TSharedPtr<FSelectedWidgetDragDropOp> SelectedDragDropOp = DragDropEvent.GetOperationAs<FSelectedWidgetDragDropOp>();
 	if (DropPreviews.Num() > 0)
 	{
 		UWidgetBlueprint* BP = GetBlueprint();
@@ -2886,7 +2886,15 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 		DropPreviews.Empty();
 		return FReply::Handled().SetUserFocus(SharedThis(this));
 	}
-	
+	else if (SelectedDragDropOp.IsValid())
+	{
+		// If we were dragging any widgets, even if we didn't move them, we need to refresh the preview
+		// because they are collapsed in the preview when the drag begins
+		if (SelectedDragDropOp->DraggedWidgets.Num() > 0)
+		{
+			BlueprintEditor.Pin().Get()->RefreshPreview();
+		}
+	}
 	return FReply::Unhandled();
 }
 
