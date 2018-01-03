@@ -111,6 +111,10 @@ void UMovieScene::AddSpawnable(const FMovieSceneSpawnable& InNewSpawnable, const
 	Spawnables.Add(NewSpawnable);
 
 	FMovieSceneBinding NewBinding = InNewBinding;
+	for (auto Track : NewBinding.GetTracks())
+	{
+		Track->Rename(nullptr, this);
+	}
 	ObjectBindings.Add(NewBinding);
 }
 
@@ -187,6 +191,10 @@ void UMovieScene::AddPossessable(const FMovieScenePossessable& InNewPossessable,
 	Possessables.Add(NewPossessable);
 
 	FMovieSceneBinding NewBinding = InNewBinding;
+	for (auto Track : NewBinding.GetTracks())
+	{
+		Track->Rename(nullptr, this);
+	}
 	ObjectBindings.Add(NewBinding);
 }
 
