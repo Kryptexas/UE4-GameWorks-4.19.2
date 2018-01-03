@@ -832,7 +832,7 @@ namespace UnrealBuildTool
 				string LinuxDependenciesPath = Path.Combine(UnrealBuildTool.EngineSourceThirdPartyDirectory.FullName, "Linux", LinuxPlatformSDK.HaveLinuxDependenciesFile());
 				if (!File.Exists(LinuxDependenciesPath))
 				{
-					throw new BuildException("Cannot build for Linux (missing binary dependencies), re-run the Setup script");
+					throw new BuildException("Please make sure that Engine/Source/ThirdParty/Linux is complete (re - run Setup script if using a github build)");
 				}
 
 				if (!String.IsNullOrEmpty(MultiArchRoot))
