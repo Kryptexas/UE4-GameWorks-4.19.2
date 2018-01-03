@@ -1577,22 +1577,22 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// if we have the side-by-side world for "Play From Here", tick it unless we are ensuring slate is responsive
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{
-		// Count number of worlds that tick.
-		int32 TickingWorldCount = false;
-		for (const FWorldContext& PieContext : WorldList)
+		// Determine number of PIE worlds that should tick.
+		TArray<FWorldContext*> LocalPieContextPtrs;
+		for (FWorldContext& PieContext : WorldList)
 		{
-			if (PieContext.WorldType == EWorldType::PIE && PieContext.World() != NULL)
+			if (PieContext.WorldType == EWorldType::PIE && PieContext.World() != nullptr && PieContext.World()->ShouldTick())
 			{
-				TickingWorldCount += 1;
+				LocalPieContextPtrs.Add(&PieContext);
 			}
 		}
 
-		for (FWorldContext& PieContext : WorldList)
+		// Note: WorldList can change size within this loop during PIE when stopped at a breakpoint. In that case, we are
+		// running in a nested tick loop within this loop, where a new editor window with a preview viewport can be opened.
+		// So we iterate on a local list here instead.
+		for (FWorldContext* PieContextPtr : LocalPieContextPtrs)
 		{
-			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL || !PieContext.World()->ShouldTick())
-			{
-				continue;
-			}
+			FWorldContext &PieContext = *PieContextPtr;
 
 			GPlayInEditorID = PieContext.PIEInstance;
 
@@ -1609,7 +1609,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			//	  one world ticking as we do in game builds.
 			//  - We don't support dynamic resolution in simulate because only implemented in FGameViewportClient and must remain so.
 			//	- We don't emit Begin frame when the world is paused.
-			if (TickingWorldCount == 1 && PieContext.GameViewport && !PieContext.GameViewport->IsSimulateInEditorViewport() && PlayWorld->IsCameraMoveable())
+			if (LocalPieContextPtrs.Num() == 1 && PieContext.GameViewport && !PieContext.GameViewport->IsSimulateInEditorViewport() && PlayWorld->IsCameraMoveable())
 			{
 				EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
 			}
