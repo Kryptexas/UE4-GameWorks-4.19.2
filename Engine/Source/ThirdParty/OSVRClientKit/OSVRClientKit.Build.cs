@@ -61,7 +61,7 @@ public class OSVRClientKit : ModuleRules
 
             var xmlPath = Path.Combine(ModuleDirectory, "OSVR_APL.xml");
             //System.Console.WriteLine("xmlPath: {0}", xmlPath);
-            AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", xmlPath));
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", xmlPath);
         }
     }
 }

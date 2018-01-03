@@ -77,7 +77,7 @@ public class OnlineSubsystemGoogle : ModuleRules
 			);
 
 			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGoogle_UPL.xml")));
+			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGoogle_UPL.xml"));
 
 			PrivateIncludePaths.Add("Private/Android");
 			

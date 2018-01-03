@@ -195,6 +195,45 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// List of runtime dependencies, with convenience methods for adding new items
+		/// </summary>
+		[Serializable]
+		public class ReceiptPropertyList
+		{
+			/// <summary>
+			/// Inner list of runtime dependencies
+			/// </summary>
+			internal List<ReceiptProperty> Inner = new List<ReceiptProperty>();
+
+			/// <summary>
+			/// Default constructor
+			/// </summary>
+			public ReceiptPropertyList()
+			{
+			}
+
+			/// <summary>
+			/// Add a receipt property to the list
+			/// </summary>
+			/// <param name="Name">Name of the property</param>
+			/// <param name="Value">Value for the property</param>
+			public void Add(string Name, string Value)
+			{
+				Inner.Add(new ReceiptProperty(Name, Value));
+			}
+
+			/// <summary>
+			/// Add a receipt property to the list
+			/// </summary>
+			/// <param name="InReceiptProperty">ReceiptProperty instance</param>
+			[Obsolete("Constructing a ReceiptProperty object is deprecated. Call RuntimeDependencies.Add() with the path to the file to stage.")]
+			public void Add(ReceiptProperty InReceiptProperty)
+			{
+				Inner.Add(InReceiptProperty);
+			}
+		}
+
+		/// <summary>
 		/// Rules for the target that this module belongs to
 		/// </summary>
 		public readonly ReadOnlyTargetRules Target;
@@ -441,7 +480,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// List of additional properties to be added to the build receipt
 		/// </summary>
-		public List<ReceiptProperty> AdditionalPropertiesForReceipt = new List<ReceiptProperty>();
+		public ReceiptPropertyList AdditionalPropertiesForReceipt = new ReceiptPropertyList();
 
 		/// <summary>
 		/// Which targets this module should be precompiled for

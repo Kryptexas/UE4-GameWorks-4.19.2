@@ -64,7 +64,7 @@ public class Voice : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			string ModulePath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(ModulePath, "AndroidVoiceImpl_UPL.xml")));
+			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModulePath, "AndroidVoiceImpl_UPL.xml"));
 		}
 	}
 }

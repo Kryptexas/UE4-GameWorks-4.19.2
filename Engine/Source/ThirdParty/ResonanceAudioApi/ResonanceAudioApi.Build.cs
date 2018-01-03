@@ -18,7 +18,7 @@ public class ResonanceAudioApi : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Android)
         {
             // Register Plugin Language
-            AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(ModuleDirectory, "ResonanceAudio_APL.xml")));
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModuleDirectory, "ResonanceAudio_APL.xml"));
 
             PublicLibraryPaths.Add(LibraryPath + "lib/android_arm/");
             PublicLibraryPaths.Add(LibraryPath + "lib/android_arm64/");

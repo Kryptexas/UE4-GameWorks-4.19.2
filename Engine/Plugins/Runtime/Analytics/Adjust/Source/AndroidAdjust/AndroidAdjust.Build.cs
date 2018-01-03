@@ -41,7 +41,7 @@ namespace UnrealBuildTool.Rules
             if (bHasAdjustSDK)
             {
                 PublicDefinitions.Add("WITH_ADJUST=1");
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "Adjust_UPL.xml")));
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "Adjust_UPL.xml"));
             }
             else
             {

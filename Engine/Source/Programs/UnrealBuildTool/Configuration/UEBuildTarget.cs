@@ -1788,7 +1788,7 @@ namespace UnrealBuildTool
 							{
 								Receipt.RuntimeDependencies.Add(RuntimeDependency.Path, RuntimeDependency.Type);
 							}
-							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
+							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt.Inner);
 						}
 					}
 				}

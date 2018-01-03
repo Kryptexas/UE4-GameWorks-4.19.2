@@ -64,7 +64,7 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
 
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRController_APL.xml")));
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRController_APL.xml"));
 			}
 		}
 	}
