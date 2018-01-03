@@ -1928,14 +1928,17 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		{
 			LocalNativeName = Context.FindGloballyMappedObject(Object);
 		}
-		ensure(!LocalNativeName.IsEmpty());
-		auto CDO = Object->GetClass()->GetDefaultObject(false);
-		for (auto Property : TFieldRange<const UProperty>(Object->GetClass()))
+		
+		if (ensure(!LocalNativeName.IsEmpty()))
 		{
-			OuterGenerate(Context, Property, LocalNativeName
-				, reinterpret_cast<const uint8*>(Object)
-				, reinterpret_cast<const uint8*>(CDO)
-				, EPropertyAccessOperator::Pointer);
+			auto CDO = Object->GetClass()->GetDefaultObject(false);
+			for (auto Property : TFieldRange<const UProperty>(Object->GetClass()))
+			{
+				OuterGenerate(Context, Property, LocalNativeName
+					, reinterpret_cast<const uint8*>(Object)
+					, reinterpret_cast<const uint8*>(CDO)
+					, EPropertyAccessOperator::Pointer);
+			}
 		}
 	}
 	return LocalNativeName;
@@ -2008,8 +2011,8 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 		{
 			if (Object->HasAnyFlags(RF_DefaultSubObject))
 			{
-				Context.AddLine(FString::Printf(TEXT("auto %s = CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
-					, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+				Context.AddLine(FString::Printf(TEXT("auto %s = %s->CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
+					, *LocalNativeName, *OuterStr, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
 			}
 			else
 			{
@@ -2021,14 +2024,29 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 		{
 			check(Object->IsDefaultSubobject());
 
-			Context.AddLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(%s(TEXT(\"%s\")));")
+			Context.AddLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(%s->%s(TEXT(\"%s\")), ECastCheckedType::NullAllowed);")
 				, *LocalNativeName
 				, *FEmitHelper::GetCppName(ObjectClass)
+				, *OuterStr
 				, GET_FUNCTION_NAME_STRING_CHECKED(UObject, GetDefaultSubobjectByName)
 				, *Object->GetName()));
+
+			Context.AddLine(FString::Printf(TEXT("if(%s)"), *LocalNativeName));
 		}
 
-		// Nested default subobjects are recursively handled through this iteration.
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(FString::Printf(TEXT("// --- Default subobject \'%s\' --- //"), *Object->GetName()));
+
+		// Handle nested default subobjects first. We do it this way since default subobject instances are not always assigned to an object property.
+		TArray<UObject*> DefaultSubobjects;
+		Object->GetDefaultSubobjects(DefaultSubobjects);
+		for (UObject* DSO : DefaultSubobjects)
+		{
+			HandleInstancedSubobject(Context, DSO, false);
+		}
+
+		// Now walk through the property list and initialize delta values. Any instanced default subobjects found above will be seen as already handled.
 		const UObject* ObjectArchetype = Object->GetArchetype();
 		for (auto Property : TFieldRange<const UProperty>(ObjectClass))
 		{
@@ -2037,6 +2055,10 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 				, reinterpret_cast<const uint8*>(ObjectArchetype)
 				, EPropertyAccessOperator::Pointer);
 		}
+
+		Context.AddLine(FString::Printf(TEXT("// --- END default subobject \'%s\' --- //"), *Object->GetName()));
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
 	}
 	else
 	{
