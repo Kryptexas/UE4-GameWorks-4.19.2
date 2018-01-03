@@ -1008,12 +1008,15 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 		}
 		else
 		{
-			if (FSlateApplicationBase::IsInitialized())
+			// Possible that execution unregistered the timer 
+			if (ActiveTimers.IsValidIndex(i))
 			{
-				FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+				if (FSlateApplicationBase::IsInitialized())
+				{
+					FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+				}
+				ActiveTimers.RemoveAt(i);
 			}
-			
-			ActiveTimers.RemoveAt(i);
 		}
 	}
 }
