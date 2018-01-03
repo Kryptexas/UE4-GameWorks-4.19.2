@@ -318,6 +318,7 @@ inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(cons
 		// need to check license was accepted
 		if (!HasLicense())
 		{
+			OutTutorialPath.Empty();
 			CustomizedLogMessage = LOCTEXT("AndroidLicenseNotAcceptedMessageDetail", "SDK License must be accepted in the Android project settings to deploy your app to the device.");
 			bReadyToBuild |= ETargetPlatformReadyStatus::LicenseNotAccepted;
 		}

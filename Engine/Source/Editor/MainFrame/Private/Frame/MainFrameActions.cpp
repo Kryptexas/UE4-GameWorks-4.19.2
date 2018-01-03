@@ -1157,9 +1157,14 @@ void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& D
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
-	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
-
+	if (!TutorialLink.IsEmpty())
+	{
+		Message->AddToken(FTutorialToken::Create(TutorialLink));
+	}
+	if (!DocumentationLink.IsEmpty())
+	{
+		Message->AddToken(FDocumentationToken::Create(DocumentationLink));
+	}
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);
 	MessageLog.Open();
