@@ -161,8 +161,8 @@ public:
 		AddCrashProperty( PropertyName, *TTypeToString<Type>::ToString( Value ) );
 	}
 
-	/** Escapes a specified XML string, naive implementation. */
-	static FString EscapeXMLString( const FString& Text );
+	/** Escapes and appends specified text to XML string */
+	static void AppendEscapedXMLString( FString& OutBuffer, const TCHAR* Text );
 
 	/** Unescapes a specified XML string, naive implementation. */
 	static FString UnescapeXMLString( const FString& Text );

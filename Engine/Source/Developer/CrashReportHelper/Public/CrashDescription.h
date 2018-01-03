@@ -474,7 +474,8 @@ protected:
 		if (MainNode)
 		{
 			FXmlNode* CategoryNode = MainNode->FindChildNode( SecondCategory );
-			const FString EscapedValue = FGenericCrashContext::EscapeXMLString( NewValue );
+			FString EscapedValue;
+			FGenericCrashContext::AppendEscapedXMLString(EscapedValue, *NewValue);
 			if (CategoryNode)
 			{
 				CategoryNode->SetContent( EscapedValue );

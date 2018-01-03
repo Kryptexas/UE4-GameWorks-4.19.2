@@ -1168,8 +1168,17 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		{
 			const FPluginDescriptor& Desc = Plugin->GetDescriptor();
 
+			// encode a minimal plugin description for the crash reporter
 			FString DescStr;
-			Desc.Write(DescStr);
+			TSharedRef< TJsonWriter<> > WriterRef = TJsonWriterFactory<>::Create(&DescStr);
+			TJsonWriter<>& Writer = WriterRef.Get();			
+			Writer.WriteObjectStart();
+			Writer.WriteValue(TEXT("Version"), Desc.Version);
+			Writer.WriteValue(TEXT("VersionName"), Desc.VersionName);
+			Writer.WriteValue(TEXT("FriendlyName"), Desc.FriendlyName);
+			Writer.WriteObjectEnd();
+			Writer.Close();
+
 			FGenericCrashContext::AddPlugin(DescStr);
 		}
 	}

@@ -395,7 +395,7 @@ void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TC
 	CommonBuffer += TEXT( ">" );
 
 
-	CommonBuffer += EscapeXMLString( PropertyValue );
+	AppendEscapedXMLString(CommonBuffer, PropertyValue );
 
 	CommonBuffer += TEXT( "</" );
 	CommonBuffer += PropertyName;
@@ -436,15 +436,40 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName ) const
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-FString FGenericCrashContext::EscapeXMLString( const FString& Text )
+void FGenericCrashContext::AppendEscapedXMLString(FString& OutBuffer, const TCHAR* Text)
 {
-	return Text
-		.Replace(TEXT("&"), TEXT("&amp;"))
-		.Replace(TEXT("\""), TEXT("&quot;"))
-		.Replace(TEXT("'"), TEXT("&apos;"))
-		.Replace(TEXT("<"), TEXT("&lt;"))
-		.Replace(TEXT(">"), TEXT("&gt;"))
-		.Replace( TEXT( "\r" ), TEXT("") );
+	if (!Text)
+	{
+		return;
+	}
+
+	while (*Text)
+	{
+		switch (*Text)
+		{
+		case TCHAR('&'):
+			OutBuffer += TEXT("&amp;");
+			break;
+		case TCHAR('"'):
+			OutBuffer += TEXT("&quot;");
+			break;
+		case TCHAR('\''):
+			OutBuffer += TEXT("&apos;");
+			break;
+		case TCHAR('<'):
+			OutBuffer += TEXT("&lt;");
+			break;
+		case TCHAR('>'):
+			OutBuffer += TEXT("&gt;");
+			break;
+		case TCHAR('\r'):
+			break;
+		default:
+			OutBuffer += *Text;
+		};
+
+		Text++;
+	}
 }
 
 FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
