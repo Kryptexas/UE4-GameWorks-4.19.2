@@ -113,18 +113,6 @@ namespace UnrealBuildTool
 
 		static UnrealTargetConfiguration[] GetSupportedConfigurations(TargetRules Rules)
 		{
-			// Check if the rules object implements the legacy GetSupportedPlatforms() function. If it does, we'll call it for backwards compatibility.
-			if (Rules.GetType().GetMethod("GetSupportedConfigurations").DeclaringType != typeof(TargetRules))
-			{
-				List<UnrealTargetConfiguration> ConfigurationList = new List<UnrealTargetConfiguration>();
-#pragma warning disable 0612
-				if (Rules.GetSupportedConfigurations(ref ConfigurationList, true))
-				{
-					return ConfigurationList.Distinct().ToArray();
-				}
-#pragma warning restore 0612
-			}
-
 			// Otherwise take the SupportedConfigurationsAttribute from the first type in the inheritance chain that supports it
 			for (Type CurrentType = Rules.GetType(); CurrentType != null; CurrentType = CurrentType.BaseType)
 			{
@@ -1159,7 +1147,7 @@ namespace UnrealBuildTool
 
 					// Figure out if this is a monolithic build
 					bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
-					bShouldCompileMonolithic |= (Combination.ProjectTarget.CreateRulesDelegate(Platform, Configuration).GetLegacyLinkType(Platform, Configuration) == TargetLinkType.Monolithic);
+					bShouldCompileMonolithic |= (Combination.ProjectTarget.CreateRulesDelegate(Platform, Configuration).LinkType == TargetLinkType.Monolithic);
 
 					// Get the output directory
 					DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;

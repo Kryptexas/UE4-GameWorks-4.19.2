@@ -370,8 +370,7 @@ namespace UnrealBuildTool
 						Target.TargetRules.SetupGlobalEnvironment(new TargetInfo(new ReadOnlyTargetRules(Target.TargetRules)), ref LinkEnvironment, ref CppEnvironment);
 
 						Array Configs = Enum.GetValues(typeof(UnrealTargetConfiguration));
-						List<UnrealTargetPlatform> Platforms = new List<UnrealTargetPlatform>();
-						Target.TargetRules.GetSupportedPlatforms(ref Platforms);
+						List<UnrealTargetPlatform> Platforms = new List<UnrealTargetPlatform>(UEBuildTarget.GetSupportedPlatforms(Target.TargetRules));
 
 						ProjectData.Target NewTarget = new ProjectData.Target(NewProject, Target.TargetRules.Name, Target.TargetRules.Type);
 
@@ -882,7 +881,7 @@ namespace UnrealBuildTool
 
 			if (TargetRulesObject != null)
 			{
-				bShouldCompileMonolithic |= (Target.CreateRulesDelegate(Platform, Configuration).GetLegacyLinkType(Platform, Configuration) == TargetLinkType.Monolithic);
+				bShouldCompileMonolithic |= (Target.CreateRulesDelegate(Platform, Configuration).LinkType == TargetLinkType.Monolithic);
 			}
 
 			TargetType TargetRulesType = Target.TargetRules == null ? TargetType.Program : Target.TargetRules.Type;

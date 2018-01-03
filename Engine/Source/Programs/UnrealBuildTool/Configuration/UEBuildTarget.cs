@@ -571,18 +571,6 @@ namespace UnrealBuildTool
 
 		public static UnrealTargetPlatform[] GetSupportedPlatforms(TargetRules Rules)
 		{
-			// Check if the rules object implements the legacy GetSupportedPlatforms() function. If it does, we'll call it for backwards compatibility.
-			if(Rules.GetType().GetMethod("GetSupportedPlatforms").DeclaringType != typeof(TargetRules))
-			{
-				List<UnrealTargetPlatform> PlatformsList = new List<UnrealTargetPlatform>();
-#pragma warning disable 0612
-				if (Rules.GetSupportedPlatforms(ref PlatformsList))
-				{
-					return PlatformsList.ToArray();
-				}
-#pragma warning restore 0612
-			}
-
 			// Otherwise take the SupportedPlatformsAttribute from the first type in the inheritance chain that supports it
 			for (Type CurrentType = Rules.GetType(); CurrentType != null; CurrentType = CurrentType.BaseType)
 			{
@@ -667,13 +655,13 @@ namespace UnrealBuildTool
 			// Set the final value for the link type in the target rules
 			if(RulesObject.LinkType == TargetLinkType.Default)
 			{
-				RulesObject.LinkType = RulesObject.GetLegacyLinkType(Desc.Platform, Desc.Configuration);
+				throw new BuildException("TargetRules.LinkType should be inferred from TargetType");
 			}
 
 			// Set the default value for whether to use the shared build environment
 			if(RulesObject.BuildEnvironment == TargetBuildEnvironment.Default)
 			{
-				if(RulesObject.ShouldUseSharedBuildEnvironment(new TargetInfo(new ReadOnlyTargetRules(RulesObject))))
+				if(RulesObject.Type != TargetType.Program && (UnrealBuildTool.IsEngineInstalled() || RulesObject.LinkType != TargetLinkType.Monolithic))
 				{
 					RulesObject.BuildEnvironment = TargetBuildEnvironment.Shared;
 				}
@@ -694,15 +682,6 @@ namespace UnrealBuildTool
 			{
 				ValidateSharedEnvironment(RulesAssembly, Desc.TargetName, RulesObject);
 			}
-
-			// Check if the rules object implements the legacy GetGeneratedCodeVersion() method. If it does, we'll call it for backwards compatibility.
-			if(RulesObject.GetType().GetMethod("GetGeneratedCodeVersion").DeclaringType != typeof(TargetRules))
-			{
-				RulesObject.GeneratedCodeVersion = RulesObject.GetGeneratedCodeVersion();
-			}
-
-			// Invoke the ConfigureToolchain() callback. 
-			RulesObject.ConfigureToolchain(new TargetInfo(new ReadOnlyTargetRules(RulesObject)));
 
 			// Setup the malloc profiler
 			if (RulesObject.bUseMallocProfiler)
@@ -977,11 +956,6 @@ namespace UnrealBuildTool
 		public string PlatformIntermediateFolder;
 
 		/// <summary>
-		/// TargetInfo object which can be passed to RulesCompiler
-		/// </summary>
-		public TargetInfo TargetInfo;
-
-		/// <summary>
 		/// Root directory for the active project. Typically contains the .uproject file, or the engine root.
 		/// </summary>
 		public DirectoryReference ProjectDirectory;
@@ -1195,7 +1169,6 @@ namespace UnrealBuildTool
 			Configuration = (UnrealTargetConfiguration)Info.GetInt32("co");
 			Architecture = Info.GetString("ar");
 			PlatformIntermediateFolder = Info.GetString("if");
-			TargetInfo = (TargetInfo)Info.GetValue("ti", typeof(TargetInfo));
 			ProjectDirectory = (DirectoryReference)Info.GetValue("pd", typeof(DirectoryReference));
 			ProjectIntermediateDirectory = (DirectoryReference)Info.GetValue("pi", typeof(DirectoryReference));
 			EngineIntermediateDirectory = (DirectoryReference)Info.GetValue("ed", typeof(DirectoryReference));
@@ -1234,7 +1207,6 @@ namespace UnrealBuildTool
 			Info.AddValue("co", (int)Configuration);
 			Info.AddValue("ar", Architecture);
 			Info.AddValue("if", PlatformIntermediateFolder);
-			Info.AddValue("ti", TargetInfo);
 			Info.AddValue("pd", ProjectDirectory);
 			Info.AddValue("pi", ProjectIntermediateDirectory);
 			Info.AddValue("ed", EngineIntermediateDirectory);
@@ -1296,14 +1268,12 @@ namespace UnrealBuildTool
 				throw new BuildException(String.Format("{0} does not support modular builds", InDesc.Platform));
 			}
 
-			TargetInfo = new TargetInfo(Rules);
-
 			// Set the build environment
 			bUseSharedBuildEnvironment = (Rules.BuildEnvironment == TargetBuildEnvironment.Shared);
 
 			if (bUseSharedBuildEnvironment)
 			{
-				AppName = GetAppNameForTargetType(TargetInfo.Type.Value);
+				AppName = GetAppNameForTargetType(Rules.Type);
 			}
 
 			// Figure out what the project directory is. If we have a uproject file, use that. Otherwise use the engine directory.
@@ -1365,7 +1335,7 @@ namespace UnrealBuildTool
 			}
 
             bool bCompileAsDLL = Rules.bShouldCompileAsDLL && bCompileMonolithic;
-            OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
+            OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, Rules.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
 
 			// Get the path to the version file unless this is a formal build (where it will be compiled in)
 			if(Rules.LinkType != TargetLinkType.Monolithic)

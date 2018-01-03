@@ -1062,15 +1062,6 @@ namespace UnrealBuildTool
 		public XboxOneTargetRules XboxOnePlatform = new XboxOneTargetRules();
 
 		/// <summary>
-		/// Default constructor (deprecated; use the constructor below instead).
-		/// </summary>
-		[Obsolete("Please pass the TargetInfo parameter to the base class constructor (eg. \"MyTargetRules(TargetInfo Target) : base(Target)\").")]
-		public TargetRules()
-		{
-			InternalConstructor();
-		}
-
-		/// <summary>
 		/// Default constructor. Since the parameterless TargetRules constructor is still supported for now, initialization that should happen here 
 		/// is currently done in TargetRules.CreateTargetRulesInstance() instead.
 		/// </summary>
@@ -1246,35 +1237,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Replacement for TargetInfo.IsMonolithic during transition from TargetInfo to ReadOnlyTargetRules
-		/// </summary>
-		[Obsolete("IsMonolithic is deprecated in the 4.16 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
-		public bool IsMonolithic
-		{
-			get { return LinkType == TargetLinkType.Monolithic; }
-		}
-
-		/// <summary>
-		/// Accessor to return the link type for this module, including support for setting LinkType, or for overriding ShouldCompileMonolithic().
-		/// </summary>
-		/// <param name="Platform">The platform being compiled.</param>
-		/// <param name="Configuration">The configuration being compiled.</param>
-		/// <returns>Link type for the given combination</returns>
-		internal TargetLinkType GetLegacyLinkType(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
-		{
-#pragma warning disable 0612
-			if (GetType().GetMethod("ShouldCompileMonolithic").DeclaringType != typeof(TargetRules))
-			{
-				return ShouldCompileMonolithic(Platform, Configuration) ? TargetLinkType.Monolithic : TargetLinkType.Modular;
-			}
-			else
-			{
-				return LinkType;
-			}
-#pragma warning restore 0612
-		}
-
-		/// <summary>
 		/// Gets the host platform being built on
 		/// </summary>
 		public UnrealTargetPlatform HostPlatform
@@ -1286,99 +1248,6 @@ namespace UnrealBuildTool
 		/// Can be set to override the file extension of the executable file (normally .exe or .dll on Windows, for example)
 		/// </summary>
 		public string OverrideExecutableFileExtension = String.Empty;
-
-		/// <summary>
-		/// Whether this target should be compiled in monolithic mode
-		/// </summary>
-		/// <param name="InPlatform">The platform being built</param>
-		/// <param name="InConfiguration">The configuration being built</param>
-		/// <returns>true if it should, false if not</returns>
-		[ObsoleteOverride("ShouldCompileMonolithic() is deprecated in 4.15. Please set LinkType = TargetLinkType.Monolithic or LinkType = TargetLinkType.Modular in your target's constructor instead.")]
-		public virtual bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			return Type != global::UnrealBuildTool.TargetType.Editor;
-		}
-
-		/// <summary>
-		/// Give the target an opportunity to override toolchain settings
-		/// </summary>
-		/// <param name="Target">The target currently being setup</param>
-		/// <returns>true if successful, false if not</returns>
-		[ObsoleteOverride("ConfigureToolchain() is deprecated in the 4.16 release. Please set toolchain-specific options from the target's constructor instead.")]
-		public virtual bool ConfigureToolchain(TargetInfo Target)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Get the supported platforms for this target. 
-		/// This function is deprecated in 4.15, and a warning will be given by RulesCompiler if it is implemented by a derived class.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platforms supported</param>
-		/// <returns>true if successful, false if not</returns>
-		[ObsoleteOverride("GetSupportedPlatforms() is deprecated in the 4.15 release. Add a [SupportedPlatforms(...)] attribute to your TargetRules class instead.")]
-		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-		{
-			if (Type == global::UnrealBuildTool.TargetType.Program)
-			{
-				OutPlatforms = new List<UnrealTargetPlatform>(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
-				return true;
-			}
-			else if (Type == global::UnrealBuildTool.TargetType.Editor)
-			{
-				OutPlatforms = new List<UnrealTargetPlatform>(Utils.GetPlatformsInClass(UnrealPlatformClass.Editor));
-				return true;
-			}
-			else
-			{
-				OutPlatforms = new List<UnrealTargetPlatform>(Utils.GetPlatformsInClass(UnrealPlatformClass.All));
-				return true;
-			}
-		}
-
-		/// <summary>
-		/// Get the supported configurations for this target
-		/// </summary>
-		/// <param name="OutConfigurations">The list of configurations supported</param>
-		/// <param name="bIncludeTestAndShippingConfigs"></param>
-		/// <returns>true if successful, false if not</returns>
-		[ObsoleteOverride("GetSupportedConfigurations() is deprecated in the 4.15 release. Add a [SupportedConfigurations(...)] attribute to your TargetRules class instead.")]
-		public virtual bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
-		{
-			if (Type == global::UnrealBuildTool.TargetType.Program)
-			{
-				// By default, programs are Debug and Development only.
-				OutConfigurations.Add(UnrealTargetConfiguration.Debug);
-				OutConfigurations.Add(UnrealTargetConfiguration.Development);
-			}
-			else
-			{
-				// By default all games support all configurations
-				foreach (UnrealTargetConfiguration Config in Enum.GetValues(typeof(UnrealTargetConfiguration)))
-				{
-					if (Config != UnrealTargetConfiguration.Unknown)
-					{
-						// Some configurations just don't make sense for the editor
-						if (Type == global::UnrealBuildTool.TargetType.Editor &&
-							(Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test))
-						{
-							// We don't currently support a "shipping" editor config
-						}
-						else if (!bIncludeTestAndShippingConfigs &&
-							(Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test))
-						{
-							// User doesn't want 'Test' or 'Shipping' configs in their project files
-						}
-						else
-						{
-							OutConfigurations.Add(Config);
-						}
-					}
-				}
-			}
-
-			return (OutConfigurations.Count > 0) ? true : false;
-		}
 
 		/// <summary>
 		/// Setup the global environment for building this target
@@ -1394,57 +1263,6 @@ namespace UnrealBuildTool
 			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 			)
 		{
-		}
-
-		/// <summary>
-		/// Allows a target to choose whether to use the shared build environment for a given configuration. Using
-		/// the shared build environment allows binaries to be reused between targets, but prevents customizing the
-		/// compile environment through SetupGlobalEnvironment().
-		/// </summary>
-		/// <param name="Target">Information about the target</param>
-		/// <returns>True if the target should use the shared build environment</returns>
-		[ObsoleteOverride("ShouldUseSharedBuildEnvironment() is deprecated in the 4.16 release. Set the BuildEnvironment field from the TargetRules constructor instead.")]
-		public virtual bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
-		{
-			return Target.Type != global::UnrealBuildTool.TargetType.Program && (UnrealBuildTool.IsEngineInstalled() || !Target.IsMonolithic);
-		}
-
-		/// <summary>
-		/// Allows the target to specify modules which can be precompiled with the -Precompile/-UsePrecompiled arguments to UBT. 
-		/// All dependencies of the specified modules will be included.
-		/// </summary>
-		/// <param name="Target">The target information, such as platform and configuration</param>
-		/// <param name="ModuleNames">List which receives module names to precompile</param>
-		[ObsoleteOverride("GetModulesToPrecompile() is deprecated in the 4.11 release. The -precompile option to UBT now automatically compiles all engine modules compatible with the current target.")]
-		public virtual void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
-		{
-		}
-
-		/// <summary>
-		/// Allow target module to override UHT code generation version.
-		/// </summary>
-		[ObsoleteOverride("GetGeneratedCodeVersion() is deprecated in the 4.15 release. Set the GeneratedCodeVersion field from the TargetRules constructor instead.")]
-		public virtual EGeneratedCodeVersion GetGeneratedCodeVersion()
-		{
-			return GeneratedCodeVersion;
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("BuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
-		public TargetRules BuildConfiguration
-		{
-			get { return this; }
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("UEBuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
-		public TargetRules UEBuildConfiguration
-		{
-			get { return this; }
 		}
 	}
 
@@ -2064,12 +1882,6 @@ namespace UnrealBuildTool
 			get { return Inner.LinkType; }
 		}
 
-		[Obsolete("IsMonolithic is deprecated in the 4.16 release. Check whether LinkType == TargetRules.TargetLinkType.Monolithic instead.")]
-		public bool IsMonolithic
-		{
-			get { return LinkType == TargetLinkType.Monolithic; }
-		}
-
 		public IReadOnlyList<string> GlobalDefinitions
 		{
 			get { return Inner.GlobalDefinitions.AsReadOnly(); }
@@ -2167,16 +1979,6 @@ namespace UnrealBuildTool
 		public string UEThirdPartyBinariesDirectory
 		{
 			get { return "../Binaries/ThirdParty/"; }
-		}
-
-		/// <summary>
-		/// Wrapper around TargetRules.ConfigureToolchain
-		/// </summary>
-		/// <param name="Target">The target currently being setup</param>
-		/// <returns>true if successful, false if not</returns>
-		public bool ConfigureToolchain(TargetInfo Target)
-		{
-			return Inner.ConfigureToolchain(Target);
 		}
 	}
 }
