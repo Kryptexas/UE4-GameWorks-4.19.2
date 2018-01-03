@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -15,7 +13,7 @@ namespace UnrealBuildTool
 	[Serializable]
 	class UBTMakefile : ISerializable
 	{
-		public const int CurrentVersion = 5;
+		public const int CurrentVersion = 7;
 
 		public int Version;
 

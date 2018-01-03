@@ -1180,12 +1180,7 @@ namespace UnrealBuildTool
 			bEditorRecompile = Info.GetBoolean("er");
 			OnlyModules = (List<OnlyModule>)Info.GetValue("om", typeof(List<OnlyModule>));
 			bCompileMonolithic = Info.GetBoolean("cm");
-			string[] FlatModuleCsDataKeys = (string[])Info.GetValue("fk", typeof(string[]));
-			FlatModuleCsDataType[] FlatModuleCsDataValues = (FlatModuleCsDataType[])Info.GetValue("fv", typeof(FlatModuleCsDataType[]));
-			for (int Index = 0; Index != FlatModuleCsDataKeys.Length; ++Index)
-			{
-				FlatModuleCsData.Add(FlatModuleCsDataKeys[Index], FlatModuleCsDataValues[Index]);
-			}
+			FlatModuleCsData = (Dictionary<string, FlatModuleCsDataType>)Info.GetValue("fm", typeof(Dictionary<string, FlatModuleCsDataType>));
 			Receipt = (TargetReceipt)Info.GetValue("re", typeof(TargetReceipt));
 			ReceiptFileName = (FileReference)Info.GetValue("rf", typeof(FileReference));
 			FileReferenceToModuleManifestPairs = (KeyValuePair<FileReference, ModuleManifest>[])Info.GetValue("vm", typeof(KeyValuePair<FileReference, ModuleManifest>[]));
@@ -1218,8 +1213,7 @@ namespace UnrealBuildTool
 			Info.AddValue("er", bEditorRecompile);
 			Info.AddValue("om", OnlyModules);
 			Info.AddValue("cm", bCompileMonolithic);
-			Info.AddValue("fk", FlatModuleCsData.Keys.ToArray());
-			Info.AddValue("fv", FlatModuleCsData.Values.ToArray());
+			Info.AddValue("fm", FlatModuleCsData);
 			Info.AddValue("re", Receipt);
 			Info.AddValue("rf", ReceiptFileName);
 			Info.AddValue("vm", FileReferenceToModuleManifestPairs);
