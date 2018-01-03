@@ -91,6 +91,14 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
+	/// Attribute used to mark fields which much match between targets in the shared build environment
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
+	class RequiresUniqueBuildEnvironmentAttribute : Attribute
+	{
+	}
+
+	/// <summary>
 	/// TargetRules is a data structure that contains the rules for defining a target (application/executable)
 	/// </summary>
 	public abstract class TargetRules
@@ -275,6 +283,7 @@ namespace UnrealBuildTool
 		/// Forces linking against the static CRT. This is not fully supported across the engine due to the need for allocator implementations to be shared (for example), and TPS 
 		/// libraries to be consistent with each other, but can be used for utility programs.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bUseStaticCRT = false;
 
 		/// <summary>
@@ -284,6 +293,7 @@ namespace UnrealBuildTool
 		/// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
 		/// so that you can debug your program's code.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bDebugBuildsActuallyUseDebugCRT = false;
 
@@ -296,6 +306,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Specifies the configuration whose binaries do not require a "-Platform-Configuration" suffix.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public UnrealTargetConfiguration UndecoratedConfiguration = UnrealTargetConfiguration.Development;
 
 		/// <summary>
@@ -329,16 +340,19 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Output the executable to the engine binaries folder.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bOutputToEngineBinaries = false;
 
 		/// <summary>
 		/// Whether this target should be compiled as a DLL.  Requires LinkType to be set to TargetLinkType.Monolithic.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bShouldCompileAsDLL = false;
 		
 		/// <summary>
 		/// Subfolder to place executables in, relative to the default location.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public string ExeBinariesSubFolder = String.Empty;
 
 		/// <summary>
@@ -349,51 +363,60 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to include PhysX support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bCompilePhysX = true;
 
 		/// <summary>
 		/// Whether to include PhysX APEX support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileApex")]
 		public bool bCompileAPEX = true;
 
 		/// <summary>
 		/// Whether to include NvCloth.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bCompileNvCloth = true;
         
 		/// <summary>
 		/// Whether to include ICU unicode/i18n support in Core.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileICU")]
 		public bool bCompileICU = true;
 
 		/// <summary>
 		/// Whether to compile CEF3 support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileCEF3")]
 		public bool bCompileCEF3 = true;
 
 		/// <summary>
 		/// Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[CommandLine("-NoEditor", Value = "false")]
 		public bool bBuildEditor = true;
 
 		/// <summary>
 		/// Whether to compile code related to building assets. Consoles generally cannot build assets. Desktop platforms generally can.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bBuildRequiresCookedData = false;
 
 		/// <summary>
 		/// Whether to compile WITH_EDITORONLY_DATA disabled. Only Windows will use this, other platforms force this to false.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[CommandLine("-NoEditorOnlyData", Value = "false")]
 		public bool bBuildWithEditorOnlyData = true;
 
 		/// <summary>
 		/// Whether to compile the developer tools.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bBuildDeveloperTools = true;
 
 		/// <summary>
@@ -422,6 +445,7 @@ namespace UnrealBuildTool
         /// <summary>
 		/// Whether to compile lean and mean version of UE.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE")]
 		public bool bCompileLeanAndMeanUE = false;
 
@@ -434,34 +458,40 @@ namespace UnrealBuildTool
         /// <summary>
         /// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
         /// </summary>
+		[RequiresUniqueBuildEnvironment]
         public bool bCompileAgainstEngine = true;
 
 		/// <summary>
 		/// Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bCompileAgainstCoreUObject = true;
 
 		/// <summary>
 		/// If true, include ADO database support in core.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bIncludeADO")]
 		public bool bIncludeADO;
 
 		/// <summary>
 		/// Whether to compile Recast navmesh generation.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileRecast")]
 		public bool bCompileRecast = true;
 
 		/// <summary>
 		/// Whether to compile SpeedTree support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileSpeedTree")]
 		public bool bCompileSpeedTree = true;
 
 		/// <summary>
 		/// Enable exceptions for all modules.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bForceEnableExceptions = false;
 
 		/// <summary>
@@ -483,6 +513,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Compile server-only code.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bWithServerCode = true;
 
 		/// <summary>
@@ -493,12 +524,14 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to include plugin support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport")]
 		public bool bCompileWithPluginSupport = false;
 
 		/// <summary>
 		/// Whether to allow plugins which support all target platforms.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bIncludePluginsForTargetPlatforms = false;
 
         /// <summary>
@@ -530,6 +563,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// True if we need FreeType support.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileFreeType")]
 		public bool bCompileFreeType = true;
 
@@ -552,6 +586,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		public bool bEventDrivenLoader;
 
 		/// <summary>
@@ -945,6 +980,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Backing storage for the LinkType property.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[CommandLine("-Monolithic", Value ="Monolithic")]
 		[CommandLine("-Modular", Value ="Modular")]
 		TargetLinkType LinkTypePrivate = TargetLinkType.Default;
@@ -952,6 +988,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Macros to define globally across the whole target.
 		/// </summary>
+		[RequiresUniqueBuildEnvironment]
 		[CommandLine("-Define", ValueAfterSpace = true)]
 		public List<string> GlobalDefinitions = new List<string>();
 

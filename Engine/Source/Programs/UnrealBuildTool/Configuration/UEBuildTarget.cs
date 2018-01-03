@@ -10,6 +10,7 @@ using System.Xml;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Tools.DotNETCommon;
+using System.Reflection;
 
 namespace UnrealBuildTool
 {
@@ -689,6 +690,10 @@ namespace UnrealBuildTool
 				TargetRules.LinkEnvironmentConfiguration LinkEnvironment = new TargetRules.LinkEnvironmentConfiguration(RulesObject);
 				RulesObject.SetupGlobalEnvironment(new TargetInfo(new ReadOnlyTargetRules(RulesObject)), ref LinkEnvironment, ref CppEnvironment);
 			}
+			else
+			{
+				ValidateSharedEnvironment(RulesAssembly, Desc.TargetName, RulesObject);
+			}
 
 			// Check if the rules object implements the legacy GetGeneratedCodeVersion() method. If it does, we'll call it for backwards compatibility.
 			if(RulesObject.GetType().GetMethod("GetGeneratedCodeVersion").DeclaringType != typeof(TargetRules))
@@ -845,6 +850,67 @@ namespace UnrealBuildTool
 			}
 
 			return BuildTarget;
+		}
+
+		/// <summary>
+		/// Validates that the build environment matches the shared build environment, by comparing the TargetRules instance to the vanilla target rules for the current target type.
+		/// </summary>
+		static void ValidateSharedEnvironment(RulesAssembly RulesAssembly, string ThisTargetName, TargetRules ThisRules)
+		{
+			// Get the name of the target with default settings
+			string BaseTargetName;
+			switch(ThisRules.Type)
+			{
+				case TargetType.Game:
+					BaseTargetName = "UE4Game";
+					break;
+				case TargetType.Editor:
+					BaseTargetName = "UE4Editor";
+					break;
+				case TargetType.Client:
+					BaseTargetName = "UE4Client";
+					break;
+				case TargetType.Server:
+					BaseTargetName = "UE4Server";
+					break;
+				default:
+					return;
+			}
+
+			// Create the target rules for it
+			TargetRules BaseRules = RulesAssembly.CreateTargetRules(BaseTargetName, ThisRules.Platform, ThisRules.Configuration, ThisRules.Architecture, null, ThisRules.Version, false);
+
+			// Iterate through all fields with the [SharedBuildEnvironment] attribute
+			foreach(FieldInfo Field in typeof(TargetRules).GetFields())
+			{
+				if(Field.GetCustomAttribute<RequiresUniqueBuildEnvironmentAttribute>() != null)
+				{
+					// Get the values for the current target and for the base target
+					object ThisValue = Field.GetValue(ThisRules);
+					object BaseValue = Field.GetValue(BaseRules);
+
+					// Check if the fields match, treating lists of strings (eg. definitions) differently to value types.
+					bool bFieldsMatch;
+					if(ThisValue == null || BaseValue == null)
+					{
+						bFieldsMatch = (ThisValue == BaseValue);
+					}
+					else if(typeof(IEnumerable<string>).IsAssignableFrom(Field.FieldType))
+					{
+						bFieldsMatch = Enumerable.SequenceEqual((IEnumerable<string>)ThisValue, (IEnumerable<string>)BaseValue);
+					}
+					else
+					{
+						bFieldsMatch = ThisValue.Equals(BaseValue);
+					}
+
+					// Throw an exception if they don't match
+					if(!bFieldsMatch)
+					{
+						throw new BuildException("{0} modifies the value of {1}. This is not allowed, as {0} shares a compile environment with modules for {2}.\nRemove the modified setting or change {0} to use a unique build environment by setting 'BuildEnvironment = TargetBuildEnvironment.Unique;' in the {3} constructor.", ThisTargetName, Field.Name, BaseTargetName, ThisRules.GetType().Name);
+					}
+				}
+			}
 		}
 
 		/// <summary>
