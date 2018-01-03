@@ -10,7 +10,6 @@ public class UE4ClientTarget : TargetRules
 	{
 		Type = TargetType.Client;
 		BuildEnvironment = TargetBuildEnvironment.Shared;
-        bOutputToEngineBinaries = true;
 		ExtraModuleNames.Add("UE4Game");
 	}
 

@@ -341,6 +341,7 @@ namespace UnrealBuildTool
 		/// Output the executable to the engine binaries folder.
 		/// </summary>
 		[RequiresUniqueBuildEnvironment]
+		[Obsolete("bOutputToEngineBinaries is deprecated in 4.19. The output directory for binaries is determined automatically based on the location of the target.")]
 		public bool bOutputToEngineBinaries = false;
 
 		/// <summary>
@@ -1393,6 +1394,7 @@ namespace UnrealBuildTool
 			get { return Inner.bBuildInSolutionByDefault; }
 		}
 
+		[Obsolete("bOutputToEngineBinaries is deprecated in 4.19. The output directory for binaries is determined automatically based on the location of the target.")]
 		public bool bOutputToEngineBinaries
 		{
 			get { return Inner.bOutputToEngineBinaries; }

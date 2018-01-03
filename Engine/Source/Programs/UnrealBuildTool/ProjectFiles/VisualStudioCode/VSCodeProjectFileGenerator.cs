@@ -888,7 +888,7 @@ namespace UnrealBuildTool
 
 			// Get the output directory
 			DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
-			if (TargetRulesType != TargetType.Program && (bShouldCompileMonolithic || TargetRulesObject.BuildEnvironment == TargetBuildEnvironment.Unique) && !TargetRulesObject.bOutputToEngineBinaries)
+			if (TargetRulesType != TargetType.Program && (bShouldCompileMonolithic || TargetRulesObject.BuildEnvironment == TargetBuildEnvironment.Unique))
 			{
 				if(Target.UnrealProjectFilePath != null)
 				{
@@ -896,7 +896,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (TargetRulesType == TargetType.Program && (TargetRulesObject == null || !TargetRulesObject.bOutputToEngineBinaries))
+			if (TargetRulesType == TargetType.Program)
 			{
 				if(Target.UnrealProjectFilePath != null)
 				{

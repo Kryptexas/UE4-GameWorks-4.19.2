@@ -11,9 +11,6 @@ public class UE4GameTarget : TargetRules
 		Type = TargetType.Game;
 		BuildEnvironment = TargetBuildEnvironment.Shared;
 
-		// Output to Engine/Binaries/<PLATFORM> even if built as monolithic
-		bOutputToEngineBinaries = true;
-
 		ExtraModuleNames.Add("UE4Game");
 	}
 
