@@ -105,6 +105,15 @@ void UInputKeySelector::SetButtonStyle( const FButtonStyle* InButtonStyle )
 	WidgetStyle = *InButtonStyle;
 }
 
+void UInputKeySelector::SetEscapeKeys(const TArray<FKey>& InKeys)
+{
+	if (MyInputKeySelector.IsValid())
+	{
+		MyInputKeySelector->SetEscapeKeys(InKeys);
+	}
+	EscapeKeys = InKeys;
+}
+
 void UInputKeySelector::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -114,6 +123,7 @@ void UInputKeySelector::SynchronizeProperties()
 	MyInputKeySelector->SetButtonStyle( &WidgetStyle );
 	MyInputKeySelector->SetTextStyle( &TextStyle );
 	MyInputKeySelector->SetKeySelectionText( KeySelectionText );
+	MyInputKeySelector->SetNoKeySpecifiedText(NoKeySpecifiedText);
 	MyInputKeySelector->SetAllowModifierKeys( bAllowModifierKeys );
 	MyInputKeySelector->SetAllowGamepadKeys(bAllowGamepadKeys);
 	MyInputKeySelector->SetEscapeKeys(EscapeKeys);
@@ -134,6 +144,7 @@ TSharedRef<SWidget> UInputKeySelector::RebuildWidget()
 		.ButtonStyle(&WidgetStyle)
 		.TextStyle(&TextStyle)
 		.KeySelectionText(KeySelectionText)
+		.NoKeySpecifiedText(NoKeySpecifiedText)
 		.AllowModifierKeys(bAllowModifierKeys)
 		.AllowGamepadKeys(bAllowGamepadKeys)
 		.EscapeKeys(EscapeKeys)

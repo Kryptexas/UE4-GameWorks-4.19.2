@@ -110,6 +110,10 @@ public:
 	/** Sets the style of the button used to start key selection mode. */
 	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 
+	/** Sets escape keys. */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetEscapeKeys(const TArray<FKey>& InKeys);
+
 	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;
 	//~ End UWidget Interface
