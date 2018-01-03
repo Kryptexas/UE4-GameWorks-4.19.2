@@ -21,6 +21,7 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
+	bAutoWrapText = false;
 
 	if (!IsRunningDedicatedServer())
 	{
@@ -96,6 +97,15 @@ void UTextBlock::SetMinDesiredWidth(float InMinDesiredWidth)
 	if (MyTextBlock.IsValid())
 	{
 		MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
+	}
+}
+
+void UTextBlock::SetAutoWrapText(bool InAutoWrapText)
+{
+	bAutoWrapText = InAutoWrapText;
+	if(MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetAutoWrapText(InAutoWrapText);
 	}
 }
 
@@ -204,6 +214,7 @@ void UTextBlock::SynchronizeProperties()
 		MyTextBlock->SetShadowOffset( ShadowOffset );
 		MyTextBlock->SetShadowColorAndOpacity( ShadowColorAndOpacityBinding );
 		MyTextBlock->SetMinDesiredWidth( MinDesiredWidth );
+		MyTextBlock->SetAutoWrapText(bAutoWrapText);
 
 		Super::SynchronizeTextLayoutProperties( *MyTextBlock );
 	}

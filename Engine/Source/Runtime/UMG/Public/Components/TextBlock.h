@@ -80,6 +80,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetMinDesiredWidth(float InMinDesiredWidth);
+	
+	/**
+	 * Set the auto wrap for this text block.
+	 *
+	 * @param InAutoTextWrap to turn wrap on or off.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetAutoWrapText(bool InAutoTextWrap);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -129,6 +137,10 @@ public:
 	/** If true, it will automatically wrap this text widget with an invalidation panel */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Performance, AdvancedDisplay)
 	bool bWrapWithInvalidationPanel;
+
+	/** Whether the text should automatically wrap */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Appearance)
+	bool bAutoWrapText;
 
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
