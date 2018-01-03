@@ -308,19 +308,11 @@ namespace UnrealBuildTool
 
 				// Call the constructor
 				ConstructorInfo Constructor = RulesObjectType.GetConstructor(new Type[] { typeof(ReadOnlyTargetRules) });
-				if(Constructor != null)
+				if(Constructor == null)
 				{
-					Constructor.Invoke(RulesObject, new object[] { Target });
+					throw new BuildException("No valid constructor found for {0}.", ModuleName);
 				}
-				else
-				{
-					ConstructorInfo DeprecatedConstructor = RulesObjectType.GetConstructor(new Type[] { typeof(TargetInfo) });
-					if(DeprecatedConstructor == null)
-					{
-						throw new Exception("No valid constructor found.");
-					}	
-					DeprecatedConstructor.Invoke(RulesObject, new object[] { new TargetInfo(Target) });
-				}
+				Constructor.Invoke(RulesObject, new object[] { Target });
 			}
 			catch (Exception Ex)
 			{

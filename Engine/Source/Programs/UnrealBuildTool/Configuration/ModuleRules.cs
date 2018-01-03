@@ -441,31 +441,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Default constructor. Deprecated in 4.15.
-		/// </summary>
-		[Obsolete("Please change your module constructor to take a ReadOnlyTargetRules parameter, and pass it to the base class constructor (eg. \"MyModuleRules(ReadOnlyTargetRules Target) : base(Target)\").")]
-		public ModuleRules()
-		{
-		}
-
-		/// <summary>
 		/// Constructor. For backwards compatibility while the parameterless constructor is being phased out, initialization which would happen here is done by 
 		/// RulesAssembly.CreateModulRules instead.
 		/// </summary>
 		/// <param name="Target">Rules for building this target</param>
 		public ModuleRules(ReadOnlyTargetRules Target)
 		{
-		}
-
-		/// <summary>
-		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
-		/// </summary>
-		/// <param name="Target">The target this module belongs to</param>
-		/// <param name="ModuleNames">The names of the modules to add</param>
-		[Obsolete("Use AddEngineThirdPartyPrivateStaticDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateStaticDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
-		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -482,17 +463,6 @@ namespace UnrealBuildTool
 			{
 				PrivateDependencyModuleNames.AddRange(ModuleNames);
 			}
-		}
-
-		/// <summary>
-		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
-		/// </summary>
-		/// <param name="Target">Rules for the target being built</param>
-		/// <param name="ModuleNames">The names of the modules to add</param>
-		[Obsolete("Use AddEngineThirdPartyPrivateDynamicDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateDynamicDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
-		{
-			AddEngineThirdPartyPrivateDynamicDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -567,33 +537,6 @@ namespace UnrealBuildTool
 			{
 				PublicDefinitions.Add("WITH_NVCLOTH=0");
 			}
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("The BuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyTargetRules BuildConfiguration
-		{
-			get { return Target; }
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("The UEBuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyTargetRules UEBuildConfiguration
-		{
-			get { return Target; }
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static WindowsPlatform object; redirect it to use properties on the target rules.
-		/// </summary>
-		[Obsolete("The WindowsPlatform alias is deprecated in 4.18. Set the same properties on the WindowsPlatform member of the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyWindowsTargetRules WindowsPlatform
-		{
-			get { return Target.WindowsPlatform; }
 		}
 	}
 }
