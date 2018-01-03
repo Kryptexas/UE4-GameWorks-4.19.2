@@ -531,6 +531,11 @@ namespace UnrealBuildTool
 		public void SetTrace() { bGlobalTrace = true; }
 		public void ClearTrace() { bGlobalTrace = false; }
 
+		public string GetUPLHash()
+		{
+			return XDoc.ToString().GetHashCode().ToString();
+		}
+
 		public bool MergeXML(XDocument MergeDoc, string PluginDir, List<string> Architectures)
 		{
 			if (MergeDoc == null)
