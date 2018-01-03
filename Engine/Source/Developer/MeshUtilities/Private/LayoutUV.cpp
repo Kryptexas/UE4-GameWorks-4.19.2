@@ -20,6 +20,7 @@ FLayoutUV::FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel
 	, BestChartRaster( TextureResolution, TextureResolution )
 	, ChartShader( &ChartRaster )
 	, LayoutVersion( ELightmapUVVersion::Latest )
+	, NextMeshChartId( 0 )
 {}
 
 int32 FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
@@ -159,7 +160,8 @@ int32 FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	{
 		int32 i = Charts.AddUninitialized();
 		FMeshChart& Chart = Charts[i];
-		
+		Chart.Id = NextMeshChartId++;
+
 		Chart.MinUV = FVector2D( FLT_MAX, FLT_MAX );
 		Chart.MaxUV = FVector2D( -FLT_MAX, -FLT_MAX );
 		Chart.UVArea = 0.0f;
@@ -616,6 +618,15 @@ void FLayoutUV::ScaleCharts( float UVScale )
 		Chart.UVScale = Chart.WorldScale * UVScale;
 	}
 	
+	if ( LayoutVersion >= ELightmapUVVersion::ScaleChartsOrderingFix )
+	{
+		// Unsort the charts to make sure ScaleCharts always return the same ordering
+		Algo::IntroSort( Charts, []( const FMeshChart& A, const FMeshChart& B )
+		{
+			return A.Id < B.Id;
+		});
+	}
+
 	// Scale charts such that they all fit and roughly total the same area as before
 #if 1
 	float UniformScale = 1.0f;

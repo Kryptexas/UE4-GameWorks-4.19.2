@@ -27,6 +27,8 @@ struct FMeshChart
 	FVector2D	PackingBias;
 
 	int32		Join[4];
+
+	int32		Id; // Store a unique id so that we can come back to the initial Charts ordering when necessary
 };
 
 struct FAllocator2DShader
@@ -85,7 +87,9 @@ private:
 	FAllocator2D		BestChartRaster;
 	FAllocator2DShader	ChartShader;
 
-	ELightmapUVVersion LayoutVersion;
+	ELightmapUVVersion	LayoutVersion;
+
+	int32				NextMeshChartId;
 };
 
 
