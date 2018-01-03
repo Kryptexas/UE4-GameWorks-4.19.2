@@ -1480,7 +1480,7 @@ bool ARecastNavMesh::SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaCl
 		{
 			// @todo implement a single detour function that would do both
 			bSuccess = dtStatusSucceed(NavMesh->setPolyArea(PolyID, AreaId));
-			bSuccess = (bSuccess && dtStatusSucceed(NavMesh->setPolyFlags(PolyID, AreaId)));
+			bSuccess = (bSuccess && dtStatusSucceed(NavMesh->setPolyFlags(PolyID, AreaFlags)));
 		}
 	}
 	return bSuccess;
