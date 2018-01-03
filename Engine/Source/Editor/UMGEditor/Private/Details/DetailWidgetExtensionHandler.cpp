@@ -16,7 +16,7 @@ bool FDetailWidgetExtensionHandler::IsPropertyExtendable(const UClass* InObjectC
 		InPropertyHandle.GetOuterObjects(Objects);
 
 		// We don't allow bindings on the CDO.
-		if ( Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
+		if (Objects[0] != nullptr && Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
 		{
 			return false;
 		}
