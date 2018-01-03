@@ -1503,7 +1503,7 @@ void FMacCrashContext::CopyMinidump(char const* OutputPath, char const* InputPat
 	}
 }
 
-void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool bIsEnsure) const
+void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 {
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
@@ -1645,8 +1645,7 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.C, 16));
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.D, 16));
 		
-		const bool bIsEnsure = false;
-		GenerateInfoInFolder(CrashInfoFolder, bIsEnsure);
+		GenerateInfoInFolder(CrashInfoFolder);
 
 		// try launching the tool and wait for its exit, if at all
 		// Use vfork() & execl() as they are async-signal safe, CreateProc can fail in Cocoa
@@ -1711,8 +1710,7 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		FString GameName = FApp::GetProjectName();
 		FString EnsureLogFolder = FString(GMacAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
 		
-		const bool bIsEnsure = true;
-		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
+		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
 		
 		FString Arguments;
 		if (IsInteractiveEnsureMode())
@@ -1752,7 +1750,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		Signal.si_code = TRAP_TRACE;
 		Signal.si_addr = __builtin_return_address(0);
 		
-		FMacCrashContext EnsureContext;
+		FMacCrashContext EnsureContext(true);
 		EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
 		EnsureContext.GenerateEnsureInfoAndLaunchReporter();
 	}
