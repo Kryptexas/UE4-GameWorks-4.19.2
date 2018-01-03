@@ -462,7 +462,7 @@ void FAnimNode_RigidBody::InitPhysics(const UAnimInstance* InAnimInstance)
 				{
 					UBodySetup* BodySetup = UsePhysicsAsset->SkeletalBodySetups[BodyInstance->InstanceBodyIndex];
 					const bool bKinematic = BodySetup->PhysicsType != EPhysicsType::PhysType_Simulated;
-					const FTransform& LastTransform = SkeletalMeshComp->GetComponentSpaceTransforms()[InsertBone];	//This is out of date, but will still give our bodies an initial setup that matches the constraints (TODO: use refpose)
+					const FTransform& LastTransform = SkeletalMeshComp->GetBoneTransform(InsertBone);	//This is out of date, but will still give our bodies an initial setup that matches the constraints (TODO: use refpose)
 
 					FActorHandle* NewBodyHandle = nullptr;
 					if (bSimulatedBodies && !bKinematic)
