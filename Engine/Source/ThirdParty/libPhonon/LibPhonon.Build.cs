@@ -24,7 +24,7 @@ public class libPhonon : ModuleRules
 
             BinaryPath += "Win64/";
 
-            RuntimeDependencies.Add(new RuntimeDependency(BinaryPath + DllName));
+            RuntimeDependencies.Add(BinaryPath + DllName);
         }
         else if (Target.Platform == UnrealTargetPlatform.Win32)
         {
@@ -37,7 +37,7 @@ public class libPhonon : ModuleRules
 
             BinaryPath += "Win32/";
 
-            RuntimeDependencies.Add(new RuntimeDependency(BinaryPath + DllName));
+            RuntimeDependencies.Add(BinaryPath + DllName);
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {

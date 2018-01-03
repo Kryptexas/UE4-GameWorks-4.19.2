@@ -60,7 +60,7 @@ public class AlembicLib : ModuleRules
 
                 if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
                 {
-                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll"));
+                    RuntimeDependencies.Add("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll");
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac)

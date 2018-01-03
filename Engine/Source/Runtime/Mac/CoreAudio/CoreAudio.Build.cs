@@ -30,7 +30,7 @@ public class CoreAudio : ModuleRules
 		// Add contents of component directory as runtime dependencies
 		foreach (string FilePath in Directory.EnumerateFiles("../Build/Mac/RadioEffectUnit/RadioEffectUnit.component", "*", SearchOption.AllDirectories))
 		{
-			RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+			RuntimeDependencies.Add(FilePath);
 		}
 	}
 }

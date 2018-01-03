@@ -4594,7 +4594,7 @@ namespace UnrealBuildTool
 				// Expand the list of runtime dependencies, and update the run-time dependencies path to remove $(PluginDir) and replace with a full path. When the 
 				// receipt is saved it'll be converted to a $(ProjectDir) or $(EngineDir) equivalent.
 				List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
-				if(RulesObject.RuntimeDependencies.Count > 0)
+				if(RulesObject.RuntimeDependencies.Inner.Count > 0)
 				{
 					// Get all the valid variables which can be expanded for this module
 					Dictionary<string, string> Variables = new Dictionary<string, string>();
@@ -4609,7 +4609,7 @@ namespace UnrealBuildTool
 					}
 
 					// Convert them into concrete file lists. Ignore anything that still hasn't been resolved.
-					foreach (ModuleRules.RuntimeDependency Dependency in RulesObject.RuntimeDependencies)
+					foreach (ModuleRules.RuntimeDependency Dependency in RulesObject.RuntimeDependencies.Inner)
 					{
 						string ExpandedPath = Utils.ExpandVariables(Dependency.Path, Variables);
 						if (!ExpandedPath.StartsWith("$("))

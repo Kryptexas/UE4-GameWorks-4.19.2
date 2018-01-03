@@ -150,8 +150,13 @@ namespace UnrealBuildTool
 		/// List of runtime dependencies, with convenience methods for adding new items
 		/// </summary>
 		[Serializable]
-		public class RuntimeDependencyList : List<RuntimeDependency>
+		public class RuntimeDependencyList
 		{
+			/// <summary>
+			/// Inner list of runtime dependencies
+			/// </summary>
+			internal List<RuntimeDependency> Inner = new List<RuntimeDependency>();
+
 			/// <summary>
 			/// Default constructor
 			/// </summary>
@@ -163,10 +168,29 @@ namespace UnrealBuildTool
 			/// Add a runtime dependency to the list
 			/// </summary>
 			/// <param name="InPath">Path to the runtime dependency. May include wildcards.</param>
+			public void Add(string InPath)
+			{
+				Inner.Add(new RuntimeDependency(InPath));
+			}
+
+			/// <summary>
+			/// Add a runtime dependency to the list
+			/// </summary>
+			/// <param name="InPath">Path to the runtime dependency. May include wildcards.</param>
 			/// <param name="InType">How to stage this file</param>
 			public void Add(string InPath, StagedFileType InType)
 			{
-				Add(new RuntimeDependency(InPath, InType));
+				Inner.Add(new RuntimeDependency(InPath, InType));
+			}
+
+			/// <summary>
+			/// Add a runtime dependency to the list
+			/// </summary>
+			/// <param name="InRuntimeDependency">RuntimeDependency instance</param>
+			[Obsolete("Constructing a RuntimeDependency object is deprecated. Call RuntimeDependencies.Add() with the path to the file to stage.")]
+			public void Add(RuntimeDependency InRuntimeDependency)
+			{
+				Inner.Add(InRuntimeDependency);
 			}
 		}
 

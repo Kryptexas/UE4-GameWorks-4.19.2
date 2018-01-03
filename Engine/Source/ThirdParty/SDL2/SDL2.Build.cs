@@ -44,7 +44,7 @@ public class SDL2 : ModuleRules
 
 			PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll");
 			PublicDelayLoadDLLs.Add("SDL2.dll");
 		}
 

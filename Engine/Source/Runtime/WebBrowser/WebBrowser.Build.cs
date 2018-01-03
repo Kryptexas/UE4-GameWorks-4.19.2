@@ -55,16 +55,16 @@ public class WebBrowser : ModuleRules
 					// Add contents of UnrealCefSubProcess.app directory as runtime dependencies
 					foreach (string FilePath in Directory.EnumerateFiles(Target.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
 					{
-						RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+						RuntimeDependencies.Add(FilePath);
 					}
 				}
 				else if (Target.Platform == UnrealTargetPlatform.Linux)
 				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess");
 				}
 				else
 				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe");
 				}
 			}
 		}

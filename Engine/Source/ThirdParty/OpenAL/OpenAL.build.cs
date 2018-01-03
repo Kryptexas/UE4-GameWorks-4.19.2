@@ -18,7 +18,7 @@ public class OpenAL : ModuleRules
 			string OpenALRuntimePath = Path.Combine(Target.UEThirdPartyBinariesDirectory , "OpenAL", Target.Platform.ToString(), Target.Architecture, "libopenal.so");
 			PublicAdditionalLibraries.Add(OpenALRuntimePath);
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenAL/Linux/" + Target.Architecture + "/libopenal.so.1"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/OpenAL/Linux/" + Target.Architecture + "/libopenal.so.1");
 		}
 	}
 }

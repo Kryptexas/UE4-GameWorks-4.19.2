@@ -89,7 +89,7 @@ namespace UnrealBuildTool.Rules
                 PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, PlatformString, "Leap.lib"));
 
                 PublicDelayLoadDLLs.Add("Leap.dll");
-                RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/LeapMotion/" + Target.Platform.ToString() + "/" + "Leap.dll"));
+                RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/LeapMotion/" + Target.Platform.ToString() + "/" + "Leap.dll");
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac){
 

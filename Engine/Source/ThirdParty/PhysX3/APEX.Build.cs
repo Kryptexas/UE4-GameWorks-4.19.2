@@ -194,7 +194,7 @@ public class APEX : ModuleRules
 			{
 				string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);
 				PublicDelayLoadDLLs.Add(LibraryPath);
-				RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+				RuntimeDependencies.Add(LibraryPath);
 			}
 			if (LibrarySuffix != "")
 			{

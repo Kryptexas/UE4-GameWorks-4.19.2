@@ -78,7 +78,7 @@ public class ICU : ModuleRules
 					foreach(string Stem in LibraryNameStems)
 					{
 						string LibraryName = BinariesDir + String.Format("icu{0}{1}53.dll", Stem, LibraryNamePostfix);
-						RuntimeDependencies.Add(new RuntimeDependency(LibraryName));
+						RuntimeDependencies.Add(LibraryName);
 					}
 				}
 
@@ -152,8 +152,8 @@ public class ICU : ModuleRules
 							PublicAdditionalLibraries.Add(LibraryName);
 
 							// add runtime dependencies (for staging)
-							RuntimeDependencies.Add(new RuntimeDependency(PathToBinary + "lib" + LibraryName + ".so"));
-							RuntimeDependencies.Add(new RuntimeDependency(PathToBinary + "lib" + LibraryName + ".so.53"));  // version-dependent
+							RuntimeDependencies.Add(PathToBinary + "lib" + LibraryName + ".so");
+							RuntimeDependencies.Add(PathToBinary + "lib" + LibraryName + ".so.53");  // version-dependent
 						}
 					}
 					break;
@@ -198,7 +198,7 @@ public class ICU : ModuleRules
 
 							PublicDelayLoadDLLs.Add(LibraryPath);
 							PublicAdditionalShadowFiles.Add(LibraryPath);
-							RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+							RuntimeDependencies.Add(LibraryPath);
 						}
 					}
 

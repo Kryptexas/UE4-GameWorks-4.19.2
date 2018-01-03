@@ -158,7 +158,7 @@ public class ApexDestructionLib : ModuleRules
             {
                 string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);
                 PublicDelayLoadDLLs.Add(LibraryPath);
-                RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+                RuntimeDependencies.Add(LibraryPath);
             }
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)

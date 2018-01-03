@@ -40,11 +40,11 @@ public class ShaderCompileWorker : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			RuntimeDependencies.Add(new RuntimeDependency(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll"));
+			RuntimeDependencies.Add(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			RuntimeDependencies.Add(new RuntimeDependency(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll"));
+			RuntimeDependencies.Add(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll");
 		}
 	}
 }

@@ -22,7 +22,7 @@ public class LibOVRAudio : ModuleRules
 			PublicAdditionalLibraries.Add(LibraryName + ".lib");
 
             PublicDelayLoadDLLs.Add("ovraudio64.dll");
-            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"));
+            RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll");
         }
 	}
 }

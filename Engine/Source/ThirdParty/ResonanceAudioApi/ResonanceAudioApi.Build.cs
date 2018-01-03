@@ -37,7 +37,7 @@ public class ResonanceAudioApi : ModuleRules
 
             string SharedObjectName = "libvraudio.so";
             PublicDelayLoadDLLs.Add(SharedObjectName);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath + SharedObjectName));
+            RuntimeDependencies.Add(LibraryPath + SharedObjectName);
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -46,7 +46,7 @@ public class ResonanceAudioApi : ModuleRules
 
             string DylibName = "libvraudio.dylib";
             PublicDelayLoadDLLs.Add(LibraryPath + DylibName);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath + DylibName));
+            RuntimeDependencies.Add(LibraryPath + DylibName);
         }
         else if (Target.Platform == UnrealTargetPlatform.Win32)
         {
@@ -55,7 +55,7 @@ public class ResonanceAudioApi : ModuleRules
 
             string DllName = "vraudio.dll";
             PublicDelayLoadDLLs.Add(DllName);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath + DllName));
+            RuntimeDependencies.Add(LibraryPath + DllName);
         }
         else if (Target.Platform == UnrealTargetPlatform.Win64)
         {
@@ -64,7 +64,7 @@ public class ResonanceAudioApi : ModuleRules
 
             string DllName = "vraudio.dll";
             PublicDelayLoadDLLs.Add(DllName);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath + DllName));
+            RuntimeDependencies.Add(LibraryPath + DllName);
         }
         else
         {

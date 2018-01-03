@@ -52,7 +52,7 @@ public class GoogleTest : ModuleRules
             //if (!Target.IsMonolithic)
             //{
             //    PublicAdditionalLibraries.Add("gmock_main.lib");
-            //    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/GoogleTest/" + PartialLibraryPath + "gmock_main.dll"));
+            //    RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/GoogleTest/" + PartialLibraryPath + "gmock_main.dll");
             //}
             //else
             //{

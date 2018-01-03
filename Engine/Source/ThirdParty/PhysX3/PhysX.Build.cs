@@ -169,7 +169,7 @@ public class PhysX : ModuleRules
 			string PxSharedBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach (string DLL in PxSharedRuntimeDependenciesX64)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(PxSharedBinariesDir + String.Format(DLL, LibrarySuffix)));
+				RuntimeDependencies.Add(PxSharedBinariesDir + String.Format(DLL, LibrarySuffix));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -257,7 +257,7 @@ public class PhysX : ModuleRules
 			{
 				string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);
 				PublicDelayLoadDLLs.Add(LibraryPath);
-				RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+				RuntimeDependencies.Add(LibraryPath);
 			}
 
 			if (LibrarySuffix != "")

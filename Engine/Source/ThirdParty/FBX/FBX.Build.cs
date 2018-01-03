@@ -32,7 +32,7 @@ public class FBX : ModuleRules
 				// We are using DLL versions of the FBX libraries
 				PublicDefinitions.Add("FBXSDK_SHARED");
 
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/libfbxsdk.dll"));
+				RuntimeDependencies.Add("$(EngineDir)/Binaries/Win64/libfbxsdk.dll");
 			}
 			else
 			{

@@ -117,7 +117,7 @@ namespace UnrealBuildTool.Rules
 				// OVRPlugin
 				{
 					PublicDelayLoadDLLs.Add("OVRPlugin.dll");
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/OVRPlugin/OVRPlugin/" + Target.Platform.ToString() + "/OVRPlugin.dll"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/OVRPlugin/OVRPlugin/" + Target.Platform.ToString() + "/OVRPlugin.dll");
 				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)

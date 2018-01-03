@@ -49,7 +49,7 @@ public class OSVRClientKit : ModuleRules
             foreach (var dll in osvrDlls)
             {
                 var src = String.Format(DllFormat, baseBinaryDirectory, PlatformAbbrev, dll);
-                RuntimeDependencies.Add(new RuntimeDependency(src));
+                RuntimeDependencies.Add(src);
             }
         }
         else if(Target.Platform == UnrealTargetPlatform.Android)

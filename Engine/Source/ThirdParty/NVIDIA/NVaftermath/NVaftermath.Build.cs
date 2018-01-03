@@ -21,7 +21,7 @@ public class NVAftermath : ModuleRules
             String AftermathDllName = "GFSDK_Aftermath_Lib.x64.dll";                  
             String nvDLLPath = "$(EngineDir)/Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/" + AftermathDllName;
             PublicDelayLoadDLLs.Add(AftermathDllName);
-            RuntimeDependencies.Add(new RuntimeDependency(nvDLLPath));
+            RuntimeDependencies.Add(nvDLLPath);
 
             //temporarily disable until codegen issues with struct sizes dealing with this define are resolved.
             PublicDefinitions.Add("NV_AFTERMATH=0");

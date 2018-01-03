@@ -35,18 +35,18 @@ public class Steamworks : ModuleRules
 			PublicDelayLoadDLLs.Add(LibraryName + ".dll");
 
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Win32/", SteamVersion);
-			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steam_api.dll"));
+			RuntimeDependencies.Add(SteamBinariesDir + "steam_api.dll");
 
 			if(Target.Type == TargetType.Server)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steamclient.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "tier0_s.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "vstdlib_s.dll"));
+				RuntimeDependencies.Add(SteamBinariesDir + "steamclient.dll");
+				RuntimeDependencies.Add(SteamBinariesDir + "tier0_s.dll");
+				RuntimeDependencies.Add(SteamBinariesDir + "vstdlib_s.dll");
 			}
 			else
 			{
 				// assume SteamController is needed
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Config/controller.vdf"));
+				RuntimeDependencies.Add("$(EngineDir)/Config/controller.vdf");
 			}
 		}
 		else if(Target.Platform == UnrealTargetPlatform.Win64)
@@ -56,18 +56,18 @@ public class Steamworks : ModuleRules
 			PublicDelayLoadDLLs.Add(LibraryName + "64.dll");
 
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Win64/", SteamVersion);
-			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + LibraryName + "64.dll"));
+			RuntimeDependencies.Add(SteamBinariesDir + LibraryName + "64.dll");
 
 			if(Target.Type == TargetType.Server)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "steamclient64.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "tier0_s64.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "vstdlib_s64.dll"));
+				RuntimeDependencies.Add(SteamBinariesDir + "steamclient64.dll");
+				RuntimeDependencies.Add(SteamBinariesDir + "tier0_s64.dll");
+				RuntimeDependencies.Add(SteamBinariesDir + "vstdlib_s64.dll");
 			}
 			else
 			{
 				// assume SteamController is needed
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Config/controller.vdf"));
+				RuntimeDependencies.Add("$(EngineDir)/Config/controller.vdf");
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -92,7 +92,7 @@ public class Steamworks : ModuleRules
 			}
 
 			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/x86_64-unknown-linux-gnu/", SteamVersion);
-			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "libsteam_api.so"));
+			RuntimeDependencies.Add(SteamBinariesDir + "libsteam_api.so");
 		}
 	}
 }

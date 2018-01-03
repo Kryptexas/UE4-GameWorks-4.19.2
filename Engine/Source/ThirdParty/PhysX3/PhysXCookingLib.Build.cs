@@ -102,7 +102,7 @@ public class PhysXCookingLib : ModuleRules
             string LibraryPath = PhysXBinariesDir + String.Format("libPhysX3Cooking{0}.dylib", LibrarySuffix);
             
             PublicDelayLoadDLLs.Add(LibraryPath);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+            RuntimeDependencies.Add(LibraryPath);
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {

@@ -41,7 +41,7 @@ namespace UnrealBuildTool.Rules
 
                 PrivateIncludePathModuleNames.Add("XAudio2");
                 PrivateDependencyModuleNames.AddRange(new string[] { "XAudio2", "LibOVRAudio" });
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"));
+				RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll");
 
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
             }
