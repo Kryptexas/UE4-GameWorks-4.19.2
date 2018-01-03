@@ -1301,12 +1301,15 @@ namespace UnrealBuildTool
             OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
 
 			// Get the path to the version file unless this is a formal build (where it will be compiled in)
-			UnrealTargetConfiguration VersionConfig = Configuration;
-			if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment && ProjectFile != null)
+			if(!Rules.bFormalBuild)
 			{
-				VersionConfig = UnrealTargetConfiguration.Development;
+				UnrealTargetConfiguration VersionConfig = Configuration;
+				if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment && ProjectFile != null)
+				{
+					VersionConfig = UnrealTargetConfiguration.Development;
+				}
+				VersionFile = BuildVersion.GetFileNameForTarget(OutputDirectory, bCompileMonolithic? TargetName : AppName, Platform, VersionConfig, Architecture);
 			}
-			VersionFile = BuildVersion.GetFileNameForTarget(OutputDirectory, bCompileMonolithic? TargetName : AppName, Platform, VersionConfig, Architecture);
 		}
 
 		/// <summary>
@@ -1660,7 +1663,12 @@ namespace UnrealBuildTool
 			// that already contains a manifest, we'll reuse the build id that's already in there (see below).
 			if(String.IsNullOrEmpty(Version.BuildId))
 			{
-				if(OnlyModules.Count > 0 || bEditorRecompile)
+				if(Rules.bFormalBuild)
+				{
+					// If this is a formal build, we can just the compatible changelist as the unique id.
+					Version.BuildId = String.Format("{0}", Version.EffectiveCompatibleChangelist);
+				}
+				else if(OnlyModules.Count > 0 || bEditorRecompile)
 				{
 					// If we're hot reloading, just use the last version number.
 					BuildVersion LastVersion;
@@ -1675,15 +1683,8 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					// If this is a formal build, we can just the compatible changelist as the unique id. Otherwise generate something randomly.
-					if(Rules.bFormalBuild)
-					{
-						Version.BuildId = String.Format("{0}", Version.EffectiveCompatibleChangelist);
-					}
-					else
-					{
-						Version.BuildId = Guid.NewGuid().ToString();
-					}
+					// Otherwise generate something randomly.
+					Version.BuildId = Guid.NewGuid().ToString();
 				}
 			}
 			
@@ -1791,11 +1792,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-				// Also add the version file if it's been specified
-				if (VersionFile != null)
-				{
-					Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
-				}
+			// Also add the version file if it's been specified
+			if (VersionFile != null)
+			{
+				Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
+			}
 
 			// Prepare all the version manifests
 			Dictionary<FileReference, ModuleManifest> FileNameToModuleManifest = new Dictionary<FileReference, ModuleManifest>();
