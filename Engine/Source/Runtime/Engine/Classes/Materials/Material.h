@@ -317,6 +317,12 @@ struct FParameterGroupData
 		GroupName = FString(TEXT(""));
 		GroupSortPriority = 0;
 	}
+
+	FParameterGroupData(const FString& InString, int32 InSortPriority)
+	:	GroupName(InString),
+		GroupSortPriority(InSortPriority)
+	{
+	}
 };
 
 /**

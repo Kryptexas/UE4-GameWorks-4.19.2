@@ -709,6 +709,7 @@ FMaterialEditor::~FMaterialEditor()
 
 void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 {
+	TArray<FParameterGroupData> UpdatedGroups;
 	for (int32 MaterialExpressionIndex = 0; MaterialExpressionIndex < Material->Expressions.Num(); ++MaterialExpressionIndex)
 	{
 		UMaterialExpression* MaterialExpression = Material->Expressions[ MaterialExpressionIndex ];
@@ -717,20 +718,57 @@ void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 		UMaterialExpressionFontSampleParameter* FontS = Cast<UMaterialExpressionFontSampleParameter>(MaterialExpression);
 		if (Param)
 		{
-			OutGroups->AddUnique(Param->Group.ToString());
-			Material->AttemptInsertNewGroupName(Param->Group.ToString());
+			const FString& GroupName = Param->Group.ToString();
+			OutGroups->AddUnique(GroupName);
+			if (Material->AttemptInsertNewGroupName(GroupName))
+			{
+				UpdatedGroups.Add(FParameterGroupData(GroupName, 0));
+			}
+			else
+			{
+				FParameterGroupData* ParameterGroupDataElement = Material->ParameterGroupData.FindByPredicate([&GroupName](const FParameterGroupData& DataElement)
+				{
+					return GroupName == DataElement.GroupName;
+				});
+				UpdatedGroups.Add(FParameterGroupData(GroupName, ParameterGroupDataElement->GroupSortPriority));
+			}
 		}
 		else if (TextureS)
 		{
-			OutGroups->AddUnique(TextureS->Group.ToString());
-			Material->AttemptInsertNewGroupName(TextureS->Group.ToString());
+			const FString& GroupName = TextureS->Group.ToString();
+			OutGroups->AddUnique(GroupName);
+			if (Material->AttemptInsertNewGroupName(GroupName))
+			{
+				UpdatedGroups.Add(FParameterGroupData(GroupName, 0));
+			}
+			else
+			{
+				FParameterGroupData* ParameterGroupDataElement = Material->ParameterGroupData.FindByPredicate([&GroupName](const FParameterGroupData& DataElement)
+				{
+					return GroupName == DataElement.GroupName;
+				});
+				UpdatedGroups.Add(FParameterGroupData(GroupName, ParameterGroupDataElement->GroupSortPriority));
+			}
 		}
 		else if (FontS)
 		{
-			OutGroups->AddUnique(FontS->Group.ToString());
-			Material->AttemptInsertNewGroupName(FontS->Group.ToString());
+			const FString& GroupName = FontS->Group.ToString();
+			OutGroups->AddUnique(GroupName);
+			if (Material->AttemptInsertNewGroupName(GroupName))
+			{
+				UpdatedGroups.Add(FParameterGroupData(GroupName, 0));
+			}
+			else
+			{
+				FParameterGroupData* ParameterGroupDataElement = Material->ParameterGroupData.FindByPredicate([&GroupName](const FParameterGroupData& DataElement)
+				{
+					return GroupName == DataElement.GroupName;
+				});
+				UpdatedGroups.Add(FParameterGroupData(GroupName, ParameterGroupDataElement->GroupSortPriority));
+			}
 		}
 	}
+	Material->ParameterGroupData = UpdatedGroups;
 }
 
 void FMaterialEditor::UpdatePreviewViewportsVisibility()
