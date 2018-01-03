@@ -231,11 +231,6 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// 
 		/// </summary>
-		public readonly List<string> PreBuildScripts = new List<string>();
-
-		/// <summary>
-		/// 
-		/// </summary>
 		public readonly List<string> PostBuildScripts = new List<string>();
 
 		/// <summary>
@@ -1631,11 +1626,6 @@ namespace UnrealBuildTool
 				if (DeployTargetFile != null)
 				{
 					Manifest.DeployTargetFiles.Add(DeployTargetFile.FullName);
-				}
-
-				if (PreBuildStepScripts != null)
-				{
-					Manifest.PreBuildScripts.AddRange(PreBuildStepScripts.Select(x => x.FullName));
 				}
 
 				if(PostBuildStepScripts != null)
