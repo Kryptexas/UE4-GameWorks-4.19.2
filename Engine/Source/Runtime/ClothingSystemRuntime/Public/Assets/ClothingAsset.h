@@ -427,7 +427,7 @@ struct FClothConfig
 	FVector CentrifugalInertiaScale;
 
 	// Frequency of the position solver, lower values will lead to stretchier, bouncier cloth
-	UPROPERTY(EditAnywhere, Category = ClothConfig)
+	UPROPERTY(EditAnywhere, Category = ClothConfig, meta = (UIMin = "30", UIMax = "240", ClampMin = "30", ClampMax = "1000"))
 	float SolverFrequency;
 
 	// Frequency for stiffness calculations, lower values will degrade stiffness of constraints
