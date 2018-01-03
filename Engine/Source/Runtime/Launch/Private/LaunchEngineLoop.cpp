@@ -1327,7 +1327,14 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 	}
 
 	// Set up the module list and version information, if it's not compiled-in
-#if !IS_MONOLITHIC || BUILT_FROM_CHANGELIST == 0
+#if IS_MONOLITHIC
+	// For monolithic builds, check if the version number has been compiled in to this module
+    #if defined(COMPILED_IN_CL) && defined(COMPILED_IN_COMPATIBLE_CL)
+	    UE_LOG(LogInit, Log, TEXT("Overriding engine version to CL %d, compatible CL %d"), COMPILED_IN_CL, COMPILED_IN_COMPATIBLE_CL);
+	    FEngineVersion::OverrideCurrentVersionChangelist(COMPILED_IN_CL, COMPILED_IN_COMPATIBLE_CL);
+    #endif
+#else
+	// For modular builds, read the version from the .version file in the same directory as the executable, and register the build id with the module manager
 	static FBuildVersion Version;
 	if(FBuildVersion::TryRead(FBuildVersion::GetFileNameForCurrentExecutable(), Version))
 	{
@@ -1338,8 +1345,6 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 			UE_LOG(LogInit, Log, TEXT("Overriding engine version to CL %d, compatible CL %d"), Version.Changelist, EffectiveCompatibleChangelist);
 			FEngineVersion::OverrideCurrentVersionChangelist(Version.Changelist, EffectiveCompatibleChangelist);
 		}
-
-#if !IS_MONOLITHIC
 		if(Version.BuildId.Len() > 0)
 		{
 			static FModuleEnumerator ModuleEnumerator(Version.BuildId);
@@ -1348,7 +1353,6 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 				UE_LOG(LogInit, Log, TEXT("Registered custom module enumerator with build ID '%s'"), *Version.BuildId);
 			}
 		}
-#endif
 	}
 #endif
 

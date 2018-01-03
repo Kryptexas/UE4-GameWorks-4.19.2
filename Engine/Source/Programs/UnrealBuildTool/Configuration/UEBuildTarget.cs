@@ -613,8 +613,9 @@ namespace UnrealBuildTool
 		/// <param name="Desc">Information about the target</param>
 		/// <param name="Arguments">Command line arguments</param>
 		/// <param name="bCompilingSingleFile">Whether we're compiling a single file</param>
+		/// <param name="Version">The current build version</param>
 		/// <returns>The build target object for the specified build rules source file</returns>
-		public static UEBuildTarget CreateTarget(TargetDescriptor Desc, string[] Arguments, bool bCompilingSingleFile)
+		public static UEBuildTarget CreateTarget(TargetDescriptor Desc, string[] Arguments, bool bCompilingSingleFile, ReadOnlyBuildVersion Version)
 		{
 			DateTime CreateTargetStartTime = DateTime.UtcNow;
 
@@ -647,7 +648,7 @@ namespace UnrealBuildTool
 			}
 
 			FileReference TargetFileName;
-			TargetRules RulesObject = RulesAssembly.CreateTargetRules(Desc.TargetName, Desc.Platform, Desc.Configuration, Desc.Architecture, Desc.ProjectFile, Desc.bIsEditorRecompile, out TargetFileName);
+			TargetRules RulesObject = RulesAssembly.CreateTargetRules(Desc.TargetName, Desc.Platform, Desc.Configuration, Desc.Architecture, Desc.ProjectFile, Version, Desc.bIsEditorRecompile, out TargetFileName);
 			if ((ProjectFileGenerator.bGenerateProjectFiles == false) && !GetSupportedPlatforms(RulesObject).Contains(Desc.Platform))
 			{
 				throw new BuildException("{0} does not support the {1} platform.", Desc.TargetName, Desc.Platform.ToString());
@@ -1301,7 +1302,7 @@ namespace UnrealBuildTool
             OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
 
 			// Get the path to the version file unless this is a formal build (where it will be compiled in)
-			if(!Rules.bFormalBuild)
+			if(Rules.LinkType != TargetLinkType.Monolithic)
 			{
 				UnrealTargetConfiguration VersionConfig = Configuration;
 				if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment && ProjectFile != null)
@@ -1672,7 +1673,7 @@ namespace UnrealBuildTool
 				{
 					// If we're hot reloading, just use the last version number.
 					BuildVersion LastVersion;
-					if(BuildVersion.TryRead(VersionFile, out LastVersion))
+					if(VersionFile != null && BuildVersion.TryRead(VersionFile, out LastVersion))
 					{
 						Version = LastVersion;
 					}

@@ -246,5 +246,11 @@ public class Launch : ModuleRules
 				}
 			);
 		}
+
+		if(Target.LinkType == TargetLinkType.Monolithic && !Target.bFormalBuild)
+		{
+			PrivateDefinitions.Add(string.Format("COMPILED_IN_CL={0}", Target.Version.Changelist));
+			PrivateDefinitions.Add(string.Format("COMPILED_IN_COMPATIBLE_CL={0}", Target.Version.EffectiveCompatibleChangelist));
+		}
 	}
 }

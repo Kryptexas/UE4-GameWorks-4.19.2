@@ -42,6 +42,11 @@ namespace UnrealBuildTool
 		public readonly FileReference ProjectFile;
 
 		/// <summary>
+		/// The current build version
+		/// </summary>
+		public readonly ReadOnlyBuildVersion Version;
+
+		/// <summary>
 		/// The type of the target (if known)
 		/// </summary>
 		public readonly TargetType? Type;
@@ -59,13 +64,15 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">The configuration being built</param>
 		/// <param name="Architecture">The architecture being built for</param>
 		/// <param name="ProjectFile">Path to the project file containing the target</param>
-		public TargetInfo(string Name, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile)
+		/// <param name="Version">The current build version</param>
+		public TargetInfo(string Name, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile, ReadOnlyBuildVersion Version)
 		{
 			this.Name = Name;
 			this.Platform = Platform;
 			this.Configuration = Configuration;
 			this.Architecture = Architecture;
 			this.ProjectFile = ProjectFile;
+			this.Version = Version;
 		}
 
 		/// <summary>
@@ -79,6 +86,7 @@ namespace UnrealBuildTool
 			this.Configuration = Rules.Configuration;
 			this.Architecture = Rules.Architecture;
 			this.ProjectFile = Rules.ProjectFile;
+			this.Version = Rules.Version;
 			this.Type = Rules.Type;
 			this.bIsMonolithic = (Rules.LinkType == TargetLinkType.Monolithic);
 		}

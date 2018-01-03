@@ -247,6 +247,11 @@ namespace UnrealBuildTool
 		public readonly FileReference ProjectFile;
 
 		/// <summary>
+		/// The current build version
+		/// </summary>
+		public readonly ReadOnlyBuildVersion Version;
+
+		/// <summary>
 		/// The type of target.
 		/// </summary>
 		public global::UnrealBuildTool.TargetType Type = global::UnrealBuildTool.TargetType.Game;
@@ -1461,6 +1466,11 @@ namespace UnrealBuildTool
 		public FileReference ProjectFile
 		{
 			get { return Inner.ProjectFile; }
+		}
+
+		public ReadOnlyBuildVersion Version
+		{
+			get { return Inner.Version; }
 		}
 
 		public TargetType Type
