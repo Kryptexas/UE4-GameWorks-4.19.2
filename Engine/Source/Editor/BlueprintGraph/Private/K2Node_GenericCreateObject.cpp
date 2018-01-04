@@ -71,6 +71,9 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	CallCreateNode->FunctionReference.SetExternalMember(GET_FUNCTION_NAME_CHECKED(UGameplayStatics, SpawnObject), UGameplayStatics::StaticClass());
 	CallCreateNode->AllocateDefaultPins();
 
+	// store off the class to spawn before we mutate pin connections:
+	UClass* ClassToSpawn = GetClassToSpawn();
+	
 	bool bSucceeded = true;
 	//connect exe
 	{
@@ -109,7 +112,7 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 
 	//assign exposed values and connect then
 	{
-		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, ClassToSpawn);
 		UEdGraphPin* SpawnNodeThen = GetThenPin();
 		bSucceeded &= SpawnNodeThen && LastThen && CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen).CanSafeConnect();
 	}
