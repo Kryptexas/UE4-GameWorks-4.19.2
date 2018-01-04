@@ -55,7 +55,6 @@ FTexture2DUpdate::~FTexture2DUpdate()
 
 	if (AsyncMipUpdateTask)
 	{
-		ensure(AsyncMipUpdateTask->IsWorkDone());
 		AsyncMipUpdateTask->EnsureCompletion();
 	}
 }
