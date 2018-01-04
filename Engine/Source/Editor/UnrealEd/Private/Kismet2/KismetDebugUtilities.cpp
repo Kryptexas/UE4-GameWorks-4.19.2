@@ -45,23 +45,47 @@ public:
 	FKismetDebugUtilitiesData()
 		: CurrentInstructionPointer(nullptr)
 		, MostRecentBreakpointInstructionPointer(nullptr)
+		, MostRecentStoppedNode(nullptr)
 		, TargetGraphStackDepth(INDEX_NONE)
+		, MostRecentBreakpointGraphStackDepth(INDEX_NONE)
+		, MostRecentBreakpointInstructionOffset(INDEX_NONE)
 		, StackFrameAtIntraframeDebugging(nullptr)
 		, TraceStackSamples(FKismetDebugUtilities::MAX_TRACE_STACK_SAMPLES)
 		, bIsSingleStepping(false)
 	{
 	}
 
+	void Reset()
+	{
+		CurrentInstructionPointer = nullptr;
+		MostRecentStoppedNode = nullptr;
+
+		TargetGraphStackDepth = INDEX_NONE;
+		MostRecentBreakpointGraphStackDepth = INDEX_NONE;
+		MostRecentBreakpointInstructionOffset = INDEX_NONE;
+		StackFrameAtIntraframeDebugging = nullptr;
+
+		bIsSingleStepping = false;
+	}
+
 	TWeakObjectPtr< class UEdGraphNode > CurrentInstructionPointer;
 
 	// The current instruction encountered if we are stopped at a breakpoint; NULL otherwise
 	TWeakObjectPtr< class UEdGraphNode > MostRecentBreakpointInstructionPointer;
+	
+	// The last node that we decided to break on for any reason (e.g. breakpoint, exception, or step operation):
+	TWeakObjectPtr< class UEdGraphNode > MostRecentStoppedNode;
 
-	// The current function call graph stack.
-	TArray<TWeakObjectPtr<class UEdGraph>> GraphStack;
-
-	// The target graph call stack depth. INDEX_NONE if not active.
+	// The target graph call stack depth. INDEX_NONE if not active
 	int32 TargetGraphStackDepth;
+
+	// The graph stack depth that a breakpoint was hit at, used to ensure that breakpoints
+	// can be hit multiple times in the case of recursion
+	int32 MostRecentBreakpointGraphStackDepth;
+
+	// The instruction that we hit a breakpoint at, this is used to ensure that a given node
+	// can be stepped over reliably (but still break multiple times in the case of recursion):
+	int32 MostRecentBreakpointInstructionOffset;
 
 	// The last message that an exception delivered
 	FText LastExceptionMessage;
@@ -69,8 +93,10 @@ public:
 	// Only valid inside intraframe debugging
 	const FFrame* StackFrameAtIntraframeDebugging;
 
+	// This data is used for the 'marching ants' display in the blueprint editor
 	TSimpleRingBuffer<FKismetTraceSample> TraceStackSamples;
 
+	// This flag controls whether we're trying to 'step in' to a function
 	bool bIsSingleStepping;
 };
 
@@ -79,32 +105,38 @@ public:
 
 void FKismetDebugUtilities::EndOfScriptExecution()
 {
-	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if(BlueprintExceptionTracker.ScriptEntryTag == 1)
+	{
+		// if this is our last VM frame, then clear stepping data:
+		FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
 
-	Data.bIsSingleStepping = false;
-	Data.TargetGraphStackDepth = INDEX_NONE;
-	Data.GraphStack.SetNum(0, false);
+		Data.Reset();
+	}
 }
 
 void FKismetDebugUtilities::RequestSingleStepping(bool bInAllowStepIn)
 {
 	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
 
 	Data.bIsSingleStepping = bInAllowStepIn;
 	if (!bInAllowStepIn)
 	{
-		Data.TargetGraphStackDepth = Data.GraphStack.Num();
+		Data.TargetGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num();
 	}
 }
 
 void FKismetDebugUtilities::RequestStepOut()
 {
 	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
 
 	Data.bIsSingleStepping = false;
-	if (Data.GraphStack.Num() > 1)
+	if (BlueprintExceptionTracker.ScriptStack.Num() > 1)
 	{
-		Data.TargetGraphStackDepth = Data.GraphStack.Num() - 1;
+		Data.TargetGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num() - 1;
 	}
 }
 
@@ -284,7 +316,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 			if (NodeStoppedAt && (Info.GetType() == EBlueprintExceptionType::Tracepoint || Info.GetType() == EBlueprintExceptionType::Breakpoint))
 			{
 				// Handle Node stepping and update the stack
-				CheckBreakConditions(NodeStoppedAt, bShouldBreakExecution);
+				CheckBreakConditions(NodeStoppedAt, Info.GetType() == EBlueprintExceptionType::Breakpoint, BreakpointOffset, bShouldBreakExecution);
 			}
 
 			// Handle a breakpoint or single-step
@@ -437,42 +469,57 @@ UEdGraphNode* FKismetDebugUtilities::FindSourceNodeForCodeLocation(const UObject
 	return NULL;
 }
 
-void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool& InOutBreakExecution)
+void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool bHitBreakpoint, int32 BreakpointOffset, bool& InOutBreakExecution)
 {
 	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
 
 	if (NodeStoppedAt)
 	{
-		// Update tracked graph stack.
-		UEdGraph* CurrentGraph = NodeStoppedAt->GetTypedOuter<UEdGraph>();
-		if (ensure(CurrentGraph))
-		{
-			if (Data.GraphStack.FindLast(CurrentGraph) != INDEX_NONE)
-			{
-				while (Data.GraphStack.Last() != CurrentGraph)
-				{
-					Data.GraphStack.Pop();
-				}
-			}
-			else
-			{
-				Data.GraphStack.Push(CurrentGraph);
-			}
-		}
+		const bool bIsTryingToBreak = bHitBreakpoint ||
+			Data.TargetGraphStackDepth != INDEX_NONE ||
+			Data.bIsSingleStepping;
 
-		// Figure out if we have a break condition.
-		if (!Data.bIsSingleStepping)
+		if(bIsTryingToBreak)
 		{
-			if (Data.TargetGraphStackDepth != INDEX_NONE)
+			// Update the TargetGraphStackDepth if we're on the same node - this handles things like
+			// event nodes in the Event Graph, which will push another frame on to the stack:
+			if(NodeStoppedAt == Data.MostRecentStoppedNode &&
+				Data.MostRecentBreakpointGraphStackDepth < BlueprintExceptionTracker.ScriptStack.Num() &&
+				Data.TargetGraphStackDepth != INDEX_NONE)
 			{
-				InOutBreakExecution = Data.TargetGraphStackDepth >= Data.GraphStack.Num();
-				if (InOutBreakExecution)
-				{
-					// Reset once we've reached the target stack depth.
-					Data.TargetGraphStackDepth = INDEX_NONE;
-				}
+				// when we recurse, when a node increases stack depth itself we want to increase our 
+				// target depth to compensate:
+				Data.TargetGraphStackDepth += 1;
+			}
+			else if(NodeStoppedAt != Data.MostRecentStoppedNode)
+			{
+				Data.MostRecentStoppedNode = nullptr;
+			}
+
+			// We should only actually break execution when we're on a new node or we've recursed to the same
+			// node. We detect recursion by checking for a deeper stack and an earlier instruction:
+			InOutBreakExecution = 
+				NodeStoppedAt != Data.MostRecentStoppedNode ||
+				(
+					Data.MostRecentBreakpointGraphStackDepth < BlueprintExceptionTracker.ScriptStack.Num() &&
+					Data.MostRecentBreakpointInstructionOffset >= BreakpointOffset
+				);
+
+			// If we have a TargetGraphStackDepth, don't break if we haven't reached that stack depth:
+			if(InOutBreakExecution && Data.TargetGraphStackDepth != INDEX_NONE && !bHitBreakpoint)
+			{
+				InOutBreakExecution = Data.TargetGraphStackDepth >= BlueprintExceptionTracker.ScriptStack.Num();
 			}
 		}
+	}
+	
+	if (InOutBreakExecution)
+	{
+		Data.MostRecentStoppedNode = NodeStoppedAt;
+		Data.MostRecentBreakpointGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num();
+		Data.MostRecentBreakpointInstructionOffset = BreakpointOffset;
+		Data.TargetGraphStackDepth = INDEX_NONE;
 	}
 }
 
