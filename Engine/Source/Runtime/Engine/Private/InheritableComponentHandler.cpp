@@ -42,25 +42,25 @@ void UInheritableComponentHandler::PostLoad()
 					{
 						Record.ComponentClass = Record.ComponentTemplate->GetClass();
 					}
-
-					// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
-					// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
-					if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
+				}
+				
+				// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
+				// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
+				if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
+				{
+					FString ExpectedTemplateName = OriginalTemplate->GetName();
+					if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
 					{
-						FString ExpectedTemplateName = OriginalTemplate->GetName();
-						if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
+						// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
+						if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
 						{
-							// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
-							if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
-							{
-								ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
-							}
+							ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
 						}
+					}
 
-						if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
-						{
-							FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
-						}
+					if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
+					{
+						FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
 					}
 				}
 
