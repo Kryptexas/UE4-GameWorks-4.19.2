@@ -36,6 +36,7 @@
 #include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/Selection.h"
+#include "Engine/LevelStreaming.h"
 
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
@@ -552,6 +553,19 @@ namespace PackageTools
 		TMap<FName, const UMapBuildDataRegistry*> LevelsToMapBuildData;
 		if (!WorldNameToReload.IsNone())
 		{
+			// Creating a new map will unload all streaming levels for the current editor world too, so we need to make sure we're not about to try and reload those later
+			if (UWorld* EditorWorld = GEditor->GetEditorWorldContext().World())
+			{
+				for (ULevelStreaming* EditorStreamingLevel : EditorWorld->StreamingLevels)
+				{
+					if (EditorStreamingLevel->IsLevelLoaded())
+					{
+						UPackage* EditorStreamingLevelPackage = EditorStreamingLevel->GetLoadedLevel()->GetOutermost();
+						PackagesToReload.Remove(EditorStreamingLevelPackage);
+					}
+				}
+			}
+
 			GEditor->CreateNewMapForEditing();
 		}
 		// Cache the current map build data for the levels of the current world so we can see if they change due to a reload (we skip this if reloading the current world).
@@ -583,7 +597,6 @@ namespace PackageTools
 			PackagesToReloadData.Reserve(PackagesToReload.Num());
 			for (UPackage* PackageToReload : PackagesToReload)
 			{
-				check(PackageToReload);
 				bScriptPackageWasReloaded |= PackageToReload->HasAnyPackageFlags(PKG_ContainsScript);
 				PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
 			}
