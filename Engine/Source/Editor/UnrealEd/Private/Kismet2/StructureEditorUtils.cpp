@@ -704,7 +704,7 @@ bool FStructureEditorUtils::MoveVariable(UUserDefinedStruct* Struct, FGuid VarGu
 		{
 			if (DescArray[Index].VarGuid == VarGuid)
 			{
-				const FScopedTransaction Transaction(LOCTEXT("ReorderVariables", "Varaibles reordered"));
+				const FScopedTransaction Transaction(LOCTEXT("ReorderVariables", "Variables reordered"));
 				ModifyStructData(Struct);
 
 				DescArray.Swap(Index, Index + (bMoveUp ? -1 : 1));
