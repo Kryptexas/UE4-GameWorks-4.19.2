@@ -62,7 +62,7 @@ public:
 	{
 		UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Node);
 
-		UFunction* Function = FindField<UFunction>(EntryNode->SignatureClass, EntryNode->SignatureName);
+		UFunction* Function = EntryNode->FunctionReference.ResolveMember<UFunction>(EntryNode->GetBlueprintClassFromNode());
 		// if this function has a predefined signature (like for inherited/overridden 
 		// functions), then we want to make sure to account for the output 
 		// parameters - this is normally handled by the FunctionResult node, but 
@@ -142,7 +142,7 @@ public:
 	{
 		UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Node);
 		//check(EntryNode->SignatureName != NAME_None);
-		if (EntryNode->SignatureName == UEdGraphSchema_K2::FN_ExecuteUbergraphBase)
+		if (EntryNode->FunctionReference.GetMemberName() == UEdGraphSchema_K2::FN_ExecuteUbergraphBase)
 		{
 			UEdGraphPin* EntryPointPin = Node->FindPin(UEdGraphSchema_K2::PN_EntryPoint);
 			FBPTerminal** pTerm = Context.NetMap.Find(EntryPointPin);
@@ -313,18 +313,7 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 {
 	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
-	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
-
-	// This FindDelegateSignature call was added to support multiple UClasses in a single file.
-	// For blueprint declared functions it can generate an "Ambiguous search" warning, and may also
-	// be very slow:
-	bool bIsNativeFunction = (SignatureClass == nullptr || SignatureClass->HasAnyClassFlags(CLASS_Native));
-	if (Function == nullptr && bIsNativeFunction)
-	{
-		Function = FindDelegateSignature(SignatureName);
-	}
-
-	if (Function != NULL)
+	if (UFunction* Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ true);
 	}
@@ -401,9 +390,10 @@ void UK2Node_FunctionEntry::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<F
 
 		
 		// first add functionname.param
+		const FName SignatureName = FunctionReference.GetMemberName();
 		RedirectPinNames.Add(FString::Printf(TEXT("%s.%s"), *SignatureName.ToString(), *OldPinName));
 		// if there is class, also add an option for class.functionname.param
-		if(SignatureClass!=NULL)
+		if(UClass const* SignatureClass = FunctionReference.GetMemberParentClass())
 		{
 			RedirectPinNames.Add(FString::Printf(TEXT("%s.%s.%s"), *SignatureClass->GetName(), *SignatureName.ToString(), *OldPinName));
 		}
@@ -412,7 +402,7 @@ void UK2Node_FunctionEntry::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<F
 
 bool UK2Node_FunctionEntry::IsDeprecated() const
 {
-	if (UFunction* const Function = FindField<UFunction>(SignatureClass, SignatureName))
+	if (UFunction* const Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		return Function->HasMetaData(FBlueprintMetadata::MD_DeprecatedFunction);
 	}
@@ -422,7 +412,7 @@ bool UK2Node_FunctionEntry::IsDeprecated() const
 
 FString UK2Node_FunctionEntry::GetDeprecationMessage() const
 {
-	if (UFunction* const Function = FindField<UFunction>(SignatureClass, SignatureName))
+	if (UFunction* const Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		if (Function->HasMetaData(FBlueprintMetadata::MD_DeprecationMessage))
 		{
@@ -435,8 +425,7 @@ FString UK2Node_FunctionEntry::GetDeprecationMessage() const
 
 FText UK2Node_FunctionEntry::GetTooltipText() const
 {
-	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
-	if (Function)
+	if (UFunction* const Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
 	}
@@ -447,16 +436,7 @@ int32 UK2Node_FunctionEntry::GetFunctionFlags() const
 {
 	int32 ReturnFlags = 0;
 
-	UClass* ClassToLookup = SignatureClass;
-
-	if (SignatureClass && SignatureClass->ClassGeneratedBy)
-	{
-		UBlueprint* GeneratingBP = CastChecked<UBlueprint>(SignatureClass->ClassGeneratedBy);
-		ClassToLookup = GeneratingBP->SkeletonGeneratedClass;
-	}
-
-	UFunction* Function = FindField<UFunction>(ClassToLookup, SignatureName);
-	if (Function)
+	if (UFunction* const Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		ReturnFlags = Function->FunctionFlags;
 	}

@@ -5711,7 +5711,7 @@ private:
 
 		UK2Node_VariableGet* NewTarget = NULL;
 		
-		const UProperty* Property = OldCall->MemberVariableToCallOn.ResolveMember<UProperty>((UClass*)NULL);
+		const UProperty* Property = OldCall->MemberVariableToCallOn.ResolveMember<UProperty>();
 		for (UK2Node_VariableGet* AddedTarget : AddedTargets)
 		{
 			if (AddedTarget && (Property == AddedTarget->VariableReference.ResolveMember<UProperty>(CurrentClass)))

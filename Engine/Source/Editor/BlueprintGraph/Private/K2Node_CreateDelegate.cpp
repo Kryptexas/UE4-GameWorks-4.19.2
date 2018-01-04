@@ -134,7 +134,7 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 
 	FMemberReference MemberReference;
 	MemberReference.SetDirect(SelectedFunctionName, SelectedFunctionGuid, ScopeClass, false);
-	const UFunction* FoundFunction = MemberReference.ResolveMember<UFunction>((UClass*) NULL);
+	const UFunction* FoundFunction = MemberReference.ResolveMember<UFunction>();
 	if (!FoundFunction)
 	{
 		if (OutMsg)

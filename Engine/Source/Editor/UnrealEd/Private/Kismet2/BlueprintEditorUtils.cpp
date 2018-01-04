@@ -334,10 +334,10 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 		UFunction* Func = FFunctionFromNodeHelper::FunctionFromNode(FunctionDefNode ? static_cast<const UK2Node*>(FunctionDefNode) : static_cast<const UK2Node*>(EventNode));
 		const FName FuncName = Func 
 			? Func->GetFName() 
-			: (FunctionDefNode ? FunctionDefNode->SignatureName : EventNode->GetFunctionName());
+			: (FunctionDefNode ? FunctionDefNode->FunctionReference.GetMemberName() : EventNode->GetFunctionName());
 		const UClass* SignatureClass = Func
 			? Func->GetOwnerClass()
-			: (UClass*)(FunctionDefNode ? FunctionDefNode->SignatureClass : nullptr);
+			: (UClass*)(FunctionDefNode ? FunctionDefNode->FunctionReference.GetMemberParentClass() : nullptr);
 
 		const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(InBlueprint);
 
@@ -1140,7 +1140,7 @@ struct FRegenerationHelper
 						{
 							const FName FunctionName = (FunctionEntry->CustomGeneratedFunctionName != NAME_None) 
 								? FunctionEntry->CustomGeneratedFunctionName 
-								: FunctionEntry->SignatureName;
+								: FunctionEntry->FunctionReference.GetMemberName();
 							UFunction* ParentFunction = Blueprint->ParentClass ? Blueprint->ParentClass->FindFunctionByName(FunctionName) : nullptr;
 							if (ParentFunction && (UEdGraphSchema_K2::FN_UserConstructionScript != FunctionName))
 							{
@@ -2647,70 +2647,104 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 	if (Graph && Graph->Rename(*NewNameStr, Graph->GetOuter(), REN_Test))
 	{
 		// Cache old name
-		FName OldGraphName = Graph->GetFName();
+		const FName OldGraphName = Graph->GetFName();
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
 
-		// Ensure we have undo records
-		Graph->Modify();
-		Graph->Rename(*NewNameStr, Graph->GetOuter(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
-
-		const FName NewName(*NewNameStr);
-
-		// Clean function entry & result nodes if they exist
-		for (UEdGraphNode* Node : Graph->Nodes)
+		auto RenameGraphLambda = [](UEdGraph* Graph, const FName OldGraphName, const FName NewGraphName, ERenameFlags RenameFlags)
 		{
-			if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
+			// Ensure we have undo records
+			Graph->Modify();
+			Graph->Rename(*NewGraphName.ToString(), Graph->GetOuter(), RenameFlags);
+
+			// Clean function entry & result nodes if they exist
+			for (UEdGraphNode* Node : Graph->Nodes)
 			{
-				if (EntryNode->SignatureName == OldGraphName)
+				if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 				{
-					EntryNode->Modify();
-					EntryNode->SignatureName = NewName;
+					if (EntryNode->FunctionReference.GetMemberName() == OldGraphName)
+					{
+						EntryNode->Modify();
+						EntryNode->FunctionReference.SetMemberName(NewGraphName);
+					}
+					else if (EntryNode->CustomGeneratedFunctionName == OldGraphName)
+					{
+						EntryNode->Modify();
+						EntryNode->CustomGeneratedFunctionName = NewGraphName;
+					}
 				}
-				else if (EntryNode->CustomGeneratedFunctionName == OldGraphName)
+				else if (UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(Node))
 				{
-					EntryNode->Modify();
-					EntryNode->CustomGeneratedFunctionName = NewName;
+					if (ResultNode->FunctionReference.GetMemberName() == OldGraphName)
+					{
+						ResultNode->Modify();
+						ResultNode->FunctionReference.SetMemberName(NewGraphName);
+					}
 				}
 			}
-			else if(UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(Node))
+		};
+
+		// Apply new name
+		const FName NewGraphName(*NewNameStr);
+		RenameGraphLambda(Graph, OldGraphName, NewGraphName, (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
+
+		TArray<UBlueprint*> ModifiedBlueprints;
+		ModifiedBlueprints.Add(Blueprint);
+
+		auto PostValidateChildBlueprintLambda = [Blueprint, &OldGraphName, &NewGraphName, &RenameGraphLambda, &ModifiedBlueprints](UBlueprint* InChildBP, const FName /* InVariableName */, bool /* bValidatedVariable */)
+		{
+			check(InChildBP);
+
+			// Rename child blueprint override graphs.
+			for (UEdGraph* FunctionGraph : InChildBP->FunctionGraphs)
 			{
-				if (ResultNode->SignatureName == OldGraphName)
+				if (FunctionGraph->GetFName() == OldGraphName)
 				{
-					ResultNode->Modify();
-					ResultNode->SignatureName = NewName;
+					RenameGraphLambda(FunctionGraph, OldGraphName, NewGraphName, (InChildBP->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
 				}
 			}
-		}
-	
-		// Rename any function call points
-		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
+
+			if (InChildBP->GetOutermost()->IsDirty())
+			{
+				ModifiedBlueprints.Add(InChildBP);
+			}
+		};
+
+		// Potentially adjust variable names for any child blueprints.
+		// Note: This will find ALL children (including nested children) so there's no need to do this recursively.
+		ValidateBlueprintChildVariables(Blueprint, Graph->GetFName(), PostValidateChildBlueprintLambda);
+
+		// Rename any function call points (including any calls w/ a child Blueprint as the target).
+		for (TObjectIterator<UK2Node_CallFunction> It(RF_ClassDefaultObject | RF_Transient); It; ++It)
 		{
 			UK2Node_CallFunction* FunctionNode = *It;
-			if (FunctionNode && !FunctionNode->HasAnyFlags(RF_Transient) && Cast<UEdGraph>(FunctionNode->GetOuter()))
+			if (FunctionNode && Cast<UEdGraph>(FunctionNode->GetOuter()))
 			{
-				if (UBlueprint* FunctionNodeBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(FunctionNode))
+				if (const UBlueprint* FunctionNodeBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(FunctionNode))
 				{
 					if (FunctionNode->FunctionReference.GetMemberName() == OldGraphName)
 					{
-						if (FunctionNode->FunctionReference.IsSelfContext())
+						if (FunctionNode->FunctionReference.IsSelfContext() && ModifiedBlueprints.Contains(FunctionNodeBlueprint))
 						{
 							FunctionNode->Modify();
-							FunctionNode->FunctionReference.SetSelfMember(NewName);
+							FunctionNode->FunctionReference.SetSelfMember(NewGraphName);
 						}
-						else if (FunctionNode->FunctionReference.GetMemberParentClass() == Blueprint->GeneratedClass)
+						else if (const UBlueprint* TargetBlueprint = UBlueprint::GetBlueprintFromClass(FunctionNode->FunctionReference.GetMemberParentClass()))
 						{
-							FunctionNode->Modify();
-							FunctionNode->FunctionReference.SetExternalMember(NewName, Blueprint->GeneratedClass);
+							if (ModifiedBlueprints.Contains(TargetBlueprint))
+							{
+								FunctionNode->Modify();
+								FunctionNode->FunctionReference.SetExternalMember(NewGraphName, TargetBlueprint->GeneratedClass);
+							}
 						}
 					}
 				}
 			}
 		}
 
-		// Potentially adjust variable names for any child blueprints
-		ValidateBlueprintChildVariables(Blueprint, Graph->GetFName());
-
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		if (!Blueprint->bIsRegeneratingOnLoad)
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		}
 	}
 }
 
@@ -5411,7 +5445,8 @@ void FBlueprintEditorUtils::FixupVariableDescription(UBlueprint* Blueprint, FBPV
 	}
 }
 
-void FBlueprintEditorUtils::ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName)
+void FBlueprintEditorUtils::ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName,
+	TFunction<void(UBlueprint* InChildBP, const FName InVariableName, bool bValidatedVariable)> PostValidationCallback)
 {
 	// Iterate over currently-loaded Blueprints and potentially adjust their variable names if they conflict with the parent
 	for(TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
@@ -5454,6 +5489,12 @@ void FBlueprintEditorUtils::ValidateBlueprintChildVariables(UBlueprint* InBluepr
 				if(!bValidatedVariable)
 				{
 					bValidatedVariable = ValidateAllFunctionGraphs(ChildBP, InBlueprint, InVariableName);
+				}
+
+				if (PostValidationCallback)
+				{
+					// Perform custom post-validation (if specified).
+					PostValidationCallback(ChildBP, InVariableName, bValidatedVariable);
 				}
 			}
 		}
@@ -5879,10 +5920,140 @@ void FBlueprintEditorUtils::PurgeNullGraphs(UBlueprint* Blueprint)
 	Blueprint->LastEditedDocuments.RemoveAll([](const FEditedDocumentInfo& TestDoc) { return TestDoc.EditedObject == nullptr; });
 }
 
+struct FConformCallsToParentFunctionUtils
+{
+	// Remove a parent function call node without breaking existing connections
+	static void RemoveParentFunctionCallNode(UBlueprint* InBlueprint, UK2Node_CallParentFunction* InCallFunctionNode)
+	{
+		// Cache a reference to the output exec pin
+		UEdGraphPin* OutputPin = InCallFunctionNode->GetThenPin();
+
+		// We're going to destroy the existing parent function call node, but first we need to persist any existing connections
+		for (int PinIndex = 0; PinIndex < InCallFunctionNode->Pins.Num(); ++PinIndex)
+		{
+			UEdGraphPin* InputPin = InCallFunctionNode->Pins[PinIndex];
+			check(nullptr != InputPin);
+
+			// If this is an input exec pin
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			if (K2Schema && K2Schema->IsExecPin(*InputPin) && InputPin->Direction == EGPD_Input)
+			{
+				// Redirect any existing connections to the input exec pin to whatever pin(s) the output exec pin is connected to
+				for (int InputLinkedToPinIndex = 0; InputLinkedToPinIndex < InputPin->LinkedTo.Num(); ++InputLinkedToPinIndex)
+				{
+					UEdGraphPin* InputLinkedToPin = InputPin->LinkedTo[InputLinkedToPinIndex];
+					check(nullptr != InputLinkedToPin);
+
+					// Break the existing link to the node we're about to remove
+					InputLinkedToPin->BreakLinkTo(InputPin);
+
+					// Redirect the input connection to the output connection(s)
+					for (int OutputLinkedToPinIndex = 0; OutputLinkedToPinIndex < OutputPin->LinkedTo.Num(); ++OutputLinkedToPinIndex)
+					{
+						UEdGraphPin* OutputLinkedToPin = OutputPin->LinkedTo[OutputLinkedToPinIndex];
+						check(nullptr != OutputLinkedToPin);
+
+						// Make sure the output connection isn't linked to the node we're about to remove
+						if (OutputLinkedToPin->LinkedTo.Contains(OutputPin))
+						{
+							OutputLinkedToPin->BreakLinkTo(OutputPin);
+						}
+
+						// Fix up the connection
+						InputLinkedToPin->MakeLinkTo(OutputLinkedToPin);
+					}
+				}
+			}
+		}
+
+		// Emit something to the log to indicate that we're making a change
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), InCallFunctionNode->GetNodeTitle(ENodeTitleType::ListView));
+		Args.Add(TEXT("FunctionNodeName"), FText::FromString(InCallFunctionNode->GetName()));
+		InBlueprint->Message_Note(FText::Format(LOCTEXT("CallParentNodeRemoved_Note", "{NodeTitle} ({FunctionNodeName}) was not valid for this Blueprint - it has been removed."), Args).ToString());
+
+		// Destroy the existing parent function call node (this will also break pin links and remove it from the graph)
+		InCallFunctionNode->DestroyNode();
+	}
+
+	// Makes sure that all function overrides are valid, and replaces with local functions if not
+	static void ConformParentFunctionOverrides(UBlueprint* InBlueprint)
+	{
+		TArray<UEdGraph*> AllGraphs;
+		InBlueprint->GetAllGraphs(AllGraphs);
+		for (UEdGraph* CurrentGraph : AllGraphs)
+		{
+			check(CurrentGraph);
+
+			TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+			CurrentGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+
+			for (UK2Node_FunctionEntry* FunctionEntryNode : FunctionEntryNodes)
+			{
+				check(FunctionEntryNode);
+
+				if (!FunctionEntryNode->FunctionReference.IsSelfContext())
+				{
+					const UClass* SignatureClass = FunctionEntryNode->FunctionReference.GetMemberParentClass();
+					if (const UBlueprint* SignatureClassBlueprint = UBlueprint::GetBlueprintFromClass(SignatureClass))
+					{
+						// Redirect to the skeleton class for Blueprint types.
+						SignatureClass = SignatureClassBlueprint->SkeletonGeneratedClass;
+					}
+
+					if (SignatureClass)
+					{
+						const UFunction* Function = FunctionEntryNode->FunctionReference.ResolveMember<UFunction>();
+						if (Function == nullptr)
+						{
+							// Remove any calls to the parent class implementation
+							TArray<UK2Node_CallParentFunction*> CallFunctionNodes;
+							CurrentGraph->GetNodesOfClass<UK2Node_CallParentFunction>(CallFunctionNodes);
+							for (UK2Node_CallParentFunction* CallFunctionNode : CallFunctionNodes)
+							{
+								RemoveParentFunctionCallNode(InBlueprint, CallFunctionNode);
+							}
+
+							// Execute the same conversion path we use for interface graphs
+							FBlueprintEditorUtils::PromoteGraphFromInterfaceOverride(InBlueprint, CurrentGraph);
+
+							// Emit something to the log to indicate that we've made a change
+							FFormatNamedArguments Args;
+							Args.Add(TEXT("NodeTitle"), FunctionEntryNode->GetNodeTitle(ENodeTitleType::ListView));
+							Args.Add(TEXT("ParentClass"), FText::FromString(SignatureClass->GetName()));
+							InBlueprint->Message_Note(FText::Format(LOCTEXT("ConvertedToLocalMemberFunction_Note", "Function '{NodeTitle}' was previously implemented as an override, but the function is no longer found in class '{ParentClass}'. As a result, it has been converted to a full member function."), Args).ToString());
+						}
+					}
+				}
+
+				// Rename the graph if it does not match the actual function name.
+				const FName FunctionName = FunctionEntryNode->CustomGeneratedFunctionName != NAME_None ? FunctionEntryNode->CustomGeneratedFunctionName : FunctionEntryNode->FunctionReference.GetMemberName();
+				if (FunctionEntryNode == FunctionEntryNodes[0]
+					&& !FBlueprintEditorUtils::IsEventGraph(CurrentGraph)
+					&& CurrentGraph->GetFName() != FunctionName)
+				{
+					FBlueprintEditorUtils::RenameGraph(CurrentGraph, FunctionName.ToString());
+				}
+			}
+		}
+	}
+};
+
 // Makes sure that calls to parent functions are valid, and removes them if not
 void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 {
 	check(nullptr != Blueprint);
+
+	// First, ensure that all function override implementations are up-to-date.
+	FConformCallsToParentFunctionUtils::ConformParentFunctionOverrides(Blueprint);
+
+	// Get the Blueprint's parent class.
+	UClass* ParentClass = Blueprint->ParentClass;
+	if (const UBlueprint* ParentBlueprint = UBlueprint::GetBlueprintFromClass(ParentClass))
+	{
+		// Defer to the skeleton class, as a Blueprint parent may not have been fully compiled yet (e.g. after a rename).
+		ParentClass = ParentBlueprint->SkeletonGeneratedClass;
+	}
 
 	TArray<UEdGraph*> AllGraphs;
 	Blueprint->GetAllGraphs(AllGraphs);
@@ -5907,12 +6078,26 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 				if(!CallFunctionNode->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
 				{
 					// Attempt to locate the function within the parent class
-					const UFunction* TargetFunction = CallFunctionNode->GetTargetFunction();
-					TargetFunction = TargetFunction && Blueprint->ParentClass ? Blueprint->ParentClass->FindFunctionByName(TargetFunction->GetFName()) : nullptr;
-					if(TargetFunction)
+					FName MemberName = CallFunctionNode->FunctionReference.GetMemberName();
+					const UFunction* TargetFunction = ParentClass ? ParentClass->FindFunctionByName(MemberName) : nullptr;
+					if (TargetFunction == nullptr && ParentClass != nullptr)
 					{
-						// If the function signature does not match the parent class
-						if(TargetFunction->GetOwnerClass() != CallFunctionNode->FunctionReference.GetMemberParentClass(Blueprint->ParentClass))
+						// In case the function was renamed in the parent class, try to look up using the member's GUID.
+						const FGuid MemberGuid = CallFunctionNode->FunctionReference.GetMemberGuid();
+						if (MemberGuid.IsValid())
+						{
+							MemberName = UBlueprint::GetFieldNameFromClassByGuid<UFunction>(ParentClass, MemberGuid);
+							if (MemberName != NAME_None)
+							{
+								TargetFunction = ParentClass->FindFunctionByName(MemberName);
+							}
+						}
+					}
+					
+					if(TargetFunction != nullptr)
+					{
+						// Check to see if the function signature does not match the (authoritative) parent class.
+						if(TargetFunction->GetOwnerClass()->GetAuthoritativeClass() != CallFunctionNode->FunctionReference.GetMemberParentClass(ParentClass->GetAuthoritativeClass()))
 						{
 							// Emit something to the log to indicate that we're making a change
 							FFormatNamedArguments Args;
@@ -5920,61 +6105,14 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 							Args.Add(TEXT("FunctionNodeName"), FText::FromString(CallFunctionNode->GetName()));
 							Blueprint->Message_Note(FText::Format(LOCTEXT("CallParentFunctionSignatureFixed_Note", "{NodeTitle} ({FunctionNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
 
-							// Redirect to the correct parent function
+							// Redirect to the correct parent function. Note that for Blueprints, internally this will switch to the target function that's owned by the authoritative parent class.
 							CallFunctionNode->SetFromFunction(TargetFunction);
 						}
 					}
 					else
 					{
-						// Cache a reference to the output exec pin
-						UEdGraphPin* OutputPin = CallFunctionNode->GetThenPin();
-
-						// We're going to destroy the existing parent function call node, but first we need to persist any existing connections
-						for(int PinIndex = 0; PinIndex < CallFunctionNode->Pins.Num(); ++PinIndex)
-						{
-							UEdGraphPin* InputPin = CallFunctionNode->Pins[PinIndex];
-							check(nullptr != InputPin);
-
-							// If this is an input exec pin
-							const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-							if(K2Schema && K2Schema->IsExecPin(*InputPin) && InputPin->Direction == EGPD_Input)
-							{
-								// Redirect any existing connections to the input exec pin to whatever pin(s) the output exec pin is connected to
-								for(int InputLinkedToPinIndex = 0; InputLinkedToPinIndex < InputPin->LinkedTo.Num(); ++InputLinkedToPinIndex)
-								{
-									UEdGraphPin* InputLinkedToPin = InputPin->LinkedTo[InputLinkedToPinIndex];
-									check(nullptr != InputLinkedToPin);
-
-									// Break the existing link to the node we're about to remove
-									InputLinkedToPin->BreakLinkTo(InputPin);
-
-									// Redirect the input connection to the output connection(s)
-									for(int OutputLinkedToPinIndex = 0; OutputLinkedToPinIndex < OutputPin->LinkedTo.Num(); ++OutputLinkedToPinIndex)
-									{
-										UEdGraphPin* OutputLinkedToPin = OutputPin->LinkedTo[OutputLinkedToPinIndex];
-										check(nullptr != OutputLinkedToPin);
-
-										// Make sure the output connection isn't linked to the node we're about to remove
-										if(OutputLinkedToPin->LinkedTo.Contains(OutputPin))
-										{
-											OutputLinkedToPin->BreakLinkTo(OutputPin);
-										}
-										
-										// Fix up the connection
-										InputLinkedToPin->MakeLinkTo(OutputLinkedToPin);
-									}
-								}
-							}
-						}
-
-						// Emit something to the log to indicate that we're making a change
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("NodeTitle"), CallFunctionNode->GetNodeTitle(ENodeTitleType::ListView));
-						Args.Add(TEXT("FunctionNodeName"), FText::FromString(CallFunctionNode->GetName()));
-						Blueprint->Message_Note( FText::Format(LOCTEXT("CallParentNodeRemoved_Note", "{NodeTitle} ({FunctionNodeName}) was not valid for this Blueprint - it has been removed."), Args).ToString() );
-
-						// Destroy the existing parent function call node (this will also break pin links and remove it from the graph)
-						CallFunctionNode->DestroyNode();
+						// Remove the parent function call node, preserving any existing connections.
+						FConformCallsToParentFunctionUtils::RemoveParentFunctionCallNode(Blueprint, CallFunctionNode);
 					}
 				}
 			}
@@ -8393,16 +8531,25 @@ bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* In
 			FUberGraphHelper::GetAll(Blueprint, UberGraphs);
 			for (const UEdGraph* UberGraph : UberGraphs)
 			{
-				TArray<UK2Node_CustomEvent*> CustomEvents;
-				UberGraph->GetNodesOfClass(CustomEvents);
-				for (const UK2Node_CustomEvent* CustomEvent : CustomEvents)
+				TArray<UK2Node_Event*> EventNodes;
+				UberGraph->GetNodesOfClass(EventNodes);
+				for (const UK2Node_Event* EventNode : EventNodes)
 				{
-					if (!CustomEvent->bOverrideFunction
-						&& (CustomEvent->CustomFunctionName == FunctionName)
-						&& CustomEvent->NodeGuid.IsValid())
+					if (EventNode->NodeGuid.IsValid())
 					{
-						FunctionGuid = CustomEvent->NodeGuid;
-						return true;
+						if (const UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventNode))
+						{
+							if (CustomEventNode->CustomFunctionName == FunctionName)
+							{
+								FunctionGuid = EventNode->NodeGuid;
+								return true;
+							}
+						}
+						else if (EventNode->EventReference.GetMemberName() == FunctionName)
+						{
+							FunctionGuid = EventNode->NodeGuid;
+							return true;
+						}
 					}
 				}
 			}

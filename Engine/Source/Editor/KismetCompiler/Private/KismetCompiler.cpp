@@ -1489,7 +1489,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		}
 
 		// Create the function stub
-		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
+		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->FunctionReference.GetMemberName();
 		if (Context.IsDelegateSignature())
 		{
 			// prefix with the the blueprint name to avoid conflicts with natively defined delegate signatures
@@ -1742,9 +1742,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 			if (!ParentFunction->IsSignatureCompatibleWith(Context.Function))
 			{
 				FString SignatureClassName("");
-				if (Context.EntryPoint->SignatureClass)
+				if (const UClass* SignatureClass = Context.EntryPoint->FunctionReference.GetMemberParentClass())
 				{
-					SignatureClassName = Context.EntryPoint->SignatureClass->GetName();
+					SignatureClassName = SignatureClass->GetName();
 				}
 				MessageLog.Error(*FString::Printf(*LOCTEXT("OverrideFunctionDifferentSignature_Error", "Cannot override '%s::%s' at @@ which was declared in a parent with a different signature").ToString(), *SignatureClassName, *NewFunctionNameString), Context.EntryPoint);
 			}
@@ -2682,8 +2682,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	// Create an entry point
 	UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(SrcEventNode, ChildStubGraph);
 	EntryNode->NodePosX = -200;
-	EntryNode->SignatureClass = SrcEventNode->EventReference.GetMemberParentClass(SrcEventNode->GetBlueprintClassFromNode());
-	EntryNode->SignatureName = SrcEventNode->EventReference.GetMemberName();
+	EntryNode->FunctionReference = SrcEventNode->EventReference;
 	EntryNode->CustomGeneratedFunctionName = EventNodeName;
 
 	if (!SrcEventNode->bOverrideFunction && SrcEventNode->IsUsedByAuthorityOnlyDelegate())
@@ -2957,27 +2956,27 @@ void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 
 void FKismetCompilerContext::VerifyValidOverrideFunction(const UEdGraph* Graph)
 {
-	check(NULL != Graph);
-	check(NULL != Blueprint);
+	check(nullptr != Graph);
+	check(nullptr != Blueprint);
 
-	TArray<const UK2Node_FunctionEntry*> EntryPoints;
+	TArray<UK2Node_FunctionEntry*> EntryPoints;
 	Graph->GetNodesOfClass(EntryPoints);
 
 	for(int32 EntryPointsIdx = 0; EntryPointsIdx < EntryPoints.Num(); EntryPointsIdx++)
 	{
-		const UK2Node_FunctionEntry* EventNode = EntryPoints[EntryPointsIdx];
-		check(NULL != EventNode);
+		UK2Node_FunctionEntry* EntryNode = EntryPoints[EntryPointsIdx];
+		check(nullptr != EntryNode);
 
-		const UClass* FuncClass = *EventNode->SignatureClass;
-		if( FuncClass )
+		const UClass* FuncClass = EntryNode->FunctionReference.GetMemberParentClass();
+		if (FuncClass)
 		{
-			const UFunction* Function = FuncClass->FindFunctionByName(EventNode->SignatureName);
-			if( Function )
+			const UFunction* Function = FuncClass->FindFunctionByName(EntryNode->FunctionReference.GetMemberName());
+			if (Function)
 			{
 				const bool bCanBeOverridden = Function->HasAllFunctionFlags(FUNC_BlueprintEvent);
-				if(!bCanBeOverridden)
+				if (!bCanBeOverridden)
 				{
-					MessageLog.Error(TEXT("The function in node @@ cannot be overridden"), EventNode);
+					MessageLog.Error(TEXT("The function in node @@ cannot be overridden"), EntryNode);
 				}
 			}
 		}
@@ -2987,9 +2986,9 @@ void FKismetCompilerContext::VerifyValidOverrideFunction(const UEdGraph* Graph)
 			for (TFieldIterator<UFunction> FunctionIt(Blueprint->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 			{
 				const UFunction* Function = *FunctionIt;
-				if( Function && (Function->GetFName() == EventNode->SignatureName) )
+				if (Function && (Function->GetFName() == EntryNode->FunctionReference.GetMemberName()))
 				{
-					MessageLog.Error(TEXT("The function name in node @@ is already used"), EventNode);
+					MessageLog.Error(TEXT("The function name in node @@ is already used"), EntryNode);
 				}
 			}
 		}
@@ -3085,8 +3084,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		// Add a dummy entry point to the uber graph, to get the function signature correct
 		{
 			UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(NULL, ConsolidatedEventGraph);
-			EntryNode->SignatureClass = UObject::StaticClass();
-			EntryNode->SignatureName = UEdGraphSchema_K2::FN_ExecuteUbergraphBase;
+			EntryNode->FunctionReference.SetExternalMember(UEdGraphSchema_K2::FN_ExecuteUbergraphBase, UObject::StaticClass());
 			EntryNode->CustomGeneratedFunctionName = ConsolidatedEventGraph->GetFName();
 			EntryNode->AllocateDefaultPins();
 		}

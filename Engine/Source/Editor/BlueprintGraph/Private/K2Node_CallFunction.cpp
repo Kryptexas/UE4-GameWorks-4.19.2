@@ -1840,7 +1840,7 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 					UK2Node_FunctionEntry const* const Node = EntryPoints[0];
 					if (Node)
 					{
-						UFunction* const SignatureFunction = FindField<UFunction>(Node->SignatureClass, Node->SignatureName);
+						UFunction* const SignatureFunction = Node->FunctionReference.ResolveMember<UFunction>(Node->GetBlueprintClassFromNode());
 						bNodeIsInConstructionScript = SignatureFunction && (SignatureFunction->GetFName() == UEdGraphSchema_K2::FN_UserConstructionScript);
 					}
 				}

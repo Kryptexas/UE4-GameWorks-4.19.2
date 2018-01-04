@@ -3,6 +3,7 @@
 
 #include "K2Node_FunctionTerminator.h"
 #include "UObject/UnrealType.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "GraphEditorSettings.h"
 #include "EdGraphSchema_K2.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -13,6 +14,21 @@
 UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+void UK2Node_FunctionTerminator::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::FunctionTerminatorNodesUseMemberReference)
+		{
+			FunctionReference.SetExternalMember(SignatureName_DEPRECATED, SignatureClass_DEPRECATED);
+		}
+	}
 }
 
 FLinearColor UK2Node_FunctionTerminator::GetNodeTitleColor() const
@@ -56,7 +72,7 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 {
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 
-	UClass* SourceClass = *SignatureClass;
+	UClass* SourceClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	bool bResult = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
@@ -92,7 +108,7 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 void UK2Node_FunctionTerminator::PromoteFromInterfaceOverride(bool bIsPrimaryTerminator)
 {
 	// Remove the signature class, that is not relevant.
-	SignatureClass = nullptr;
+	FunctionReference.SetSelfMember(FunctionReference.GetMemberName());
 	TArray<UEdGraphPin*> OriginalPins = Pins;
 	for (const UEdGraphPin* Pin : OriginalPins)
 	{

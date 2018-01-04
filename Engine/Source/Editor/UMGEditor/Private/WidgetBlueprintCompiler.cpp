@@ -75,14 +75,12 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 				// Create a function entry node
 				FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(*FunctionGraph);
 				UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
-				EntryNode->SignatureClass = NULL;
-				EntryNode->SignatureName = FunctionGraph->GetFName();
+				EntryNode->FunctionReference.SetSelfMember(FunctionGraph->GetFName());
 				FunctionEntryCreator.Finalize();
 
 				FGraphNodeCreator<UK2Node_FunctionResult> FunctionReturnCreator(*FunctionGraph);
 				UK2Node_FunctionResult* ReturnNode = FunctionReturnCreator.CreateNode();
-				ReturnNode->SignatureClass = NULL;
-				ReturnNode->SignatureName = FunctionGraph->GetFName();
+				ReturnNode->FunctionReference.SetSelfMember(FunctionGraph->GetFName());
 				ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 				ReturnNode->NodePosY = EntryNode->NodePosY;
 				FunctionReturnCreator.Finalize();

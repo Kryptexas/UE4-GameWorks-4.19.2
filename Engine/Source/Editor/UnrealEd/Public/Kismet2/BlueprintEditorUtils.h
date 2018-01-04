@@ -942,8 +942,15 @@ public:
 	/** Check blueprint variable metadata keys/values for validity and make adjustments if needed */
 	static void FixupVariableDescription(UBlueprint* Blueprint, FBPVariableDescription& VarDesc);
 
-	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
-	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
+	/**
+	  * Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name
+	  *
+	  * @param	InBlueprint					Target blueprint.
+	  * @param	InVariableName				Variable or function name to validate child blueprints against.
+	  * @param	CustomValidationCallback	Optional callback that allows for doing any post-validation tasks.
+	  */
+	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName,
+		TFunction<void(UBlueprint* InChildBP, const FName InVariableName, bool bValidatedVariable)> PostValidationCallback = TFunction<void(UBlueprint*, FName, bool)>());
 
 	/** Rename a Timeline. If bRenameNodes is true, will also rename any timeline nodes associated with this timeline */
 	static bool RenameTimeline (UBlueprint* Blueprint, const FName OldVarName, const FName NewVarName);

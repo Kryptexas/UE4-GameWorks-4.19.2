@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Engine/MemberReference.h"
 #include "Templates/SubclassOf.h"
 #include "K2Node_EditablePinBase.h"
 #include "K2Node_FunctionTerminator.generated.h"
@@ -14,17 +15,15 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 {
 	GENERATED_UCLASS_BODY()
 
-	/** 
-	 * The source class that defines the signature, if it is getting that from elsewhere (e.g. interface, base class etc). 
-	 * If NULL, this is a newly created function.
+	/**
+	 * Reference to the function signature.
 	 */
 	UPROPERTY()
-	TSubclassOf<class UObject>  SignatureClass;
+	FMemberReference FunctionReference;
 
-	/** The name of the signature function. */
-	UPROPERTY()
-	FName SignatureName;
-
+	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
+	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
 	virtual bool CanDuplicateNode() const override { return false; }
@@ -44,5 +43,14 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 
 	/** Promotes the node from being a part of an interface override to a full function that allows for parameter and result pin additions */
 	virtual void PromoteFromInterfaceOverride(bool bIsPrimaryTerminator = true);
+
+private:
+	/** (DEPRECATED) Function signature class. Replaced by the 'FunctionReference' property. */
+	UPROPERTY()
+	TSubclassOf<class UObject> SignatureClass_DEPRECATED;
+
+	/** (DEPRECATED) Function signature name. Replaced by the 'FunctionReference' property. */
+	UPROPERTY()
+	FName SignatureName_DEPRECATED;
 };
 

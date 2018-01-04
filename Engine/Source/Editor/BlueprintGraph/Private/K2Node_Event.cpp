@@ -540,7 +540,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 								{
 									UK2Node_FunctionEntry* ExistingFunctionEntryNode = *NodeIt;
 									bDisallowPaste = ExistingFunctionEntryNode->bEnforceConstCorrectness
-										&& ExistingFunctionEntryNode->SignatureName == EventReference.GetMemberName();
+										&& ExistingFunctionEntryNode->FunctionReference.GetMemberName() == EventReference.GetMemberName();
 								}
 							}
 						}

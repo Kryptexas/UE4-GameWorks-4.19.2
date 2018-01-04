@@ -3163,11 +3163,14 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(&Graph);
 	check(Blueprint->BlueprintType != BPTYPE_MacroLibrary);
 
+	// Get the function GUID from the most up-to-date class
+	FGuid GraphGuid;
+	FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(FBlueprintEditorUtils::GetMostUpToDateClass(Class), GraphName, GraphGuid);
+
 	// Create a function entry node
 	FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(Graph);
 	UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
-	EntryNode->SignatureClass = Class;
-	EntryNode->SignatureName = GraphName;
+	EntryNode->FunctionReference.SetExternalMember(GraphName, Class, GraphGuid);
 	FunctionEntryCreator.Finalize();
 	SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 
@@ -3222,8 +3225,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 		{
 			FGraphNodeCreator<UK2Node_FunctionResult> NodeCreator(Graph);
 			UK2Node_FunctionResult* ReturnNode = NodeCreator.CreateNode();
-			ReturnNode->SignatureClass = Class;
-			ReturnNode->SignatureName = GraphName;
+			ReturnNode->FunctionReference = EntryNode->FunctionReference;
 			ReturnNode->NodePosX = NextNode->NodePosX + NextNode->NodeWidth + 256;
 			ReturnNode->NodePosY = EntryNode->NodePosY;
 			NodeCreator.Finalize();
@@ -3254,8 +3256,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 	// Create a function entry node
 	FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(Graph);
 	UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
-	EntryNode->SignatureClass = NULL;
-	EntryNode->SignatureName = GraphName;
+	EntryNode->FunctionReference.SetExternalMember(GraphName, nullptr);
 	FunctionEntryCreator.Finalize();
 	SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 
@@ -3279,8 +3280,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 	{
 		FGraphNodeCreator<UK2Node_FunctionResult> NodeCreator(Graph);
 		UK2Node_FunctionResult* ReturnNode = NodeCreator.CreateNode();
-		ReturnNode->SignatureClass = NULL;
-		ReturnNode->SignatureName = GraphName;
+		ReturnNode->FunctionReference = EntryNode->FunctionReference;
 		ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 		ReturnNode->NodePosY = EntryNode->NodePosY;
 		NodeCreator.Finalize();
@@ -5279,7 +5279,7 @@ bool UEdGraphSchema_K2::IsConstructionScript(const UEdGraph* TestEdGraph)
 	if (EntryNodes.Num() > 0)
 	{
 		UK2Node_FunctionEntry const* const EntryNode = EntryNodes[0];
-		bIsConstructionScript = (EntryNode->SignatureName == FN_UserConstructionScript);
+		bIsConstructionScript = (EntryNode->FunctionReference.GetMemberName() == FN_UserConstructionScript);
 	}
 	return bIsConstructionScript;
 }
@@ -6282,10 +6282,10 @@ UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 				UEdGraphNode* Node = NewGraph->Nodes[NodeIndex];
 				if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 				{
-					if (EntryNode->SignatureName == GraphToDuplicate->GetFName())
+					if (EntryNode->FunctionReference.GetMemberName() == GraphToDuplicate->GetFName())
 					{
 						EntryNode->Modify();
-						EntryNode->SignatureName = NewGraph->GetFName();
+						EntryNode->FunctionReference.SetMemberName(NewGraph->GetFName());
 						break;
 					}
 				}
