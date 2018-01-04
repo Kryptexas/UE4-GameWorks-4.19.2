@@ -709,7 +709,22 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 			{
 				if (const UBlueprint* OldBlueprint = Cast<UBlueprint>(OldObject))
 				{
-					FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, NewObject ? CastChecked<UBlueprint>(NewObject)->GeneratedClass : nullptr);
+					if(NewObject && CastChecked<UBlueprint>(NewObject)->GeneratedClass)
+					{
+						FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, CastChecked<UBlueprint>(NewObject)->GeneratedClass);
+					}
+					else
+					{
+						// we failed to load the UBlueprint and/or it's GeneratedClass. Show a notification indicating that maps may need to be reloaded:
+						FNotificationInfo Warning( 
+							FText::Format(
+								NSLOCTEXT("UnrealEd", "Warning_FailedToLoadParentClass", "Failed to load ParentClass for {0}"),
+								FText::FromName(OldObject->GetFName())
+							)
+						);
+						Warning.ExpireDuration = 3.0f;
+						FSlateNotificationManager::Get().AddNotification(Warning);
+					}
 				}
 			}
 		}
