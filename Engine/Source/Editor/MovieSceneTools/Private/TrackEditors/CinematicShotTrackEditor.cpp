@@ -230,7 +230,7 @@ bool FCinematicShotTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent,
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FAssetDragDropOp>() )
 	{
 		return false;
 	}
@@ -258,7 +258,7 @@ FReply FCinematicShotTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UM
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FAssetDragDropOp>() )
 	{
 		return FReply::Unhandled();
 	}

@@ -427,7 +427,7 @@ bool FSubTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSce
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FAssetDragDropOp>() )
 	{
 		return false;
 	}
@@ -455,7 +455,7 @@ FReply FSubTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneT
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FAssetDragDropOp>() )
 	{
 		return FReply::Unhandled();
 	}

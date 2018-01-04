@@ -211,7 +211,7 @@ bool FCameraCutTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMo
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FActorDragDropGraphEdOp>() )
 	{
 		return false;
 	}
@@ -245,7 +245,7 @@ FReply FCameraCutTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovie
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FActorDragDropGraphEdOp>() )
 	{
 		return FReply::Unhandled();
 	}
