@@ -379,6 +379,11 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
 	bool bAutomaticSigning;
 
+	// Whether the app supports HTTPS
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (DisplayName = "Allow web connections to non-HTTPS websites"))
+	bool bDisableHTTPS;
+
+
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.
     UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Max. Metal Shader Standard To Target", ConfigRestartRequired = true))

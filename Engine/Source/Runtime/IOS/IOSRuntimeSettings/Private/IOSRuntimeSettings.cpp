@@ -43,6 +43,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bSupportsOpenGLES2 = false;
 	bSupportsMetal = true;
 	bSupportsMetalMRT = false;
+	bDisableHTTPS = false;
 }
 
 #if WITH_EDITOR

@@ -321,6 +321,12 @@ class WebViewControl
 						else
 						if(NextURL != null)
 						{
+							if(!NextURL.contains("://") && !NextURL.startsWith("about:"))
+							{
+								//default scheme is http://
+								NextURL = "http://" + NextURL;
+							}
+
 							webView.loadUrl(NextURL);
 							NextURL = null;
 						}
@@ -1492,11 +1498,6 @@ class WebViewControl
 			setOnTouchListener(new View.OnTouchListener() {
 				@Override
 				public boolean onTouch(View v, MotionEvent event) {
-					if(IsAndroid3DBrowser)
-					{
-						GameActivity.Log.warn("requestFocusFromTouch");
-						v.requestFocusFromTouch();
-					}
 					return IsAndroid3DBrowser;
 				}
 			});
