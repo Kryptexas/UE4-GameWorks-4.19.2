@@ -17,7 +17,8 @@ THIRD_PARTY_INCLUDES_START
 #include <emscripten/html5.h>
 THIRD_PARTY_INCLUDES_END
 
-static FGamepadKeyNames::Type AxisMapping[4] =
+#define AxisMappingCap 4
+static FGamepadKeyNames::Type AxisMapping[AxisMappingCap] =
 {
 	FGamepadKeyNames::LeftAnalogX,
 	FGamepadKeyNames::LeftAnalogY,
@@ -35,7 +36,8 @@ static int Reversed[4] =
 };
 
 // all are digital except Left and Right Trigger Analog.
-static FGamepadKeyNames::Type ButtonMapping[16] =
+#define ButtonMappingCap 16
+static FGamepadKeyNames::Type ButtonMapping[ButtonMappingCap] =
 {
 	FGamepadKeyNames::FaceButtonBottom,
 	FGamepadKeyNames::FaceButtonRight,
@@ -195,7 +197,7 @@ void FHTML5InputInterface::SendControllerEvents()
 			if (!Failed)
 			{
 				check(CurrentGamePad == GamePadEvent.index);
-				for(int CurrentAxis = 0; CurrentAxis < GamePadEvent.numAxes; ++CurrentAxis)
+				for(int CurrentAxis = 0; CurrentAxis < AxisMappingCap; ++CurrentAxis)
 				{
 					if (GamePadEvent.axis[CurrentAxis] != PrevGamePadState[CurrentGamePad].axis[CurrentAxis])
 					{
@@ -204,7 +206,7 @@ void FHTML5InputInterface::SendControllerEvents()
 					}
 				}
 				// edge trigger.
-				for(int CurrentButton = 0; CurrentButton < GamePadEvent.numButtons; ++CurrentButton)
+				for(int CurrentButton = 0; CurrentButton < ButtonMappingCap; ++CurrentButton)
 				{
 					// trigger for digital buttons.
 					if ( GamePadEvent.digitalButton[CurrentButton]   != PrevGamePadState[CurrentGamePad].digitalButton[CurrentButton] )
@@ -223,7 +225,7 @@ void FHTML5InputInterface::SendControllerEvents()
 				}
 				// repeat trigger.
 				const float RepeatDelta = 0.2f;
-				for(int CurrentButton = 0; CurrentButton < GamePadEvent.numButtons; ++CurrentButton)
+				for(int CurrentButton = 0; CurrentButton < ButtonMappingCap; ++CurrentButton)
 				{
 					if ( GamePadEvent.digitalButton[CurrentButton]  )
 					{
