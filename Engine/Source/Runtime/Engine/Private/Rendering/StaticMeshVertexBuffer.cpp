@@ -11,7 +11,7 @@ FStaticMeshVertexBuffer::FStaticMeshVertexBuffer() :
 	TexcoordDataPtr(nullptr),
 	NumTexCoords(0),
 	NumVertices(0),
-	bUseFullPrecisionUVs(false),
+	bUseFullPrecisionUVs(!GVertexElementTypeSupport.IsSupported(VET_Half2)),
 	bUseHighPrecisionTangentBasis(false)
 {}
 
