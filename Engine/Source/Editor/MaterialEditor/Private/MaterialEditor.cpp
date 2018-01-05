@@ -4174,27 +4174,6 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 
 	}
 
-	FGraphAppearanceInfo AppearanceInfo;
-	
-	if (MaterialFunction)
-	{
-		switch(MaterialFunction->GetMaterialFunctionUsage())
-		{
-		case EMaterialFunctionUsage::MaterialLayer:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER");
-			break;
-		case EMaterialFunctionUsage::MaterialLayerBlend:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER BLEND");
-			break;
-		default:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION");
-		}
-	}
-	else
-	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Material", "MATERIAL");
-	}
-
 	SGraphEditor::FGraphEditorEvents InEvents;
 	InEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FMaterialEditor::OnSelectedNodesChanged);
 	InEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &FMaterialEditor::OnNodeDoubleClicked);
@@ -4211,10 +4190,36 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(true)
 		.TitleBar(TitleBarWidget)
-		.Appearance(AppearanceInfo)
+		.Appearance(this, &FMaterialEditor::GetGraphAppearance)
 		.GraphToEdit(Material->MaterialGraph)
 		.GraphEvents(InEvents)
 		.ShowGraphStateOverlay(false);
+}
+
+FGraphAppearanceInfo FMaterialEditor::GetGraphAppearance() const
+{
+	FGraphAppearanceInfo AppearanceInfo;
+
+	if (MaterialFunction)
+	{
+		switch (MaterialFunction->GetMaterialFunctionUsage())
+		{
+		case EMaterialFunctionUsage::MaterialLayer:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER");
+			break;
+		case EMaterialFunctionUsage::MaterialLayerBlend:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL LAYER BLEND");
+			break;
+		default:
+			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_MaterialFunction", "MATERIAL FUNCTION");
+		}
+	}
+	else
+	{
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Material", "MATERIAL");
+	}
+
+	return AppearanceInfo;
 }
 
 void FMaterialEditor::CleanUnusedExpressions()

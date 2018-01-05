@@ -35,6 +35,7 @@ class UFactory;
 class UMaterialEditorOptions;
 class UMaterialExpressionComment;
 class UMaterialInstance;
+struct FGraphAppearanceInfo;
 
 /**
  * Class for rendering previews of material expressions in the material editor's linked object viewport.
@@ -662,6 +663,9 @@ private:
 
 	/** Create new graph editor widget */
 	TSharedRef<class SGraphEditor> CreateGraphEditorWidget();
+
+	/** Gets the current Material Graph's appearance */
+	FGraphAppearanceInfo GetGraphAppearance() const;
 
 	/**
 	 * Deletes any disconnected material expressions.
