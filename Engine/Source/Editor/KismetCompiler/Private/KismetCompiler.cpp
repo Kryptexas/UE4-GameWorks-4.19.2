@@ -2624,7 +2624,7 @@ FName FKismetCompilerContext::GetEventStubFunctionName(UK2Node_Event* SrcEventNo
 		}
 		else
 		{
-			FString EventNodeString = ClassScopeNetNameMap.MakeValidName<UEdGraphNode>(SrcEventNode);
+			FString EventNodeString = ClassScopeNetNameMap.MakeValidName(SrcEventNode);
 			EventNodeName = FName(*EventNodeString);
 		}
 	}
