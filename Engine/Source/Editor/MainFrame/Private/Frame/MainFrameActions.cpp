@@ -429,11 +429,6 @@ void FMainFrameActionCallbacks::PackageBuildConfiguration( EProjectPackagingBuil
 
 bool FMainFrameActionCallbacks::CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration )
 {
-	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
-	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping && BuildConfiguration != PPBC_ShippingClient)
-	{
-		return false;
-	}
 	return true;
 }
 
