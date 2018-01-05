@@ -83,6 +83,13 @@ static FCriticalSection GCachedMenuStateCS;
 
 }
 
+- (void)dealloc
+{
+	FScopeLock Lock(&GCachedMenuStateCS);
+	GCachedMenuState.Remove(self);
+	[super dealloc];
+}
+
 @end
 
 void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
