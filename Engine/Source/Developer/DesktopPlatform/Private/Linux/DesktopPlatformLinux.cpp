@@ -98,7 +98,7 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 
 bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
-	unimplemented();
+	STUBBED("FDesktopPlatformLinux::OpenFontDialog");
 	return false;
 }
 
