@@ -54,6 +54,8 @@ void FHttpManager::Flush(bool bShutdown)
 			TSharedRef<IHttpRequest> Request = *It;
 			Request->OnProcessRequestComplete().Unbind();
 			Request->OnRequestProgress().Unbind();
+			// Must explicitly cancel all requests - otherwise the HTTP thread hangs, resulting in 0x8badf00d on app terminate
+			Request->CancelRequest();
 			UE_LOG(LogHttp, Display, TEXT("	verb=[%s] url=[%s] status=%s"), *Request->GetVerb(), *Request->GetURL(), EHttpRequestStatus::ToString(Request->GetStatus()));
 		}
 	}
