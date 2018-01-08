@@ -347,7 +347,7 @@ bool CopyLocalFileToRemote(FString const& LocalPath, FString const& RemotePath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zrltgoDe \"'%s' -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' %s@%s:'%s'"), 
+			TEXT("-zrltgoDe \"'%s' -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' \"%s@%s\":'%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*remoteBasePath, 
@@ -377,7 +377,7 @@ bool CopyRemoteFileToLocal(FString const& RemotePath, FString const& LocalPath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zrltgoDe \"'%s' -i '%s'\" %s@%s:'%s' '%s'"), 
+			TEXT("-zrltgoDe \"'%s' -i '%s'\" \"%s@%s\":'%s' '%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*GRemoteBuildServerUser,
