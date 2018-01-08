@@ -297,6 +297,7 @@ public class IOSPlatform : Platform
 		Log("Package {0}", Params.RawProjectPath);
 
 		// ensure the ue4game binary exists, if applicable
+#if !PLATFORM_MAC
 		string ProjectGameExeFilename = Params.GetProjectExeForPlatform(UnrealTargetPlatform.IOS).ToString();
 		string FullExePath = CombinePaths(Path.GetDirectoryName(ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath))
@@ -304,6 +305,7 @@ public class IOSPlatform : Platform
 			LogError("Failed to find game binary " + FullExePath);
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
+#endif // PLATFORM_MAC
 
         if (SC.StageTargetConfigurations.Count != 1)
         {
@@ -652,8 +654,9 @@ public class IOSPlatform : Platform
 
 		if (bAutomaticSigning)
 		{
+            Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+            Arguments += " CODE_SIGN_STYLE=\"Automatic\"";
 			Arguments += " DEVELOPMENT_TEAM=\"" + Team + "\"";
-			Arguments += " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 		}
 		else
 		{

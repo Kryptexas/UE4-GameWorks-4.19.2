@@ -43,14 +43,21 @@ namespace UnrealBuildTool
 				MobileProvision = null;
 				SigningCertificate = null;
 				TeamUUID = null;
-				bAutomaticSigning = false;
+				bAutomaticSigning = true;
 			}
 			else
 			{
 				MobileProvision = Data.MobileProvision;
 				SigningCertificate = Data.SigningCertificate;
 				TeamUUID = Data.TeamUUID;
-				bAutomaticSigning = ProjectSettings.bAutomaticSigning;
+                if (Data.MobileProvisionName.Contains("*") || ProjectSettings.bAutomaticSigning)
+                {
+                    bAutomaticSigning = true;
+                }
+                else
+                {
+                    bAutomaticSigning = false;
+                }
 			}
 		}
 

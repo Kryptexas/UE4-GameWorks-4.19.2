@@ -263,6 +263,7 @@ namespace UnrealBuildTool
 		public string SigningCertificate;
 		public string MobileProvision;
         public string MobileProvisionUUID;
+        public string MobileProvisionName;
         public string TeamUUID;
 		public bool bHaveCertificate = false;
 
@@ -396,6 +397,16 @@ namespace UnrealBuildTool
 							TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
 						}
 					}
+                    idx = AllText.IndexOf("<key>Name</key>");
+                    if (idx > 0)
+                    {
+                        idx = AllText.IndexOf("<string>", idx);
+                        if (idx > 0)
+                        {
+                            idx += "<string>".Length;
+                            MobileProvisionName = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+                        }
+                    }
 				}
 
 				if (string.IsNullOrEmpty(MobileProvisionUUID) || string.IsNullOrEmpty(TeamUUID))

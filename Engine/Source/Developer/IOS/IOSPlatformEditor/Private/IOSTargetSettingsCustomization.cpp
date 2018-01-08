@@ -293,8 +293,12 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	BuildCategory.AddProperty(SignCertificateProperty)
 		.Visibility(EVisibility::Hidden);
 	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
+#if PLATFORM_MAC
+	BuildCategory.AddProperty(AutomaticSigningProperty);
+#else
 	BuildCategory.AddProperty(AutomaticSigningProperty)
 		.Visibility(EVisibility::Hidden);
+#endif // PLATFORM_MAC
 //	ProvisionCategory.AddProperty(AutomaticSigningProperty);
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
