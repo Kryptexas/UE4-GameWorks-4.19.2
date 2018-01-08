@@ -65,6 +65,7 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"Slate",
 				"InputCore",
+				"Messaging",
 				"MessagingCommon",
 				"RenderCore",
 				"RHI",
