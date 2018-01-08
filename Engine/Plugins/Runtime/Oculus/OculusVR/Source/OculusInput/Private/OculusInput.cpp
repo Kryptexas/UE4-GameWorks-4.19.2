@@ -447,7 +447,7 @@ void FOculusInput::SendControllerEvents()
 								}
 								case EOculusTouchCapacitiveAxes::Thumbstick:
 								{
-									const uint32 mask = (bIsLeft) ? ovrpTouch_LThumb : ovrpTouch_RThumb;
+									const uint32 mask = bIsMalibuTracked ? ((bIsLeft) ? ovrpTouch_LTouchpad : ovrpTouch_RTouchpad) : ((bIsLeft) ? ovrpTouch_LThumb : ovrpTouch_RThumb);
 									CurrentAxisVal = (OvrpControllerState.Touches & mask) != 0 ? 1.f : 0.f;
 									break;
 								}

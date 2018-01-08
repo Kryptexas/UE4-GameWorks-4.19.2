@@ -318,6 +318,12 @@ OVRP_EXPORT ovrpResult ovrp_GetSystemPowerSavingMode2(ovrpBool* systemPowerSavin
 /// Gets the current refresh rate of the HMD.
 OVRP_EXPORT ovrpResult ovrp_GetSystemDisplayFrequency2(float* systemDisplayFrequency);
 
+/// Gets the available refresh rates of the HMD.
+OVRP_EXPORT ovrpResult ovrp_GetSystemDisplayAvailableFrequencies(float* systemDisplayAvailableFrequencies, int *arraySize);
+
+/// Sets the refresh rate for the HMD
+OVRP_EXPORT ovrpResult ovrp_SetSystemDisplayFrequency(float requestedFrequency);
+
 /// Gets the minimum number of vsyncs to wait after each frame.
 OVRP_EXPORT ovrpResult ovrp_GetSystemVSyncCount2(int* systemVSyncCount);
 
@@ -472,16 +478,19 @@ OVRP_EXPORT ovrpResult ovrp_SetInhibitSystemUX2(ovrpBool inhibitSystemUX);
 OVRP_EXPORT ovrpResult ovrp_SetDebugDumpEnabled2(ovrpBool debugDumpEnabled);
 #endif
 
-/// Return true if the device supports LMS rendering
+/// Return true if the device supports tiled multires
 OVRP_EXPORT ovrpResult ovrp_GetTiledMultiResSupported(ovrpBool* foveationSupported);
 
-/// Return true if the device supports multi-view rendering
+/// Returns the current multires level on the device
+OVRP_EXPORT ovrpResult ovrp_GetTiledMultiResLevel(ovrpTiledMultiResLevel* level);
+
+/// Sets MultiRes levels
 OVRP_EXPORT ovrpResult ovrp_SetTiledMultiResLevel(ovrpTiledMultiResLevel level);
 
-/// Return true if the device supports LMS rendering
+/// Return true if the device supports GPU Util querying
 OVRP_EXPORT ovrpResult ovrp_GetGPUUtilSupported(ovrpBool* gpuUtilSupported);
 
-/// Return true if the device supports multi-view rendering
+/// Return the GPU util if the device supports it
 OVRP_EXPORT ovrpResult ovrp_GetGPUUtilLevel(float* gpuUtil);
 
 #ifdef __cplusplus

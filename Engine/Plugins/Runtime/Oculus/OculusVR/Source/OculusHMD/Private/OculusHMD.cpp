@@ -2167,6 +2167,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		ovrp_SetupDistortionWindow3(ovrpDistortionWindowFlag_None);
 		ovrp_SetSystemCpuLevel2(2);
 		ovrp_SetSystemGpuLevel2(3);
+		ovrp_SetAppCPUPriority2(ovrpBool_True);
 
 		bNeedReAllocateViewportRenderTarget = true;
 		bNeedReAllocateDepthTexture_RenderThread = false;

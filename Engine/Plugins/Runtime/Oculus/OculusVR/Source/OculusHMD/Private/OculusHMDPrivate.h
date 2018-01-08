@@ -36,10 +36,6 @@
 
 #include "OVR_Plugin.h"
 
-#if PLATFORM_ANDROID
-#include "VRAPI/VrApi.h"
-#endif
-
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
 #endif

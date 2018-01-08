@@ -477,7 +477,7 @@ ETiledMultiResLevel UOculusFunctionLibrary::GetTiledMultiresLevel()
 	if (OculusHMD != nullptr)
 	{
 		ovrpTiledMultiResLevel lvl = ovrpTiledMultiResLevel_Off;
-//		ovrp_GetTiledMultiResLevel(&lvl);
+		ovrp_GetTiledMultiResLevel(&lvl);
 		return (ETiledMultiResLevel)lvl;
 	}
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
@@ -505,11 +505,11 @@ TArray<float> UOculusFunctionLibrary::GetAvailableDisplayFrequencies()
 	if (OculusHMD != nullptr)
 	{
 		int numberOfFrequencies = 0;
-//		ovrp_GetSystemDisplayAvailableFrequencies(NULL, &numberOfFrequencies);
+		ovrp_GetSystemDisplayAvailableFrequencies(NULL, &numberOfFrequencies);
 
 		TArray<float> freqArray;
 		freqArray.SetNum(numberOfFrequencies);
-//		ovrp_GetSystemDisplayAvailableFrequencies(freqArray.GetData(), &numberOfFrequencies);
+		ovrp_GetSystemDisplayAvailableFrequencies(freqArray.GetData(), &numberOfFrequencies);
 		return freqArray;
 	}
 #endif
@@ -523,7 +523,7 @@ float UOculusFunctionLibrary::GetCurrentDisplayFrequency()
 	if (OculusHMD != nullptr)
 	{
 		float frequency = 0;
-//		ovrp_GetSystemDisplayFrequency2(&frequency);
+		ovrp_GetSystemDisplayFrequency2(&frequency);
 		return frequency;
 	}
 #endif
@@ -536,7 +536,7 @@ void UOculusFunctionLibrary::SetDisplayFrequency(float RequestedFrequency)
 	OculusHMD::FOculusHMD* OculusHMD = GetOculusHMD();
 	if (OculusHMD != nullptr)
 	{
-//		ovrp_SetSystemDisplayFrequency(RequestedFrequency);
+		ovrp_SetSystemDisplayFrequency(RequestedFrequency);
 	}
 #endif
 }
