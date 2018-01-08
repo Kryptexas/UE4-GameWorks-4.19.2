@@ -278,11 +278,14 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 			CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
 			CachedColumnData->ColumnId = Prop->GetFName();
 			CachedColumnData->DisplayName = PropertyDisplayName;
-			CachedColumnData->Property = StructProps[Index];
+			CachedColumnData->Property = Prop;
 		}
 		else
 		{
 			CachedColumnData = OldColumns[Index];
+
+			// Need to update property hard pointer in case it got reconstructed
+			CachedColumnData->Property = Prop;
 		}
 
 		CachedColumnData->DesiredColumnWidth = FontMeasure->Measure(CachedColumnData->DisplayName, CellTextStyle.Font).X + CellPadding;

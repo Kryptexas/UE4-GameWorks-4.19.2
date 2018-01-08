@@ -81,6 +81,7 @@ class UDataTable
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
+	//~ End UObject Interface
 
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
@@ -92,9 +93,17 @@ class UDataTable
 	/** The name of the RowStruct we were using when we were last saved */
 	UPROPERTY()
 	FName RowStructName;
-#endif	// WITH_EDITORONLY_DATA
 
-	//~ End  UObject Interface
+private:
+	/** When RowStruct is being modified, row data is stored serialized with tags */
+	UPROPERTY(Transient)
+	TArray<uint8> RowsSerializedWithTags;
+
+	UPROPERTY(Transient)
+	TSet<UObject*> TemporarilyReferencedObjects;
+
+public:
+#endif	// WITH_EDITORONLY_DATA
 
 	//~ Begin UDataTable Interface
 
@@ -221,15 +230,6 @@ class UDataTable
 	ENGINE_API void AddRow(FName RowName, const FTableRowBase& RowData);
 
 #if WITH_EDITOR
-
-private:
-
-	//when RowStruct is being modified, row data is stored serialized with tags
-	TArray<uint8> RowsSerializedWithTags;
-	TSet<UObject*> TemporarilyReferencedObjects;
-
-public:
-
 	ENGINE_API void CleanBeforeStructChange();
 	ENGINE_API void RestoreAfterStructChange();
 

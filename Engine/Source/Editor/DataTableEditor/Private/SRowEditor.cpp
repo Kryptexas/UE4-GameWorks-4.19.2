@@ -109,6 +109,7 @@ void SRowEditor::PostChange(const class UUserDefinedStruct* Struct, FStructureEd
 {
 	if (Struct && (GetScriptStruct() == Struct))
 	{
+		RefreshNameList();
 		Restore();
 	}
 }
@@ -123,7 +124,6 @@ void SRowEditor::PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDa
 
 void SRowEditor::PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info)
 {
-	FSoftObjectPath::InvalidateTag(); // Should be removed after UE-5615 is fixed
 	if ((Changed == DataTable.Get()) && (FDataTableEditorUtils::EDataTableChangeInfo::RowList == Info))
 	{
 		RefreshNameList();

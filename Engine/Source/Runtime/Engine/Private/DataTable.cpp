@@ -171,10 +171,6 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 		}
 	}
 
-#if WITH_EDITOR
-	Collector.AddReferencedObjects(This->TemporarilyReferencedObjects);
-#endif //WITH_EDITOR
-
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -328,28 +324,37 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 
 void UDataTable::CleanBeforeStructChange()
 {
-	RowsSerializedWithTags.Reset();
-	TemporarilyReferencedObjects.Empty();
+	if (RowsSerializedWithTags.Num() > 0)
 	{
-		class FRawStructWriter : public FObjectWriter
-		{
-			TSet<UObject*>& TemporarilyReferencedObjects;
-		public: 
-			FRawStructWriter(TArray<uint8>& InBytes, TSet<UObject*>& InTemporarilyReferencedObjects) 
-				: FObjectWriter(InBytes), TemporarilyReferencedObjects(InTemporarilyReferencedObjects) {}
-			virtual FArchive& operator<<(class UObject*& Res) override
-			{
-				FObjectWriter::operator<<(Res);
-				TemporarilyReferencedObjects.Add(Res);
-				return *this;
-			}
-		};
-
-		FRawStructWriter MemoryWriter(RowsSerializedWithTags, TemporarilyReferencedObjects);
-		SaveStructData(MemoryWriter);
+		// This is part of an undo, so restore that value instead of calculating a new one
+		EmptyTable();
 	}
-	EmptyTable();
-	Modify();
+	else
+	{
+		RowsSerializedWithTags.Reset();
+		TemporarilyReferencedObjects.Empty();
+		{
+			class FRawStructWriter : public FObjectWriter
+			{
+				TSet<UObject*>& TemporarilyReferencedObjects;
+			public:
+				FRawStructWriter(TArray<uint8>& InBytes, TSet<UObject*>& InTemporarilyReferencedObjects)
+					: FObjectWriter(InBytes), TemporarilyReferencedObjects(InTemporarilyReferencedObjects) {}
+				virtual FArchive& operator<<(class UObject*& Res) override
+				{
+					FObjectWriter::operator<<(Res);
+					TemporarilyReferencedObjects.Add(Res);
+					return *this;
+				}
+			};
+
+			FRawStructWriter MemoryWriter(RowsSerializedWithTags, TemporarilyReferencedObjects);
+			SaveStructData(MemoryWriter);
+		}
+
+		EmptyTable();
+		Modify();
+	}
 }
 
 void UDataTable::RestoreAfterStructChange()
