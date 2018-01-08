@@ -2032,10 +2032,10 @@ FText SAssetColumnItem::GetAssetTagText(FName AssetTag) const
 
 			// Check custom type
 			{
-				FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
-				if (FoundString)
+				FText* FoundText = ItemAsAsset->CustomColumnDisplayText.Find(AssetTag);
+				if (FoundText)
 				{
-					return FText::FromString(*FoundString);
+					return *FoundText;
 				}
 			}
 

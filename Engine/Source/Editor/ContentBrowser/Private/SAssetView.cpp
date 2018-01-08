@@ -910,13 +910,7 @@ void SAssetView::ProcessRecentlyLoadedOrChangedAssets()
 						ItemAsAsset->SetAssetData(AssetData);
 
 						// Update the custom column data
-						for (const FAssetViewCustomColumn& Column : CustomColumns)
-						{
-							if (ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
-							{
-								ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
-							}
-						}
+						ItemAsAsset->CacheCustomColumns(CustomColumns, true, true, true);
 					}
 
 					RefreshList();
@@ -1902,6 +1896,7 @@ void SAssetView::RefreshFilteredItems()
 
 			// Clear custom column data
 			Item->CustomColumnData.Reset();
+			Item->CustomColumnDisplayText.Reset();
 
 			ItemToObjectPath.Add( Item->Data.ObjectPath, Item );
 		}
@@ -3584,17 +3579,7 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 	}
 
 	// Update the cached custom data
-	if (AssetItem->GetType() == EAssetItemType::Normal)
-	{
-		const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
-		for (const FAssetViewCustomColumn& Column : CustomColumns)
-		{
-			if (!ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
-			{
-				ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
-			}
-		}
-	}
+	AssetItem->CacheCustomColumns(CustomColumns, false, true, false);
 	
 	return
 		SNew( SAssetColumnViewRow, OwnerTable )

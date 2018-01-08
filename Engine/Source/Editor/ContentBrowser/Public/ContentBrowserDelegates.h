@@ -120,8 +120,9 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsAssetValidForCustomToolTip, FAssetDa
 /** Called to request a custom asset item tooltip */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, FAssetData& /*AssetData*/);
 
-/** Called to get value for a custom column, will get converted as necessary */
+/** Called to get string/text value for a custom column, will get converted as necessary */
 DECLARE_DELEGATE_RetVal_TwoParams(FString, FOnGetCustomAssetColumnData, FAssetData& /*AssetData*/, FName /*ColumnName*/);
+DECLARE_DELEGATE_RetVal_TwoParams(FText, FOnGetCustomAssetColumnDisplayText, FAssetData& /*AssetData*/, FName /*ColumnName*/);
 
 /** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
 DECLARE_DELEGATE_TwoParams(FOnGetCustomSourceAssets, const FARFilter& /*SourceFilter*/, TArray<FAssetData>& /*AddedAssets*/);
@@ -202,18 +203,22 @@ struct FAssetViewCustomColumn
 	/** Type of column, used for sorting */
 	UObject::FAssetRegistryTag::ETagType DataType;
 
-	/** Delegate to get String value for this column */
+	/** Delegate to get String value for this column, used for sorting and internal use */
 	FOnGetCustomAssetColumnData OnGetColumnData;
+
+	/** Delegate to get Text value for this column, used to actually display */
+	FOnGetCustomAssetColumnDisplayText OnGetColumnDisplayText;
 
 	FAssetViewCustomColumn()
 		: DataType(UObject::FAssetRegistryTag::TT_Alphabetical) 
 	{ }
 
-	FAssetViewCustomColumn(FName InColumnName, const FText& InDisplayName, const FText& InTooltipText, UObject::FAssetRegistryTag::ETagType InDataType, const FOnGetCustomAssetColumnData& InOnGetColumnData)
+	FAssetViewCustomColumn(FName InColumnName, const FText& InDisplayName, const FText& InTooltipText, UObject::FAssetRegistryTag::ETagType InDataType, const FOnGetCustomAssetColumnData& InOnGetColumnData, const FOnGetCustomAssetColumnDisplayText& InOnGetColumnDisplayText = FOnGetCustomAssetColumnDisplayText())
 		: ColumnName(InColumnName)
 		, DisplayName(InDisplayName)
 		, TooltipText(InTooltipText)
 		, DataType(InDataType)
 		, OnGetColumnData(InOnGetColumnData)
+		, OnGetColumnDisplayText(InOnGetColumnDisplayText)
 	{ }
 };

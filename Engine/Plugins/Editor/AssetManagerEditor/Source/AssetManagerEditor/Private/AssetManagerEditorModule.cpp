@@ -302,6 +302,7 @@ public:
 	virtual void OpenSizeMapUI(TArray<FAssetIdentifier> SelectedIdentifiers) override;
 	virtual void OpenSizeMapUI(TArray<FName> SelectedPackages) override;	
 	virtual bool GetStringValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, FString& OutValue) override;
+	virtual bool GetDisplayTextForCustomColumn(const FAssetData& AssetData, FName ColumnName, FText& OutValue) override;
 	virtual bool GetIntegerValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, int64& OutValue) override;
 	virtual bool GetManagedPackageListForAssetData(const FAssetData& AssetData, TSet<FName>& ManagedPackageSet) override;
 	virtual void GetAvailableRegistrySources(TArray<const FAssetManagerEditorRegistrySource*>& AvailableSources) override;
@@ -953,15 +954,7 @@ bool FAssetManagerEditorModule::GetStringValueForCustomColumn(const FAssetData& 
 		int64 IntegerValue = 0;
 		if (GetIntegerValueForCustomColumn(AssetData, ColumnName, IntegerValue))
 		{
-			if (ColumnName == TotalUsageName)
-			{
-				OutValue = Lex::ToString(IntegerValue);
-			}
-			else
-			{
-				// Display size properly
-				OutValue = FText::AsMemory(IntegerValue).ToString();
-			}
+			OutValue = Lex::ToString(IntegerValue);
 			return true;
 		}
 	}
@@ -1014,6 +1007,71 @@ bool FAssetManagerEditorModule::GetStringValueForCustomColumn(const FAssetData& 
 			OutValue += Lex::ToString(Chunk);
 		}
 		return true;
+	}
+	else
+	{
+		// Get base value of asset tag
+		return AssetData.GetTagValue(ColumnName, OutValue);
+	}
+
+	return false;
+}
+
+bool FAssetManagerEditorModule::GetDisplayTextForCustomColumn(const FAssetData& AssetData, FName ColumnName, FText& OutValue)
+{
+	if (!CurrentRegistrySource || !CurrentRegistrySource->RegistryState)
+	{
+		return false;
+	}
+
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	if (ColumnName == ManagedResourceSizeName || ColumnName == ManagedDiskSizeName || ColumnName == DiskSizeName || ColumnName == TotalUsageName)
+	{
+		// Get integer, convert to string
+		int64 IntegerValue = 0;
+		if (GetIntegerValueForCustomColumn(AssetData, ColumnName, IntegerValue))
+		{
+			if (ColumnName == TotalUsageName)
+			{
+				OutValue = FText::AsNumber(IntegerValue);
+			}
+			else
+			{
+				// Display size properly
+				OutValue = FText::AsMemory(IntegerValue);
+			}
+			return true;
+		}
+	}
+	else if (ColumnName == CookRuleName)
+	{
+		EPrimaryAssetCookRule CookRule;
+
+		CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
+
+		switch (CookRule)
+		{
+		case EPrimaryAssetCookRule::AlwaysCook:
+			OutValue = LOCTEXT("AlwaysCook", "Always");
+			return true;
+		case EPrimaryAssetCookRule::DevelopmentCook:
+			OutValue = LOCTEXT("DevelopmentCook", "Development");
+			return true;
+		case EPrimaryAssetCookRule::NeverCook:
+			OutValue = LOCTEXT("NeverCook", "Never");
+			return true;
+		}
+	}
+	else if (ColumnName == ChunksName)
+	{
+		FString OutString;
+
+		if (GetStringValueForCustomColumn(AssetData, ColumnName, OutString))
+		{
+			OutValue = FText::AsCultureInvariant(OutString);
+			return true;
+		}
 	}
 	else
 	{

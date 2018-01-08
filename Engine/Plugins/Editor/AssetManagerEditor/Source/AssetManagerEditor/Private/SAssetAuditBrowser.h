@@ -60,6 +60,7 @@ protected:
 
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
 	FString GetStringValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const;
+	FText GetDisplayTextForCustomColumn(FAssetData& AssetData, FName ColumnName) const;
 	void OnGetCustomSourceAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssets) const;
 
 	/** Populate supplied OutPackages with the packages for the supplied Assets array */
