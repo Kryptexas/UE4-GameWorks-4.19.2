@@ -2,7 +2,8 @@
 # Build ApexShared common
 #
 
-ADD_LIBRARY(ApexShared STATIC 
+ADD_LIBRARY(ApexShared
+	${APEX_SHARED_LIBTYPE}
 	${APEXSHARED_PLATFORM_SOURCE_FILES}
 	
 	${SHARED_SOURCE_DIR}/general/floatmath/src/FloatMath.cpp

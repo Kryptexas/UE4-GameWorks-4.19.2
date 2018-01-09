@@ -15,6 +15,12 @@ SET(APEXSHARED_PLATFORM_INCLUDES
 	${PROJECT_SOURCE_DIR}/../../../common/include/linux	
 )
 
+if(DEFINED APEX_LINUX_SHARED_LIBRARIES)
+	SET(APEX_SHARED_LIBTYPE SHARED)
+else(DEFINED APEX_LINUX_SHARED_LIBRARIES)
+	SET(APEX_SHARED_LIBTYPE STATIC)
+endif(DEFINED APEX_LINUX_SHARED_LIBRARIES)
+
 # Use generator expressions to set config specific preprocessor definitions
 SET(APEXSHARED_COMPILE_DEFS 
 	# Common to all configurations

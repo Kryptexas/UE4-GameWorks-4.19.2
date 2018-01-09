@@ -205,13 +205,24 @@ public class APEX : ModuleRules
 		{
 			if (Target.Architecture.StartsWith("x86_64"))
 			{
-				APEXLibDir += "/Linux/" + Target.Architecture;
-				bIsApexStaticallyLinked = true;
+				ApexLibraries.Clear();
+				string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX3/Linux/" + Target.Architecture;
 
-				ApexLibraries.Add("APEX_Clothing{0}");
-				ApexLibraries.Add("APEX_Legacy{0}");
-				ApexLibraries.Add("ApexFramework{0}");
-				LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
+				string[] DynamicLibrariesLinux =
+				{
+					"/libApexCommon{0}.so",
+					"/libApexFramework{0}.so",
+					"/libApexShared{0}.so",
+					"/libAPEX_Legacy{0}.so",
+					"/libAPEX_Clothing{0}.so"
+				};
+
+				foreach (string RuntimeDependency in DynamicLibrariesLinux)
+				{
+					string LibraryPath = PhysXBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
+					PublicAdditionalLibraries.Add(LibraryPath);
+					RuntimeDependencies.Add(LibraryPath);
+				}
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)

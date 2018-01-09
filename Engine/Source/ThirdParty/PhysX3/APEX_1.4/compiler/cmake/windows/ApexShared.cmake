@@ -20,6 +20,8 @@ SET(APEXSHARED_PLATFORM_INCLUDES
 	${PROJECT_SOURCE_DIR}/../../../common/include/windows
 )
 
+SET(APEX_SHARED_LIBTYPE STATIC)
+
 SET(APEXSHARED_COMPILE_DEFS
 
 	# Common to all configurations

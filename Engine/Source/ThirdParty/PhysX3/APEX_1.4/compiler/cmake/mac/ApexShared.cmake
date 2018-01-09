@@ -15,6 +15,8 @@ SET(APEXSHARED_PLATFORM_INCLUDES
 	${PROJECT_SOURCE_DIR}/../../../common/include/mac	
 )
 
+SET(APEX_SHARED_LIBTYPE STATIC)
+
 # Use generator expressions to set config specific preprocessor definitions
 SET(APEXSHARED_COMPILE_DEFS 
 

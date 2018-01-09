@@ -2,7 +2,8 @@
 # Build ApexCommon common
 #
 
-ADD_LIBRARY(ApexCommon STATIC 
+ADD_LIBRARY(ApexCommon
+	${APEX_COMMON_LIBTYPE}
 	${APEXCOMMON_PLATFORM_SOURCE_FILES}
 	
 	${COMMON_SOURCE_DIR}/src/ApexActor.cpp

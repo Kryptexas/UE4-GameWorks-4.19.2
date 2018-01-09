@@ -12,6 +12,8 @@ SET(AM_SOURCE_DIR ${APEX_MODULE_DIR}/common)
 
 SET(COMMON_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../common)
 
+SET(APEX_COMMON_LIBTYPE STATIC)
+
 # Use generator expressions to set config specific preprocessor definitions
 SET(APEXCOMMON_COMPILE_DEFS
 

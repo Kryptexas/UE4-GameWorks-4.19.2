@@ -273,7 +273,7 @@ class BuildPhysX : BuildCommand
 					case UnrealTargetPlatform.Switch:
 						return DirectoryReference.Combine(ApexCMakeFiles, "Switch").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=switch -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\switch\\NX64Toolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=NX-NXFP2-a64" + OutputFlags + ApexFlags;
 					case UnrealTargetPlatform.Linux:
-						return DirectoryReference.Combine(ApexCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags + ApexFlags;
+						return DirectoryReference.Combine(ApexCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DAPEX_LINUX_SHARED_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags + ApexFlags;
 					case UnrealTargetPlatform.Mac:
 						return DirectoryReference.Combine(ApexCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=mac" + OutputFlags + ApexFlags;
 					 default:
@@ -1131,6 +1131,9 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.Mac:
 				ArchName = "Mac";
 				break;
+			case UnrealTargetPlatform.Linux:
+				ArchName = "Linux/" + TargetData.Architecture;
+				break;
 			default:
 				throw new AutomationException(String.Format("Unsupported platform '{0}' supplied to GetOutputBinaryDirectory", TargetData.ToString()));
 		}
@@ -1211,6 +1214,7 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.Win32:
 			case UnrealTargetPlatform.Win64:
 			case UnrealTargetPlatform.Mac:
+			case UnrealTargetPlatform.Linux:
 				return true;
 		}
 		return false;
@@ -1250,6 +1254,8 @@ class BuildPhysX : BuildCommand
 				return "dll";
 			case UnrealTargetPlatform.Mac:
 				return "dylib";
+			case UnrealTargetPlatform.Linux:
+				return "so";
 		}
 		throw new AutomationException(String.Format("No binary extension for platform '{0}'", TargetData.Platform.ToString()));
 	}

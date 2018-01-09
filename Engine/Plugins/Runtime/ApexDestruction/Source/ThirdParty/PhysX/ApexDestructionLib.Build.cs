@@ -165,10 +165,11 @@ public class ApexDestructionLib : ModuleRules
         {
             if (Target.Architecture.StartsWith("x86_64"))
             {
-                APEXLibDir += "/Linux/" + Target.Architecture;
-                ApexLibraries.Add("APEX_Destructible{0}");
-                LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
-            }
+				string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX3/Linux/" + Target.Architecture;
+				string LibraryPath = PhysXBinariesDir + String.Format("/libAPEX_Destructible{0}.so", LibrarySuffix);
+				PublicAdditionalLibraries.Add(LibraryPath);
+				RuntimeDependencies.Add(LibraryPath);
+			}
         }
         else if (Target.Platform == UnrealTargetPlatform.PS4)
         {
