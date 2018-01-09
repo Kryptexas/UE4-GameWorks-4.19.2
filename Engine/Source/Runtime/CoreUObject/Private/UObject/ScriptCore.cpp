@@ -2651,6 +2651,13 @@ DEFINE_FUNCTION(UObject::execStructConst)
 		}
 	}
 
+	if (ScriptStruct->StructFlags & STRUCT_PostScriptConstruct)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = ScriptStruct->GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_PostScriptConstruct
+		TheCppStructOps->PostScriptConstruct(RESULT_PARAM);
+	}
+
 	P_FINISH;	// EX_EndStructConst
 }
 IMPLEMENT_VM_FUNCTION( EX_StructConst, execStructConst );

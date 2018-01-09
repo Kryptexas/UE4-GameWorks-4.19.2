@@ -925,6 +925,11 @@ bool FGameplayTagContainer::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags
 	return true;
 }
 
+void FGameplayTagContainer::PostScriptConstruct()
+{
+	FillParentTags();
+}
+
 FString FGameplayTagContainer::ToStringSimple(bool bQuoted) const
 {
 	FString RetString;

@@ -557,6 +557,9 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Handles fixup after importing from text */
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
+	/** Fill in the ParentTags array and any other transient parameters */
+	void PostScriptConstruct();
+
 	/** Returns string version of container in ImportText format */
 	FString ToString() const;
 
@@ -859,7 +862,8 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 		WithIdenticalViaEquality = true,
 		WithNetSerializer = true,
 		WithImportTextItem = true,
-		WithCopy = true
+		WithCopy = true,
+		WithPostScriptConstruct = true,
 	};
 };
 

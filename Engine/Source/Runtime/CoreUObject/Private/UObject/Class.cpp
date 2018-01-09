@@ -1908,6 +1908,11 @@ void UScriptStruct::PrepareCppStructOps()
 		UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post serialize."),*GetName());
 		StructFlags = EStructFlags(StructFlags | STRUCT_PostSerializeNative );
 	}
+	if (CppStructOps->HasPostScriptConstruct())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post script construct."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_PostScriptConstruct);
+	}
 	if (CppStructOps->HasNetSerializer())
 	{
 		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net serializer."),*GetName());

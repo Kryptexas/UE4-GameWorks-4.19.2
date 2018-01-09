@@ -496,11 +496,14 @@ enum EStructFlags
 	/** If set, this struct will be serialized using the CPP net delta serializer */
 	STRUCT_NetDeltaSerializeNative = 0x00100000,
 
+	/** If set, this struct will be have PostScriptConstruct called on it after a temporary object is constructed in a running blueprint */
+	STRUCT_PostScriptConstruct     = 0x00200000,
+
 	/** Struct flags that are automatically inherited */
 	STRUCT_Inherit				= STRUCT_HasInstancedReference|STRUCT_Atomic,
 
 	/** Flags that are always computed, never loaded or done with code generation */
-	STRUCT_ComputedFlags		= STRUCT_NetDeltaSerializeNative | STRUCT_NetSerializeNative | STRUCT_SerializeNative | STRUCT_PostSerializeNative | STRUCT_CopyNative | STRUCT_IsPlainOldData | STRUCT_NoDestructor | STRUCT_ZeroConstructor | STRUCT_IdenticalNative | STRUCT_AddStructReferencedObjects | STRUCT_ExportTextItemNative | STRUCT_ImportTextItemNative | STRUCT_SerializeFromMismatchedTag
+	STRUCT_ComputedFlags		= STRUCT_NetDeltaSerializeNative | STRUCT_NetSerializeNative | STRUCT_SerializeNative | STRUCT_PostSerializeNative | STRUCT_CopyNative | STRUCT_IsPlainOldData | STRUCT_NoDestructor | STRUCT_ZeroConstructor | STRUCT_IdenticalNative | STRUCT_AddStructReferencedObjects | STRUCT_ExportTextItemNative | STRUCT_ImportTextItemNative | STRUCT_SerializeFromMismatchedTag | STRUCT_PostScriptConstruct
 };
 
 
@@ -524,6 +527,7 @@ struct TStructOpsTypeTraitsBase2
 		WithNetSerializer              = false,                         // struct has a NetSerialize function for serializing its state to an FArchive used for network replication.
 		WithNetDeltaSerializer         = false,                         // struct has a NetDeltaSerialize function for serializing differences in state from a previous NetSerialize operation.
 		WithSerializeFromMismatchedTag = false,                         // struct has a SerializeFromMismatchedTag function for converting from other property tags.
+		WithPostScriptConstruct        = false,							// struct has a PostScriptConstruct function which is called after it is constructed in blueprints
 	};
 };
 
@@ -631,6 +635,21 @@ template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithNetDeltaSerializer, bool>::Type NetDeltaSerializeOrNot(FNetDeltaSerializeInfo & DeltaParms, CPPSTRUCT *Data)
 {
 	return Data->NetDeltaSerialize(DeltaParms);
+}
+
+
+/**
+ * Selection of PostScriptConstruct call.
+ */
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<!TStructOpsTypeTraits<CPPSTRUCT>::WithPostScriptConstruct>::Type PostScriptConstructOrNot(CPPSTRUCT *Data)
+{
+}
+
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithPostScriptConstruct>::Type PostScriptConstructOrNot(CPPSTRUCT *Data)
+{
+	Data->PostScriptConstruct();
 }
 
 
@@ -815,7 +834,7 @@ public:
 
 		/** return true if this class implements a post serialize call **/
 		virtual bool HasPostSerialize() = 0;
-		/** Call PostLoad on this structure */
+		/** Call PostSerialize on this structure */
 		virtual void PostSerialize(const FArchive& Ar, void *Data) = 0;
 
 		/** return true if this struct can net serialize **/
@@ -833,6 +852,11 @@ public:
 		 * @return true if the struct was serialized, otherwise it will fall back to ordinary script struct net delta serialization
 		 */
 		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) = 0;
+
+		/** return true if this class implements a post script construct call **/
+		virtual bool HasPostScriptConstruct() = 0;
+		/** Call PostScriptConstruct on this structure */
+		virtual void PostScriptConstruct(void *Data) = 0;
 
 		/** return true if this struct should be memcopied **/
 		virtual bool IsPlainOldData() = 0;
@@ -973,6 +997,15 @@ public:
 		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) override
 		{
 			return NetDeltaSerializeOrNot(DeltaParms, (CPPSTRUCT*)Data);
+		}
+		virtual bool HasPostScriptConstruct() override
+		{
+			return TTraits::WithPostScriptConstruct;
+		}
+		virtual void PostScriptConstruct(void *Data) override
+		{
+			check(TTraits::WithPostScriptConstruct); // don't call this if we have indicated it is not necessary
+			PostScriptConstructOrNot((CPPSTRUCT*)Data);
 		}
 		virtual bool IsPlainOldData() override
 		{
