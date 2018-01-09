@@ -2300,7 +2300,7 @@ void AInstancedFoliageActor::PreEditUndo()
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-		if (MeshPair.Key->GetStaticMesh() != nullptr)
+		if (MeshPair.Key != nullptr && MeshPair.Key->GetStaticMesh() != nullptr)
 		{
 			MeshPair.Key->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(&MeshInfo);
 		}
@@ -2652,6 +2652,9 @@ void AInstancedFoliageActor::PostLoad()
 				}
 			}
 		}
+
+		TArray<UFoliageType*> FoliageTypeToRemove;
+
 		for (auto& MeshPair : FoliageMeshes)
 		{
 			// Find the per-mesh info matching the mesh.
@@ -2711,8 +2714,9 @@ void AInstancedFoliageActor::PostLoad()
 			// Clean up case where embeded instances had their static mesh deleted
 			if (FoliageType->IsNotAssetOrBlueprint() && StaticMesh == nullptr)
 			{
-				OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
-				RemoveFoliageType(&FoliageType, 1);
+				// We can't remove them here as we are within the loop itself so clean up after
+				FoliageTypeToRemove.Add(FoliageType);
+				
 				continue;
 			}
 
@@ -2736,7 +2740,15 @@ void AInstancedFoliageActor::PostLoad()
 
 		// Clean up dead cross-level references
 		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
+
+		// Clean up invalid foliage type
+		for (UFoliageType* FoliageType : FoliageTypeToRemove)
+		{
+			OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
+			RemoveFoliageType(&FoliageType, 1);
+		}
 	}
+
 #endif// WITH_EDITOR
 
 	if (!GIsEditor && CVarFoliageDiscardDataOnLoad.GetValueOnGameThread())
