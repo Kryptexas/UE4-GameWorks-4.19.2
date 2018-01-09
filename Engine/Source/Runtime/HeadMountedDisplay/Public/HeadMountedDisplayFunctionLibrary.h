@@ -159,6 +159,17 @@ class HEADMOUNTEDDISPLAY_API UHeadMountedDisplayFunctionLibrary : public UBluepr
 	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
 	static float GetScreenPercentage();
 
+	/** 
+	 * Returns the current VR pixel density. Pixel density sets the VR render 
+	 * target texture size as a factor of recommended texture size. The recommended 
+	 * texture size is the size that will result in no under sampling in most 
+	 * distorted area of the view when computing the final image to be displayed 
+	 * on the device by the runtime compositor.
+	 *
+	 * @return (float)	The pixel density to be used in VR mode.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
+	static float GetPixelDensity();
 
 	/**
 	* Sets the World to Meters scale, which changes the scale of the world as perceived by the player

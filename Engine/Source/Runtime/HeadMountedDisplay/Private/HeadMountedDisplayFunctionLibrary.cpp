@@ -216,6 +216,12 @@ float UHeadMountedDisplayFunctionLibrary::GetScreenPercentage()
 	return ScreenPercentageTCVar->GetValueOnGameThread();
 }
 
+float UHeadMountedDisplayFunctionLibrary::GetPixelDensity()
+{
+	static const auto PixelDensityTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("vr.pixeldensity"));
+	return PixelDensityTCVar->GetValueOnGameThread();
+}
+
 void UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(UObject* WorldContext, float NewScale)
 {
 	if (WorldContext)
