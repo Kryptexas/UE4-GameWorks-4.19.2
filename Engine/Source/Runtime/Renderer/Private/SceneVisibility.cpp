@@ -942,18 +942,15 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 
 			if (bSubQueries)
 			{
-				if (!View.bIgnoreExistingQueries)
+				SubIsOccluded.Add(bIsOccluded);
+				if (!bIsOccluded)
 				{
-					SubIsOccluded.Add(bIsOccluded);
-					if (!bIsOccluded)
+					bAllSubOccluded = false;
+					if (bOcclusionStateIsDefinite)
 					{
-						bAllSubOccluded = false;
-						if (bOcclusionStateIsDefinite)
+						if (PrimitiveOcclusionHistory)
 						{
-							if (PrimitiveOcclusionHistory)
-							{
-								PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
-							}
+							PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
 						}
 					}
 				}
