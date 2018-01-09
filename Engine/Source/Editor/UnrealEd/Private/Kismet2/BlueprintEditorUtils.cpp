@@ -2650,14 +2650,14 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 		const FName OldGraphName = Graph->GetFName();
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
 
-		auto RenameGraphLambda = [](UEdGraph* Graph, const FName OldGraphName, const FName NewGraphName, ERenameFlags RenameFlags)
+		auto RenameGraphLambda = [](UEdGraph* GraphToRename, const FName OldGraphName, const FName NewGraphName, ERenameFlags RenameFlags)
 		{
 			// Ensure we have undo records
-			Graph->Modify();
-			Graph->Rename(*NewGraphName.ToString(), Graph->GetOuter(), RenameFlags);
+			GraphToRename->Modify();
+			GraphToRename->Rename(*NewGraphName.ToString(), GraphToRename->GetOuter(), RenameFlags);
 
 			// Clean function entry & result nodes if they exist
-			for (UEdGraphNode* Node : Graph->Nodes)
+			for (UEdGraphNode* Node : GraphToRename->Nodes)
 			{
 				if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 				{
