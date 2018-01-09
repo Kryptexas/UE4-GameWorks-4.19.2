@@ -8,6 +8,7 @@
 //#include "ScenePrivate.h"
 //#include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/SceneRenderTargets.h"
+#include "HeadMountedDisplayTypes.h" // for LogHMD
 
 
 namespace OculusHMD
@@ -262,11 +263,21 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 				// Left
 				{
 					ColorTextures.SetNum(TextureCount);
-					DepthTextures.SetNum(TextureCount);
+					if (bHasDepth)
+					{
+						DepthTextures.SetNum(TextureCount);
+					}
+					
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Left, &ColorTextures[TextureIndex], &DepthTextures[TextureIndex]);
+						ovrpTextureHandle* DepthTexHdlPtr = bHasDepth ? &DepthTextures[TextureIndex] : nullptr;
+						if (!OVRP_SUCCESS(ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Left, &ColorTextures[TextureIndex], DepthTexHdlPtr)))
+						{
+							UE_LOG(LogHMD, Error, TEXT("Failed to create Oculus layer texture. NOTE: This causes a leak of %d other texture(s), which will go unused."), TextureIndex);
+							// skip setting bLayerCreated and allocating any other textures
+							return;
+						}
 					}
 				}
 
@@ -274,11 +285,20 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 				if(OvrpLayerDesc.Layout == ovrpLayout_Stereo)
 				{
 					RightColorTextures.SetNum(TextureCount);
-					RightDepthTextures.SetNum(TextureCount);
+					if (bHasDepth)
+					{
+						RightDepthTextures.SetNum(TextureCount);
+					}
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightColorTextures[TextureIndex], &RightDepthTextures[TextureIndex]);
+						ovrpTextureHandle* DepthTexHdlPtr = bHasDepth ? &RightDepthTextures[TextureIndex] : nullptr;
+						if (!OVRP_SUCCESS(ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightColorTextures[TextureIndex], DepthTexHdlPtr)))
+						{
+							UE_LOG(LogHMD, Error, TEXT("Failed to create Oculus layer texture. NOTE: This causes a leak of %d other texture(s), which will go unused."), TextureCount + TextureIndex);
+							// skip setting bLayerCreated and allocating any other textures
+							return;
+						}
 					}
 				}
 
