@@ -313,8 +313,8 @@ UEdGraphNode* UBlueprintNodeSpawner::SpawnEdGraphNode(TSubclassOf<UEdGraphNode> 
 		if (!bIsTemplateNode)
 		{
 			NewNode->SetFlags(RF_Transactional);
-			NewNode->PostPlacedNewNode();
 			NewNode->AllocateDefaultPins();
+			NewNode->PostPlacedNewNode();
 
 			ParentGraph->Modify();
 			// the FBlueprintMenuActionItem should do the selecting

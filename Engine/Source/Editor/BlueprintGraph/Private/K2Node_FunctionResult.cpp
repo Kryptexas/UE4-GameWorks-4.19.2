@@ -120,7 +120,6 @@ public:
 UK2Node_FunctionResult::UK2Node_FunctionResult(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bShouldSyncOnAllocate = false;
 }
 
 FText UK2Node_FunctionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -144,15 +143,6 @@ void UK2Node_FunctionResult::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 
 	FFillDefaultPinValueHelper::FillAll(this);
-
-	if (bShouldSyncOnAllocate)
-	{
-		bShouldSyncOnAllocate = false;
-		// adhere to the function's inherited signature (if there is one)
-		SyncWithEntryNode();
-		// reflect any user added outputs (tracked by pre-existing result nodes)
-		SyncWithPrimaryResultNode();
-	}
 }
 
 bool UK2Node_FunctionResult::CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage)
@@ -228,7 +218,10 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 {
 	Super::PostPlacedNewNode();
 
-	bShouldSyncOnAllocate = true;
+	// adhere to the function's inherited signature (if there is one)
+	SyncWithEntryNode();
+	// reflect any user added outputs (tracked by pre-existing result nodes)
+	SyncWithPrimaryResultNode();
 }
 
 void UK2Node_FunctionResult::PostPasteNode()

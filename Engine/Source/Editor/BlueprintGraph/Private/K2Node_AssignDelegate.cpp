@@ -15,7 +15,6 @@
 UK2Node_AssignDelegate::UK2Node_AssignDelegate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bShouldSpawnCustomEvent = false;
 }
 
 //------------------------------------------------------------------------------
@@ -74,18 +73,9 @@ bool UK2Node_AssignDelegate::IsCompatibleWithGraph(const UEdGraph* TargetGraph) 
 //------------------------------------------------------------------------------
 void UK2Node_AssignDelegate::PostPlacedNewNode()
 {
-	Super::PostPlacedNewNode();
-	bShouldSpawnCustomEvent = true;
-}
-
-void UK2Node_AssignDelegate::AllocateDefaultPins()
-{
-	Super::AllocateDefaultPins();
-
 	UEdGraphPin* InDelegatePin = GetDelegatePin();
-	if (InDelegatePin->LinkedTo.Num() == 0 && bShouldSpawnCustomEvent)
+	if (InDelegatePin->LinkedTo.Num() == 0)
 	{
-		bShouldSpawnCustomEvent = false;
 		if (UMulticastDelegateProperty* DelegateProp = Cast<UMulticastDelegateProperty>(GetProperty()))
 		{
 			FVector2D const LocationOffset(-150.f, +150.f);
