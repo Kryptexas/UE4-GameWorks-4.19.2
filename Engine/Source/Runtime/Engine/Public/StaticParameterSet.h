@@ -259,7 +259,7 @@ struct FStaticParameterSet
 	void Serialize(FArchive& Ar)
 	{
 		Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
-
+		Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 		// Note: FStaticParameterSet is saved both in packages (UMaterialInstance) and the DDC (FMaterialShaderMap)
 		// Backwards compatibility only works with FStaticParameterSet's stored in packages.  
 		// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FStaticParameterSet.
