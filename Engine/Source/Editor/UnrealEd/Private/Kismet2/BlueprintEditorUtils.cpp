@@ -2650,34 +2650,34 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 		const FName OldGraphName = Graph->GetFName();
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
 
-		auto RenameGraphLambda = [](UEdGraph* GraphToRename, const FName OldGraphName, const FName NewGraphName, ERenameFlags RenameFlags)
+		auto RenameGraphLambda = [](UEdGraph* GraphToRename, const FName LocalOldGraphName, const FName LocalNewGraphName, ERenameFlags RenameFlags)
 		{
 			// Ensure we have undo records
 			GraphToRename->Modify();
-			GraphToRename->Rename(*NewGraphName.ToString(), GraphToRename->GetOuter(), RenameFlags);
+			GraphToRename->Rename(*LocalNewGraphName.ToString(), GraphToRename->GetOuter(), RenameFlags);
 
 			// Clean function entry & result nodes if they exist
 			for (UEdGraphNode* Node : GraphToRename->Nodes)
 			{
 				if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 				{
-					if (EntryNode->FunctionReference.GetMemberName() == OldGraphName)
+					if (EntryNode->FunctionReference.GetMemberName() == LocalOldGraphName)
 					{
 						EntryNode->Modify();
-						EntryNode->FunctionReference.SetMemberName(NewGraphName);
+						EntryNode->FunctionReference.SetMemberName(LocalNewGraphName);
 					}
-					else if (EntryNode->CustomGeneratedFunctionName == OldGraphName)
+					else if (EntryNode->CustomGeneratedFunctionName == LocalOldGraphName)
 					{
 						EntryNode->Modify();
-						EntryNode->CustomGeneratedFunctionName = NewGraphName;
+						EntryNode->CustomGeneratedFunctionName = LocalNewGraphName;
 					}
 				}
 				else if (UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(Node))
 				{
-					if (ResultNode->FunctionReference.GetMemberName() == OldGraphName)
+					if (ResultNode->FunctionReference.GetMemberName() == LocalOldGraphName)
 					{
 						ResultNode->Modify();
-						ResultNode->FunctionReference.SetMemberName(NewGraphName);
+						ResultNode->FunctionReference.SetMemberName(LocalNewGraphName);
 					}
 				}
 			}
