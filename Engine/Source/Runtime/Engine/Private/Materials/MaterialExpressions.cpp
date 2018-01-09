@@ -8,6 +8,7 @@
 #include "Misc/MessageDialog.h"
 #include "Misc/Guid.h"
 #include "UObject/RenderingObjectVersion.h"
+#include "UObject/EditorObjectVersion.h"
 #include "Misc/App.h"
 #include "UObject/Object.h"
 #include "UObject/Class.h"
@@ -211,6 +212,7 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #endif //WITH_EDITOR
 #include "Materials/MaterialInstanceConstant.h"
+#include "Archive.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -10513,18 +10515,17 @@ bool UMaterialFunctionInstance::OverrideNamedStaticComponentMaskParameter(const 
 
 FString FMaterialLayersFunctions::GetStaticPermutationString() const
 {
-	FString KeyString;
-
+	FString StaticKeyString;
 	for (UMaterialFunctionInterface* Layer : Layers)
 	{
 		UMaterialFunctionInterface* Parent = Layer ? Layer->GetBaseFunction() : nullptr;
 		if (Parent)
 		{
-			KeyString += TEXT("_") + Parent->GetOutermost()->GetFullName();
+			StaticKeyString += TEXT("_") + Parent->GetOutermost()->GetFullName();
 		}
 		else
 		{
-			KeyString += TEXT("_NullLayer");
+			StaticKeyString += TEXT("_NullLayer");
 		}
 	}
 
@@ -10533,24 +10534,30 @@ FString FMaterialLayersFunctions::GetStaticPermutationString() const
 		UMaterialFunctionInterface* Parent = Blend ? Blend->GetBaseFunction() : nullptr;
 		if (Parent)
 		{
-			KeyString += TEXT("_") + Parent->GetOutermost()->GetFullName();
+			StaticKeyString += TEXT("_") + Parent->GetOutermost()->GetFullName();
 		}
 		else
 		{
-			KeyString += TEXT("_NullBlend");
+			StaticKeyString += TEXT("_NullBlend");
 		}
 	}
 
 	// @TODO: This will generate unique permutations for disabled layers but
 	// should append layers/blends in reverse order, stopping at opaque and
 	// skipping inactive to allow maximum DDC re-use where possible
-	KeyString += TEXT("_");
+	StaticKeyString += TEXT("_");
 	for (const bool State : LayerStates)
 	{
-		KeyString += State ? TEXT("1") : TEXT("0");
+		StaticKeyString += State ? TEXT("1") : TEXT("0");
 	}
 
-	return KeyString;
+	return StaticKeyString;
+}
+
+void FMaterialLayersFunctions::SerializeForDDC(FArchive& Ar)
+{
+	KeyString = GetStaticPermutationString();
+	Ar << KeyString;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -135,6 +135,7 @@ void FMaterialPropertyHelpers::OnMaterialLayerAssetChanged(const struct FAssetDa
 		break;
 		}
 	}
+	InMaterialFunction->UpdateStaticPermutationString();
 	InHandle->NotifyPostChange();
 }
 
@@ -668,6 +669,7 @@ void FMaterialPropertyHelpers::ResetLayerFilterAssetToDefault(TSharedPtr<IProper
 				}
 			}
 			LayersParam->ParameterValue = StoredValue;
+			LayersParam->ParameterValue.UpdateStaticPermutationString();
 		}
 	}
 
@@ -742,7 +744,7 @@ void FMaterialPropertyHelpers::ResetLayerInstanceAssetToDefault(TSharedPtr<IProp
 				}
 			}
 			LayersParam->ParameterValue = StoredValue;
-			
+			LayersParam->ParameterValue.UpdateStaticPermutationString();
 		}
 	}
 

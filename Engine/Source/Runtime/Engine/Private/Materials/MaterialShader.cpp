@@ -13,6 +13,7 @@
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderDerivedDataVersion.h"
 #include "ProfilingDebugging/CookStats.h"
+#include "UObject/ReleaseObjectVersion.h"
 #include "UObject/EditorObjectVersion.h"
 
 #if ENABLE_COOK_STATS
@@ -384,7 +385,7 @@ void FStaticParameterSet::AppendKeyString(FString& KeyString) const
 	for (int32 ParamIndex = 0;ParamIndex < MaterialLayersParameters.Num();ParamIndex++)
 	{
 		const FStaticMaterialLayersParameter& LayersParameter = MaterialLayersParameters[ParamIndex];
-		KeyString += LayersParameter.ParameterInfo.ToString() + LayersParameter.ExpressionGUID.ToString() + LayersParameter.Value.GetStaticPermutationString();
+		LayersParameter.AppendKeyString(KeyString);
 	}
 }
 
@@ -438,7 +439,7 @@ bool FStaticParameterSet::operator==(const FStaticParameterSet& ReferenceSet) co
 		{
 			if (MaterialLayersParameters[LayersIndex].ParameterInfo != ReferenceSet.MaterialLayersParameters[LayersIndex].ParameterInfo
 				|| MaterialLayersParameters[LayersIndex].ExpressionGUID != ReferenceSet.MaterialLayersParameters[LayersIndex].ExpressionGUID
-				|| MaterialLayersParameters[LayersIndex].Value != ReferenceSet.MaterialLayersParameters[LayersIndex].Value)
+				|| MaterialLayersParameters[LayersIndex].Value.KeyString != ReferenceSet.MaterialLayersParameters[LayersIndex].Value.KeyString)
 			{
 				return false;
 			}
@@ -476,13 +477,12 @@ bool FStaticParameterSet::Equivalent(const FStaticParameterSet& ReferenceSet) co
 	return false;
 }
 
-
 void FMaterialShaderMapId::Serialize(FArchive& Ar)
 {
 	// Note: FMaterialShaderMapId is saved both in packages (legacy UMaterialInstance) and the DDC (FMaterialShaderMap)
 	// Backwards compatibility only works with FMaterialShaderMapId's stored in packages.  
 	// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FMaterialShaderMapId.
-	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	uint32 UsageInt = Usage;
 	Ar << UsageInt;
@@ -554,6 +554,7 @@ void FMaterialShaderMapId::GetMaterialHash(FSHAHash& OutHash) const
 	HashState.Update((const uint8*)&FeatureLevel, sizeof(FeatureLevel));
 
 	ParameterSet.UpdateHash(HashState);
+	HashState.UpdateWithString(*ParameterSetLayerParametersKey, ParameterSetLayerParametersKey.Len());
 
 	for (int32 FunctionIndex = 0; FunctionIndex < ReferencedFunctions.Num(); FunctionIndex++)
 	{
@@ -685,6 +686,18 @@ bool FMaterialShaderMapId::operator==(const FMaterialShaderMapId& ReferenceSet) 
 	return true;
 }
 
+void FMaterialShaderMapId::UpdateParameterSet(FStaticParameterSet& StaticParameters)
+{
+	ParameterSet = StaticParameters;
+
+	// We can't store the objects referenced by layers so we re-use the DDC key as an identifier
+	ParameterSetLayerParametersKey.Empty();
+	for (const FStaticMaterialLayersParameter& LayersParam : ParameterSet.MaterialLayersParameters)
+	{
+		LayersParam.AppendKeyString(ParameterSetLayerParametersKey);
+	}
+}	
+
 void FMaterialShaderMapId::AppendKeyString(FString& KeyString) const
 {
 	KeyString += BaseMaterialId.ToString();
@@ -699,6 +712,7 @@ void FMaterialShaderMapId::AppendKeyString(FString& KeyString) const
 	KeyString += FeatureLevelString + TEXT("_");
 
 	ParameterSet.AppendKeyString(KeyString);
+	KeyString.Append(ParameterSetLayerParametersKey);
 
 	KeyString += TEXT("_");
 	KeyString += FString::FromInt(Usage);
@@ -1040,6 +1054,7 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 				InOutShaderMap->Serialize(Ar);
 				InOutShaderMap->RegisterSerializedShaders();
 
+				const FString InDataKey = GetMaterialShaderMapKeyString(InOutShaderMap->GetShaderMapId(), InPlatform);
 				checkSlow(InOutShaderMap->GetShaderMapId() == ShaderMapId);
 
 				// Register in the global map
@@ -1379,18 +1394,19 @@ void FMaterialShaderMap::Compile(
 				*LegacyShaderPlatformToShaderFormat(InPlatform).ToString(),
 				*MaterialUsage
 				);
-			for(int32 StaticSwitchIndex = 0;StaticSwitchIndex < InShaderMapId.ParameterSet.StaticSwitchParameters.Num();++StaticSwitchIndex)
+			const FStaticParameterSet& IdParameterSet = ShaderMapId.GetParameterSet();
+			for(int32 StaticSwitchIndex = 0;StaticSwitchIndex < IdParameterSet.StaticSwitchParameters.Num();++StaticSwitchIndex)
 			{
-				const FStaticSwitchParameter& StaticSwitchParameter = InShaderMapId.ParameterSet.StaticSwitchParameters[StaticSwitchIndex];
+				const FStaticSwitchParameter& StaticSwitchParameter = IdParameterSet.StaticSwitchParameters[StaticSwitchIndex];
 				DebugDescription += FString::Printf(
 					TEXT(", StaticSwitch'%s'=%s"),
 					*StaticSwitchParameter.ParameterInfo.ToString(),
 					StaticSwitchParameter.Value ? TEXT("True") : TEXT("False")
 					);
 			}
-			for(int32 StaticMaskIndex = 0;StaticMaskIndex < InShaderMapId.ParameterSet.StaticComponentMaskParameters.Num();++StaticMaskIndex)
+			for(int32 StaticMaskIndex = 0;StaticMaskIndex < IdParameterSet.StaticComponentMaskParameters.Num();++StaticMaskIndex)
 			{
-				const FStaticComponentMaskParameter& StaticComponentMaskParameter = InShaderMapId.ParameterSet.StaticComponentMaskParameters[StaticMaskIndex];
+				const FStaticComponentMaskParameter& StaticComponentMaskParameter = IdParameterSet.StaticComponentMaskParameters[StaticMaskIndex];
 				DebugDescription += FString::Printf(
 					TEXT(", StaticMask'%s'=%s%s%s%s"),
 					*StaticComponentMaskParameter.ParameterInfo.ToString(),
@@ -1400,24 +1416,19 @@ void FMaterialShaderMap::Compile(
 					StaticComponentMaskParameter.A ? TEXT("A") : TEXT("")
 					);
 			}
-			for(int32 StaticLayerIndex = 0;StaticLayerIndex < InShaderMapId.ParameterSet.TerrainLayerWeightParameters.Num();++StaticLayerIndex)
+			for(int32 StaticLayerIndex = 0;StaticLayerIndex < IdParameterSet.TerrainLayerWeightParameters.Num();++StaticLayerIndex)
 			{
-				const FStaticTerrainLayerWeightParameter& StaticTerrainLayerWeightParameter = InShaderMapId.ParameterSet.TerrainLayerWeightParameters[StaticLayerIndex];
+				const FStaticTerrainLayerWeightParameter& StaticTerrainLayerWeightParameter = IdParameterSet.TerrainLayerWeightParameters[StaticLayerIndex];
 				DebugDescription += FString::Printf(
 					TEXT(", StaticTerrainLayer'%s'=%s"),
 					*StaticTerrainLayerWeightParameter.ParameterInfo.ToString(),
 					*FString::Printf(TEXT("Weightmap%u"),StaticTerrainLayerWeightParameter.WeightmapIndex)
 					);
 			}
-			for(int32 LayersIndex = 0;LayersIndex < InShaderMapId.ParameterSet.MaterialLayersParameters.Num();++LayersIndex)
-			{
-				const FStaticMaterialLayersParameter& LayersParameter = InShaderMapId.ParameterSet.MaterialLayersParameters[LayersIndex];
-				DebugDescription += FString::Printf(
-					TEXT(", StaticMaterialLayers'%s'=%s"),
-					*LayersParameter.ParameterInfo.ToString(),
-					*LayersParameter.Value.GetStaticPermutationString()
-				);
-			}
+			DebugDescription += FString::Printf(
+				TEXT(", StaticMaterialLayers=%s"),
+				*ShaderMapId.GetParameterSetLayerParametersKey()
+			);
   
 			UE_LOG(LogShaders, Warning, TEXT("	%s"), *DebugDescription);
   

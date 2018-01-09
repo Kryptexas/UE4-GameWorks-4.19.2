@@ -499,9 +499,12 @@ public:
 	 */
 	EMaterialShaderMapUsage::Type Usage;
 
+private:
 	/** Static parameters and base Id. */
 	FStaticParameterSet ParameterSet;
+	FString ParameterSetLayerParametersKey;
 
+public:
 	/** Guids of any functions the material was dependent on. */
 	TArray<FGuid> ReferencedFunctions;
 
@@ -575,6 +578,19 @@ public:
 	bool operator!=(const FMaterialShaderMapId& ReferenceSet) const
 	{
 		return !(*this == ReferenceSet);
+	}
+
+	/** Updates the Id's static parameter set */	
+	void UpdateParameterSet(FStaticParameterSet& StaticParameters);
+	
+	const FStaticParameterSet& GetParameterSet() const
+	{
+		return ParameterSet;
+	}
+
+	const FString& GetParameterSetLayerParametersKey() const
+	{
+		return ParameterSetLayerParametersKey;
 	}
 
 	/** Appends string representations of this Id to a key string. */

@@ -1822,7 +1822,7 @@ bool FMaterial::BeginCompileShaderMap(
 
 	// Generate the material shader code.
 	FMaterialCompilationOutput NewCompilationOutput;
-	FHLSLMaterialTranslator MaterialTranslator(this,NewCompilationOutput,ShaderMapId.ParameterSet,Platform,GetQualityLevel(),ShaderMapId.FeatureLevel);
+	FHLSLMaterialTranslator MaterialTranslator(this,NewCompilationOutput,ShaderMapId.GetParameterSet(),Platform,GetQualityLevel(),ShaderMapId.FeatureLevel);
 	bSuccess = MaterialTranslator.Translate();
 
 	if(bSuccess)
@@ -2813,7 +2813,7 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 	FMaterialResource* MaterialResource = GetMaterialResource(GMaxRHIFeatureLevel);
 	FMaterialShaderMapId ShaderMapID;
 	MaterialResource->GetShaderMapId(GMaxRHIShaderPlatform, ShaderMapID);
-	FMaterialAnalyzer MaterialTranslator(MaterialResource, TempOutput, ShaderMapID.ParameterSet, GMaxRHIShaderPlatform, MaterialResource->GetQualityLevel(), GMaxRHIFeatureLevel);	
+	FMaterialAnalyzer MaterialTranslator(MaterialResource, TempOutput, ShaderMapID.GetParameterSet(), GMaxRHIShaderPlatform, MaterialResource->GetQualityLevel(), GMaxRHIFeatureLevel);	
 	
 	static_cast<FMaterialCompiler*>(&MaterialTranslator)->SetMaterialProperty(InProperty); // FHLSLMaterialTranslator hides this interface, so cast to parent
 	CompileProperty(&MaterialTranslator, InProperty);

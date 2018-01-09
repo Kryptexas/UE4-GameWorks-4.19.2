@@ -233,7 +233,7 @@ void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShader
 
 		FStaticParameterSet CompositedStaticParameters;
 		MaterialInstance->GetStaticParameterValues(CompositedStaticParameters);
-		OutId.ParameterSet = CompositedStaticParameters;
+		OutId.UpdateParameterSet(CompositedStaticParameters);
 	}
 }
 

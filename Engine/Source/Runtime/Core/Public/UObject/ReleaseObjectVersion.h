@@ -43,6 +43,8 @@ struct CORE_API FReleaseObjectVersion
 		// rename bNoTwist to bAllowTwist
 		RenameNoTwistToAllowTwistInTwoBoneIK,
 
+		// Material layers serialization refactor
+		MaterialLayersParameterSerializationRefactor,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

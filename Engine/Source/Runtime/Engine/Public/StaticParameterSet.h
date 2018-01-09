@@ -6,6 +6,7 @@
 #include "NameTypes.h"
 #include "Misc/Guid.h"
 #include "UObject/RenderingObjectVersion.h"
+#include "UObject/ReleaseObjectVersion.h"
 #include "Materials/MaterialLayersFunctions.h"
 #include "StaticParameterSet.generated.h"
 
@@ -204,10 +205,21 @@ struct FStaticMaterialLayersParameter
 	
 	UMaterialFunctionInterface* GetParameterAssociatedFunction(const FMaterialParameterInfo& InParameterInfo) const;
 	void GetParameterAssociatedFunctions(const FMaterialParameterInfo& InParameterInfo, TArray<UMaterialFunctionInterface*>& AssociatedFunctions) const;
+	
+	void AppendKeyString(FString& InKeyString) const
+	{
+		InKeyString += ParameterInfo.ToString() + ExpressionGUID.ToString() + Value.GetStaticPermutationString();
+	}
 
 	friend FArchive& operator<<(FArchive& Ar, FStaticMaterialLayersParameter& P)
 	{
 		Ar << P.ParameterInfo << P.bOverride << P.ExpressionGUID;
+		
+		Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+		if (Ar.CustomVer(FReleaseObjectVersion::GUID) >= FReleaseObjectVersion::MaterialLayersParameterSerializationRefactor)
+		{
+			P.Value.SerializeForDDC(Ar);
+		}
 		return Ar;
 	}
 };
@@ -251,10 +263,10 @@ struct FStaticParameterSet
 		// Note: FStaticParameterSet is saved both in packages (UMaterialInstance) and the DDC (FMaterialShaderMap)
 		// Backwards compatibility only works with FStaticParameterSet's stored in packages.  
 		// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FStaticParameterSet.
-		Ar << StaticSwitchParameters << StaticComponentMaskParameters;
+		Ar << StaticSwitchParameters;
+		Ar << StaticComponentMaskParameters;
 		Ar << TerrainLayerWeightParameters;
-
-		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::MaterialAttributeLayerParameters)
+		if (Ar.CustomVer(FReleaseObjectVersion::GUID) >= FReleaseObjectVersion::MaterialLayersParameterSerializationRefactor)
 		{
 			Ar << MaterialLayersParameters;
 		}

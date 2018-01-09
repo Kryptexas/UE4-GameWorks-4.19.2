@@ -8,6 +8,9 @@
 
 #define LOCTEXT_NAMESPACE "MaterialLayersFunctions"
 
+class FArchive;
+
+
 UENUM()
 enum EMaterialParameterAssociation
 {
@@ -112,6 +115,9 @@ struct ENGINE_API FMaterialLayersFunctions
 	UPROPERTY()
 	TArray<bool> LayerStates;
 
+	UPROPERTY()
+	FString KeyString;
+
 	void AppendBlendedLayer()
 	{
 		Layers.AddDefaulted();
@@ -125,6 +131,7 @@ struct ENGINE_API FMaterialLayersFunctions
 		LayerNames.Add(LayerName);
 #endif
 		LayerStates.Push(true);
+		KeyString = GetStaticPermutationString();
 	}
 
 	void RemoveBlendedLayerAt(int32 Index)
@@ -139,6 +146,7 @@ struct ENGINE_API FMaterialLayersFunctions
 		InstanceLayers.RemoveAt(Index);
 		InstanceBlends.RemoveAt(Index - 1);
 		LayerNames.RemoveAt(Index);
+		KeyString = GetStaticPermutationString();
 #endif
 	}
 
@@ -146,6 +154,7 @@ struct ENGINE_API FMaterialLayersFunctions
 	{
 		check(LayerStates.IsValidIndex(Index));
 		LayerStates[Index] = !LayerStates[Index];
+		KeyString = GetStaticPermutationString();
 	}
 
 	bool GetLayerVisibility(int32 Index)
@@ -170,6 +179,8 @@ struct ENGINE_API FMaterialLayersFunctions
 	/** Lists referenced function packages in a string, intended for use as a static permutation identifier. */
 	FString GetStaticPermutationString() const;
 
+	void SerializeForDDC(FArchive& Ar);
+
 	FORCEINLINE bool operator==(const FMaterialLayersFunctions& Other) const
 	{
 		return Layers == Other.Layers && Blends == Other.Blends && LayerStates == Other.LayerStates;
@@ -178,6 +189,11 @@ struct ENGINE_API FMaterialLayersFunctions
 	FORCEINLINE bool operator!=(const FMaterialLayersFunctions& Other) const
 	{
 		return Layers != Other.Layers || Blends != Other.Blends || LayerStates != Other.LayerStates;
+	}
+
+	FORCEINLINE void UpdateStaticPermutationString()
+	{
+		KeyString = GetStaticPermutationString();
 	}
 };
 

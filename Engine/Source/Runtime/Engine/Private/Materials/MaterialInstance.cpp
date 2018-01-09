@@ -1612,7 +1612,6 @@ void UMaterialInstance::GetStaticParameterValues(FStaticParameterSet& OutStaticP
 
 			Parent->GetMaterialLayersParameterValue(ParameterInfo, ParentParameter.Value, ExpressionId);
 			ParentParameter.ExpressionGUID = ExpressionId;
-
 			// If the SourceInstance is overriding this parameter, use its settings
 			for (const FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 			{
@@ -2687,6 +2686,7 @@ bool UMaterialInstance::UpdateMaterialLayersParameterValue(const FMaterialParame
 				// @TODO: This should properly respect the override state
 				Param.Value = LayersValue;
 				Param.bOverride = true;//bOverridden;
+				Param.Value.UpdateStaticPermutationString();
 				return true;
 			}
 			
@@ -2836,9 +2836,10 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 			FMaterialShaderMapId LegacyId;
 			LegacyId.Serialize(Ar);
 
-			StaticParameters.StaticSwitchParameters = LegacyId.ParameterSet.StaticSwitchParameters;
-			StaticParameters.StaticComponentMaskParameters = LegacyId.ParameterSet.StaticComponentMaskParameters;
-			StaticParameters.TerrainLayerWeightParameters = LegacyId.ParameterSet.TerrainLayerWeightParameters;
+			const FStaticParameterSet& IdParameterSet = LegacyId.GetParameterSet();
+			StaticParameters.StaticSwitchParameters = IdParameterSet.StaticSwitchParameters;
+			StaticParameters.StaticComponentMaskParameters = IdParameterSet.StaticComponentMaskParameters;
+			StaticParameters.TerrainLayerWeightParameters = IdParameterSet.TerrainLayerWeightParameters;
 
 			TrimToOverriddenOnly(StaticParameters.StaticSwitchParameters);
 			TrimToOverriddenOnly(StaticParameters.StaticComponentMaskParameters);
@@ -2953,19 +2954,21 @@ void UMaterialInstance::PostLoad()
 	// And any material layers parameter's functions
 	for (FStaticMaterialLayersParameter& LayersParam : StaticParameters.MaterialLayersParameters)
 	{
-		for (UMaterialFunctionInterface* Layer : LayersParam.Value.Layers)
-		{
-			if (Layer)
-			{
-				Layer->ConditionalPostLoad();
-			}
-		}
+		TArray<UMaterialFunctionInterface*> Dependencies;
+		Dependencies.Append(LayersParam.Value.Layers);
+		Dependencies.Append(LayersParam.Value.Blends);
+#if WITH_EDITORONLY_DATA
+		Dependencies.Append(LayersParam.Value.FilterLayers);
+		Dependencies.Append(LayersParam.Value.FilterBlends);
+		Dependencies.Append(LayersParam.Value.InstanceLayers);
+		Dependencies.Append(LayersParam.Value.InstanceBlends);
+#endif
 
-		for (UMaterialFunctionInterface* Blend : LayersParam.Value.Blends)
+		for (UMaterialFunctionInterface* Dependency : Dependencies)
 		{
-			if (Blend)
+			if (Dependency)
 			{
-				Blend->ConditionalPostLoad();
+				Dependency->ConditionalPostLoad();
 			}
 		}
 	}
