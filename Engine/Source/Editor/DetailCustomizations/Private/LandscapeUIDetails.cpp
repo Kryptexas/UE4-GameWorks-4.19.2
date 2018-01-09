@@ -26,13 +26,15 @@ void FLandscapeUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 {
 	TArray<TWeakObjectPtr<UObject>> EditingObjects;
 	DetailBuilder.GetObjectsBeingCustomized(EditingObjects);
-	check(EditingObjects.Num() == 1);
 
-	ALandscape* Landscape = Cast<ALandscape>(EditingObjects[0].Get());
-
-	if (Landscape != nullptr && Landscape->NumSubsections == 1)
+	if (EditingObjects.Num() == 1)
 	{
-		TSharedRef<IPropertyHandle> ComponentScreenSizeToUseSubSectionsProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ALandscapeProxy, ComponentScreenSizeToUseSubSections));
-		DetailBuilder.HideProperty(ComponentScreenSizeToUseSubSectionsProp);
+		ALandscape* Landscape = Cast<ALandscape>(EditingObjects[0].Get());
+
+		if (Landscape != nullptr && Landscape->NumSubsections == 1)
+		{
+			TSharedRef<IPropertyHandle> ComponentScreenSizeToUseSubSectionsProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ALandscapeProxy, ComponentScreenSizeToUseSubSections));
+			DetailBuilder.HideProperty(ComponentScreenSizeToUseSubSectionsProp);
+		}
 	}
 }
