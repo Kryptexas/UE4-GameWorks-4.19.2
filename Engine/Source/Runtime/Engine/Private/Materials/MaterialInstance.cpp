@@ -1607,7 +1607,7 @@ void UMaterialInstance::GetStaticParameterValues(FStaticParameterSet& OutStaticP
 			FMaterialParameterInfo& ParameterInfo = OutParameterInfo[ParameterIdx];
 			FGuid ExpressionId = Guids[ParameterIdx];
 
-			ParentParameter.bOverride = false;
+			ParentParameter.bOverride = true;
 			ParentParameter.ParameterInfo = ParameterInfo;
 
 			Parent->GetMaterialLayersParameterValue(ParameterInfo, ParentParameter.Value, ExpressionId);

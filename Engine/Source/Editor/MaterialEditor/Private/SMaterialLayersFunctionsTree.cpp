@@ -983,14 +983,6 @@ void SMaterialLayersFunctionsInstanceWrapper::Refresh()
 					[
 						SAssignNew(HeaderBox, SHorizontalBox)
 						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(SCheckBox)
-							.OnCheckStateChanged(FOnCheckStateChanged::CreateStatic(&FMaterialPropertyHelpers::OnOverrideParameterCheckbox, NestedTree->FunctionParameter, MaterialEditorInstance))
-							.IsChecked(IsParamChecked)
-						]
-						+ SHorizontalBox::Slot()
 						.Padding(FMargin(3.0f, 1.0f))
 						.HAlign(HAlign_Left)
 						.AutoWidth()
