@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetworkDriver.cpp: Unreal network driver base class.
@@ -3301,12 +3301,6 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 			// If the actor wasn't recently relevant, or if it was torn off, close the actor channel if it exists for this connection
 			if ( ( !bIsRecentlyRelevant || Actor->bTearOff ) && Channel != NULL )
 			{
-				// Tell the player controller about the actor which will no longer be network relevant to it.
-				if( Connection->PlayerController != nullptr )
-				{
-					Connection->PlayerController->OnActorNoLongerRelevant( Actor );
-				}
-
 				// Non startup (map) actors have their channels closed immediately, which destroys them.
 				// Startup actors get to keep their channels open.
 

@@ -1402,18 +1402,6 @@ public:
 	/** Returns the ULocalPlayer for this controller if it exists, or null otherwise */
 	class ULocalPlayer* GetLocalPlayer() const;
 
-	/** 
-	 *	Called on the server by the networking system when an actor that was network-relevant
-	 *	to this player controller is no longer relevant.  The actor's counterpart on the
-	 *	client may be deleted.
-	 *
-	 *	@param	Actor	The actor which is no longer network relevant to this player
-	 */
-	virtual void OnActorNoLongerRelevant( AActor* Actor )
-	{
-		// Override this in a derived class
-	}
-
 	/**
 	 * Called client-side to smoothly interpolate received TargetViewRotation (result is in BlendedTargetViewRotation)
 	 * @param TargetPawn   is the pawn which is the current ViewTarget
