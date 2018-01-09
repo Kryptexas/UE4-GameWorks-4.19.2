@@ -63,7 +63,12 @@ UFoliageType* FFoliageEditUtility::SaveFoliageTypeObject(UFoliageType* InFoliage
 		PackagesToSave.Add(TypeToSave->GetOutermost());
 		const bool bCheckDirty = false;
 		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+		FEditorFileUtils::EPromptReturnCode ReturnValue = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+
+		if (ReturnValue != FEditorFileUtils::PR_Success)
+		{
+			TypeToSave = nullptr;
+		}
 	}
 
 	return TypeToSave;
