@@ -293,8 +293,6 @@ namespace Audio
 					{
 						const int32 Index = OutputChannel * 6 + SourceChannel;
 						VorbisChannelMap.Add(VorbisMatrix[Index]);
-
-						UE_LOG(LogTemp, Log, TEXT("foo"));
 					}
 				}
 			}
