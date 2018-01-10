@@ -28,6 +28,5 @@ protected:
 	EVisibility IsVoxelSizeVisible() const;
 
 	EVisibility IsThirdPartySpecificVisible() const;
-
-	bool bUseNativeTool = false;
+	bool UseNativeProxyLODTool() const;
 };

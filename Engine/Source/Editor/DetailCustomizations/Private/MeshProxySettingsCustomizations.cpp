@@ -22,6 +22,13 @@ TSharedRef<IPropertyTypeCustomization> FMeshProxySettingsCustomizations::MakeIns
 	return MakeShareable(new FMeshProxySettingsCustomizations);
 }
 
+
+bool FMeshProxySettingsCustomizations::UseNativeProxyLODTool() const
+{
+	IMeshMerging* MergeModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface").GetMeshMergingInterface();
+	return MergeModule && MergeModule->GetName().Equals("ProxyLODMeshMerging");
+}
+
 void FMeshProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	// Retrieve structure's child properties
@@ -40,16 +47,6 @@ void FMeshProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropertyHan
 
 	IMeshReductionManagerModule& ModuleManager = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
 	IMeshMerging* MergeModule = ModuleManager.GetMeshMergingInterface();
-
-	if (MergeModule && MergeModule->GetName().Equals("ProxyLODMeshMerging"))
-	{
-		bUseNativeTool = true;
-	}
-	else
-	{
-		bUseNativeTool = false;
-	}
-
 
 	IDetailGroup& MaterialSettingsGroup = ChildBuilder.AddGroup(NAME_None, FText::FromString("Material Settings"));
 
@@ -106,6 +103,8 @@ void FMeshProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropertyHan
 
 EVisibility FMeshProxySettingsCustomizations::IsThirdPartySpecificVisible() const
 {
+	// Static assignment.  The tool can only change during editor restart.
+	static bool bUseNativeTool = UseNativeProxyLODTool();
 
 	if (bUseNativeTool)
 	{

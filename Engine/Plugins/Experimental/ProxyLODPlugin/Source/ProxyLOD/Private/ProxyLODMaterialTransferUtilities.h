@@ -138,6 +138,7 @@ namespace ProxyLOD
 
 			Forward = other.Forward;
 			CoAligned = other.CoAligned;
+			Handedness = other.Handedness;
 		}
 
 		void operator=(const FSrcMeshData& other)
@@ -150,13 +151,14 @@ namespace ProxyLOD
 
 			Forward = other.Forward;
 			CoAligned = other.CoAligned;
+			Handedness = other.Handedness;
 		}
 
 		// @todo - why not int16?
 		int32          TriangleId = -1;
 		int32          MaterialId = -1;
 		FVector2D      UV;
-		DArray3d   BarycentricCoords = { 0., 0., 0. };
+		DArray3d       BarycentricCoords = { 0., 0., 0. };
 
 		// ray direction
 		int32           Forward;
@@ -167,5 +169,9 @@ namespace ProxyLOD
 		// double-sided material.
 
 		int16           CoAligned = 1;
+
+		// Record the UVs on the source poly have inverted handedness
+
+		int16           Handedness = 1;  // either 1 or -1
 	};
 }

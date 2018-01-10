@@ -10,6 +10,11 @@
 #include "Math/Matrix.h" // used in chirality..
 
 
+namespace ProxyLOD
+{
+	typedef TGrid<FLinearColor>  FLinearColorGrid;
+}
+
 namespace
 {
 	// returns the HitUV
@@ -64,6 +69,23 @@ namespace
 		// Record the UV coordinates of the hit point.
 		HitPayload.UV = ProxyLOD::InterpolateVertexData(HitPayload.BarycentricCoords, UVs);
 
+		// Is the orientation of the tangent space reversed?
+		{
+			float Chirality[3];
+			for (int32 i = 0; i < 3; ++i)
+			{
+				// StaticMeshVertexBuffer.h computes it this way...(see SetTangents)
+				FMatrix Basis(
+					FPlane(SrcPoly.WedgeTangentX[i], 0),
+					FPlane(SrcPoly.WedgeTangentY[i], 0),
+					FPlane(SrcPoly.WedgeTangentZ[i], 0),
+					FPlane(0, 0, 0, 1)
+				);
+				Chirality[i] = (Basis.Determinant() < 0) ? -1.f : 1.f;
+			}
+			float Handedness = FMath::Clamp(ProxyLOD::InterpolateVertexData(HitPayload.BarycentricCoords, Chirality), -1.f, 1.f);
+			HitPayload.Handedness = (Handedness > 0) ? 1 : -1;
+		}
 
 		// Is the SrcNormal roughly in the same direction as the ray
 		// the face normal of this poly
@@ -574,6 +596,7 @@ ProxyLOD::FSrcDataGrid::Ptr ProxyLOD::CreateCorrespondence( const openvdb::Int32
 
 namespace
 {
+
 	template <EFlattenMaterialProperties PropertyType>
 	void TransferMaterial(const ProxyLOD::FSrcDataGrid& CorrespondenceGrid, const ProxyLOD::FRasterGrid& UVGrid, const TArray<FFlattenMaterial>& InputMaterials, TArray<FLinearColor>& SamplesBuffer)
 	{
@@ -702,17 +725,135 @@ namespace
 		});
 	}
 
-	// Specialized color down-sample that also preserves average luma (computed with with Rec 709 standard)
-	void DownSampleColor(const TArray<FLinearColor>& SuperSampleBuffer, const FIntPoint SuperSampleSize, TArray<FLinearColor>& ResultBuffer, const FIntPoint ResultSize)
+
+	/**
+	*  Down sample a grid by area-weighted averaging: Each data point ( i.e. Value = Grid(i,j) ) is assumed to represent
+	*  a uniform value within the enclosing grid cell [i, j] x [i+1, j+1].
+	*
+	*  NB: The size (in each direction) of the OutGrid must be smaller than the InSrcGrid
+	*
+	* @param InSrcGrid  The original grid to be down sampled.
+	* @param OutGrid    The result grid.  Any data already in this grid is lost.
+	*
+	*/
+	void DownSample2dGrid(const ProxyLOD::FLinearColorGrid& InSrcGrid, ProxyLOD::TGrid<FLinearColor>& OutGrid)
 	{
-		const uint32 NumXSuperSamples = SuperSampleSize.X / ResultSize.X;
-		const uint32 NumYSuperSamples = SuperSampleSize.Y / ResultSize.Y;
+		typedef FLinearColor   ValueType;
+
+		const FIntPoint SrcSize = InSrcGrid.Size();
+		const FIntPoint DstSize = OutGrid.Size();
+
+		checkSlow(SrcSize.X >= DstSize.X);
+		checkSlow(SrcSize.Y >= DstSize.Y);
+
+		// assign each scanline to a different parallel task
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, DstSize.Y), [&InSrcGrid, &OutGrid](const ProxyLOD::FIntRange& Range)
+		{
+			const int32 I = OutGrid.Size().X;
+
+			const int32 SrcI = InSrcGrid.Size().X;
+			const int32 SrcJ = InSrcGrid.Size().Y;
+
+			double Dx = 1. / double(I);
+			double Dy = 1. / double(OutGrid.Size().Y);
+
+			double SrcDx = 1. / double(SrcI);
+			double SrcDy = 1. / double(SrcJ);
+
+
+
+			for (int32 j = Range.begin(), J = Range.end(); j < J; ++j)
+			{
+
+				// loop over the 'fast' grid direction, gathering from the src grid.
+				for (int32 i = 0; i < I; ++i)
+				{
+					// Destination for our data is a 
+					// small square centered on i+1/2, j+1/2
+					// in unit space (US) 
+
+					double DstUSMin[2] = { Dx * i,       Dy * j };
+					double DstUSMax[2] = { Dx * (i + 1), Dy * (j + 1) };
+
+					// Where are these corners in the SrcGrid 
+					// in the grid index space (IS) ?
+					int32 SrcISMin[2] = { FMath::FloorToInt(DstUSMin[0] * SrcI), FMath::FloorToInt(DstUSMin[1] * SrcJ) };
+					int32 SrcISMax[2] = { FMath::CeilToInt(DstUSMax[0] * SrcI), FMath::CeilToInt(DstUSMax[1] * SrcJ) };
+
+					// clip against boundary
+					SrcISMin[0] = FMath::Max(SrcISMin[0], 0);
+					SrcISMin[1] = FMath::Max(SrcISMin[1], 0);
+
+					SrcISMax[0] = FMath::Min(SrcISMax[0], SrcI);
+					SrcISMax[1] = FMath::Min(SrcISMax[1], SrcJ);
+
+					// access to the value we are going to update
+					ValueType&  DstValue = OutGrid(i, j);
+
+					DstValue = ValueType(EForceInit::ForceInitToZero);
+
+					double TotalIntersectArea = 0.;
+					// loop over the src region that contributes to the dst region
+					for (int32 jsrc = SrcISMin[1]; jsrc < SrcISMax[1]; ++jsrc)
+					{
+						for (int32 isrc = SrcISMin[0]; isrc < SrcISMax[0]; ++isrc)
+						{
+							const ValueType SrcValue = InSrcGrid(isrc, jsrc);
+
+							// the bounding box in unit space for this src grid cell
+							double SrcUSMin[2] = { SrcDx * isrc,       SrcDy * jsrc };
+							double SrcUSMax[2] = { SrcDx * (isrc + 1), SrcDy * (jsrc + 1) };
+
+							// compute the intersection of the Src grid cell with the Dst grid cell.
+							double IntersectMin[2] = { FMath::Max(SrcUSMin[0], DstUSMin[0]), FMath::Max(SrcUSMin[1], DstUSMin[1]) };
+							double IntersectMax[2] = { FMath::Min(SrcUSMax[0], DstUSMax[0]), FMath::Min(SrcUSMax[1], DstUSMax[1]) };
+
+							// area of intersection
+							double IntersectArea = (IntersectMax[0] - IntersectMin[0]) * (IntersectMax[1] - IntersectMin[1]);
+
+							TotalIntersectArea += IntersectArea;
+							DstValue += IntersectArea * SrcValue;
+						}
+
+					}
+
+					if (TotalIntersectArea > .1 * Dx * Dy) // less that 1/10 of the target texel
+					{
+						DstValue = DstValue / TotalIntersectArea;
+					}
+					else
+					{
+						DstValue = ValueType(EForceInit::ForceInitToZero);
+					}
+
+				}
+
+			}
+		});
+	}
+
+	/**
+	*	Sparse Down Sample of Color (FLinearColor) Grid. 
+	*   Specialized color down-sample that also preserves average luma (computed with with Rec 709 standard)
+	*
+	*  @param SuperSampleGrid        Array of FLinearColor data in a high resolution grid.
+	*                                The sparsity corresponds to Charts in a UV atlas and regions outside of
+	*                                the charts hold non-physical colors (std::numeric_limits<float>::lowest())
+	*
+	*  @param OutGrid                Resulting grid holding the normal map texture data as FLinearColor
+	*
+	*  NB: It is assumed that the SuperSample Grid is a multiple of the OutBuffer Grid.  I.e. an integer number of super sample
+	*      texels correspond to each result texel
+	*/
+	void SparseDownSampleColor(const ProxyLOD::TGridWrapper<FLinearColor>& SuperSampleGrid, ProxyLOD::FLinearColorGrid& OutGrid)
+	{
+		FIntPoint SuperSampleSize = SuperSampleGrid.Size();
+		FIntPoint ResultSize      = OutGrid.Size();
+		const int32 NumXSuperSamples = SuperSampleSize.X / ResultSize.X;
+		const int32 NumYSuperSamples = SuperSampleSize.Y / ResultSize.Y;
 
 		checkSlow(SuperSampleSize.X == ResultSize.X * NumXSuperSamples);
 		checkSlow(SuperSampleSize.Y == ResultSize.Y * NumYSuperSamples);
-
-		const int32 BufferSize = ResultSize.X * ResultSize.Y;
-		ResizeArray(ResultBuffer, BufferSize);
 
 		// Note FLinearColor has a different way to define Luma.
 		// the Rec 709 standard is dot(Color, float3(0.2126, 0.7152, 0.0722));
@@ -734,26 +875,28 @@ namespace
 		};
 
 		// Gather
-
-		ProxyLOD::Parallel_For(ProxyLOD::FUIntRange(0, ResultSize.Y),
-			[&](const ProxyLOD::FUIntRange& Range)
+		
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, ResultSize.Y),
+			[&](const ProxyLOD::FIntRange& Range)
 		{
-			for (uint32 j = Range.begin(), J = Range.end(); j < J; ++j)
+			const FLinearColor* SuperSampleBuffer = SuperSampleGrid.GetData();
+			FLinearColor* ResultBuffer = OutGrid.GetData();
+			for (int32 j = Range.begin(), J = Range.end(); j < J; ++j)
 			{
-				uint32 joffset = j * NumYSuperSamples;
-				for (uint32 i = 0; i < (uint32)ResultSize.X; ++i)
+				int32 joffset = j * NumYSuperSamples;
+				for (int32 i = 0; i < ResultSize.X; ++i)
 				{
 
 					FLinearColor ResultColor(0, 0, 0, 0);
 					float        Luma = 0;
 					uint32       ResultCount = 0;
 
-					uint32 ioffset = i * NumXSuperSamples;
+					int32 ioffset = i * NumXSuperSamples;
 
 					// loop over the super samples
-					for (uint32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
+					for (int32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
 					{
-						for (uint32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
+						for (int32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
 						{
 							const FLinearColor& SuperSampleColor = SuperSampleBuffer[ii + jj * SuperSampleSize.X];
 							if (SuperSampleColor.R != std::numeric_limits<float>::lowest())
@@ -788,37 +931,51 @@ namespace
 		});
 	}
 
-	void DownSampleMaterial(const TArray<FLinearColor>& SuperSampleBuffer, const FIntPoint SuperSampleSize, TArray<FLinearColor>& ResultBuffer, const FIntPoint ResultSize)
+	/**
+	*	Sparse Down Sample of FLinearColor Grid.
+	*
+	*
+	*  @param SuperSampledBuffer     Array of FLinearColor data in a high resolution grid.
+	*                                The sparsity corresponds to Charts in a UV atlas and regions outside of
+	*                                the charts hold non-physical colors (std::numeric_limits<float>::lowest())
+	*
+	*  @param OutGrid                Resulting grid holding the normal map texture data as FLinearColor
+	*
+	*  NB: It is assumed that the SuperSample Grid is a multiple of the OutBuffer Grid.  I.e. an interger number of super sample
+	*      texels correspond to each result texel
+	*/
+	void SparseDownSampleMaterial(const ProxyLOD::TGridWrapper<FLinearColor>& SuperSampleGrid, ProxyLOD::FLinearColorGrid& OutGrid)
 	{
-		const uint32 NumXSuperSamples = SuperSampleSize.X / ResultSize.X;
-		const uint32 NumYSuperSamples = SuperSampleSize.Y / ResultSize.Y;
+		const FIntPoint  SuperSampleSize = SuperSampleGrid.Size();
+		const FIntPoint  ResultSize      = OutGrid.Size();
+		const int32 NumXSuperSamples = SuperSampleSize.X / ResultSize.X;
+		const int32 NumYSuperSamples = SuperSampleSize.Y / ResultSize.Y;
 
 		checkSlow(SuperSampleSize.X == ResultSize.X * NumXSuperSamples);
 		checkSlow(SuperSampleSize.Y == ResultSize.Y * NumYSuperSamples);
 
-		const int32 BufferSize = ResultSize.X * ResultSize.Y;
-		ResizeArray(ResultBuffer, BufferSize);
-
 		// Gather
 
-		ProxyLOD::Parallel_For(ProxyLOD::FUIntRange(0, ResultSize.Y),
-			[&](const ProxyLOD::FUIntRange& Range)
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, ResultSize.Y),
+			[&](const ProxyLOD::FIntRange& Range)
 		{
-			for (uint32 j = Range.begin(), J = Range.end(); j < J; ++j)
+			const FLinearColor* SuperSampleBuffer = SuperSampleGrid.GetData();
+			FLinearColor* ResultBuffer = OutGrid.GetData();
+			for (int32 j = Range.begin(), J = Range.end(); j < J; ++j)
 			{
-				uint32 joffset = j * NumYSuperSamples;
-				for (uint32 i = 0; i < (uint32)ResultSize.X; ++i)
+				int32 joffset = j * NumYSuperSamples;
+				for (int32 i = 0; i < ResultSize.X; ++i)
 				{
 
 					FLinearColor ResultColor(0, 0, 0, 0);
 					uint32       ResultCount = 0;
 
-					uint32 ioffset = i * NumXSuperSamples;
+					int32 ioffset = i * NumXSuperSamples;
 
 					// loop over the super samples
-					for (uint32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
+					for (int32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
 					{
-						for (uint32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
+						for (int32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
 						{
 							const FLinearColor& SuperSampleColor = SuperSampleBuffer[ii + jj * SuperSampleSize.X];
 							if (SuperSampleColor.R != std::numeric_limits<float>::lowest())
@@ -898,7 +1055,7 @@ namespace
 			[&](const ProxyLOD::FIntRange& Range)
 		{
 
-			auto ComputeSrcTangentSpace = [&SrcMeshAdapter](const int32 TriangleId, const ProxyLOD::DArray3d& BarycentericCoords, FTangentSpace& TangentSpace)
+			auto ComputeSrcTangentSpace = [&SrcMeshAdapter](const int32 TriangleId, const ProxyLOD::DArray3d& BarycentricCoords, FTangentSpace& TangentSpace)
 			{
 
 				int32 MeshId; int32 LocalFaceNumber;
@@ -906,9 +1063,9 @@ namespace
 
 				// Get the tangent space:  We try to compute this in a way that is consistent with LocalVertexFactory.usf (CalcTangentToLocal).
 
-				TangentSpace[0] = ProxyLOD::InterpolateVertexData(BarycentericCoords, SrcPoly.WedgeTangentX);
-				//TangentSpace[1] = ProxyLOD::InterpolateVertexData(BarycentericCoords, SrcPoly.WedgeTangentY);
-				TangentSpace[2] = ProxyLOD::InterpolateVertexData(BarycentericCoords, SrcPoly.WedgeTangentZ);
+				TangentSpace[0] = ProxyLOD::InterpolateVertexData(BarycentricCoords, SrcPoly.WedgeTangentX);
+				//TangentSpace[1] = ProxyLOD::InterpolateVertexData(BarycentricCoords, SrcPoly.WedgeTangentY);
+				TangentSpace[2] = ProxyLOD::InterpolateVertexData(BarycentricCoords, SrcPoly.WedgeTangentZ);
 
 				TangentSpace[2].Normalize();
 				TangentSpace[0].Normalize();
@@ -918,6 +1075,7 @@ namespace
 
 				// tangent
 				TangentSpace[0] = FVector::CrossProduct(TangentSpace[1], TangentSpace[2]);
+
 			};
 
 
@@ -977,6 +1135,10 @@ namespace
 						const auto& SrcBarycentricCoords = CorrespondenceData.BarycentricCoords;
 						FTangentSpace SrcTangentSpace;
 						ComputeSrcTangentSpace(SrcTriangleId, SrcBarycentricCoords, SrcTangentSpace);
+						
+						// Correct for triangles with inverted chirality (inverted UV handedness )
+						SrcTangentSpace[1] *= CorrespondenceData.Handedness;
+
 
 						// Why is this happening?
 						if (SrcUV.X > 1 || SrcUV.X < 0 || SrcUV.Y > 1 || SrcUV.Y < 0)
@@ -1053,62 +1215,88 @@ namespace
 		});
 	}
 
-	void DownSampleNormal(const TArray<FVector>& SuperSampledNormals, const FIntPoint SuperSampleSize,
-		const ProxyLOD::FRasterGrid& DstUVGrid, const FRawMesh& DstRawMesh,
-		TArray<FLinearColor>& DstBuffer, const FIntPoint DstBufferSize)
+	/**
+	*	Sparse Down Sample of Normal Vector. 
+	*
+	*   NB: Converts a world space normal vector to the tangent space of the Destination Mesh.
+	*       Also the resulting tangent vector is encoded with a shift and scale 1/2( tangent + {1,1,1})
+	*       So it make be stored as an FLinearColor
+	*
+	*  @param SuperSampledNormals    Array of Normals stored sparsely in World Space in a high resolution grid.
+	*                                The sparsity corresponds to Charts in a UV atlas and regions outside of
+	*                                the charts hold non-physical normals (std::numeric_limits<float>::lowest())
+	*
+	*  @param DstUVGrid              Grid of the same size as the output that maps texel in the UV Atlas 
+	*                                to points on corresponding DstRawMesh.
+	*                            
+	*  @param DstRawMesh             Mesh (with tangent space and UVs) for which we are encoding normals
+	*
+	*  @param OutDstBufferGrid       Resulting grid holding the normal map texture data as FLinearColor
+	*
+	*
+	*  NB: It is assumed that the SuperSample Grid is a multiple of the OutBuffer Grid.  I.e. an integer number of super sample
+	*      texels correspond to each result texel
+	*  
+	*/
+	void SparseDownSampleNormal(const ProxyLOD::TGridWrapper<FVector>& SuperSampledNormalGrid, 
+		                        const ProxyLOD::FRasterGrid& DstUVGrid, const FRawMesh& DstRawMesh,
+		                        ProxyLOD::FLinearColorGrid& OutDstBufferGrid)
 	{
 
-		const uint32 NumXSuperSamples = SuperSampleSize.X / DstBufferSize.X;
-		const uint32 NumYSuperSamples = SuperSampleSize.Y / DstBufferSize.Y;
+		const FIntPoint SuperSampleSize = SuperSampledNormalGrid.Size();
+		const FIntPoint DstBufferSize = OutDstBufferGrid.Size();
+		const FIntPoint UVSize = DstUVGrid.Size();
 
-		checkSlow(SuperSampleSize.X == DstBufferSize.X * NumXSuperSamples);
-		checkSlow(SuperSampleSize.Y == DstBufferSize.Y * NumYSuperSamples);
+		const int32 NumXSuperSamples = SuperSampleSize.X / UVSize.X;
+		const int32 NumYSuperSamples = SuperSampleSize.Y / UVSize.Y;
+		
 
-		const int32 BufferSize = DstBufferSize.X * DstBufferSize.Y;
-		ResizeArray(DstBuffer, BufferSize);
+		checkSlow(SuperSampleSize.X == UVSize.X * NumXSuperSamples);
+		checkSlow(SuperSampleSize.Y == UVSize.Y * NumYSuperSamples);
+
 
 		// Gather
 
-		ProxyLOD::Parallel_For(ProxyLOD::FUIntRange(0, DstBufferSize.Y),
-			[&](const ProxyLOD::FUIntRange& Range)
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, DstBufferSize.Y),
+			[&](const ProxyLOD::FIntRange& Range)
 		{
 			// Store the tangent space in a 3x3 matrix.  
 
 			typedef openvdb::Mat3R  FTangentSpace;
 
 
-			auto ComputeDstTangentSpace = [&DstRawMesh](const int32 TriangleId, const ProxyLOD::DArray3d& BarycentericCoords, FTangentSpace& TangentSpace)
+			auto ComputeDstTangentSpace = [&DstRawMesh](const int32 TriangleId, const ProxyLOD::DArray3d& BarycentricCoords, FTangentSpace& TangentSpace)
 			{
 				const int32 Indexes[3] = { TriangleId * 3, TriangleId * 3 + 1, TriangleId * 3 + 2 };
 
 				// Compute the local tangent space
 				FVector InterpolatedTangent;
 				//{
-				FVector TangentSamples[3];
-				TangentSamples[0] = DstRawMesh.WedgeTangentX[Indexes[0]];
-				TangentSamples[1] = DstRawMesh.WedgeTangentX[Indexes[1]];
-				TangentSamples[2] = DstRawMesh.WedgeTangentX[Indexes[2]];
-				InterpolatedTangent = ProxyLOD::InterpolateVertexData(BarycentericCoords, TangentSamples);
+					FVector TangentSamples[3];
+					TangentSamples[0] = DstRawMesh.WedgeTangentX[Indexes[0]];
+					TangentSamples[1] = DstRawMesh.WedgeTangentX[Indexes[1]];
+					TangentSamples[2] = DstRawMesh.WedgeTangentX[Indexes[2]];
+					InterpolatedTangent = ProxyLOD::InterpolateVertexData(BarycentricCoords, TangentSamples);
 				//}
 
 				FVector InterpolatedBiTangent;
 
 				// The bi-tangent is reconstructed from the tangent and normal
 				//{
-				FVector BiTangentSamples[3];
-				BiTangentSamples[0] = DstRawMesh.WedgeTangentY[Indexes[0]];
-				BiTangentSamples[1] = DstRawMesh.WedgeTangentY[Indexes[1]];
-				BiTangentSamples[2] = DstRawMesh.WedgeTangentY[Indexes[2]];
-				InterpolatedBiTangent = ProxyLOD::InterpolateVertexData(BarycentericCoords, BiTangentSamples);
+					FVector BiTangentSamples[3];
+					BiTangentSamples[0] = DstRawMesh.WedgeTangentY[Indexes[0]];
+					BiTangentSamples[1] = DstRawMesh.WedgeTangentY[Indexes[1]];
+					BiTangentSamples[2] = DstRawMesh.WedgeTangentY[Indexes[2]];
+					InterpolatedBiTangent = ProxyLOD::InterpolateVertexData(BarycentricCoords, BiTangentSamples);
 				//}
 
 				FVector InterpolatedNormal;
 				//{
-				FVector NormalSamples[3];
-				NormalSamples[0] = DstRawMesh.WedgeTangentZ[Indexes[0]];
-				NormalSamples[1] = DstRawMesh.WedgeTangentZ[Indexes[1]];
-				NormalSamples[2] = DstRawMesh.WedgeTangentZ[Indexes[2]];
-				InterpolatedNormal = ProxyLOD::InterpolateVertexData(BarycentericCoords, NormalSamples);
+					FVector NormalSamples[3];
+					NormalSamples[0] = DstRawMesh.WedgeTangentZ[Indexes[0]];
+					NormalSamples[1] = DstRawMesh.WedgeTangentZ[Indexes[1]];
+					NormalSamples[2] = DstRawMesh.WedgeTangentZ[Indexes[2]];
+					InterpolatedNormal = ProxyLOD::InterpolateVertexData(BarycentricCoords, NormalSamples);
 				//}
 
 				// Testing handedness. Is the tangent x bitangent pointing (roughly) in the direction of the normal?
@@ -1125,9 +1313,9 @@ namespace
 					Chirality[i] = (Basis.Determinant() < 0) ? -1.f : 1.f;
 				}
 				// NB: I don't know why this minus sign makes things work.. it shouldn't..
-				float Handedness = FMath::Clamp(ProxyLOD::InterpolateVertexData(BarycentericCoords, Chirality), -1.f, 1.f);
+				float Handedness = FMath::Clamp(ProxyLOD::InterpolateVertexData(BarycentricCoords, Chirality), -1.f, 1.f);
 				Handedness = (Handedness > 0) ? 1.f : -1.f;
-
+	
 
 				InterpolatedBiTangent = Handedness * FVector::CrossProduct(InterpolatedNormal, InterpolatedTangent);
 				InterpolatedTangent = Handedness * FVector::CrossProduct(InterpolatedBiTangent, InterpolatedNormal);
@@ -1135,9 +1323,9 @@ namespace
 
 
 				// Put the result in the column of a 3x3 matrix
-				TangentSpace.setColumns(openvdb::Vec3f(InterpolatedTangent.X, InterpolatedTangent.Y, InterpolatedTangent.Z),
-					openvdb::Vec3f(InterpolatedBiTangent.X, InterpolatedBiTangent.Y, InterpolatedBiTangent.Z),
-					openvdb::Vec3f(InterpolatedNormal.X, InterpolatedNormal.Y, InterpolatedNormal.Z));
+				TangentSpace.setColumns(openvdb::Vec3f(InterpolatedTangent.X,   InterpolatedTangent.Y,   InterpolatedTangent.Z),
+										openvdb::Vec3f(InterpolatedBiTangent.X, InterpolatedBiTangent.Y, InterpolatedBiTangent.Z),
+										openvdb::Vec3f(InterpolatedNormal.X,    InterpolatedNormal.Y,    InterpolatedNormal.Z));
 
 			};
 
@@ -1149,17 +1337,24 @@ namespace
 			};
 
 			// Loop over the texels
+			FLinearColor* DstBuffer            = OutDstBufferGrid.GetData();
+			const FVector* SuperSampledNormals = SuperSampledNormalGrid.GetData();
 
-			for (uint32 j = Range.begin(), J = Range.end(); j < J; ++j)
+			for (int32 j = Range.begin(), J = Range.end(); j < J; ++j)
 			{
-				uint32 joffset = j * NumYSuperSamples;
-				for (uint32 i = 0; i < (uint32)DstBufferSize.X; ++i)
+				int32 joffset = j * NumYSuperSamples;
+				for (int32 i = 0; i < DstBufferSize.X; ++i)
 				{
-					// Encode this normal in terms of the local tangent space.
-					const auto& DstTexel = DstUVGrid(i, j);
-
+					
 					FLinearColor& ResultColor = DstBuffer[i + j * DstBufferSize.X];
 					ResultColor = FLinearColor(0, 0, 0, 0);
+
+					// The actual requested texture size might be smaller than the buffer we are filling.
+
+					if (i > UVSize.X - 1 || j > UVSize.Y - 1) continue;
+
+					// Encode this normal in terms of the local tangent space.
+					const auto& DstTexel = DstUVGrid(i, j);
 
 					if (DstTexel.TriangleId < 0) continue;
 
@@ -1169,17 +1364,19 @@ namespace
 					FVector      ResultVector(0, 0, 0);
 					uint32       ResultCount = 0;
 
-					uint32 ioffset = i * NumXSuperSamples;
+					int32 ioffset = i * NumXSuperSamples;
 
+					const openvdb::Vec3f WorldNormal = XForm.col(2);
+					
 					// loop over the super samples
-					for (uint32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
+					for (int32 jj = joffset; jj < joffset + NumYSuperSamples; ++jj)
 					{
-						for (uint32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
+						for (int32 ii = ioffset; ii < ioffset + NumXSuperSamples; ++ii)
 						{
 							const FVector& SuperSampleColor = SuperSampledNormals[ii + jj * SuperSampleSize.X];
 							if (SuperSampleColor.X != std::numeric_limits<float>::lowest())
 							{
-								const float DotWithWorldNormal = LocalDot(XForm.col(2), SuperSampleColor);
+								const float DotWithWorldNormal = LocalDot(WorldNormal, SuperSampleColor);
 								ResultVector += SuperSampleColor / (DotWithWorldNormal * DotWithWorldNormal + 0.1);
 								ResultCount++;
 							}
@@ -1192,8 +1389,9 @@ namespace
 						ResultVector = ResultVector / float(ResultCount);
 					}
 
+					
 					// Invert the tangent space
-					if (XForm.det() > 0.001)
+					if (FMath::Abs(XForm.det()) > 0.001)
 					{
 						XForm = XForm.inverse();
 					}
@@ -1209,27 +1407,102 @@ namespace
 					openvdb::Vec3f Tmp(ResultVector.X, ResultVector.Y, ResultVector.Z);
 
 					Tmp = XForm * Tmp;
-
+					
 					// if outside of the compression range, then normalize
 					if (Tmp[0] < -1.f || Tmp[0] > 1.f || Tmp[1] < -1.f || Tmp[1] > 1.f || Tmp[2] < -1.f || Tmp[2] > 1.f)
 					{
 						Tmp.normalize();
 					}
 
-
-					//if (Tmp.lengthSqr() > 1.f) Tmp.normalize();
+					// shift to the 0, range.
 					Tmp = 0.5f * (Tmp + openvdb::Vec3f(1, 1, 1));
 
-					//Tmp.normalize();
-					// Re-center.
 					// write it into the buffer
 					ResultColor = FLinearColor(Tmp[0], Tmp[1], Tmp[2]);
-
+					
 				}
 			}
 		});
 
 	}
+
+	/**
+	* Specialized function that assumes the FLinearColor data in the Vector grid
+	* represents and scaled and shifted 3-vector.  FLinearColor data = 1/2 (v + {1,1,1})
+	* where 'v' is the vector of interest.
+	*
+	* On return: The grid will hold scaled and shifted normalized vectors.
+	*/
+	void NormalizeLinearColorVectorGrid(ProxyLOD::FLinearColorGrid& VectorGrid)
+	{
+		const FIntPoint GridSize = VectorGrid.Size();
+		FLinearColor* ColorData = VectorGrid.GetData();
+
+		// renormalize the values after the filtering of the down sample
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, GridSize.X * GridSize.Y),
+			[ColorData](const ProxyLOD::FIntRange& Range)
+		{
+
+			for (int32 i = Range.begin(), I = Range.end(); i < I; ++i)
+			{
+				FLinearColor& ColorValue = ColorData[i];
+				// convert back to vector form
+				openvdb::Vec3f NormVec(ColorValue.R, ColorValue.G, ColorValue.B);
+				NormVec = 2.f * NormVec - openvdb::Vec3f(1.f, 1.f, 1.f);
+				// normalize
+				NormVec.normalize();
+				// back to linear color form
+				NormVec = 0.5f * (NormVec + openvdb::Vec3f(1.f, 1.f, 1.f));
+
+				ColorValue.R = NormVec[0];
+				ColorValue.G = NormVec[1];
+				ColorValue.B = NormVec[2];
+			}
+
+		});
+	}
+
+	/**
+	*  Use the information in the super sample grid to identify the texels they contribute to in the regular (not super sampled) grid.
+	*  These are grid cells are marked with the value '1',
+	*  if no super sample cells contribute to a target cell it will be marked with a '0'
+	*/
+	void ConstrucTopologyStencilGrid(const ProxyLOD::FRasterGrid& SuperSampledDstUVGrid, ProxyLOD::TGrid<int32>& TopologyGrid)
+	{
+		const FIntPoint TargetSize = TopologyGrid.Size();
+		const FIntPoint SrcSize    = SuperSampledDstUVGrid.Size();
+
+
+		const int32 SampleCount = SrcSize.X / TargetSize.X;
+
+		checkSlow(SampleCount == SrcSize.Y / TargetSize.Y);
+
+		ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, TargetSize.Y),
+			[TargetSize, &TopologyGrid, &SuperSampledDstUVGrid, SampleCount](const ProxyLOD::FIntRange& Range)
+		{
+
+			for (int32 j = Range.begin(); j < Range.end(); ++j)
+			{
+				for (int32 i = 0; i < TargetSize.X; ++i)
+				{
+					// will a triangle contribute to this super sampled texel?
+					int32 ResultCounter = 0;
+
+					for (int32 ii = i * SampleCount; ii < (i + 1) * SampleCount; ++ii)
+					{
+						for (int32 jj = j * SampleCount; jj < (j + 1) * SampleCount; ++jj)
+						{
+							const auto& TexelData = SuperSampledDstUVGrid(ii, jj);
+
+							if (TexelData.TriangleId > -1) ResultCounter = 1;
+						}
+					}
+					TopologyGrid(i, j) = ResultCounter;
+				}
+			}
+		});
+	}
+
 
 	template <EFlattenMaterialProperties PropertyType>
 	void TMapFlattenMaterial(const FRawMesh& DstRawMesh, const FRawMeshArrayAdapter& SrcMeshAdapter,
@@ -1237,26 +1510,33 @@ namespace
 		const ProxyLOD::FRasterGrid& SuperSampledDstUVGrid, const ProxyLOD::FRasterGrid& DstUVGrid,
 		const TArray<FFlattenMaterial>& InputMaterials, FFlattenMaterial& OutMaterial)
 	{
-		const FIntPoint DstSize = OutMaterial.GetPropertySize(PropertyType);
+		const FIntPoint OutSize = OutMaterial.GetPropertySize(PropertyType);
+
+		// Transfer the material to a buffer that matches the resolution of our UV grid.
+		// Later this is down-sampled for the output material.
+
+		const FIntPoint TransferBufferSize = DstUVGrid.Size();
 
 		// Early out if no dst size has been allocated
 
-		if (DstSize == FIntPoint::ZeroValue) return;
+		if (TransferBufferSize == FIntPoint::ZeroValue || OutSize == FIntPoint::ZeroValue)
+		{
+			return;
+		}
+   
+		const int32 SampleCount = SuperSampledDstUVGrid.Size().X / DstUVGrid.Size().X;
 
-		TArray<FColor>& TargetBuffer = OutMaterial.GetPropertySamples(PropertyType);
-		ResizeArray(TargetBuffer, DstSize.X * DstSize.Y);
-
-		const int32 SampleCount = SuperSampledDstUVGrid.Size().X / DstSize.X;
-
-		checkSlow(SampleCount == SuperSampledDstUVGrid.Size().Y / DstSize.Y);
+		checkSlow(SampleCount == SuperSampledDstUVGrid.Size().Y / DstUVGrid.Size().Y);
 		checkSlow(SuperSampledCorrespondenceGrid.Size() == SuperSampledDstUVGrid.Size());
 
 		{
+
 			// Sample into a linear color buffer.
 			// Note, only the normal sampler uses the HighRes (MeshAdapter) and Simplified (VertexDataMesh) 
 			// geometry. 
 
-			TArray<FLinearColor> LinearColorBuffer;
+			ProxyLOD::FLinearColorGrid::Ptr LinearColorGrid = ProxyLOD::FLinearColorGrid::Create(TransferBufferSize.X, TransferBufferSize.Y);
+
 			if (PropertyType == EFlattenMaterialProperties::Normal)
 			{
 
@@ -1264,93 +1544,112 @@ namespace
 				SuperSampleWSNormal(SrcMeshAdapter, SuperSampledCorrespondenceGrid, SuperSampledDstUVGrid, InputMaterials, SuperSampleBuffer);
 
 				// Respect the local tangent spaces when down sampling the normal.
-				DownSampleNormal(SuperSampleBuffer, SuperSampledDstUVGrid.Size(), DstUVGrid, DstRawMesh, LinearColorBuffer, DstSize);
+				ProxyLOD::TGridWrapper<FVector> SuperSampleGrid(SuperSampleBuffer, SuperSampledDstUVGrid.Size());
+				SparseDownSampleNormal(SuperSampleGrid, DstUVGrid, DstRawMesh, *LinearColorGrid);
 			}
 			else if (PropertyType == EFlattenMaterialProperties::Diffuse)
 			{
-				TArray<FLinearColor> SupperSampledMaterial;
-				TransferMaterial<PropertyType>(SuperSampledCorrespondenceGrid, SuperSampledDstUVGrid, InputMaterials, SupperSampledMaterial);
+				TArray<FLinearColor> SuperSampledMaterial;
+				TransferMaterial<PropertyType>(SuperSampledCorrespondenceGrid, SuperSampledDstUVGrid, InputMaterials, SuperSampledMaterial);
 
 				// Preserve the average luma when down sampling color.
-				DownSampleColor(SupperSampledMaterial, SuperSampledDstUVGrid.Size(), LinearColorBuffer, DstSize);
+				ProxyLOD::TGridWrapper<FLinearColor> SuperSampleGrid(SuperSampledMaterial, SuperSampledDstUVGrid.Size());
+				SparseDownSampleColor(SuperSampleGrid, *LinearColorGrid);
 			}
 			else
 			{
 
-				TArray<FLinearColor> SupperSampledMaterial;
-				TransferMaterial<PropertyType>(SuperSampledCorrespondenceGrid, SuperSampledDstUVGrid, InputMaterials, SupperSampledMaterial);
+				TArray<FLinearColor> SuperSampledMaterial;
+				TransferMaterial<PropertyType>(SuperSampledCorrespondenceGrid, SuperSampledDstUVGrid, InputMaterials, SuperSampledMaterial);
 
 				// Generic down sample.
-				DownSampleMaterial(SupperSampledMaterial, SuperSampledDstUVGrid.Size(), LinearColorBuffer, DstSize);
+				ProxyLOD::TGridWrapper<FLinearColor> SuperSampleGrid(SuperSampledMaterial, SuperSampledDstUVGrid.Size());
+				SparseDownSampleMaterial(SuperSampleGrid, *LinearColorGrid);
 
 			}
 
-			// Generate initial topology for dilation.
+			// Generate initial topology for dilation.  Cells with 'valid' data
+			// will be marked with a '1' in the topology grid.
 
-			ProxyLOD::TGrid<int32> TopologyGrid(DstSize.X, DstSize.Y);
-			ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, DstSize.Y),
-				[&DstSize, &TopologyGrid, &SuperSampledDstUVGrid, SampleCount](const ProxyLOD::FIntRange& Range)
-			{
-
-				for (int32 j = Range.begin(); j < Range.end(); ++j)
-				{
-					for (int32 i = 0; i < DstSize.X; ++i)
-					{
-						// will a triangle contribute to this super sampled texel?
-						int32 ResultCounter = 0;
-						for (int32 ii = i * SampleCount; ii < (i + 1) * SampleCount; ++ii)
-						{
-							for (int32 jj = j * SampleCount; jj < (j + 1) * SampleCount; ++jj)
-							{
-								const auto& TexelData = SuperSampledDstUVGrid(ii, jj);
-
-								if (TexelData.TriangleId > -1) ResultCounter = 1;
-							}
-						}
-						TopologyGrid(i, j) = ResultCounter;
-					}
-				}
-			});
+			ProxyLOD::TGrid<int32> TopologyGrid(TransferBufferSize.X, TransferBufferSize.Y);
+			ConstrucTopologyStencilGrid(SuperSampledDstUVGrid, TopologyGrid);
+			
 
 			// Dilate the linear color buffer
 
 			bool bDilationRequired = true;
 			while (bDilationRequired)
 			{
-				ProxyLOD::FLinearColorGrid  LinearColorGrid(LinearColorBuffer, DstSize);
-				bDilationRequired = DilateGrid(LinearColorGrid, TopologyGrid);
+				// Each dilate propagates color into previsously invalid cells in the linear color grid
+				// and updates the valid grid cell markers in the topology grid.
+				bDilationRequired = DilateGrid(*LinearColorGrid, TopologyGrid);
 			}
 
+			// Pointer to a 2d grid that will be at the output resolution
+
+			ProxyLOD::FLinearColorGrid::Ptr  SmallLinearColorGrid;
+			
+			// Down sample to the output resolution
+
+			if (OutSize == LinearColorGrid->Size())
+			{
+				SmallLinearColorGrid = LinearColorGrid;
+				
+			}
+			else
+			{
+				SmallLinearColorGrid = ProxyLOD::FLinearColorGrid::Create(OutSize.X, OutSize.Y);
+
+				// Area weighted down sample of the grid.  Note that the texture data has been dilated from 
+				// the UV islands already, so the downsample need not be sparse.
+
+				DownSample2dGrid(*LinearColorGrid, *SmallLinearColorGrid);
+
+				if (PropertyType == EFlattenMaterialProperties::Normal)
+				{
+					// The last step in down-sampling will not have produced normal vectors of unit legth.
+					// renormalize the lenght.
+
+					NormalizeLinearColorVectorGrid(*SmallLinearColorGrid);
+					
+				}
+			}
+
+			// Allocate the output
+
+			TArray<FColor>& OutBuffer = OutMaterial.GetPropertySamples(PropertyType);
+			ResizeArray(OutBuffer, OutSize.X * OutSize.Y);
 
 			// Transfer the result into the FColor buffer needed for output.
 
 			// NB: the normal map was just quantized.
 			if (PropertyType == EFlattenMaterialProperties::Normal)
 			{
-				ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, DstSize.X * DstSize.Y),
-					[&LinearColorBuffer, &TargetBuffer](const ProxyLOD::FIntRange& Range)
-				{
-					const FLinearColor* LinearColorData = LinearColorBuffer.GetData();
-					FColor* ColorData = TargetBuffer.GetData();
+				const FLinearColor* ColorData = SmallLinearColorGrid->GetData();
+
+				ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, OutSize.X * OutSize.Y),
+					[ColorData, &OutBuffer](const ProxyLOD::FIntRange& Range)
+				{	
+					FColor* OutColorData = OutBuffer.GetData();
 
 					for (int32 i = Range.begin(), I = Range.end(); i < I; ++i)
 					{
-						ColorData[i] = LinearColorData[i].QuantizeRound();
+						OutColorData[i] = ColorData[i].QuantizeRound();
 					}
 
 				});
 			}
 			else
 			{
-				ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, DstSize.X * DstSize.Y),
-					[&LinearColorBuffer, &TargetBuffer](const ProxyLOD::FIntRange& Range)
+				const FLinearColor* ColorData = SmallLinearColorGrid->GetData();
+				ProxyLOD::Parallel_For(ProxyLOD::FIntRange(0, OutSize.X * OutSize.Y),
+					[ColorData, &OutBuffer](const ProxyLOD::FIntRange& Range)
 				{
-					const FLinearColor* LinearColorData = LinearColorBuffer.GetData();
-					FColor* ColorData = TargetBuffer.GetData();
+					FColor* OutColorData = OutBuffer.GetData();
 
 					for (int32 i = Range.begin(), I = Range.end(); i < I; ++i)
 					{
-						ColorData[i] = LinearColorData[i].ToFColor(true);
+						OutColorData[i] = ColorData[i].ToFColor(true);
 					}
 
 				});

@@ -19,6 +19,8 @@ public:
 	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 protected:
 	void AddTextureSizeClamping(TSharedPtr<IPropertyHandle> TextureSizeProperty);
+	bool UseNativeProxyLODTool() const;
+
 protected:
 	EVisibility AreManualOverrideTextureSizesEnabled() const;
 	EVisibility IsTextureSizeEnabled() const;

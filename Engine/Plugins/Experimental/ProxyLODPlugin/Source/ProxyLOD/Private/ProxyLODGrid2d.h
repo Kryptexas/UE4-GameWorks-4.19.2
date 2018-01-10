@@ -63,7 +63,7 @@ namespace ProxyLOD
 		*
 		* @return (Imax, Jmax) the length of the 1st and 2nd dimensions mananged by this grid.
 		*/
-		const FIntPoint Size() const;
+		FIntPoint Size() const;
 
 		/**
 		*  Const and non-const access memory in 2d layout fashion. 
@@ -155,7 +155,7 @@ namespace ProxyLOD
 		*
 		* @return (Imax, Jmax) the length of the 1st and 2nd dimensions managed by this grid.
 		*/
-		const FIntPoint Size() const;
+		FIntPoint Size() const;
 
 		/**
 		*  Const and non-const access memory in 2d layout fashion.
@@ -225,7 +225,7 @@ namespace ProxyLOD
 	}
 
 	template <typename ValueType>
-	const FIntPoint TGridWrapper<ValueType>::Size() const
+	FIntPoint TGridWrapper<ValueType>::Size() const
 	{
 		return FIntPoint(IMax, JMax);
 	}
@@ -282,7 +282,7 @@ namespace ProxyLOD
 	}
 
 	template< typename GridDataType>
-	const FIntPoint TGrid<GridDataType>::Size() const
+	FIntPoint TGrid<GridDataType>::Size() const
 	{
 		return FIntPoint(IMax, JMax);
 	}
@@ -313,20 +313,19 @@ namespace ProxyLOD
 		return Get(i, j);
 	}
 	template< typename GridDataType>
-	void TGrid<GridDataType>::Swap(TGrid<ValueType>& other)
+	void TGrid<GridDataType>::Swap(TGrid<GridDataType>& other)
 	{
-		uint32 IMaxTemp = IMax;
-		uint32 JMaxTemp = JMax;
+		uint32 IMaxTemp        = IMax;
+		uint32 JMaxTemp        = JMax;
 		GridDataType* DataTemp = DataArray;
 
-		IMax = other.IMax;
-		JMax = other.JMax;
-		DataTemp = other.DataArray;
+		IMax      = other.IMax;
+		JMax      = other.JMax;
+		DataArray = other.DataArray;
 
-		other.IMax = IMaxTemp;
-		other.JMax = JMaxTemp;
+		other.IMax      = IMaxTemp;
+		other.JMax      = JMaxTemp;
 		other.DataArray = DataTemp;
 	}
 
 }
-

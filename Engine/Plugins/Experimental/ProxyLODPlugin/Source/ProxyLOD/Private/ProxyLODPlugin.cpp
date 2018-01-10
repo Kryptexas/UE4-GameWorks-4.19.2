@@ -433,7 +433,72 @@ static float BBoxMajorAxisLength(const ProxyLOD::FBBox& BBox)
 	return BBox.extents()[BBox.maxExtent()];
 }
 
+/**
+* Compute the size of the UV texture atlas.  This will be square, and the length of a side
+* will correspond to the longest side of requested textures.
+*
+* NB: A min size of 64x64 is enforced.
+*/
+static FIntPoint GetTexelGridSize(const  FMaterialProxySettings& MaterialSettings)
+{
+	auto MaxBBox = [](const FIntPoint& A, const FIntPoint B)
+	{
+		return FIntPoint(FMath::Max(A.X, B.X), FMath::Max(A.Y, B.Y));
+	};
 
+	// Start with a min value of 64x64.  
+	FIntPoint MaxTextureSize(64, 64);
+
+	const bool bUseTextureSize =
+		(MaterialSettings.TextureSizingType == ETextureSizingType::TextureSizingType_UseSingleTextureSize) ||
+		(MaterialSettings.TextureSizingType == ETextureSizingType::TextureSizingType_UseAutomaticBiasedSizes);
+
+	if (bUseTextureSize)
+	{
+		MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.TextureSize);
+	}
+	else if (MaterialSettings.TextureSizingType == ETextureSizingType::TextureSizingType_UseManualOverrideTextureSize)
+	{
+		MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.DiffuseTextureSize);
+
+		if (MaterialSettings.bNormalMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.NormalTextureSize);
+		}
+		if (MaterialSettings.bMetallicMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.MetallicTextureSize);
+		}
+		if (MaterialSettings.bRoughnessMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.RoughnessTextureSize);
+		}
+		if (MaterialSettings.bSpecularMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.SpecularTextureSize);
+		}
+		if (MaterialSettings.bEmissiveMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.EmissiveTextureSize);
+		}
+		if (MaterialSettings.bOpacityMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.OpacityTextureSize);
+		}
+		if (MaterialSettings.bOpacityMaskMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.OpacityMaskTextureSize);
+		}
+		if (MaterialSettings.bAmbientOcclusionMap)
+		{
+			MaxTextureSize = MaxBBox(MaxTextureSize, MaterialSettings.AmbientOcclusionTextureSize);
+		}
+	}
+
+	// Make the UVs square
+	int32 MaxLength = FMath::Max(MaxTextureSize.X, MaxTextureSize.Y);
+	return FIntPoint(MaxLength, MaxLength);
+}
 
 void FVoxelizeMeshMerging::ProxyLOD(const FMeshMergeDataArray& InData, const FMeshProxySettings& InProxySettings, const FFlattenMaterialArray& InputMaterials, const FGuid InJobGUID)
 {
@@ -487,11 +552,17 @@ void FVoxelizeMeshMerging::ProxyLOD(const FMeshMergeDataArray& InData, const FMe
 		FClosestPolyField::ConstPtr SrcGeometryPolyField;
 
 		// Mesh types that will be shared by various stages.
-		FSimplifierMeshType AOSMeshedVolume;
+		FSimplifierMeshType AOSMeshedVolume; 
 		FVertexDataMesh VertexDataMesh;
 
 		// Description of texture atlas.
-		ProxyLOD::FTextureAtlasDesc TextureAtlasDesc(InProxySettings.MaterialSettings.TextureSize, InProxySettings.MaterialSettings.GutterSpace);
+		// Make the UV space work with the largest texture size.
+		
+		const  FMaterialProxySettings& MaterialSettings = InProxySettings.MaterialSettings;
+		const FIntPoint UVSize = GetTexelGridSize(MaterialSettings);
+	
+		
+		ProxyLOD::FTextureAtlasDesc TextureAtlasDesc(UVSize, MaterialSettings.GutterSpace);
 	    
 		// --- Create New (High Poly) Geometry --
 		// 1) Voxelize the source geometry

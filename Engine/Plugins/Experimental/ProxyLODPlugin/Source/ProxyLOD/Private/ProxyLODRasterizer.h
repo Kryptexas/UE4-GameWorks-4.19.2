@@ -110,7 +110,7 @@ namespace ProxyLOD
 	/**
 	* Two dimensional grid access to a TArray holding FLinearColor.
 	*/
-	typedef TGridWrapper<FLinearColor>  FLinearColorGrid;
+	typedef TGrid<FLinearColor>  FLinearColorGrid;
 	
 	/**
 	* This function performs a single step of color dilation, where previously marked "valid" cells in the input
