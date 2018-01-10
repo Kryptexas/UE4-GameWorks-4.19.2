@@ -91,6 +91,11 @@ uint32 UVOIPStatics::GetMaxCompressedVoiceDataSize()
 	}
 }
 
+float UVOIPStatics::GetRemoteTalkerTimeoutDuration()
+{
+	return 1.0f;
+}
+
 EAudioEncodeHint UVOIPStatics::GetAudioEncodingHint()
 {
 	// This may be exposed as a project settings in the future.

@@ -383,7 +383,7 @@ uint32 FVoiceEngineImpl::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, ui
 
 			// Run the uncompressed audio through the opus decoder, note that it may not encode all data, which results in some remaining data
 			PlayerVoiceData[LocalUserNum].VoiceRemainderSize =
-				VoiceEncoder->Encode(DecompressedVoiceBuffer.GetData(), DecompressedVoiceBuffer.Num(), CompressedVoiceBuffer.GetData(), CompressedBytesAvailable);
+				VoiceEncoder->Encode(DecompressedVoiceBuffer.GetData(), TotalVoiceBytes, CompressedVoiceBuffer.GetData(), CompressedBytesAvailable);
 
 			// Save off any unencoded remainder
 			if (PlayerVoiceData[LocalUserNum].VoiceRemainderSize > 0)
@@ -511,6 +511,7 @@ void FVoiceEngineImpl::TickTalkers(float DeltaTime)
 	{
 		FRemoteTalkerDataImpl& RemoteData = It.Value();
 		double TimeSince = CurTime - RemoteData.LastSeen;
+
 		if (RemoteData.VoipSynthComponent->IsIdling() && RemoteData.bIsActive)
 		{
 			RemoteData.VoipSynthComponent->Stop();
@@ -527,6 +528,13 @@ void FVoiceEngineImpl::TickTalkers(float DeltaTime)
 				RemoteData.CachedTalkerPtr->OnTalkingEnd();
 			}
 			RemoteData.bIsActive = false;
+
+			RemoteData.Reset();
+		}
+		else if (TimeSince >= UVOIPStatics::GetRemoteTalkerTimeoutDuration())
+		{
+			// Dump the whole talker
+			RemoteData.Reset();
 		}
 	}
 }

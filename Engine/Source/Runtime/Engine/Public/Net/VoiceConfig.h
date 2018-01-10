@@ -168,6 +168,9 @@ public:
 	static uint32 GetMaxUncompressedVoiceDataSizePerChannel();
 	static uint32 GetMaxCompressedVoiceDataSize();
 
+	// Returns the amount of time that must pass since a VOIP talker has been updated before it's queued data is reset.
+	static float GetRemoteTalkerTimeoutDuration();
+
 	// Returns the desired encoding type. Currently not exposed as a configured settings.
 	static EAudioEncodeHint GetAudioEncodingHint();
 
