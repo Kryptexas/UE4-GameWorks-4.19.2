@@ -30,8 +30,7 @@ FSettings::FSettings() :
 #if PLATFORM_ANDROID
 	Flags.bCompositeDepth = false;
 #else
-	// TODO: This is temporary. It should be fixed in 4.18. Revisit after this goes to main.
-	Flags.bCompositeDepth = false;
+	Flags.bCompositeDepth = true;
 #endif
 	Flags.bSupportsDash = false;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
