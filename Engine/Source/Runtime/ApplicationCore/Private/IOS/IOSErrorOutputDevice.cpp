@@ -47,5 +47,5 @@ void FIOSErrorOutputDevice::HandleError()
 	GIsCriticalError = 1;
 	GLogConsole = NULL;
 
-	GLog->Flush();
+	GLog->PanicFlushThreadedLogs();
 }
