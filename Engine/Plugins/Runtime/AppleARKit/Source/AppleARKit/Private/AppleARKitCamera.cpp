@@ -99,7 +99,7 @@ float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroun
 	// Are they the same aspect ratio anyway?
 	float ScreenAspectRatio = ScreenWidth / ScreenHeight;
 	float CameraAspectRatio = GetAspectRatio();
-	if ( ScreenAspectRatio == CameraAspectRatio )
+	if (FMath::IsNearlyEqual(ScreenAspectRatio, CameraAspectRatio))
 	{
 		return GetHorizontalFieldOfView();
 	}
@@ -156,9 +156,9 @@ float FAppleARKitCamera::GetVerticalFieldOfViewForScreen( EAppleARKitBackgroundF
 	// Are they the same aspect ratio anyway?
 	float ScreenAspectRatio = ScreenWidth / ScreenHeight;
 	float CameraAspectRatio = 1.0f / GetAspectRatio();
-	if ( ScreenAspectRatio == CameraAspectRatio )
+	if (FMath::IsNearlyEqual(ScreenAspectRatio, CameraAspectRatio))
 	{
-		return GetHorizontalFieldOfView();
+		return GetVerticalFieldOfView();
 	}
 	
 	// Not matching, figure out FOV for fit mode
@@ -208,7 +208,7 @@ FVector2D FAppleARKitCamera::GetImageCoordinateForScreenPosition( FVector2D Scre
 	// Are they the same aspect ratio anyway?
 	float ScreenAspectRatio = ScreenWidth / ScreenHeight;
 	float CameraAspectRatio = bIsInPortraitMode ? 1.0f / GetAspectRatio() : GetAspectRatio();
-	if ( ScreenAspectRatio == CameraAspectRatio )
+	if (FMath::IsNearlyEqual(ScreenAspectRatio, CameraAspectRatio))
 	{
 		// Normalize ScreenPosition by viewport size
 		return FVector2D(ScreenPosition.X / ScreenWidth, ScreenPosition.Y / ScreenHeight);
