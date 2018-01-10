@@ -63,9 +63,12 @@ private:
 	/** Callback to see if creating an asset is enabled */
 	bool IsCreateAssetFromActorEnabled() const;
 
+	/** Rquest to destroy the parent window */
+	void RequestDestroyParentWindow();
+
 private:
 	/** The window this widget is nested in */
-	TSharedPtr<SWindow> ParentWindow;
+	TWeakPtr<SWindow> ParentWindow;
 
 	/** The selected path to create the asset */
 	FString AssetPath;
@@ -90,4 +93,7 @@ private:
 
 	/** Called when the create button is clicked */
 	FOnPathChosen OnCreateAssetAction;
+
+	/** Used to keep track of the delegate in the selection event */
+	FDelegateHandle SelectionDelegateHandle;
 };
