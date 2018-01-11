@@ -7,7 +7,7 @@
 	"CreatedBy" : "nVidia",
 	"CreatedByURL" : "https://developer.nvidia.com/flex",
 	"Description" : "Flex",
-	"Category" : "Visual FX",
+	"Category" : "GameWorks",
 	"EnabledByDefault" : true,
 
 	"Modules" :
