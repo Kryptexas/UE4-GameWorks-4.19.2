@@ -197,6 +197,7 @@ FReply SPlatformSetupMessage::OnButtonPressed()
 	{
 	case MissingFiles:
 		OnSetupClicked.Execute();
+		UpdateCache(false);
 		break;
 
 	case ReadOnlyFiles:
@@ -210,6 +211,7 @@ FReply SPlatformSetupMessage::OnButtonPressed()
 
 				FSlateNotificationManager::Get().AddNotification(Info);
 			}
+			UpdateCache(false);
 		}
 		break;
 
@@ -223,6 +225,7 @@ FReply SPlatformSetupMessage::OnButtonPressed()
 				Info.ExpireDuration = 3.0f;
 				FSlateNotificationManager::Get().AddNotification(Info);
 			}
+			UpdateCache(false);
 		}
 		break;
 
