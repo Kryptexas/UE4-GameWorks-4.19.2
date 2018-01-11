@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ActiveSound.h"
 #include "EngineDefines.h"
@@ -1241,7 +1241,7 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		{
 			for (USpatializationPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.SpatializationPluginSettingsArray)
 			{
-				if (SettingsBase->IsA(PluginClass))
+				if (SettingsBase != nullptr && SettingsBase->IsA(PluginClass))
 				{
 					ParseParams.SpatializationPluginSettings = SettingsBase;
 					break;
