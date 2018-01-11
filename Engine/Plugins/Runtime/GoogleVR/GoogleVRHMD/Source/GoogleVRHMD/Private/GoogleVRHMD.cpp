@@ -10,6 +10,7 @@
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
+#include "HAL/IConsoleManager.h"
 #endif // GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 #if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
 #include "IOS/IOSApplication.h"
@@ -477,6 +478,21 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 		const bool bIsMobileMultiViewEnabled = (CVarMobileMultiView && CVarMobileMultiView->GetValueOnAnyThread() != 0);
 		const bool bIsMobileMultiViewDirectEnabled = (CVarMobileMultiViewDirect && CVarMobileMultiViewDirect->GetValueOnAnyThread() != 0);
 		bIsMobileMultiViewDirect = GSupportsMobileMultiView && bIsMobileMultiViewEnabled && bIsMobileMultiViewDirectEnabled;
+
+		if (bIsMobileMultiViewDirect)
+		{
+			IConsoleVariable* DebugCanvasInLayerCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.DebugCanvasInLayer"));
+			if (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetInt() == 0)
+			{
+				const EConsoleVariableFlags CVarSetByFlags = (EConsoleVariableFlags)(DebugCanvasInLayerCVar->GetFlags() & ECVF_SetByMask);
+				// if this was set by anything else (manually by the user), then we don't want to reset the "default" here
+				if (CVarSetByFlags == ECVF_SetByConstructor)
+				{
+					// when direct multiview is enabled, the default for this should be on
+					DebugCanvasInLayerCVar->Set(1, ECVF_Default);
+				}
+			}
+		}
 
 		if(bUseOffscreenFramebuffers)
 		{

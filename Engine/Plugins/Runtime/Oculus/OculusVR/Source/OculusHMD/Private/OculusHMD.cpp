@@ -31,6 +31,7 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 #include "AndroidApplication.h"
+#include "HAL/IConsoleManager.h"
 #endif
 #include "Runtime/UtilityShaders/Public/OculusShaders.h"
 #include "PipelineStateCache.h"
@@ -2415,6 +2416,21 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		{
 			Layout = ovrpLayout_Array;
 			Settings->Flags.bIsUsingDirectMultiview = true;
+		}
+
+		if (Settings->Flags.bIsUsingDirectMultiview)
+		{
+			IConsoleVariable* DebugCanvasInLayerCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.DebugCanvasInLayer"));
+			if (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetInt() == 0)
+			{
+				const EConsoleVariableFlags CVarSetByFlags = (EConsoleVariableFlags)(DebugCanvasInLayerCVar->GetFlags() & ECVF_SetByMask);
+				// if this was set by anything else (manually by the user), then we don't want to reset the "default" here
+				if (CVarSetByFlags == ECVF_SetByConstructor)
+				{
+					// when direct multiview is enabled, the default for this should be on
+					DebugCanvasInLayerCVar->Set(1, ECVF_Default);
+				}
+			}
 		}
 #endif
 
