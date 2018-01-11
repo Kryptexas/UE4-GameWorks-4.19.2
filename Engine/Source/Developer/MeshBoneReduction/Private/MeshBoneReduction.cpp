@@ -252,7 +252,7 @@ public:
 		}
 	}
 
-	void RetrieveBoneTransforms(USkeletalMesh* SkeletalMesh, const int32 LODIndex, TArray<FBoneIndexType>& BonesToRemove, TArray<FTransform>& InOutTransforms)
+	void RetrieveBoneMatrices(USkeletalMesh* SkeletalMesh, const int32 LODIndex, TArray<FBoneIndexType>& BonesToRemove, TArray<FMatrix>& InOutMatrices)
 	{
 		if (!SkeletalMesh->LODInfo.IsValidIndex(LODIndex))
 		{
@@ -267,7 +267,7 @@ public:
 			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 		}
 				
-		TArray<FTransform> MultipliedBonePoses;
+		TArray<FMatrix> MultipliedBonePoses;
 		const UAnimSequence* BakePose = SkeletalMesh->LODInfo[LODIndex].BakePose;
 		if (BakePose)
 		{
@@ -278,7 +278,7 @@ public:
 
 			// Retrieve ref pose bone transforms
 			TArray<FTransform> RefBonePoses = SkeletalMesh->RefSkeleton.GetRawRefBonePose();
-			TArray<FTransform> MultipliedRefBonePoses;
+			TArray<FMatrix> MultipliedRefBonePoses;
 			MultipliedRefBonePoses.AddDefaulted(RefBonePoses.Num());
 
 			const bool bDebugBonePoses = false;
@@ -290,21 +290,15 @@ public:
 			{
 				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[BonePoseIndex]);
 				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-				MultipliedRefBonePoses[BoneIndex] = RefBonePoses[BoneIndex];
+				MultipliedRefBonePoses[BoneIndex] = RefBonePoses[BoneIndex].ToMatrixWithScale();
 
 				if (ParentIndex != INDEX_NONE)
 				{
 					checkf(ParentIndex == 0 || Processed[ParentIndex] == 1, TEXT("Parent bone was not yet processed"));
 					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Original: [%i]\n%s"), BonePoseIndex, *RefBonePoses[BoneIndex].ToHumanReadableString());
-
 					MultipliedRefBonePoses[BoneIndex] = MultipliedRefBonePoses[BoneIndex] * MultipliedRefBonePoses[ParentIndex];
-					MultipliedRefBonePoses[BoneIndex].NormalizeRotation();
-
-					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Relative: [%i]\n%s"), BonePoseIndex, *MultipliedRefBonePoses[BoneIndex].ToHumanReadableString());
-					checkSlow(MultipliedRefBonePoses[BoneIndex].IsRotationNormalized());
-					checkSlow(!MultipliedRefBonePoses[BoneIndex].ContainsNaN());
-				}
-				
+					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Relative: [%i]\n%s"), BonePoseIndex, *(FTransform(MultipliedRefBonePoses[BoneIndex]).ToHumanReadableString()));		
+				}		
 
 				Processed[BoneIndex] = 1;
 			}
@@ -316,18 +310,13 @@ public:
 			{
 				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[BonePoseIndex]);
 				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-				MultipliedBonePoses[BoneIndex] = BonePoses[BoneIndex];
+				MultipliedBonePoses[BoneIndex] = BonePoses[BoneIndex].ToMatrixWithScale();
 				if (ParentIndex != INDEX_NONE)
 				{
 					checkf(ParentIndex == 0 || Processed[ParentIndex] == 1, TEXT("Parent bone was not yet processed"));
-					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Original: [%i]\n%s"), BonePoseIndex, *BonePoses[BoneIndex].ToHumanReadableString());
-
+					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Original: [%i]\n%s"), BonePoseIndex, *BonePoses[BoneIndex].ToHumanReadableString());					
 					MultipliedBonePoses[BoneIndex] = MultipliedBonePoses[BoneIndex] * MultipliedBonePoses[ParentIndex];
-					MultipliedBonePoses[BoneIndex].NormalizeRotation();
-
-					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Relative: [%i]\n%s"), BonePoseIndex, *MultipliedBonePoses[BoneIndex].ToHumanReadableString());
-					checkSlow(MultipliedBonePoses[BoneIndex].IsRotationNormalized());
-					checkSlow(!MultipliedBonePoses[BoneIndex].ContainsNaN());
+					UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Relative: [%i]\n%s"), BonePoseIndex, *(FTransform(MultipliedBonePoses[BoneIndex]).ToHumanReadableString()));			
 				}
 
 				Processed[BoneIndex] = 1;
@@ -337,7 +326,7 @@ public:
 			for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 			{
 				MultipliedBonePoses[BoneIndex] = MultipliedRefBonePoses[BoneIndex].Inverse() * MultipliedBonePoses[BoneIndex];
-				UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Final: [%i]\n%s"), BoneIndex, *MultipliedBonePoses[BoneIndex].ToHumanReadableString());
+				UE_CLOG(bDebugBonePoses, LogMeshBoneReduction, Log, TEXT("Final: [%i]\n%s"), BoneIndex, *(FTransform(MultipliedBonePoses[BoneIndex]).ToHumanReadableString()));
 			}
 		}
 		else
@@ -346,10 +335,10 @@ public:
 		}
 
 		// Add bone transforms we're interested in
-		InOutTransforms.Reset(BonesToRemove.Num());
+		InOutMatrices.Reset(BonesToRemove.Num());
 		for (const FBoneIndexType& Index : BonesToRemove)
 		{
-			InOutTransforms.Add(MultipliedBonePoses[Index]);
+			InOutMatrices.Add(MultipliedBonePoses[Index]);
 		}
 	}
 
@@ -390,7 +379,7 @@ public:
 			SrcModel->LegacyRawPointIndices.Unlock();
 
 			TArray<FBoneIndexType> BoneIndices;
-			TArray<FTransform> RemovedBoneTransforms;
+			TArray<FMatrix> RemovedBoneMatrices;
 			const bool bBakePoseToRemovedInfluences = (SkeletalMesh->LODInfo[DesiredLOD].BakePose != nullptr);
 			if (bBakePoseToRemovedInfluences)
 			{
@@ -411,11 +400,11 @@ public:
 					}
 				}
 
-				RetrieveBoneTransforms(SkeletalMesh, DesiredLOD, BoneIndices, RemovedBoneTransforms);
+				RetrieveBoneMatrices(SkeletalMesh, DesiredLOD, BoneIndices, RemovedBoneMatrices);
 			}
 
 			// fix up chunks
-			ParallelFor(NewModel->Sections.Num(), [this, NewModel, bBakePoseToRemovedInfluences, &RemovedBoneTransforms, &BoneIndices, &BonesToRemove](const int32 SectionIndex)
+			ParallelFor(NewModel->Sections.Num(), [this, NewModel, bBakePoseToRemovedInfluences, &RemovedBoneMatrices, &BoneIndices, &BonesToRemove](const int32 SectionIndex)
 			{
 				FSkelMeshSection& Section = NewModel->Sections[SectionIndex];
 				if (bBakePoseToRemovedInfluences)
@@ -423,14 +412,27 @@ public:
 					const float InfluenceMultiplier = 1.0f / 255.0f;
 					for (FSoftSkinVertex& Vertex : Section.SoftVertices)
 					{
+						FVector TangentX = Vertex.TangentX;
+						FVector TangentZ = Vertex.TangentZ;
+						FVector Position = Vertex.Position;
 						for (uint8 InfluenceIndex = 0; InfluenceIndex < 8; ++InfluenceIndex)
 						{
 							const int32 ArrayIndex = BoneIndices.IndexOfByKey(Section.BoneMap[Vertex.InfluenceBones[InfluenceIndex]]);
 							if (ArrayIndex != INDEX_NONE)
 							{
-								Vertex.Position += ((RemovedBoneTransforms[ArrayIndex].TransformPosition(Vertex.Position) - Vertex.Position) * ((float)Vertex.InfluenceWeights[InfluenceIndex] * InfluenceMultiplier));
+								Position += ((RemovedBoneMatrices[ArrayIndex].TransformPosition(Vertex.Position) - Vertex.Position) * ((float)Vertex.InfluenceWeights[InfluenceIndex] * InfluenceMultiplier));
+
+								TangentX += ((RemovedBoneMatrices[ArrayIndex].TransformVector(Vertex.TangentX) - Vertex.TangentX) * ((float)Vertex.InfluenceWeights[InfluenceIndex] * InfluenceMultiplier));
+
+								TangentZ += ((RemovedBoneMatrices[ArrayIndex].TransformVector(Vertex.TangentZ) - Vertex.TangentZ) * ((float)Vertex.InfluenceWeights[InfluenceIndex] * InfluenceMultiplier));
 							}
 						}
+
+						Vertex.Position = Position;
+						Vertex.TangentX = TangentX.GetSafeNormal();
+						uint8 WComponent = Vertex.TangentZ.Vector.W;
+						Vertex.TangentZ = TangentZ.GetSafeNormal();
+						Vertex.TangentZ.Vector.W = WComponent;
 					}
 				}
 				FixUpSectionBoneMaps(Section, BonesToRemove);

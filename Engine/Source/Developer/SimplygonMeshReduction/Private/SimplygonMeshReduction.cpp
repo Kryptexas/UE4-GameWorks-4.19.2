@@ -230,7 +230,7 @@ public:
 		float &MaxDeviation, 
 		const FReferenceSkeleton& RefSkeleton, 
 		const FSkeletalMeshOptimizationSettings& Settings,
-		const TArray<FTransform>& BoneTransforms = TArray<FTransform>()
+		const TArray<FMatrix>& BoneMatrices = TArray<FMatrix>()
 		)
 	{
 		const bool bUsingMaxDeviation = (Settings.ReductionMethod == SMOT_MaxDeviation && Settings.MaxDeviationPercentage > 0.0f);
@@ -253,7 +253,7 @@ public:
 			CreateSkeletalHierarchy(Scene, RefSkeleton, BoneTableIDs);
 
 			// Create a new scene mesh object
-			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromSkeletalLODModel( Scene, *SrcModel, BoneTableIDs, BoneTransforms);
+			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromSkeletalLODModel( Scene, *SrcModel, BoneTableIDs, BoneMatrices);
 
 			FDefaultEventHandler SimplygonEventHandler;
 			SimplygonSDK::spReductionProcessor ReductionProcessor = SDK->CreateReductionProcessor();
@@ -337,7 +337,7 @@ public:
 			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 		}
 
-		TArray<FTransform> MultipliedBonePoses;
+		TArray<FMatrix> MultipliedBonePoses;
 		if (SkeletalMesh->LODInfo[LODIndex].BakePose != nullptr)
 		{
 			TArray<FTransform> BonePoses;
@@ -345,9 +345,9 @@ public:
 			MultipliedBonePoses.AddDefaulted(BonePoses.Num());
 
 			TArray<FTransform> RefBonePoses = SkeletalMesh->RefSkeleton.GetRawRefBonePose();
-			TArray<FTransform> MultipliedRefBonePoses;
+			TArray<FMatrix> MultipliedRefBonePoses;
 			MultipliedRefBonePoses.AddDefaulted(RefBonePoses.Num());
-
+			MultipliedRefBonePoses[0] = FMatrix::Identity;
 			TArray<int32> Processed;
 			Processed.SetNumZeroed(RefBonePoses.Num());
 
@@ -356,29 +356,18 @@ public:
 				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[i]);
 				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 				check(ParentIndex == 0 || Processed[ParentIndex] == 1);
-				MultipliedRefBonePoses[BoneIndex] = RefBonePoses[BoneIndex] * MultipliedRefBonePoses[ParentIndex];
-				MultipliedRefBonePoses[BoneIndex].NormalizeRotation();
-
-				checkSlow(MultipliedRefBonePoses[BoneIndex].IsRotationNormalized());
-				checkSlow(!MultipliedRefBonePoses[BoneIndex].ContainsNaN());
-
+				MultipliedRefBonePoses[BoneIndex] = RefBonePoses[BoneIndex].ToMatrixWithScale() * MultipliedRefBonePoses[ParentIndex];
 				Processed[BoneIndex] = 1;
 			}
-
 			Processed.Empty();
 			Processed.SetNumZeroed(BonePoses.Num());
-
+			MultipliedBonePoses[0] = FMatrix::Identity;
 			for (int32 i = 1; i < BonePoses.Num(); i++)
 			{
 				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[i]);
 				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 				check(ParentIndex == 0 || Processed[ParentIndex] == 1);
-				MultipliedBonePoses[BoneIndex] = BonePoses[BoneIndex] * MultipliedBonePoses[ParentIndex];
-
-				MultipliedBonePoses[BoneIndex].NormalizeRotation();
-
-				checkSlow(MultipliedBonePoses[BoneIndex].IsRotationNormalized());
-				checkSlow(!MultipliedBonePoses[BoneIndex].ContainsNaN());
+				MultipliedBonePoses[BoneIndex] = BonePoses[BoneIndex].ToMatrixWithScale() * MultipliedBonePoses[ParentIndex];
 				Processed[BoneIndex] = 1;
 			}
 
@@ -389,11 +378,12 @@ public:
 		}
 		else
 		{
-			MultipliedBonePoses.AddDefaulted(BoneNames.Num());
+			for (int32 Index = 0; Index < BoneNames.Num(); ++Index)
+			{
+				MultipliedBonePoses.Add(FMatrix::Identity);
+			}
 		}
 		
-
-
 		// See if we'd like to remove extra bones first
 		if (MeshBoneReductionInterface->GetBoneReductionData(SkeletalMesh, LODIndex, BonesToRemove))
 		{
@@ -1194,7 +1184,7 @@ private:
 				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 				{
 					FVector TempTangent = RawMesh.WedgeTangentX[WedgeIndex];
-					TempTangent = GetConversionMatrix().TransformPosition(TempTangent);
+					TempTangent = GetConversionMatrix().TransformVector(TempTangent);
 					Tangents->SetTuple(WedgeIndex, (float*)&TempTangent);
 				}
 
@@ -1203,7 +1193,7 @@ private:
 				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 				{
 					FVector TempBitangent = RawMesh.WedgeTangentY[WedgeIndex];
-					TempBitangent = GetConversionMatrix().TransformPosition(TempBitangent);
+					TempBitangent = GetConversionMatrix().TransformVector(TempBitangent);
 					Bitangents->SetTuple(WedgeIndex, (float*)&TempBitangent);
 				}
 			}
@@ -1212,7 +1202,7 @@ private:
 			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 			{
 				FVector TempNormal = RawMesh.WedgeTangentZ[WedgeIndex];
-				TempNormal = GetConversionMatrix().TransformPosition(TempNormal);
+				TempNormal = GetConversionMatrix().TransformVector(TempNormal);
 				Normals->SetTuple(WedgeIndex, (float*)&TempNormal);
 			}
 		}
@@ -1327,7 +1317,7 @@ private:
 				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 				{
 					FVector TempTangent = RawMesh.WedgeTangentX[WedgeIndex];
-					TempTangent = GetConversionMatrix().TransformPosition(TempTangent);
+					TempTangent = GetConversionMatrix().TransformVector(TempTangent);
 					Tangents->SetTuple(WedgeIndex, (float*)&TempTangent);
 				}
 
@@ -1336,7 +1326,7 @@ private:
 				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 				{
 					FVector TempBitangent = RawMesh.WedgeTangentY[WedgeIndex];
-					TempBitangent = GetConversionMatrix().TransformPosition(TempBitangent);
+					TempBitangent = GetConversionMatrix().TransformVector(TempBitangent);
 					Bitangents->SetTuple(WedgeIndex, (float*)&TempBitangent);
 				}
 			}
@@ -1345,7 +1335,7 @@ private:
 			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 			{
 				FVector TempNormal = RawMesh.WedgeTangentZ[WedgeIndex];
-				TempNormal = GetConversionMatrix().TransformPosition(TempNormal);
+				TempNormal = GetConversionMatrix().TransformVector(TempNormal);
 				Normals->SetTuple(WedgeIndex, (float*)&TempNormal);
 			}
 		}
@@ -1462,7 +1452,7 @@ private:
 					//Tangents->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentX[WedgeIndex]);
 					Tangents->GetTuple(WedgeIndex, sgTuple);
 					SimplygonSDK::real* sgTangents = sgTuple->GetData();
-					RawMesh.WedgeTangentX[WedgeIndex] = GetConversionMatrix().TransformPosition( FVector(sgTangents[0], sgTangents[1], sgTangents[2]) );
+					RawMesh.WedgeTangentX[WedgeIndex] = GetConversionMatrix().TransformVector( FVector(sgTangents[0], sgTangents[1], sgTangents[2]) );
 				}
 
 				RawMesh.WedgeTangentY.Empty(NumWedges);
@@ -1472,7 +1462,7 @@ private:
 					//Bitangents->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentY[WedgeIndex]);
 					Bitangents->GetTuple(WedgeIndex, sgTuple);
 					SimplygonSDK::real* sgBitangents = sgTuple->GetData();
-					RawMesh.WedgeTangentY[WedgeIndex] = GetConversionMatrix().TransformPosition(FVector(sgBitangents[0], sgBitangents[1], sgBitangents[2]));
+					RawMesh.WedgeTangentY[WedgeIndex] = GetConversionMatrix().TransformVector(FVector(sgBitangents[0], sgBitangents[1], sgBitangents[2]));
 				}
 			}
 
@@ -1483,7 +1473,7 @@ private:
 				//Normals->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentZ[WedgeIndex]);
 				Normals->GetTuple(WedgeIndex, sgTuple);
 				SimplygonSDK::real* sgNormal = sgTuple->GetData();
-				RawMesh.WedgeTangentZ[WedgeIndex] = GetConversionMatrix().TransformPosition(FVector(sgNormal[0], sgNormal[1], sgNormal[2]));
+				RawMesh.WedgeTangentZ[WedgeIndex] = GetConversionMatrix().TransformVector(FVector(sgNormal[0], sgNormal[1], sgNormal[2]));
 			}
 		}
 
@@ -1617,7 +1607,7 @@ private:
 	 * @param BoneIDs A maps of Bone IDs from RefSkeleton to Simplygon BoneTable IDs
 	 * @returns a Simplygon geometry data representation of the skeletal mesh LOD.
 	 */
-	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FSkeletalMeshLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs, const TArray<FTransform>& BoneTransforms)
+	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FSkeletalMeshLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs, const TArray<FMatrix>& BoneMatrices)
 	{
 		TArray<FSoftSkinVertex> Vertices;
 		LODModel.GetVertices( Vertices );
@@ -1685,6 +1675,8 @@ private:
 				SimplygonSDK::real VertexBoneWeights[MAX_TOTAL_INFLUENCES];
 
 				FVector WeightedVertex(EForceInit::ForceInitToZero);
+				FVector WeightedTangentX(EForceInit::ForceInitToZero);
+				FVector WeightedTangentZ(EForceInit::ForceInitToZero);
 				
 				uint32 TotalInfluence = 0;
 				for ( uint32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex )
@@ -1700,10 +1692,12 @@ private:
 						VertexBoneIds[InfluenceIndex] = BoneID;
 						VertexBoneWeights[InfluenceIndex] = BoneInfluence / 255.0f;
 												
-						if (BoneTransforms.IsValidIndex(Section.BoneMap[BoneIndex]))
+						if (BoneMatrices.IsValidIndex(Section.BoneMap[BoneIndex]))
 						{
-							const FTransform Transform = BoneTransforms[Section.BoneMap[BoneIndex]];
-							WeightedVertex += (Transform.TransformPosition(Vertex.Position) * VertexBoneWeights[InfluenceIndex]);
+							const FMatrix Matrix = BoneMatrices[Section.BoneMap[BoneIndex]];
+							WeightedVertex += (Matrix.TransformPosition(Vertex.Position) * VertexBoneWeights[InfluenceIndex]);
+							WeightedTangentX += (Matrix.TransformVector(Vertex.TangentX) * VertexBoneWeights[InfluenceIndex]);
+							WeightedTangentZ += (Matrix.TransformVector(Vertex.TangentZ) * VertexBoneWeights[InfluenceIndex]);
 						}
 					}
 					else
@@ -1714,7 +1708,10 @@ private:
 					}
 				}
 				check( TotalInfluence == 255 );
-
+				Vertex.TangentX = WeightedTangentX.GetSafeNormal();
+				uint8 WComponent = Vertex.TangentZ.Vector.W;
+				Vertex.TangentZ = WeightedTangentZ.GetSafeNormal();
+				Vertex.TangentZ.Vector.W = WComponent;
 				FVector FinalVert = GetConversionMatrix().TransformPosition(WeightedVertex);
 
 				//Vertex.Position.Z = -Vertex.Position.Z;
@@ -1741,10 +1738,10 @@ private:
 				Normal = GetConversionMatrix().TransformPosition(Normal);
 
 				FVector Tangent = Vertex.TangentX;
-				Tangent = GetConversionMatrix().TransformPosition(Tangent);
+				Tangent = GetConversionMatrix().TransformVector(Tangent);
 
 				FVector Bitangent = Vertex.TangentY;
-				Bitangent = GetConversionMatrix().TransformPosition(Bitangent);
+				Bitangent = GetConversionMatrix().TransformVector(Bitangent);
 
 
 				Indices->SetItem( Index, VertexIndex );
@@ -2050,7 +2047,7 @@ private:
 		TArray<FVector>& Vertices = MeshData.Points;
 		for (int32 VertexIndex = 0; VertexIndex < MeshData.Points.Num(); ++VertexIndex)
 		{
-			Vertices[VertexIndex] = GetConversionMatrix().TransformPosition(Vertices[VertexIndex]);
+			Vertices[VertexIndex] = GetConversionMatrix().InverseTransformPosition(Vertices[VertexIndex]);
 		}
 
 		for (int32 FaceIndex = 0; FaceIndex < MeshData.Faces.Num(); ++FaceIndex)
@@ -2058,9 +2055,9 @@ private:
 			FMeshFace& Face = MeshData.Faces[FaceIndex];
 			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
 			{
-				Face.TangentX[CornerIndex] = GetConversionMatrix().TransformPosition(Face.TangentX[CornerIndex]);
-				Face.TangentY[CornerIndex] = GetConversionMatrix().TransformPosition(Face.TangentY[CornerIndex]);
-				Face.TangentZ[CornerIndex] = GetConversionMatrix().TransformPosition(Face.TangentZ[CornerIndex]);
+				Face.TangentX[CornerIndex] = GetConversionMatrix().InverseTransformVector(Face.TangentX[CornerIndex]);
+				Face.TangentY[CornerIndex] = GetConversionMatrix().InverseTransformVector(Face.TangentY[CornerIndex]);
+				Face.TangentZ[CornerIndex] = GetConversionMatrix().InverseTransformVector(Face.TangentZ[CornerIndex]);
 			}
 		}
 
@@ -2072,6 +2069,10 @@ private:
 			DummyMap[PointIdx] = PointIdx;
 		}
 
+		// Make sure we do not recalculate normals
+		IMeshUtilities::MeshBuildOptions Options;
+		Options.bComputeNormals = false;
+		Options.bComputeTangents = false;
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 		// Create skinning streams for NewModel.
 		MeshUtilities.BuildSkeletalMesh( 
@@ -2081,7 +2082,8 @@ private:
 			MeshData.Wedges, 
 			MeshData.Faces, 
 			MeshData.Points,
-			DummyMap
+			DummyMap,
+			Options
 			);
 
 		// Set texture coordinate count on the new model.
