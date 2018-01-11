@@ -289,7 +289,7 @@ float Oscillate(FSpeedTreeData STData,
 		if (fBroadDetail < 0.0)
 		{
 			fTarget = -fTarget;
-			fAmount = -fAmount;
+			fAmount = abs(fAmount);
 		}
 
 		fBroadDetail = lerp(fBroadDetail, fTarget, fAmount);
