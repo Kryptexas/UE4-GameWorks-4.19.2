@@ -34,6 +34,11 @@
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Components/StereoLayerComponent.h"
 #include "ForceFeedbackComponentVisualizer.h"
+// NvFlex begin
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+// NvFlex end
 
 IMPLEMENT_MODULE( FComponentVisualizersModule, ComponentVisualizers );
 
@@ -53,6 +58,15 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(UPhysicsSpringComponent::StaticClass()->GetFName(), MakeShareable(new FSpringComponentVisualizer));
 	RegisterComponentVisualizer(UDecalComponent::StaticClass()->GetFName(), MakeShareable(new FDecalComponentVisualizer));
 	RegisterComponentVisualizer(UStereoLayerComponent::StaticClass()->GetFName(), MakeShareable(new FStereoLayerComponentVisualizer));
+
+	// NvFlex begin
+#if WITH_FLEX
+	if (GFlexEditorPluginBridge)
+	{
+		GFlexEditorPluginBridge->RegisterComponentVisualizers(this);
+	}
+#endif
+	// NvFlex end
 }
 
 void FComponentVisualizersModule::ShutdownModule()

@@ -42,6 +42,7 @@ namespace UnrealBuildTool.Rules
                     "Slate",
                     "AssetRegistry",
                     "UnrealEd",
+                    "ComponentVisualizers"
 					// ... add private dependencies that you statically link with here ...
 				}
                 );

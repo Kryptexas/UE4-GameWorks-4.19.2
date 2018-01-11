@@ -25,5 +25,9 @@ public:
 
 	virtual bool IsFlexStaticMesh(class UStaticMesh* StaticMesh);
 
+	virtual void ScaleComponent(class USceneComponent* RootComponent, float Scale);
+
+	virtual void RegisterComponentVisualizers(class FComponentVisualizersModule* ComponentVisualizersModule);
+
 private:
 };

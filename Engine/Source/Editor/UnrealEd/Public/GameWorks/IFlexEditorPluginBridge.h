@@ -27,6 +27,10 @@ public:
 	virtual void SetFlexActorCollisionProfileName(class AStaticMeshActor* SMActor, FName CollisionProfileName) = 0;
 
 	virtual class UClass* GetFlexParticleSpriteEmitterClass() = 0;
+
+	virtual void ScaleComponent(class USceneComponent* RootComponent, float Scale) = 0;
+
+	virtual void RegisterComponentVisualizers(class FComponentVisualizersModule* ComponentVisualizersModule) = 0;
 };
 
 extern UNREALED_API class IFlexEditorPluginBridge* GFlexEditorPluginBridge;

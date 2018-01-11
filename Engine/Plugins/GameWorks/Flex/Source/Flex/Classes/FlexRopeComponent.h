@@ -80,6 +80,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flex", meta = (ClampMin = "0.00", UIMin = "0.00", ClampMax = "1.0", UIMax = "1.0"))
 	float BendStiffness;
 
+	/** If non-zero this will generate "long range constarints" that reduce stretching, note this should only be used when the top of the rope is fixed, e.g.: inside a collision shape. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flex", meta = (ClampMin = "0.00", UIMin = "0.00", ClampMax = "1.0", UIMax = "1.0"))
+	float TetherStiffness;
+
 	/** Particles embedded in shapes at level start up will be permanent attached to them */
 	UPROPERTY(EditAnywhere, Category = "Flex")
 	bool AttachToRigids;

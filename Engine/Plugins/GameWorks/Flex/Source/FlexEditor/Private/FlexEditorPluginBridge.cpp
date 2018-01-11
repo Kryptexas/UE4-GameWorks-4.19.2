@@ -13,6 +13,10 @@
 
 #include "FlexStaticMesh.h"
 #include "FlexParticleSpriteEmitter.h"
+#include "FlexSoftJointComponent.h"
+
+#include "ComponentVisualizers.h"
+#include "FlexSoftJointComponentVisualizer.h"
 
 class UFlexAsset* FFlexEditorPluginBridge::GetFlexAsset(class UStaticMesh* StaticMesh)
 {
@@ -104,4 +108,17 @@ class UClass* FFlexEditorPluginBridge::GetFlexParticleSpriteEmitterClass()
 bool FFlexEditorPluginBridge::IsFlexStaticMesh(class UStaticMesh* StaticMesh)
 {
 	return StaticMesh ? StaticMesh->GetClass()->IsChildOf<UFlexStaticMesh>() : false;
+}
+
+void FFlexEditorPluginBridge::ScaleComponent(class USceneComponent* RootComponent, float Scale)
+{
+	if (UFlexSoftJointComponent* FlexSoftJointComponent = Cast< UFlexSoftJointComponent >(RootComponent))
+	{
+		FlexSoftJointComponent->Radius *= Scale;
+	}
+}
+
+void FFlexEditorPluginBridge::RegisterComponentVisualizers(class FComponentVisualizersModule* ComponentVisualizersModule)
+{
+	ComponentVisualizersModule->RegisterComponentVisualizer(UFlexSoftJointComponent::StaticClass()->GetFName(), MakeShareable(new FFlexSoftJointComponentVisualizer));
 }

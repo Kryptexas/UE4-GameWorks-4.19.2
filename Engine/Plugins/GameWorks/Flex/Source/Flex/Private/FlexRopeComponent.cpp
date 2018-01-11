@@ -427,6 +427,7 @@ UFlexRopeComponent::UFlexRopeComponent(const FObjectInitializer& ObjectInitializ
 	AttachToRigids = true;	
 	StretchStiffness = 1.0f;
 	BendStiffness = 0.5f;
+	TetherStiffness = 0.0f;
 	TileMaterial = 1.f;
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -597,6 +598,17 @@ void UFlexRopeComponent::CreateRopeGeometry()
 
 			SpringLengths.Add(2.0f * RestDistance);
 			SpringCoefficients.Add(BendStiffness);
+		}
+
+		// create "tether" constraints
+		if (ParticleIdx > 0 && TetherStiffness > 0.0f)
+		{
+			float Dist = FVector(Particles[0] - InitialPosition).Size();
+
+			SpringIndices.Add(0);
+			SpringIndices.Add(ParticleIdx);
+			SpringLengths.Add(Dist);
+			SpringCoefficients.Add(-TetherStiffness);	// negate stiffness coefficient to signal to Flex that this a unilateral constraint
 		}
 	}
 }

@@ -11,7 +11,7 @@
 class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
-class USoftJointComponent;
+class UFlexSoftJointComponent;
 class UFlexCollisionComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
@@ -154,7 +154,7 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 
 	TArray<IFlexContainerClient*> Components;
 
-	TArray<USoftJointComponent*> SoftJointComponents;
+	TArray<UFlexSoftJointComponent*> SoftJointComponents;
 
 	TWeakObjectPtr<UFlexContainer> TemplateRef;
 	UFlexContainer* Template;
