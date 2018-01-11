@@ -771,25 +771,11 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		AppendCString(GlslCode, "#define UE_EXT_shader_framebuffer_fetch 1\n");
 	}
 
-	if (bEmitMobileMultiView)
-	{
-		MoveHashLines(GlslCode, GlslCodeOriginal);
-
-		if (GSupportsMobileMultiView)
-		{
-			AppendCString(GlslCode, "\n\n");
-			AppendCString(GlslCode, "#extension GL_OVR_multiview2 : enable\n");
-			AppendCString(GlslCode, "\n\n");
-		}
-		else
-		{
-			// Strip out multi-view for devices that don't support it.
-			AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
-		}
-	}
-
 	if (bEmitTextureExternal)
 	{
+		// remove comment so MoveHashLines works as intended
+		ReplaceCString(GlslCodeOriginal, "// Uses samplerExternalOES", "");
+
 		MoveHashLines(GlslCode, GlslCodeOriginal);
 
 		if (GSupportsImageExternal)
@@ -821,6 +807,23 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		{
 			// Strip out texture external for devices that don't support it.
 			AppendCString(GlslCode, "#define samplerExternalOES sampler2D\n");
+		}
+	}
+
+	if (bEmitMobileMultiView)
+	{
+		MoveHashLines(GlslCode, GlslCodeOriginal);
+
+		if (GSupportsMobileMultiView)
+		{
+			AppendCString(GlslCode, "\n\n");
+			AppendCString(GlslCode, "#extension GL_OVR_multiview2 : enable\n");
+			AppendCString(GlslCode, "\n\n");
+		}
+		else
+		{
+			// Strip out multi-view for devices that don't support it.
+			AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
 		}
 	}
 
