@@ -531,7 +531,7 @@ namespace UnrealBuildTool
 				else
 				{
 					// Remove any stale generated code directory
-					if(Module.GeneratedCodeDirectory != null && (!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory)))
+					if(Module.GeneratedCodeDirectory != null && (!UnrealBuildTool.IsUnderAnInstalledDirectory(Module.GeneratedCodeDirectory)))
 					{
 						if (DirectoryReference.Exists(Module.GeneratedCodeDirectory))
 						{
@@ -745,8 +745,14 @@ namespace UnrealBuildTool
 
 			foreach (UHTModuleInfo Module in UObjectModules)
 			{
-				// If we're using a precompiled engine, skip skip checking timestamps for modules that are under the engine directory
-				if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
+				// If we're using a precompiled engine, skip checking timestamps for modules that are under the engine directory
+				if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				{
+					continue;
+				}
+
+				// Skip checking timestamps for modules that are under an installed directory
+				if (UnrealBuildTool.IsUnderAnInstalledDirectory(Module.ModuleDirectory))
 				{
 					continue;
 				}
@@ -897,8 +903,14 @@ namespace UnrealBuildTool
 				{
 					if (GeneratedCodeDirectoryInfo.Exists)
 					{
-						// Don't write anything to the engine directory if we're running an installed build
-						if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
+						// Don't write anything to the engine directory if we're using precompiled
+						if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						{
+							continue;
+						}
+
+						// Don't write anything to installed directories if we're running an installed build
+						if (UnrealBuildTool.IsUnderAnInstalledDirectory(Module.ModuleDirectory))
 						{
 							continue;
 						}

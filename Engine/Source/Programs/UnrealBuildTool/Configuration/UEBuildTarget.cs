@@ -1376,6 +1376,7 @@ namespace UnrealBuildTool
 			// Find the base folders that can contain binaries
 			List<DirectoryReference> BaseDirs = new List<DirectoryReference>();
 			BaseDirs.Add(UnrealBuildTool.EngineDirectory);
+			BaseDirs.Add(UnrealBuildTool.EnterpriseDirectory);
 			foreach (FileReference Plugin in Plugins.EnumeratePlugins(ProjectFile))
 			{
 				BaseDirs.Add(Plugin.Directory);
@@ -1389,6 +1390,12 @@ namespace UnrealBuildTool
 			if (bUsePrecompiled)
 			{
 				BaseDirs.RemoveAll(x => x.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
+			}
+
+			// If we're in an installed enterprise build, remove anything under the enterprise folder
+			if (UnrealBuildTool.IsEnterpriseInstalled())
+			{
+				BaseDirs.RemoveAll(x => x.IsUnderDirectory(UnrealBuildTool.EnterpriseDirectory));
 			}
 
 			// If we're in an installed project build, only allow cleaning stuff that's under the mod directories
@@ -4556,7 +4563,7 @@ namespace UnrealBuildTool
 					}
 
 					// So all we care about are the game module and/or plugins.
-					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory)))
+					if (bDiscoverFiles && !UnrealBuildTool.IsUnderAnInstalledDirectory(ModuleFileName.Directory))
 					{
 						List<FileReference> SourceFilePaths = new List<FileReference>();
 

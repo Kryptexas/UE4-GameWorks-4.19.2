@@ -39,6 +39,11 @@ namespace UnrealBuildTool
 		static private bool? bIsEngineInstalled;
 
 		/// <summary>
+		/// Whether we're running with enterprise installed
+		/// </summary>
+		static private bool? bIsEnterpriseInstalled;
+
+		/// <summary>
 		/// Whether we're running with an installed project
 		/// </summary>
 		static private bool? bIsProjectInstalled;
@@ -201,6 +206,19 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Returns true if UnrealBuildTool is running using installed Enterprise components
+		/// </summary>
+		/// <returns>True if running using installed Enterprise components</returns>
+		static public bool IsEnterpriseInstalled()
+		{
+			if(!bIsEnterpriseInstalled.HasValue)
+			{
+				bIsEnterpriseInstalled = FileReference.Exists(FileReference.Combine(EnterpriseDirectory, "Build", "InstalledBuild.txt"));
+			}
+			return bIsEnterpriseInstalled.Value;
+		}
+
+		/// <summary>
 		/// Returns true if UnrealBuildTool is running using an installed project (ie. a mod kit)
 		/// </summary>
 		/// <returns>True if running using an installed project</returns>
@@ -267,6 +285,22 @@ namespace UnrealBuildTool
 			// Enterprise modules are considered as engine modules
 			return InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
 				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
+		}
+
+		/// <summary>
+		/// Determines whether a directory is part of an installed directory
+		/// </summary>
+		/// <param name="InDirectory"></param>
+		/// <returns>true if the directory is under an installed directory, false if not</returns>
+		static public bool IsUnderAnInstalledDirectory(DirectoryReference InDirectory)
+		{
+			// Enterprise modules are considered as engine modules
+			bool bIsUnderEngine = InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory );
+
+			bool bIsUnderEnterprise = InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
+				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
+
+			return (IsEngineInstalled() && bIsUnderEngine) || (IsEnterpriseInstalled() && bIsUnderEnterprise);
 		}
 
 		public static void RegisterAllUBTClasses(SDKOutputLevel OutputLevel, bool bValidatingPlatforms)

@@ -2012,7 +2012,7 @@ namespace UnrealBuildTool
 					{
 						EnterpriseProject = ProjectFile;
 						BaseFolder = UnrealBuildTool.EnterpriseDirectory;
-						if (UnrealBuildTool.IsEngineInstalled())
+						if (UnrealBuildTool.IsEnterpriseInstalled())
 						{
 							// Allow enterprise projects to be created but not built for Installed Engine builds
 							EnterpriseProject.IsForeignProject = false;
