@@ -60,9 +60,9 @@ struct FBuffers
 {
 	TIRVarSet AtomicVariables;
 
-	TArray<class ir_instruction*> Buffers;
+	TArray<ir_variable*> Buffers;
     
-    TArray<class ir_instruction*> Textures;
+    TArray<ir_variable*> Textures;
 
 	// Information about textures & samplers; we need to have unique samplerstate indices, as one they can be used independent of each other
 	TArray<std::string> UniqueSamplerStates;
@@ -148,9 +148,9 @@ struct FBuffers
 
 	void SortBuffers(_mesa_glsl_parse_state* state)
 	{
-		TArray<class ir_instruction*> AllBuffers;
+		TArray<ir_variable*> AllBuffers;
 		AllBuffers.AddZeroed(Buffers.Num());
-        TArray<class ir_instruction*> AllTextures;
+        TArray<ir_variable*> AllTextures;
         AllTextures.AddZeroed(Textures.Num());
         TIRVarList CBuffers;
         TIRVarList IBuffers;

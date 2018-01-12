@@ -1525,6 +1525,7 @@ void BuildMetalShaderOutput(
 				
 #if (PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING)				
 				FString Defines = Header.bDeviceFunctionConstants ? TEXT("-D__METAL_DEVICE_CONSTANT_INDEX__=1") : TEXT("");
+				Defines += FString::Printf(TEXT(" -D__METAL_MANUAL_TEXTURE_METADATA__=%d"), !(bUsingTessellation && (Frequency == SF_Vertex || Frequency == SF_Hull)));
 				switch(TypeMode)
 				{
 					case EMetalTypeBufferModeRaw:

@@ -3921,10 +3921,10 @@ protected:
             }
             ralloc_asprintf_append(buffer, "// @TessellationHSTFOutBuffer: %u\n", (uint32)hstfOutIndex);
             
-            int32 ControlPointBuffer = Buffers.Buffers.Num();
-            for (uint32 i = 0; i < 30u && i < (uint32)Buffers.Buffers.Num(); i++)
+            int32 ControlPointBuffer = UINT_MAX;
+            for (uint32 i = 0; i < 30u; i++)
             {
-                if(!Buffers.Buffers[i])
+                if(i >= (uint32)Buffers.Buffers.Num() || (!Buffers.Buffers[i] && (!Buffers.Textures[i] || !(Buffers.Textures[i]->type->sampler_buffer))))
                 {
                     ControlPointBuffer = i;
                     break;
@@ -4188,6 +4188,15 @@ public:
         {
             ralloc_asprintf_append(buffer, "#define __METAL_DEVICE_CONSTANT_INDEX__ 0\n");
         }
+		
+		if (Backend.bIsTessellationVSHS)
+		{
+			ralloc_asprintf_append(buffer, "#define __METAL_MANUAL_TEXTURE_METADATA__ 0\n");
+		}
+		else
+		{
+			ralloc_asprintf_append(buffer, "#define __METAL_MANUAL_TEXTURE_METADATA__ 1\n");
+		}
         
         buffer = 0;
 
