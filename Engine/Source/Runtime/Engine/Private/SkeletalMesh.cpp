@@ -975,7 +975,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 						{
 							FString FeatureLevelName;
 							GetFeatureLevelName(FeatureLevelType, FeatureLevelName);
-							UE_LOG(LogSkeletalMesh, Error, TEXT("Skeletal mesh %s has a LOD section with %d bones and the maximum supported number for feature level %s is %d.\n!This mesh will not be instantiated on the specified platform!"),
+							UE_LOG(LogSkeletalMesh, Warning, TEXT("Skeletal mesh %s has a LOD section with %d bones and the maximum supported number for feature level %s is %d.\n!This mesh will not be rendered on the specified platform!"),
 								*GetFullName(), MaxBonesPerChunk, *FeatureLevelName, MaxNrBones);
 						}
 					}
