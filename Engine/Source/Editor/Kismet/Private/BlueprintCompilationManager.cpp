@@ -1069,7 +1069,7 @@ void FBlueprintCompilationManagerImpl::FlushReinstancingQueueImpl()
 		FScopedDurationTimer ReinstTimer(GTimeReinstancing);
 		
 		TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
-		FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(ClassesToReinstance);
+		FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(ClassesToReinstance, true);
 
 		ClassesToReinstance.Empty();
 	}

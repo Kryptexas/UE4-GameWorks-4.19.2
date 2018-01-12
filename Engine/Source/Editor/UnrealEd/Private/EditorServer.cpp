@@ -1359,7 +1359,7 @@ void UEditorEngine::PostUndo(bool bSuccess)
 	}
 
 	// Re-instance any actors that need it
-	FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(OldToNewClassMapToReinstance);
+	FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(OldToNewClassMapToReinstance, false);
 }
 
 bool UEditorEngine::UndoTransaction(bool bCanRedo)
