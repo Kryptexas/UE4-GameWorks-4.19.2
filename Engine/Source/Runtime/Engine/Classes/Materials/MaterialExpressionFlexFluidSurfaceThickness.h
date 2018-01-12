@@ -1,5 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+//#nv begin #flex
 
 #pragma once
 #include "Materials/MaterialExpression.h"
@@ -40,5 +41,4 @@ class UMaterialExpressionFlexFluidSurfaceThickness : public UMaterialExpression
 	// End UMaterialExpression Interface
 };
 
-
-
+//#nv end

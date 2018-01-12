@@ -103,11 +103,11 @@ ActorFactory.cpp:
 
 #include "AssetRegistryModule.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 #include "VectorField/VectorField.h"
 
@@ -392,7 +392,7 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlagsIn, const FName Name)
 {
@@ -408,7 +408,7 @@ AActor* UActorFactoryStaticMesh::SpawnActor(UObject* Asset, ULevel* InLevel, con
 	return Super::SpawnActor(Asset, InLevel, Transform, ObjectFlagsIn, Name);
 }
 #endif
-// NvFlex end
+//#nv end
 
 /*-----------------------------------------------------------------------------
 UActorFactoryBasicShape

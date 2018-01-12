@@ -82,12 +82,12 @@
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "GameFramework/GameState.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "FrameworkObjectVersion.h"
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -777,14 +777,14 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 	EmitterEditorColor = FColor(0, 150, 150, 255);
 #endif // WITH_EDITORONLY_DATA
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	FlexContainerTemplate_DEPRECATED = nullptr;
 	Mass_DEPRECATED = 1.0f;
 	bLocalSpace_DEPRECATED = false;
 	FlexFluidSurfaceTemplate_DEPRECATED = nullptr;
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 FParticleEmitterInstance* UParticleEmitter::CreateInstance(UParticleSystemComponent* InComponent)
@@ -4491,7 +4491,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 	
-	// NvFlex begin
+	//#nv begin #flex
 	bool bHasFlexEmitter = false;
 #if WITH_FLEX
 	if (GFlexPluginBridge)
@@ -4511,7 +4511,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	if (bRequiresReset)
 	{
@@ -4695,7 +4695,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 #endif
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	}
 
@@ -4704,7 +4704,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	if (bHasFlexEmitter == false)
 	{
 #endif
-	// NvFlex end
+	//#nv end
 		if(CVarFXEarlySchedule.GetValueOnGameThread())
 		{
 			PrimaryComponentTick.TickGroup = TG_PrePhysics; 
@@ -7135,7 +7135,7 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	return INDEX_NONE;
 }
 
-// NvFlex begin
+//#nv begin #flex
 class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 {
 #if WITH_FLEX
@@ -7146,7 +7146,7 @@ class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 #endif
 	return nullptr;
 }
-// NvFlex end
+//#nv end
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

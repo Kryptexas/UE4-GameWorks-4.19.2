@@ -1,3 +1,4 @@
+//#nv begin #flex
 #pragma once
 
 class IFlexEditorPluginBridge
@@ -33,4 +34,7 @@ public:
 	virtual void RegisterComponentVisualizers(class FComponentVisualizersModule* ComponentVisualizersModule) = 0;
 };
 
+#if WITH_FLEX
 extern UNREALED_API class IFlexEditorPluginBridge* GFlexEditorPluginBridge;
+#endif
+//#nv end

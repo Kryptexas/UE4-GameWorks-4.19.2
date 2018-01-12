@@ -40,11 +40,11 @@ public:
 	TSharedPtr< FUICommandInfo > ResetCamera;
 	TSharedPtr< FUICommandInfo > SetShowSockets;
 	TSharedPtr< FUICommandInfo > SetDrawAdditionalData;
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	TSharedPtr< FUICommandInfo > SetDrawFlexPreview;
 #endif
-	// NvFlex end
+	//#nv end
 
 	// View Menu Commands
 	TSharedPtr< FUICommandInfo > SetShowNormals;

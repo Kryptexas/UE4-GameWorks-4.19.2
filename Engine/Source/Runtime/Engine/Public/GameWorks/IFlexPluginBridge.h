@@ -1,3 +1,4 @@
+//#nv begin #flex
 #pragma once
 
 #include "Async/TaskGraphInterfaces.h"
@@ -62,4 +63,7 @@ public:
 	virtual void GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams) = 0;
 };
 
+#if WITH_FLEX
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;
+#endif
+//#nv end

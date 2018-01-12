@@ -1,7 +1,10 @@
+//#nv begin #flex
 #include "GameWorks/IFlexPluginBridge.h"
 #include "GameWorks/FlexPluginCommon.h"
 
+#if WITH_FLEX
 IFlexPluginBridge* GFlexPluginBridge = nullptr;
+#endif
 
 FFlexInertialScale::FFlexInertialScale()
 {
@@ -17,3 +20,4 @@ FFlexPhase::FFlexPhase()
 	IgnoreRestCollisions = false;
 	Fluid = false;
 }
+//#nv end

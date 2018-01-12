@@ -40,12 +40,12 @@ public:
 	/** Constructs, destroys, and updates preview mesh components based on the preview static mesh's sockets. */
 	void UpdatePreviewSocketMeshes();
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	/** Constructs, destroys, and updates the flex asset preview component. */
 	void UpdateFlexPreviewComponent();
 #endif
-	// NvFlex end
+	//#nv end
 
 	void RefreshViewport();
 	
@@ -55,7 +55,7 @@ public:
 	/** Component for the preview static mesh. */
 	TArray<UStaticMeshComponent*> SocketPreviewMeshComponents;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	/** Component for the preview of an associated flex asset. */
 	class UPrimitiveComponent* FlexPreviewComponent;
@@ -63,7 +63,7 @@ public:
 	/** flag to toggle flex preview. */
 	uint32 bDrawFlexPreview : 1;
 #endif
-	// NvFlex end
+	//#nv end
 
 	/** 
 	 *	Forces a specific LOD level onto the static mesh component.
@@ -144,7 +144,7 @@ private:
 	/** Callback for checking the vertex color show flag. */
 	bool IsInViewModeVertexColorChecked() const;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	/** Callback for toggling flex preview flag. */
 	void SetDrawFlexPreview();
@@ -152,7 +152,7 @@ private:
 	/** Callback for checking the flex preview flag. */
 	bool IsSetDrawFlexPreviewChecked() const;
 #endif
-	// NvFlex end
+	//#nv end
 
 	/** Callback for toggling the realtime preview flag. */
 	void SetRealtimePreview();

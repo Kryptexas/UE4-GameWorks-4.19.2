@@ -743,9 +743,9 @@ public:
 	// FlushType: Flush Immediate (seems dangerous)
 	virtual void RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer, FVertexBufferRHIParamRef DestBuffer) = 0;
 
-	// NvFlex begin
+	//#nv begin #flex
 	virtual void* RHIGetVertexBufferPtrForFlex(FVertexBufferRHIParamRef VertexBuffer) { return nullptr; }
-	// NvFlex end
+	//#nv end
 
 	/**
 	* @param ResourceArray - An optional pointer to a resource array containing the resource's data.

@@ -864,11 +864,11 @@ void UnloadPhysXModules();
 
 ENGINE_API void	InitGamePhys();
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 ENGINE_API void	InitGamePhysPostRHI();
 #endif
-// NvFlex end
+//#nv end
 
 ENGINE_API void	TermGamePhys();
 

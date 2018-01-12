@@ -83,7 +83,7 @@ public:
 
 protected:
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	/**
 	* Add the decl elements for the streams
@@ -99,7 +99,7 @@ protected:
 	*/
 	virtual void AddVertexPositionElements(FDataType& InData, FVertexDeclarationElementList& OutElements);
 #endif
-	// NvFlex end
+	//#nv end
 
 	FDataType Data;
 	int32 ColorStreamIndex;

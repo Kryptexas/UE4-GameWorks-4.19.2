@@ -223,11 +223,11 @@ void FD3D11DynamicRHI::RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer
 	GPUProfilingData.RegisterGPUWork(1);
 }
 
-// NvFlex begin
+//#nv begin #flex
 void* FD3D11DynamicRHI::RHIGetVertexBufferPtrForFlex(FVertexBufferRHIParamRef VertexBufferRHI)
 {
 	FD3D11VertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 
 	return VertexBuffer->Resource;
 }
-// NvFlex end
+//#nv end

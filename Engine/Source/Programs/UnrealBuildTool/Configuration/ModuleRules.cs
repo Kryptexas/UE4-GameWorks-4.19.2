@@ -546,7 +546,7 @@ namespace UnrealBuildTool
 			{
 				Definitions.Add("WITH_NVCLOTH=0");
 			}
-            // NvFlex begin
+            //#nv begin #flex
             if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
             {
                 Definitions.Add("WITH_FLEX=1");
@@ -555,7 +555,7 @@ namespace UnrealBuildTool
             {
                 Definitions.Add("WITH_FLEX=0");
             }
-            // NvFlex end
+            //#nv end
         }
 
         /// <summary>

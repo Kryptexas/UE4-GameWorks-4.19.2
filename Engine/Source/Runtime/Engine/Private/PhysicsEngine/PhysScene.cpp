@@ -24,11 +24,11 @@
 
 #include "PhysicsEngine/PhysSubstepTasks.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/DestructibleComponent.h"
@@ -550,7 +550,7 @@ FPhysScene::~FPhysScene()
 {
 	FCoreUObjectDelegates::PreGarbageCollect.Remove(PreGarbageCollectDelegateHandle);
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	// Clean up Flex scenes
 	if (GFlexPluginBridge)
@@ -558,7 +558,7 @@ FPhysScene::~FPhysScene()
 		GFlexPluginBridge->CleanupFlexScenes(this);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();

@@ -609,7 +609,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithStaticLighting:1;
 
-	// NvFlex begin
+	//#nv begin #flex
 	/** 
 	* Indicates that the material and its instances can be use with flex fluid surfaces
 	* This will result in the shaders required to support flex fluid surfaces being compiled which will increase shader compile time and memory usage.
@@ -623,7 +623,7 @@ public:
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
 	uint32 bUsedWithFlexMeshes : 1;
-	// NvFlex end
+	//#nv end
 
 	/** 
 	 * Indicates that the material and its instances can be use with morph targets

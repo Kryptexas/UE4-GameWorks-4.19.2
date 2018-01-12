@@ -1715,11 +1715,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	
 	FShaderCache::LoadBinaryCache();
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	InitGamePhysPostRHI();
 #endif
-	// NvFlex end
+	//#nv end
 
 	if (!FPlatformProperties::RequiresCookedData())
 	{

@@ -327,12 +327,12 @@ public:
 	/** true if the emitter has no active particles and will no longer spawn any in the future */
 	bool bEmitterIsDone;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	/** The container instance to emit into								*/
 	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
 #endif
-	// NvFlex end
+	//#nv end
 
 	/** The number of triangles to render								*/
 	int32	TrianglesToRender;

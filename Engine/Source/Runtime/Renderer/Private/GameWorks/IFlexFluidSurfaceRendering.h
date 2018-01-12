@@ -1,9 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-IFlexFluidSurfaceRendering.h: Flex fluid surface rendering definitions.
-=============================================================================*/
-
+//#nv begin #flex
 #pragma once
 
 #include "ShaderBaseClasses.h"
@@ -23,4 +18,7 @@ public:
 	virtual void PostRenderOpaque(FRHICommandList& RHICmdList, const TArray<FViewInfo>& Views) = 0;
 };
 
+#if WITH_FLEX
 extern RENDERER_API class IFlexFluidSurfaceRenderer* GFlexFluidSurfaceRenderer;
+#endif
+//#nv end

@@ -621,11 +621,11 @@ public:
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
 
-	// NvFlex begin
+	//#nv begin #flex
     /** Properties for the associated Flex object */
 	UPROPERTY()
 	UObject* FlexAsset_DEPRECATED;
-	// NvFlex end
+	//#nv end
 
 public:
 	/**
@@ -654,11 +654,11 @@ public:
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif
-	// NvFlex end
+	//#nv end
 
 	//~ End UObject Interface.
 

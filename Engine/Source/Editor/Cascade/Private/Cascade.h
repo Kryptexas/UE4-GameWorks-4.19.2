@@ -162,11 +162,11 @@ public:
 	void OnCustomModuleOption(int32 Idx);
 	void OnNewModule(int32 Idx);
 	void OnNewEmitter(
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		class UClass* NewEmitClass = nullptr
 #endif
-		// NvFlex end
+		//#nv end
 	);
 	void OnRestartInLevel();
 	void OnDeleteEmitter();
@@ -282,11 +282,11 @@ private:
 
 	/** Duplicates an existing emitter */
 	bool DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		, UClass* NewEmitClass = nullptr, FName NewName = NAME_None
 #endif
-		// NvFlex end
+		//#nv end
 	);
 
 	/** Adds a new emitter */
@@ -399,11 +399,11 @@ private:
 	void OnNewEmitterBefore();
 	void OnNewEmitterAfter();
 	void OnRemoveDuplicateModules();
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	void OnConvertToFlexEmitter();
 #endif
-	// NvFlex end
+	//#nv end
 
 	void CloseEntryPopup();
 

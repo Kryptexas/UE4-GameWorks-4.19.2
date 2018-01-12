@@ -25,11 +25,11 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexFluidSurfaceRendering.h"
 #endif
-// NvFlex end
+//#nv end
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
@@ -756,11 +756,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	};
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	GFlexFluidSurfaceRenderer->PreRenderOpaque(RHICmdList, Views);
 #endif
-	// NvFlex end
+	//#nv end
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
@@ -1011,11 +1011,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	GFlexFluidSurfaceRenderer->PostRenderOpaque(RHICmdList, Views);
 #endif
-	// NvFlex end
+	//#nv end
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 

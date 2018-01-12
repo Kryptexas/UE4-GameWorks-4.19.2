@@ -42,11 +42,11 @@
 #include "DerivedDataCacheInterface.h"
 #endif // #if WITH_EDITOR
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
@@ -133,7 +133,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	// TODO: Not needed in uncooked games either after PostLoad!
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	// cloth and soft bodies currently need access to data on the CPU
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Owner);
@@ -142,7 +142,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		bNeedsCPUAccess = true;
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
@@ -1412,11 +1412,11 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 
 	bSupportUniformlyDistributedSampling = false;
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	FlexAsset_DEPRECATED = nullptr;
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void UStaticMesh::PostInitProperties()
@@ -1759,7 +1759,7 @@ void UStaticMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 /**
  * Callback used to allow object register its direct object references that are not already covered by
@@ -1774,7 +1774,7 @@ void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Col
 	Super::AddReferencedObjects( This, Collector );
 }
 #endif
-// NvFlex end
+//#nv end
 
 #if WITH_EDITOR
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
@@ -1834,14 +1834,14 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		BroadcastNavCollisionChange();
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->ReImportFlexAsset(this);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
@@ -2357,7 +2357,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 #if 0
 	// make old static meshs load until they can be resaved
@@ -2368,7 +2368,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 #endif
 #endif
-	// NvFlex end
+	//#nv end
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )

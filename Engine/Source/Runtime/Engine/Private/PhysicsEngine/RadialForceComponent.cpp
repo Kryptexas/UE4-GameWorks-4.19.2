@@ -11,11 +11,11 @@
 #include "PhysicsEngine/RadialForceActor.h"
 #include "Components/DestructibleComponent.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
@@ -29,11 +29,11 @@ URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectIni
 	ImpulseStrength = 1000.0f;
 	ForceStrength = 10.0f;
 	bAutoActivate = true;
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	FlexAttach = false;
 #endif
-	// NvFlex end
+	//#nv end
 
 	// by default we affect all 'dynamic' objects that can currently be affected by forces
 	AddCollisionChannelToAffect(ECC_Pawn);
@@ -101,7 +101,7 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			}
 		}
 	
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (ForceStrength != 0.0f)
 		{
@@ -113,7 +113,7 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			}
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 	}
 }
@@ -124,7 +124,7 @@ void URadialForceComponent::BeginPlay()
 
 	UpdateCollisionObjectQueryParams();
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	// create rigid attachments to overlapping Flex actors
 	if (FlexAttach && GFlexPluginBridge)
@@ -132,7 +132,7 @@ void URadialForceComponent::BeginPlay()
 		GFlexPluginBridge->AttachFlexToComponent(this, Radius);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void URadialForceComponent::PostLoad()
@@ -202,7 +202,7 @@ void URadialForceComponent::FireImpulse()
 			}
 		}
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (ImpulseStrength != 0.0f)
 		{
@@ -214,7 +214,7 @@ void URadialForceComponent::FireImpulse()
 			}
 		}
 #endif
-		// NvFlex end
+		//#nv end
 	}
 }
 

@@ -1,3 +1,4 @@
+//#nv begin #flex
 #pragma once
 
 #include "CoreMinimal.h"
@@ -49,3 +50,4 @@ struct ENGINE_API FFlexPhase
 
 	FFlexPhase();
 };
+//#nv end

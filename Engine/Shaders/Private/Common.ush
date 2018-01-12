@@ -60,14 +60,14 @@
 #define MOBILE_FORCE_DEPTH_TEXTURE_READS 0
 #endif
 
-// NvFlex begin
+//#nv begin #flex
 #if FLEX_FLUID_SURFACE_FACTORY
 Texture2D FlexFluidSurfaceThicknessTexture;
 SamplerState FlexFluidSurfaceThicknessTextureSampler;
 Texture2D FlexFluidSurfaceColorTexture;
 SamplerState FlexFluidSurfaceColorTextureSampler;
 #endif
-// NvFlex end
+//#nv end
 
 // Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
 #define USE_GLOBAL_CLIP_PLANE (PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
@@ -1026,7 +1026,7 @@ float4 GetPerPixelLightAttenuation(float2 UV)
 	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
 }
 
-// NvFlex begin
+//#nv begin #flex
 // Returns thickness provided for flex fluid surface rendering
 float CalcFlexFluidSurfaceThicknessForMaterialNode(float2 ScreenUV)
 {
@@ -1046,7 +1046,7 @@ float4 CalcFlexFluidSurfaceColorForMaterialNode(float2 ScreenUV)
 	return float4(0.0f, 0.0f, 0.0f, 0.0f);
 #endif
 }
-// NvFlex end
+//#nv end
 
 // also see ConvertToDeviceZ()
 // @param DeviceZ value that is stored in the depth buffer (Z/W)

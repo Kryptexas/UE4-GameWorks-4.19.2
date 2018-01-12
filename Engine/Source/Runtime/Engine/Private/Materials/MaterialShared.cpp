@@ -868,7 +868,7 @@ bool FMaterialResource::IsUsedWithStaticLighting() const
 	return Material->bUsedWithStaticLighting;
 }
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 bool FMaterialResource::IsUsedWithFlexFluidSurfaces() const
 {
@@ -881,7 +881,7 @@ bool FMaterialResource::IsUsedWithFlexMeshes() const
 }
 
 #endif
-// NvFlex end
+//#nv end
 
 bool FMaterialResource::IsUsedWithMorphTargets() const
 {

@@ -1063,11 +1063,11 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 
 		if ((MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() || ViewFamily.EngineShowFlags.Wireframe)
 			&& MeshBatchAndRelevance.GetRenderInMainPass()
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 			&& MeshBatchAndRelevance.Mesh->bRenderable
 #endif
-	// NvFlex end
+	//#nv end
 		)
 		{
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;

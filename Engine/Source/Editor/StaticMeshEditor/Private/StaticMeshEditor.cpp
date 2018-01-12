@@ -42,11 +42,11 @@
 
 #include "AdvancedPreviewSceneModule.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
@@ -547,14 +547,14 @@ void FStaticMeshEditor::ExtendToolBar()
 					LOCTEXT("UVToolbarTooltip", "Toggles display of the static mesh's UVs for the specified channel."),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetDrawUVs"));
 
-				// NvFlex begin
+				//#nv begin #flex
 #if WITH_FLEX
 				if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexStaticMesh(ThisEditor->GetStaticMesh()))
 				{
 					ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
 				}
 #endif
-				// NvFlex end
+				//#nv end
 			}
 
 			ToolbarBuilder.EndSection();
@@ -2013,7 +2013,7 @@ void FStaticMeshEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyC
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	//update preview flex mesh post UFlexAsset::ReImport
 	if (GFlexEditorPluginBridge)
@@ -2024,7 +2024,7 @@ void FStaticMeshEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyC
 		}
 	}
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void FStaticMeshEditor::UndoAction()
@@ -2076,11 +2076,11 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 		RefreshTool();
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	Viewport->UpdateFlexPreviewComponent();
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void FStaticMeshEditor::SetCurrentViewedUVChannel(int32 InNewUVChannel)

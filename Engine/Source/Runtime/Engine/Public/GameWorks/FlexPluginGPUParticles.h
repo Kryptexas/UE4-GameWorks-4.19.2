@@ -1,3 +1,4 @@
+//#nv begin #flex
 #pragma once
 
 struct FFlexGPUParticleSimulationParameters
@@ -63,3 +64,4 @@ FArchive& operator<<(FArchive& Ar, FFlexGPUParticleSimulationShaderParameters& P
 	Ar << Parameters.VelocityBuffer;
 	return Ar;
 }
+//#nv end

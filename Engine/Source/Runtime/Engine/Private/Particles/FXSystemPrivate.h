@@ -31,11 +31,11 @@ namespace EParticleSimulatePhase
 {
 	enum Type
 	{
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		Flex,
 #endif
-		// NvFlex end
+		//#nv end
 
 		/** The main simulation pass is for standard particles. */
 		Main,
@@ -57,11 +57,11 @@ enum EParticleCollisionShaderMode
 	PCM_None,
 	PCM_DepthBuffer,
 	PCM_DistanceField,
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	PCM_Flex
 #endif
-	// NvFlex end
+	//#nv end
 };
 
 /** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
@@ -75,12 +75,12 @@ inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EPartic
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4) && !IsSimpleForwardShadingEnabled(InPlatform);
 	case PCM_DistanceField:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5);
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	case PCM_Flex:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5);
 #endif
-	// NvFlex end
+	//#nv end
 	}
 	check(0);
 	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);

@@ -17,11 +17,11 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Engine/StaticMeshSocket.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 #define HITPROXY_SOCKET	1
 
@@ -99,13 +99,13 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SetPreviewMesh(StaticMesh);
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	FlexPreviewComponent = nullptr;
 	bDrawFlexPreview = true;
 	UpdateFlexPreviewComponent();
 #endif
-	// NvFlex end
+	//#nv end
 
 	ViewportOverlay->AddSlot()
 		.VAlign(VAlign_Top)
@@ -126,14 +126,14 @@ SStaticMeshEditorViewport::SStaticMeshEditorViewport()
 
 SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 {
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (FlexPreviewComponent)
 	{
 		PreviewScene->RemoveComponent(FlexPreviewComponent);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	if (EditorViewportClient.IsValid())
@@ -215,14 +215,14 @@ void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModi
 		}
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsObjectFlexAssetOrContainer(ObjectBeingModified, StaticMesh))
 	{
 		UpdateFlexPreviewComponent();
 	}
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
@@ -277,7 +277,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 	}
 }
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 void SStaticMeshEditorViewport::UpdateFlexPreviewComponent()
 {
@@ -289,7 +289,7 @@ void SStaticMeshEditorViewport::UpdateFlexPreviewComponent()
 	}
 }
 #endif
-// NvFlex end
+//#nv end
 
 void SStaticMeshEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh)
 {
@@ -418,7 +418,7 @@ bool SStaticMeshEditorViewport::IsInViewModeVertexColorChecked() const
 	return EditorViewportClient->EngineShowFlags.VertexColors;
 }
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 void SStaticMeshEditorViewport::SetDrawFlexPreview()
 {
@@ -436,7 +436,7 @@ bool SStaticMeshEditorViewport::IsSetDrawFlexPreviewChecked() const
 	return bDrawFlexPreview;
 }
 #endif
-// NvFlex end
+//#nv end
 
 void SStaticMeshEditorViewport::ForceLODLevel(int32 InForcedLOD)
 {
@@ -498,7 +498,7 @@ void SStaticMeshEditorViewport::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SStaticMeshEditorViewport::IsInViewModeVertexColorChecked ) );
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	CommandList->MapAction(
 		Commands.SetDrawFlexPreview,
@@ -506,7 +506,7 @@ void SStaticMeshEditorViewport::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SStaticMeshEditorViewport::IsSetDrawFlexPreviewChecked ) );
 #endif
-	// NvFlex end
+	//#nv end
 
 	CommandList->MapAction(
 		Commands.ResetCamera,

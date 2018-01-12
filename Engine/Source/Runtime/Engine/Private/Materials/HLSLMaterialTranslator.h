@@ -2816,7 +2816,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float2,TEXT("Parameters.Particle.Size"));
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	virtual int32 FlexFluidSurfaceThickness(int32 Offset, int32 UV, bool bUseOffset) override
 	{
@@ -2871,7 +2871,7 @@ protected:
 		);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{

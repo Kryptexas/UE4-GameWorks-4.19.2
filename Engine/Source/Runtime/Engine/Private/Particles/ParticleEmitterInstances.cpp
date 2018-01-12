@@ -29,11 +29,11 @@
 
 #include "Components/PointLightComponent.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 /*-----------------------------------------------------------------------------
 FParticlesStatGroup
@@ -293,11 +293,11 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , LoopCount(0)
 	, IsRenderDataDirty(0)
     , EmitterDuration(0.0f)
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	, FlexEmitterInstance(NULL)
 #endif
-	// NvFlex end
+	//#nv end
 	, TrianglesToRender(0)
 	, MaxVertexIndex(0)
 	, CurrentMaterial(NULL)
@@ -313,14 +313,14 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 /** Destructor	*/
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->DestroyFlexEmitterInstance(this);
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	for (int32 i = 0; i < HighQualityLights.Num(); ++i)
 	{
@@ -379,14 +379,14 @@ void FParticleEmitterInstance::Init()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleEmitterInstance_InitSize);
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->CreateFlexEmitterInstance(this);
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 		// Copy pre-calculated info
 		bRequiresLoopNotification = SpriteTemplate->bRequiresLoopNotification;
@@ -716,14 +716,14 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		CurrentMaterial = LODLevel->RequiredModule->Material;
 		Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->TickFlexEmitterInstance(this, DeltaTime, bSuppressSpawning);
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 		// Spawn new particles.
 		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
@@ -1417,14 +1417,14 @@ uint32 FParticleEmitterInstance::RequiredBytes()
 		uiBytes	= sizeof(FFullSubUVPayload);
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		uiBytes = GFlexPluginBridge->GetFlexEmitterInstanceRequiredBytes(this, uiBytes);
 	}
 #endif	
-	// NvFlex end
+	//#nv end
 
 	return uiBytes;
 }
@@ -2045,7 +2045,7 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			continue;
 		}
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
@@ -2055,7 +2055,7 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			}
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 		if (EventPayload)
 		{
@@ -2263,14 +2263,14 @@ void FParticleEmitterInstance::KillParticles()
 				ParticleIndices[ActiveParticles-1]	= CurrentIndex;
 				ActiveParticles--;
 
-				// NvFlex begin
+				//#nv begin #flex
 #if WITH_FLEX
 				if (GFlexPluginBridge)
 				{
 					GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 				}
 #endif
-				// NvFlex end
+				//#nv end
 
 				INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 			}
@@ -2316,14 +2316,14 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 		ParticleIndices[ActiveParticles-1] = KillIndex;
 		ActiveParticles--;
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, KillIndex);
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2391,14 +2391,14 @@ void FParticleEmitterInstance::KillParticlesForced(bool bFireEvents)
 		ParticleIndices[ActiveParticles - 1] = CurrentIndex;
 		ActiveParticles--;
 
-		// NvFlex begin
+		//#nv begin #flex
 #if WITH_FLEX
 		if (GFlexPluginBridge)
 		{
 			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
 		}
 #endif
-		// NvFlex end
+		//#nv end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2506,14 +2506,14 @@ bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurren
 		return false;
 	}
 
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	if (GFlexPluginBridge && GFlexPluginBridge->FlexEmitterInstanceShouldRenderParticles(this) == false)
 	{
 		return false;
 	}
 #endif
-	// NvFlex end
+	//#nv end
 
 	if ((InCurrentLODLevel == NULL) || (InCurrentLODLevel->bEnabled == false) ||
 		((InCurrentLODLevel->RequiredModule->bUseMaxDrawCount == true) && (InCurrentLODLevel->RequiredModule->MaxDrawCount == 0)))
@@ -2785,13 +2785,13 @@ bool FParticleEmitterInstance::Tick_MaterialOverrides()
 bool FParticleEmitterInstance::UseLocalSpace()
 {
 	const UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-	// NvFlex begin
+	//#nv begin #flex
 #if WITH_FLEX
 	return LODLevel->RequiredModule->bUseLocalSpace || (GIsEditor && !GIsPlayInEditorWorld && GFlexPluginBridge && GFlexPluginBridge->FlexEmitterInstanceShouldForceLocalSpace(this));
 #else
 	return LODLevel->RequiredModule->bUseLocalSpace;
 #endif
-	// NvFlex end
+	//#nv end
 }
 
 void FParticleEmitterInstance::GetScreenAlignmentAndScale(int32& OutScreenAlign, FVector& OutScale)

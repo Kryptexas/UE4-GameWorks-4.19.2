@@ -53,11 +53,11 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
-// NvFlex begin
+//#nv begin #flex
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
-// NvFlex end
+//#nv end
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -1401,7 +1401,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 			}
 
-			// NvFlex begin
+			//#nv begin #flex
 #if WITH_FLEX
 			if (GFlexPluginBridge)
 			{
@@ -1464,7 +1464,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			}
 			else
 #endif
-			// NvFlex end
+			//#nv end
 			{
 				TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 				{
