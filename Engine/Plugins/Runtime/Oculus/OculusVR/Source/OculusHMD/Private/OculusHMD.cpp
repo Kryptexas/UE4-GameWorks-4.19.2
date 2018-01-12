@@ -1441,11 +1441,15 @@ namespace OculusHMD
 
 			if (TextureSet.IsValid())
 			{
-				UE_LOG(LogHMD, Log, TEXT("Allocating Oculus %d x %d depth rendertarget swapchain"), SizeX, SizeY);
-				OutTargetableTexture = TextureSet->GetTexture2D();
-				OutShaderResourceTexture = TextureSet->GetTexture2D();
-				bNeedReAllocateDepthTexture_RenderThread = false;
-				return true;
+				// Ensure the texture size matches the eye layer. We may get other depth allocations unrelated to the main scene render.
+				if (FIntPoint(SizeX, SizeY) == TextureSet->GetTexture2D()->GetSizeXY())
+				{
+					UE_LOG(LogHMD, Log, TEXT("Allocating Oculus %d x %d depth rendertarget swapchain"), SizeX, SizeY);
+					OutTargetableTexture = TextureSet->GetTexture2D();
+					OutShaderResourceTexture = TextureSet->GetTexture2D();
+					bNeedReAllocateDepthTexture_RenderThread = false;
+					return true;
+				}
 			}
 		}
 

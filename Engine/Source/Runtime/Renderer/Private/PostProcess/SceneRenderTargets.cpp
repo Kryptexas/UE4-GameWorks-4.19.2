@@ -298,12 +298,12 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 		bIsVRScene |= View->StereoPass != EStereoscopicPass::eSSP_FULL;
 	}
 
-	if(!FPlatformProperties::SupportsWindowedMode())
+	if(!FPlatformProperties::SupportsWindowedMode() || bIsVRScene)
 	{
 		// Force ScreenRes on non windowed platforms.
 		SceneTargetsSizingMethod = RequestedSize;
 	}
-	else if (GIsEditor && !bIsVRScene)
+	else if (GIsEditor)
 	{
 		// Always grow scene render targets in the editor.
 		SceneTargetsSizingMethod = Grow;
@@ -336,10 +336,10 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 			checkNoEntry();
 	}
 
-
 	// we want to shrink the buffer but as we can have multiple scenecaptures per frame we have to delay that a frame to get all size requests
-	// Don't save buffer size in history while making high-res screenshot
-	if(!GIsHighResScreenshot)
+	// Don't save buffer size in history while making high-res screenshot.
+	// We have to use the requested size when allocating an hmd depth target to ensure it matches the hmd allocated render target size.
+	if(!GIsHighResScreenshot && !bHMDAllocatedDepthTarget)
 	{
 		// this allows The BufferSize to not grow below the SceneCapture requests (happen before scene rendering, in the same frame with a Grow request)
 		LargestDesiredSizes[CurrentDesiredSizeIndex] = LargestDesiredSizes[CurrentDesiredSizeIndex].ComponentMax(DesiredBufferSize);
