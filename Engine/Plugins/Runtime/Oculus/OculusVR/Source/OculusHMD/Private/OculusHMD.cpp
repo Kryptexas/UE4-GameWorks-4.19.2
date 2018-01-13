@@ -2404,6 +2404,10 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			Settings->UpdatePixelDensity(Settings->PixelDensity * FMath::Sqrt(AdaptiveGpuPerformanceScale));
 		}
 
+		// Due to hijacking the depth target directly from the scene context, we can't support depth compositing if it's being scaled by screen percentage since it wont match our color render target dimensions.
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		const bool bSupportsDepth = (ScreenPercentageCVar) ? ScreenPercentageCVar->GetFloat() == 100.0f : true;
+
 		// Update EyeLayer
 		FLayerPtr* EyeLayerFound = LayerMap.Find(0);
 		FLayer* EyeLayer = new FLayer(**EyeLayerFound);
@@ -2446,7 +2450,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			Settings->Flags.bHQDistortion ? 0 : 1,
 			1, // UNDONE
 			CustomPresent->GetDefaultOvrpTextureFormat(),
-			Settings->Flags.bCompositeDepth ? CustomPresent->GetDefaultDepthOvrpTextureFormat() : ovrpTextureFormat_None,
+			(Settings->Flags.bCompositeDepth && bSupportsDepth) ? CustomPresent->GetDefaultDepthOvrpTextureFormat() : ovrpTextureFormat_None,
 			0,
 			&EyeLayerDesc)))
 		{
