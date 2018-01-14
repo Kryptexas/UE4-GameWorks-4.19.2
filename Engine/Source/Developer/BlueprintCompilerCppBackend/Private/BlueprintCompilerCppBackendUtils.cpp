@@ -305,92 +305,114 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 
 FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 InExportCPPFlags, FEmitterLocalContext::EPropertyNameInDeclaration ParameterName, const FString& NamePostfix, const FString& TypePrefix) const
 {
-	FString ActualCppType;
-	FString* ActualCppTypePtr = nullptr;
-	FString ActualExtendedType;
-	FString* ActualExtendedTypePtr = nullptr;
 	uint32 ExportCPPFlags = InExportCPPFlags;
+	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 
-	auto GetActualNameCPP = [&](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass)
+	auto GetCppTypeFromProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix](const UProperty* InProperty, FString& OutExtendedCppType) -> FString
 	{
-		auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
-		if (BPGC || !TypePrefix.IsEmpty())
+		auto GetCppTypeFromObjectProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass, FString& OutExtendedCppType) -> FString
 		{
-			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
-			const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-			UClass* NativeType = GetFirstNativeOrConvertedClass(InActualClass);
-			check(NativeType);
-			ActualCppType = TypePrefix + ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
-			ActualCppTypePtr = &ActualCppType;
-			if (!ActualExtendedType.IsEmpty())
+			FString Result;
+
+			auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
+			if (BPGC || !TypePrefix.IsEmpty())
 			{
-				ActualExtendedTypePtr = &ActualExtendedType;
+				UClass* NativeType = GetFirstNativeOrConvertedClass(InActualClass);
+				check(NativeType);
+
+				const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+				Result = TypePrefix + ObjectPropertyBase->GetCPPTypeCustom(&OutExtendedCppType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
+			}
+
+			return Result;
+		};
+
+		FString Result;
+		if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(ClassProperty, ClassProperty->MetaClass, OutExtendedCppType);
+		}
+		else if (auto SoftClassProperty = Cast<const USoftClassProperty>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(SoftClassProperty, SoftClassProperty->MetaClass, OutExtendedCppType);
+		}
+		else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(ObjectProperty, ObjectProperty->PropertyClass, OutExtendedCppType);
+		}
+		else if (auto StructProperty = Cast<const UStructProperty>(InProperty))
+		{
+			Result = FEmitHelper::GetCppName(StructProperty->Struct, false);
+		}
+		else if (auto SCDelegateProperty = Cast<const UDelegateProperty>(InProperty))
+		{
+			const FString* SCDelegateTypeName = MCDelegateSignatureToSCDelegateType.Find(SCDelegateProperty->SignatureFunction);
+			if (SCDelegateTypeName)
+			{
+				Result = *SCDelegateTypeName;
 			}
 		}
+
+		return Result;
 	};
 
-	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property);
-	if (ArrayProperty)
+	FString ActualCppType, ActualExtendedCppType;
+	if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
 	{
-		Property = ArrayProperty->Inner;
-		ExportCPPFlags = (ExportCPPFlags & ~CPPF_ArgumentOrReturnValue);
-	}
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
 
-	if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(Property))
-	{
-		GetActualNameCPP(ClassProperty, ClassProperty->MetaClass);
-	}
-	else if (auto SoftClassProperty = Cast<const USoftClassProperty>(Property))
-	{
-		GetActualNameCPP(SoftClassProperty, SoftClassProperty->MetaClass);
-	}
-	else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
-	{
-		GetActualNameCPP(ObjectProperty, ObjectProperty->PropertyClass);
-	}
-	else if (auto StructProperty = Cast<const UStructProperty>(Property))
-	{
-		ActualCppType = FEmitHelper::GetCppName(StructProperty->Struct, false);
-		ActualCppTypePtr = &ActualCppType;
-	}
-	else if (auto SCDelegateProperty = Cast<const UDelegateProperty>(Property))
-	{
-		const FString* SCDelegateTypeName = MCDelegateSignatureToSCDelegateType.Find(SCDelegateProperty->SignatureFunction);
-		if (SCDelegateTypeName)
+		FString InnerCppType, InnerExtendedCppType;
+		InnerCppType = GetCppTypeFromProperty(ArrayProperty->Inner, InnerExtendedCppType);
+		if (!InnerCppType.IsEmpty())
 		{
-			ActualCppType = *SCDelegateTypeName;
-			ActualCppTypePtr = &ActualCppType;
-		}
-	}
-
-	// TODO: TypePrefix for other properties
-
-	if (ArrayProperty)
-	{
-		Property = ArrayProperty;
-		if (ActualCppTypePtr)
-		{
-			const FString LocalActualCppType = ActualCppType;
-			ActualCppType.Empty();
-			const FString LocalActualExtendedType = ActualExtendedType;
-			ActualExtendedType.Empty();
-			ActualExtendedTypePtr = nullptr;
-
-			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 			const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-
-			ActualCppType = ArrayProperty->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, LocalActualCppType, LocalActualExtendedType);
-			if (!ActualExtendedType.IsEmpty())
-			{
-				ActualExtendedTypePtr = &ActualExtendedType;
-			}
+			ActualCppType = ArrayProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, InnerCppType, InnerExtendedCppType);
 		}
+	}
+	else if (const USetProperty* SetProperty = Cast<const USetProperty>(Property))
+	{
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
+
+		FString ElementCppType, ElementExtendedCppType;
+		ElementCppType = GetCppTypeFromProperty(SetProperty->ElementProp, ElementExtendedCppType);
+		if (!ElementCppType.IsEmpty())
+		{
+			const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+			ActualCppType = SetProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, ElementCppType, ElementExtendedCppType);
+		}
+	}
+	else if (const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
+	{
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
+
+		FString KeyCppType, KeyExtendedCppType;
+		KeyCppType = GetCppTypeFromProperty(MapProperty->KeyProp, KeyExtendedCppType);
+		if (KeyCppType.IsEmpty())
+		{
+			KeyCppType = MapProperty->KeyProp->GetCPPType(&KeyExtendedCppType, ExportCPPFlags);
+		}
+
+		FString ValueCppType, ValueExtendedCppType;
+		ValueCppType = GetCppTypeFromProperty(MapProperty->ValueProp, ValueExtendedCppType);
+		if (ValueCppType.IsEmpty())
+		{
+			ValueCppType = MapProperty->ValueProp->GetCPPType(&ValueExtendedCppType, ExportCPPFlags);
+		}
+
+		const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+		ActualCppType = MapProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, KeyCppType, KeyExtendedCppType, ValueCppType, ValueExtendedCppType);
+	}
+	else
+	{
+		ActualCppType = GetCppTypeFromProperty(Property, ActualExtendedCppType);
 	}
 
 	FStringOutputDevice Out;
 	const bool bSkipParameterName = (ParameterName == EPropertyNameInDeclaration::Skip);
 	const FString ActualNativeName = bSkipParameterName ? FString() : (FEmitHelper::GetCppName(Property, false, ParameterName == EPropertyNameInDeclaration::ForceConverted) + NamePostfix);
-	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, ExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr, &ActualNativeName);
+	const FString* ActualCppTypePtr = ActualCppType.IsEmpty() ? nullptr : &ActualCppType;
+	const FString* ActualExtendedCppTypePtr = ActualExtendedCppType.IsEmpty() ? nullptr : &ActualExtendedCppType;
+	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, ExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedCppTypePtr, &ActualNativeName);
 	return FString(Out);
 
 }

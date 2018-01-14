@@ -457,23 +457,47 @@ void UMapProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
-FString UMapProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+FString UMapProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& KeyTypeText, const FString& InKeyExtendedTypeText, const FString& ValueTypeText, const FString& InValueExtendedTypeText) const
 {
-	checkSlow(KeyProp);
-	checkSlow(ValueProp);
-
 	if (ExtendedTypeText)
 	{
-		FString KeyExtendedTypeText;
-		FString KeyTypeText = KeyProp->GetCPPType(&KeyExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map keys to be "arguments or return values"
+		// if property type is a template class, add a space between the closing brackets
+		FString KeyExtendedTypeText = InKeyExtendedTypeText;
+		if ((KeyExtendedTypeText.Len() && KeyExtendedTypeText.Right(1) == TEXT(">"))
+			|| (!KeyExtendedTypeText.Len() && KeyTypeText.Len() && KeyTypeText.Right(1) == TEXT(">")))
+		{
+			KeyExtendedTypeText += TEXT(" ");
+		}
 
-		FString ValueExtendedTypeText;
-		FString ValueTypeText = ValueProp->GetCPPType(&ValueExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map values to be "arguments or return values"
+		// if property type is a template class, add a space between the closing brackets
+		FString ValueExtendedTypeText = InValueExtendedTypeText;
+		if ((ValueExtendedTypeText.Len() && ValueExtendedTypeText.Right(1) == TEXT(">"))
+			|| (!ValueExtendedTypeText.Len() && ValueTypeText.Len() && ValueTypeText.Right(1) == TEXT(">")))
+		{
+			ValueExtendedTypeText += TEXT(" ");
+		}
 
 		*ExtendedTypeText = FString::Printf(TEXT("<%s%s,%s%s>"), *KeyTypeText, *KeyExtendedTypeText, *ValueTypeText, *ValueExtendedTypeText);
 	}
 
 	return TEXT("TMap");
+}
+
+FString UMapProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+{
+	checkSlow(KeyProp);
+	checkSlow(ValueProp);
+
+	FString KeyTypeText, KeyExtendedTypeText;
+	FString ValueTypeText, ValueExtendedTypeText;
+
+	if (ExtendedTypeText)
+	{
+		KeyTypeText = KeyProp->GetCPPType(&KeyExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map keys to be "arguments or return values"
+		ValueTypeText = ValueProp->GetCPPType(&ValueExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map values to be "arguments or return values"
+	}
+
+	return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, KeyTypeText, KeyExtendedTypeText, ValueTypeText, ValueExtendedTypeText);
 }
 
 FString UMapProperty::GetCPPTypeForwardDeclaration() const

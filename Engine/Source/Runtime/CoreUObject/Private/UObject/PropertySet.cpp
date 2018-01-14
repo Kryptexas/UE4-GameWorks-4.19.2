@@ -414,19 +414,37 @@ FString USetProperty::GetCPPMacroType(FString& ExtendedTypeText) const
 	return TEXT("TSET");
 }
 
-FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+FString USetProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& ElementTypeText, const FString& InElementExtendedTypeText) const
 {
-	checkSlow(ElementProp);
-
 	if (ExtendedTypeText)
 	{
-		FString ElementExtendedTypeText;
-		const FString ElementTypeText = ElementProp->GetCPPType(&ElementExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider set elements to be "arguments or return values"
+		// if property type is a template class, add a space between the closing brackets
+		FString ElementExtendedTypeText = InElementExtendedTypeText;
+		if ((ElementExtendedTypeText.Len() && ElementExtendedTypeText.Right(1) == TEXT(">"))
+			|| (!ElementExtendedTypeText.Len() && ElementTypeText.Len() && ElementTypeText.Right(1) == TEXT(">")))
+		{
+			ElementExtendedTypeText += TEXT(" ");
+		}
 
 		*ExtendedTypeText = FString::Printf(TEXT("<%s%s>"), *ElementTypeText, *ElementExtendedTypeText);
 	}
 
 	return TEXT("TSet");
+}
+
+FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+{
+	checkSlow(ElementProp);
+
+	FString ElementTypeText;
+	FString ElementExtendedTypeText;
+
+	if (ExtendedTypeText)
+	{
+		ElementTypeText = ElementProp->GetCPPType(&ElementExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider set elements to be "arguments or return values"
+	}
+
+	return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, ElementTypeText, ElementExtendedTypeText);
 }
 
 FString USetProperty::GetCPPTypeForwardDeclaration() const
