@@ -1405,10 +1405,11 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 	// ENUM to BYTE cast
 	if (LType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
+		UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
+		UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
+
 		if (!RType.IsContainer())
 		{
-			UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
-			UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
 			if (!RTypeEnum && LTypeEnum)
 			{
 				ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
@@ -1435,6 +1436,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 					OutCastEnd = TEXT(")");
 				}
 
+				return true;
+			}
+		}
+		else // handle automatic casts of enum arrays (allowed in blueprint but not implicitly castable in C++ with enum classes)
+		{
+			if (!RTypeEnum && LTypeEnum)
+			{
+				ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
+				const FString LTypeStr = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
+				OutCastBegin = TEXT("TArrayCaster<uint8>(");
+				OutCastEnd = FString::Printf(TEXT(").Get<%s>()"), *LTypeStr);
+				return true;
+			}
+			if (!LTypeEnum && RTypeEnum)
+			{
+				ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
+				const FString RTypeStr = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
+				OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s>("), *RTypeStr);
+				OutCastEnd = TEXT(").Get<uint8>()");
 				return true;
 			}
 		}

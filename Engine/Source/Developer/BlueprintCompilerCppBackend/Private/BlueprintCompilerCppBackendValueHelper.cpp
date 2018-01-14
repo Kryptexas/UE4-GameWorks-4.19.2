@@ -770,6 +770,55 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 	return Result;
 }
 
+struct FComponentDataUtils
+{
+	// Handles outer generation of special-case property value init code for BOTH native and non-native component template source objects. This could be something that would otherwise be handled through custom serialization in the non-nativized case, for example.
+	static void HandleSpecialProperties(FEmitterLocalContext& Context, UActorComponent* ComponentObject, const UObject* ObjectArchetype, const FString& LocalNativeName, TSet<const UProperty *>& OutHandledProperties)
+	{
+		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(ComponentObject);
+		if (PrimitiveComponent)
+		{
+			static const UProperty* BodyInstanceProperty = UPrimitiveComponent::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, BodyInstance));
+
+			const FName CollisionProfileName = PrimitiveComponent->BodyInstance.GetCollisionProfileName();
+			const UPrimitiveComponent* ComponentArchetype = Cast<UPrimitiveComponent>(ObjectArchetype);
+			const FName ComponentArchetypeCollisionProfileName = ComponentArchetype ? ComponentArchetype->BodyInstance.GetCollisionProfileName() : NAME_None;
+			if (CollisionProfileName != ComponentArchetypeCollisionProfileName)
+			{
+				FStructOnScope BodyInstanceToCompare(FBodyInstance::StaticStruct());
+				if (ComponentArchetype)
+				{
+					FBodyInstance::StaticStruct()->CopyScriptStruct(BodyInstanceToCompare.GetStructMemory(), &ComponentArchetype->BodyInstance);
+				}
+				((FBodyInstance*)BodyInstanceToCompare.GetStructMemory())->SetCollisionProfileName(CollisionProfileName);
+
+				const FString PathToMember = FString::Printf(TEXT("%s->BodyInstance"), *LocalNativeName);
+				Context.AddLine(FString::Printf(TEXT("%s.SetCollisionProfileName(FName(TEXT(\"%s\")));"), *PathToMember, *CollisionProfileName.ToString().ReplaceCharWithEscapedChar()));
+				FEmitDefaultValueHelper::InnerGenerate(Context, BodyInstanceProperty, PathToMember, (const uint8*)&PrimitiveComponent->BodyInstance, BodyInstanceToCompare.GetStructMemory());
+				OutHandledProperties.Add(BodyInstanceProperty);
+			}
+		}
+	}
+
+	// Handles post-initialization of special-case properties for BOTH native and non-native component template source objects. This could be something that would otherwise be handled through custom serialization or PostLoad() logic.
+	static void HandlePostInitialization(FEmitterLocalContext& Context, UActorComponent* ComponentObject, const FString& LocalNativeName)
+	{
+		if (Cast<UPrimitiveComponent>(ComponentObject))
+		{
+			Context.AddLine(FString::Printf(TEXT("if(!%s->%s())"), *LocalNativeName, GET_FUNCTION_NAME_STRING_CHECKED(UPrimitiveComponent, IsTemplate)));
+			Context.AddLine(TEXT("{"));
+			Context.IncreaseIndent();
+			Context.AddLine(FString::Printf(TEXT("%s->%s.%s(%s);")
+				, *LocalNativeName
+				, GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, BodyInstance)
+				, GET_FUNCTION_NAME_STRING_CHECKED(FBodyInstance, FixupData)
+				, *LocalNativeName));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("}"));
+		}
+	}
+};
+
 struct FNonativeComponentData
 {
 	const USCS_Node* SCSNode;
@@ -827,57 +876,22 @@ struct FNonativeComponentData
 			// AttachTo is called first in case some properties will be overridden.
 		}
 
-		bool bBodyInstanceIsAlreadyHandled = false;
-		UProperty* BodyInstanceProperty = UPrimitiveComponent::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, BodyInstance));
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(ComponentTemplate);
-		if(PrimitiveComponent)
-		{
-			const FName CollisionProfileName = PrimitiveComponent->BodyInstance.GetCollisionProfileName();
-			UPrimitiveComponent* ComponentArchetype = Cast<UPrimitiveComponent>(ObjectToCompare);
-			const FName ComponentArchetypeCollisionProfileName = ComponentArchetype ? ComponentArchetype->BodyInstance.GetCollisionProfileName() : NAME_None;
-			if (CollisionProfileName != ComponentArchetypeCollisionProfileName)
-			{
-				FStructOnScope BodyInstanceToCompare(FBodyInstance::StaticStruct());
-				if (ComponentArchetype)
-				{
-					FBodyInstance::StaticStruct()->CopyScriptStruct(BodyInstanceToCompare.GetStructMemory(), &ComponentArchetype->BodyInstance);
-				}
-				((FBodyInstance*)BodyInstanceToCompare.GetStructMemory())->SetCollisionProfileName(CollisionProfileName);
-
-				const FString PathToMember = FString::Printf(TEXT("%s->BodyInstance"), *NativeVariablePropertyName);
-				Context.AddLine(FString::Printf(TEXT("%s.SetCollisionProfileName(FName(TEXT(\"%s\")));"), *PathToMember, *CollisionProfileName.ToString().ReplaceCharWithEscapedChar()));
-				FEmitDefaultValueHelper::InnerGenerate(Context, BodyInstanceProperty, PathToMember, (const uint8*)&PrimitiveComponent->BodyInstance, BodyInstanceToCompare.GetStructMemory());
-				bBodyInstanceIsAlreadyHandled = true;
-			}
-		}
+		TSet<const UProperty*> HandledProperties;
+		FComponentDataUtils::HandleSpecialProperties(Context, ComponentTemplate, ObjectToCompare, NativeVariablePropertyName, HandledProperties);
 
 		UClass* ComponentClass = ComponentTemplate->GetClass();
 		for (auto Property : TFieldRange<const UProperty>(ComponentClass))
 		{
-			if (bBodyInstanceIsAlreadyHandled && (Property == BodyInstanceProperty))
+			if (!HandledProperties.Contains(Property) && !HandledAsSpecialProperty(Context, Property))
 			{
-				continue;
+				FEmitDefaultValueHelper::OuterGenerate(Context, Property, NativeVariablePropertyName
+					, reinterpret_cast<const uint8*>(ComponentTemplate)
+					, reinterpret_cast<const uint8*>(ObjectToCompare)
+					, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
 			}
-			if (HandledAsSpecialProperty(Context, Property))
-			{
-				continue;
-			}
-			FEmitDefaultValueHelper::OuterGenerate(Context, Property, NativeVariablePropertyName
-				, reinterpret_cast<const uint8*>(ComponentTemplate)
-				, reinterpret_cast<const uint8*>(ObjectToCompare)
-				, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
 		}
-	}
 
-	void EmitForcedPostLoad(FEmitterLocalContext& Context)
-	{
-		Context.AddLine(FString::Printf(TEXT("if(%s && !%s->%s())"), *NativeVariablePropertyName, *NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UActorComponent, IsTemplate)));
-		Context.AddLine(TEXT("{"));
-		Context.IncreaseIndent();
-		Context.AddLine(FString::Printf(TEXT("%s->%s(RF_NeedPostLoad |RF_NeedPostLoadSubobjects);"), *NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UActorComponent, SetFlags)));
-		Context.AddLine(FString::Printf(TEXT("%s->%s();"), *NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UActorComponent, ConditionalPostLoad)));
-		Context.DecreaseIndent();
-		Context.AddLine(TEXT("}"));
+		FComponentDataUtils::HandlePostInitialization(Context, ComponentTemplate, NativeVariablePropertyName);
 	}
 };
 
@@ -1776,20 +1790,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 				for (auto& ComponentToInit : ComponentsToInit)
 				{
 					ComponentToInit.EmitProperties(Context);
-
-					if (Cast<UPrimitiveComponent>(ComponentToInit.ComponentTemplate))
-					{
-						Context.AddLine(FString::Printf(TEXT("if(!%s->%s())"), *ComponentToInit.NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UPrimitiveComponent, IsTemplate)));
-						Context.AddLine(TEXT("{"));
-						Context.IncreaseIndent();
-						Context.AddLine(FString::Printf(TEXT("%s->%s.%s(%s);")
-							, *ComponentToInit.NativeVariablePropertyName
-							, GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, BodyInstance)
-							, GET_FUNCTION_NAME_STRING_CHECKED(FBodyInstance, FixupData)
-							, *ComponentToInit.NativeVariablePropertyName));
-						Context.DecreaseIndent();
-						Context.AddLine(TEXT("}"));
-					}
 				}
 			}
 
@@ -2046,14 +2046,31 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 			HandleInstancedSubobject(Context, DSO, false);
 		}
 
-		// Now walk through the property list and initialize delta values. Any instanced default subobjects found above will be seen as already handled.
+		// Emit code to handle any special properties for default component subobjects.
+		TSet<const UProperty*> HandledProperties;
 		const UObject* ObjectArchetype = Object->GetArchetype();
+		UActorComponent* ObjectAsComponent = Cast<UActorComponent>(Object);
+		if (ObjectAsComponent)
+		{
+			FComponentDataUtils::HandleSpecialProperties(Context, ObjectAsComponent, ObjectArchetype, LocalNativeName, HandledProperties);
+		}
+
+		// Now walk through the property list and initialize delta values. Any nested instanced default subobjects found above will be seen as already handled.
 		for (auto Property : TFieldRange<const UProperty>(ObjectClass))
 		{
-			OuterGenerate(Context, Property, LocalNativeName
-				, reinterpret_cast<const uint8*>(Object)
-				, reinterpret_cast<const uint8*>(ObjectArchetype)
-				, EPropertyAccessOperator::Pointer);
+			if (!HandledProperties.Contains(Property))
+			{
+				OuterGenerate(Context, Property, LocalNativeName
+					, reinterpret_cast<const uint8*>(Object)
+					, reinterpret_cast<const uint8*>(ObjectArchetype)
+					, EPropertyAccessOperator::Pointer);
+			}
+		}
+
+		// Emit code to handle post-initialization of default component subobjects.
+		if (ObjectAsComponent)
+		{
+			FComponentDataUtils::HandlePostInitialization(Context, ObjectAsComponent, LocalNativeName);
 		}
 
 		Context.AddLine(FString::Printf(TEXT("// --- END default subobject \'%s\' --- //"), *Object->GetName()));

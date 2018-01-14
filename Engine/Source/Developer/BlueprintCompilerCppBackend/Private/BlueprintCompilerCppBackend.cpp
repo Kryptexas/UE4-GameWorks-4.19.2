@@ -45,7 +45,7 @@ public:
 		FString Result;
 		for (int32 Iter = SafetyConditions.Num() - 1; Iter >= 0; --Iter)
 		{
-			Result += FString(TEXT("IsValid("));
+			Result += FString(TEXT("::IsValid(")); // fix to explicitly call global version even if class contains an "IsValid" member function
 			Result += SafetyConditions[Iter];
 			Result += FString(TEXT(")"));
 			if (Iter)
@@ -329,7 +329,11 @@ void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FEmitterLocalContext
 	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
 		FBPTerminal* CurrentTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s[%d] = %s;"), *Array, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
+		FEdGraphPinType InnerType = ArrayTerm->Type;
+		InnerType.ContainerType = EPinContainerType::None;
+		FString BeginCast, EndCast;
+		FEmitHelper::GenerateAutomaticCast(EmitterContext, InnerType, Statement.RHS[i]->Type, Statement.LHS->AssociatedVarProperty, Statement.RHS[i]->AssociatedVarProperty, BeginCast, EndCast);
+		EmitterContext.AddLine(FString::Printf(TEXT("%s[%d] = %s%s%s;"), *Array, i, *BeginCast, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter), *EndCast));
 	}
 }
 
@@ -727,20 +731,27 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 {
 	check(Statement.FunctionToCall != nullptr);
 
+	const UFunction* OriginalFunction = FEmitHelper::GetOriginalFunction(Statement.FunctionToCall);
+	check(OriginalFunction != nullptr);
+
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
-	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
-	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (Statement.bIsInterfaceContext || UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
-	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+
+	// even if not calling via the interface, we need to avoid calling the bare function name of an interface event - it will still be the interface version that gets called, which isn't allowed for some reason
+	// parent calls can call _Implementation directly, but self calls can't - it could be overridden in a non-nativized child so have to call Execute to find them
+	const UClass* OuterClass = OriginalFunction->GetTypedOuter<UClass>();
+	const bool bInterfaceFunction = OuterClass && OuterClass->IsChildOf<UInterface>();
+	const bool bInterfaceCallExecute = bInterfaceFunction && !Statement.bIsParentContext && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+	
 	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
-	const bool bNetRPC = !bAnyInterfaceCall && Statement.FunctionToCall->HasAllFunctionFlags(FUNC_Net) && !Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_NetResponse);
+	const bool bNetRPC = Statement.FunctionToCall->HasAllFunctionFlags(FUNC_Net) && !Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_NetResponse);
 
 	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();
 	const UClass* SuperClass = CurrentClass ? CurrentClass->GetSuperClass() : nullptr;
 	const UClass* OriginalSuperClass = SuperClass ? EmitterContext.Dependencies.FindOriginalClass(SuperClass) : nullptr;
 	const UFunction* ActualParentFunction = (Statement.bIsParentContext && OriginalSuperClass) ? OriginalSuperClass->FindFunctionByName(Statement.FunctionToCall->GetFName(), EIncludeSuperFlag::IncludeSuper) : nullptr;
 	// if(Statement.bIsParentContext && bNativeEvent) then name is constructed from original function with "_Implementation postfix
-	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName((ActualParentFunction && !bNativeEvent && !bNetRPC) ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
+	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName((ActualParentFunction && !bNativeEvent && !bNetRPC) ? ActualParentFunction : OriginalFunction) + PostFix;
 	const bool bIsFunctionValidToCallFromBP = !ActualParentFunction || ActualParentFunction->HasAnyFunctionFlags(FUNC_Native) || (ActualParentFunction->Script.Num() > 0);
 
 	if (!bIsFunctionValidToCallFromBP)
@@ -802,22 +813,16 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	// Emit object to call the method on
 	if (bInterfaceCallExecute)
 	{
-		UClass* ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
-		const bool bInputIsInterface = ContextInterfaceClass->IsChildOf<UInterface>();
+		// now that we call execute even on self, we might not have a FunctionContext. So we get the scope name for the call from the interface itself, instead of the context
+		// we also need to pass "this" if calling on self
+		UClass* ContextInterfaceClass = FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)->GetTypedOuter<UClass>();
+		const bool bInputIsInterface = bCallOnDifferentObject && (Statement.FunctionContext->Type.PinCategory == UEdGraphSchema_K2::PC_Interface);
 
-		FString ExecuteFormat = TEXT("%s::Execute_%s(%s ");
-		if (!bInputIsInterface)
-		{
-			ContextInterfaceClass = FunctionOwner;
-			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-		}
-		
-		Result += FString::Printf(
-			TEXT("%s::Execute_%s(%s%s "),
-			*FEmitHelper::GetCppName(ContextInterfaceClass),
-			*FunctionToCallOriginalName,
-			*TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false),
-			bInputIsInterface ? TEXT(".GetObject()") : TEXT("")
+		Result += FString::Printf(TEXT("%s::Execute_%s(%s%s ")
+			, *FEmitHelper::GetCppName(ContextInterfaceClass)
+			, *FunctionToCallOriginalName
+			, (bCallOnDifferentObject ? *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false) : TEXT("this"))
+			, (bInputIsInterface ? TEXT(".GetObject()") : TEXT(""))
 		);
 	}
 	else

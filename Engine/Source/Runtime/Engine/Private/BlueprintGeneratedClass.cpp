@@ -1176,9 +1176,6 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 									NativizedComponentSubobjectInstance->Serialize(OverrideDataLoader);
 								}
 							}
-
-							// There can only be a single match, so we can stop searching now.
-							break;
 						}
 					}
 				}

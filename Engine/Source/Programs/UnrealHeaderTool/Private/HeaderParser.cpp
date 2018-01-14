@@ -6982,6 +6982,7 @@ struct FExposeOnSpawnValidator
 		case CPT_Text:
 		case CPT_Name:
 		case CPT_Interface:
+		case CPT_SoftObjectReference:
 			ProperNativeType = true;
 		}
 
