@@ -125,10 +125,14 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove(const bool b
 			{
 				MinIndex++;
 			}
-			check(MinIndex < LocalDrawList->OrderedDrawingPolicies.Num());
 			if (MinIndex < LocalDrawList->OrderedDrawingPolicies.Num())
 			{
 				LocalDrawList->OrderedDrawingPolicies.RemoveAt(MinIndex);
+			}
+			else
+			{
+				// If we didn't find it, then there may be a problem with ordering or something worse. Fall back to the linear search.
+				LocalDrawList->OrderedDrawingPolicies.RemoveSingle(LocalDrawingPolicyLink->SetId);
 			}
 		}
 #endif
