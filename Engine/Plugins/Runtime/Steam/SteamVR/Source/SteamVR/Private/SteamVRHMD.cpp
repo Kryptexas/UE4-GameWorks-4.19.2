@@ -124,17 +124,6 @@ public:
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
-
-	virtual bool GetVulkanInstanceExtensionsRequired(TArray<const ANSICHAR*>& Out) override
-	{
-		return true;
-	}
-
-	virtual bool GetVulkanDeviceExtensionsRequired(VkPhysicalDevice_T *pPhysicalDevice, TArray<const ANSICHAR*>& Out) override
-	{
-		return true;
-	}
-
 #else //STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
 	{
