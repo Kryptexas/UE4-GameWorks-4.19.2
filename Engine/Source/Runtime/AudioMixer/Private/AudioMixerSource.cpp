@@ -518,7 +518,7 @@ namespace Audio
 
 	float FMixerSource::GetPlaybackPercent() const
 	{
-		if (NumTotalFrames > 0)
+		if (MixerSourceVoice && NumTotalFrames > 0)
 		{
 			int64 NumFrames = MixerSourceVoice->GetNumFramesPlayed();
 			AUDIO_MIXER_CHECK(NumTotalFrames > 0);
