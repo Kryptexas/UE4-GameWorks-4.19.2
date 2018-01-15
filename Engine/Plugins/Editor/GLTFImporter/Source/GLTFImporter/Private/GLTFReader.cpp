@@ -3,6 +3,7 @@
 #include "GLTFReader.h"
 
 #include "Misc/FileHelper.h"
+#include "Misc/Base64.h"
 
 using namespace GLTF;
 
@@ -223,6 +224,38 @@ static FVector4 GetVec4(const FJsonObject& Object, const char* Name, const FVect
 	return DefaultValue;
 }
 
+// --- Base64 utility function --------------------------
+
+static bool DecodeDataURI(const FString& URI, FString& OutMimeType, TArray<uint8>& OutData)
+{
+	// Data URIs look like "data:[<mime-type>][;encoding],<data>"
+	// glTF always uses base64 encoding for data URIs
+
+	check(URI.StartsWith("data:"));
+
+	int32 Semicolon, Comma;
+	bool HasSemicolon = URI.FindChar(TEXT(';'), Semicolon);
+	bool HasComma = URI.FindChar(TEXT(','), Comma);
+
+	if (!(HasSemicolon && HasComma))
+	{
+		return false;
+	}
+
+	const FString Encoding = URI.Mid(Semicolon + 1, Comma - Semicolon - 1);
+
+	if (Encoding != TEXT("base64"))
+	{
+		return false;
+	}
+
+	OutMimeType = URI.Mid(5, Semicolon - 5);
+
+	const FString EncodedData = URI.RightChop(Comma + 1);
+
+	return FBase64::Decode(EncodedData, OutData);
+}
+
 // --- FGLTFReader implementation ------------------------------
 
 void FGLTFReader::SetupBuffer(const FJsonObject& Object)
@@ -236,8 +269,12 @@ void FGLTFReader::SetupBuffer(const FJsonObject& Object)
 		const FString& URI = Object.GetStringField("uri");
 		if (URI.StartsWith("data:"))
 		{
-			// Base64 encoded buffer within this URI
-			Warn.Log("Buffer from data URI not yet implemented.");
+			FString MimeType;
+			bool Success = DecodeDataURI(URI, MimeType, Buffer.Data);
+			if (!Success || MimeType != "application/octet-stream")
+			{
+				Warn.Log("Problem decoding buffer from data URI.");
+			}
 		}
 		else
 		{
@@ -379,9 +416,13 @@ void FGLTFReader::SetupImage(const FJsonObject& Object)
 		Image.URI = Object.GetStringField("uri");
 		if (Image.URI.StartsWith("data:"))
 		{
-			// Base64 encoded image within this URI
-			Warn.Log("Image from data URI not yet implemented.");
-			// MimeType is part of data URI, so set Format from that.
+			FString MimeType;
+			bool Success = DecodeDataURI(Image.URI, MimeType, Image.Data);
+			Image.Format = ImageFormatFromMimeType(MimeType);
+			if (!Success || Image.Format == FImage::EFormat::None)
+			{
+				Warn.Log("Problem decoding image from data URI.");
+			}
 		}
 		else // Load buffer from external file.
 		{
