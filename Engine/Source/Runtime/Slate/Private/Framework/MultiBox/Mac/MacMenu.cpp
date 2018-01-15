@@ -336,15 +336,15 @@ void FSlateMacMenu::UpdateCachedState()
 						}
 						Widget = MenuBuilder.MakeWidget();
 					}
-				}
 
-				if (Widget->GetType() == FName(TEXT("SMultiBoxWidget")))
-				{
-					Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
-				}
-				else
-				{
-					UE_LOG(LogMac, Warning, TEXT("Unsupported type of menu widget in FSlateMacMenu::UpdateCachedState(): %s"), *Widget->GetType().ToString());
+					if (Widget->GetType() == FName(TEXT("SMultiBoxWidget")))
+					{
+						Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
+					}
+					else
+					{
+						UE_LOG(LogMac, Warning, TEXT("Unsupported type of menu widget in FSlateMacMenu::UpdateCachedState(): %s"), *Widget->GetType().ToString());
+					}
 				}
 			}
 
