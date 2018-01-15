@@ -8348,6 +8348,19 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 
+	// If dynamic resolution is not supported but is enabled, display an error message so
+	// does not even stand a chance to go through platform certification.
+	//
+	// Test GEngine->GetDynamicResolutionState()->GetResolutionFractionApproximation() > 0 instead of GEngine->GetDynamicResolutionState()->IsEnabled()
+	// to have the error message displayed with r.Test.DynamicRes.EnableOverride
+	if (!GEngine->GetDynamicResolutionState()->IsSupported() && GEngine->GetDynamicResolutionState()->GetResolutionFractionApproximation() > 0)
+	{
+		SmallTextItem.SetColor(FLinearColor::Red);
+		SmallTextItem.Text = LOCTEXT("UNSUPPORTEDDYNRES", "DYNAMIC RESOLUTION IS NOT SUPPORTED ON THIS PLATFORM");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
 	if (World->NumUnbuiltReflectionCaptures > 0)
 	{
 		int32 NumLightingScenariosEnabled = 0;

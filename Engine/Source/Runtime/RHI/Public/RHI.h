@@ -368,6 +368,9 @@ extern RHI_API bool GRHISupportsResolveCubemapFaces;
 /** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsFirstInstance;
 
+/** Whether or not the RHI can handle dynamic resolution or not. */
+extern RHI_API bool GRHISupportsDynamicResolution;
+
 /** Whether or not the RHI supports an RHI thread.
 Requirements for RHI thread
 * Microresources (those in RHIStaticStates.h) need to be able to be created by any thread at any time and be able to work with a radically simplified rhi resource lifecycle. CreateSamplerState, CreateRasterizerState, CreateDepthStencilState, CreateBlendState

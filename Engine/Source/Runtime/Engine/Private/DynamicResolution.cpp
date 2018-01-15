@@ -14,6 +14,7 @@ Renderer.cpp: Renderer module implementation.
 #include "RHI.h"
 #include "RHICommandList.h"
 #include "DynamicRHI.h"
+#include "UnrealEngine.h"
 
 
 static TAutoConsoleVariable<float> CVarDynamicResMinSP(
@@ -795,6 +796,17 @@ public:
 
 	// Implements IDynamicResolutionState
 
+	virtual bool IsSupported() const override
+	{
+		// No VR platforms are officially supporting dynamic resolution with Engine default's dynamic resolution state.
+		const bool bIsStereo = GEngine->StereoRenderingDevice.IsValid() ? GEngine->StereoRenderingDevice->IsStereoEnabled() : false;
+		if (bIsStereo)
+		{
+			return false;
+		}
+		return GRHISupportsDynamicResolution;
+	}
+
 	virtual void ResetHistory() override
 	{
 		check(IsInGameThread());
@@ -810,6 +822,24 @@ public:
 	virtual void SetEnabled(bool bEnable) override
 	{
 		check(IsInGameThread());
+
+		// Emit a warning every time dynamic resolution is enabled on platforms that do not officially support it.
+		{
+			static bool bHasWarned = false;
+			if (bEnable && !bIsEnabled && !IsSupported() && !bHasWarned)
+			{
+				bHasWarned = true;
+				UE_LOG(LogEngine, Warning, TEXT(
+					"Dynamic resolution is not officially supported on this platform. Using dynamic resolution on "
+					"unsupported platform is extremely dangerous for gameplay experience, since it may have a bug "
+					"dropping resolution or frame rate more than it should."));
+			}
+			else if (!bEnable)
+			{
+				bHasWarned = false;
+			}
+		}
+
 		bIsEnabled = bEnable;
 	}
 

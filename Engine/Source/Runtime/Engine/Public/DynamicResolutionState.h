@@ -34,7 +34,14 @@ public:
 	/** Reset dynamic resolution's history. */
 	virtual void ResetHistory() = 0;
 
-	/** Enables/Disables dynamic resolution. */
+	/** Returns whether dynamic resolution is supported on this platform.
+	 *
+	 * Using dynamic resolution on unsupported platforms is extremely dangerous for gameplay
+	 * experience, since it may have a bug dropping resolution or frame rate more than it should.
+	 */
+	virtual bool IsSupported() const = 0;
+
+	/** Enables/Disables dynamic resolution. But make sure it is supported first with IsSupported() method. */
 	virtual void SetEnabled(bool bEnable) = 0;
 
 	/** Returns whether dynamic resolution is globaly enabled. */

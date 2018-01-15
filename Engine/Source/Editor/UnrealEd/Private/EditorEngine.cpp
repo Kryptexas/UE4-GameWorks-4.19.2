@@ -883,6 +883,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		FTextLocalizationManager::Get().PopAutoEnableGameLocalizationPreview();
 		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+
+		// Always reset the dynamic resolution state to ensure it is same state as in game builds when starting PIE,
+		// and to ensure that the "DYNAMIC RESOLUTION IS NOT SUPPORTED ON THIS PLATFORM" does not show up in editor
+		// viewports.
+		GEngine->GetDynamicResolutionState()->SetEnabled(false);
 	});
 
 	// Initialize vanilla status before other systems that consume its status are started inside InitEditor()
