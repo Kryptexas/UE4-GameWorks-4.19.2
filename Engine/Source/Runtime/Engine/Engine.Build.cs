@@ -434,7 +434,7 @@ public class Engine : ModuleRules
 		}
 */
 
-		PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
+		PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=0");
 
 		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
     if (Target.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
