@@ -183,6 +183,8 @@ bool FMaterialPropertyHelpers::FilterAssetInstances(const struct FAssetData& InA
 	const FName FilterTag = FName(TEXT("MaterialFunctionUsage"));
 	const FName ParentTag = FName(TEXT("Parent"));
 	const FString* MaterialFunctionUsage = InAssetData.TagsAndValues.Find(FilterTag);
+	FName ParentClassName;
+	FName InstanceClassName;
 
 	FString CompareString;
 	if (MaterialFunctionUsage)
@@ -213,6 +215,8 @@ bool FMaterialPropertyHelpers::FilterAssetInstances(const struct FAssetData& InA
 				FString PathName = LayerFunction->FilterLayers[Index]->GetPathName();
 				PathName.Split(".", &LeftPath, &RightPath);
 			}
+			ParentClassName = UMaterialFunctionMaterialLayer::StaticClass()->GetFName();
+			InstanceClassName = UMaterialFunctionMaterialLayerInstance::StaticClass()->GetFName();
 		}
 		break;
 		case EMaterialParameterAssociation::BlendParameter:
@@ -223,6 +227,8 @@ bool FMaterialPropertyHelpers::FilterAssetInstances(const struct FAssetData& InA
 				FString PathName = LayerFunction->FilterBlends[Index]->GetPathName();
 				PathName.Split(".", &LeftPath, &RightPath);
 			}
+			ParentClassName = UMaterialFunctionMaterialLayerBlend::StaticClass()->GetFName();
+			InstanceClassName = UMaterialFunctionMaterialLayerBlendInstance::StaticClass()->GetFName();
 		}
 		break;
 		default:
@@ -237,11 +243,11 @@ bool FMaterialPropertyHelpers::FilterAssetInstances(const struct FAssetData& InA
 		else
 		{
 			bool bSameParent = CleanString == RightPath;
-			if (!RightPath.IsEmpty() && InAssetData.AssetClass == UMaterialFunction::StaticClass()->GetFName() && InAssetData.AssetName.ToString() != RightPath)
+			if (!RightPath.IsEmpty() && InAssetData.AssetName.ToString() != RightPath && InAssetData.AssetClass == ParentClassName)
 			{
 				ShouldAssetBeFilteredOut = true;
 			}
-			if (!RightPath.IsEmpty() && !bSameParent && InAssetData.AssetClass == UMaterialFunctionInstance::StaticClass()->GetFName())
+			if (!RightPath.IsEmpty() && !bSameParent && InAssetData.AssetClass == InstanceClassName)
 			{
 				ShouldAssetBeFilteredOut = true;
 			}
