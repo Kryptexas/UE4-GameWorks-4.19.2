@@ -21,6 +21,7 @@ public:
 
 	/** Contructor. */
 	FStaticTextureInstanceManager(TextureInstanceTask::FDoWorkTask& AsyncTask);
+	~FStaticTextureInstanceManager() { StateSync.Sync(); }
 
 	/** Normalize lightmap texel factors, this is ran on an async tasks. */
 	void NormalizeLightmapTexelFactor();

@@ -101,7 +101,7 @@ FBoxSphereBounds FTextureInstanceView::FTextureLinkConstIterator::GetBounds() co
 	FBoxSphereBounds Bounds(ForceInitToZero);
 
 	int32 BoundsIndex = State.Elements[CurrElementIndex].BoundsIndex; 
-	if (BoundsIndex != INDEX_NONE)
+	if (State.Bounds4.IsValidIndex(BoundsIndex / 4))
 	{
 		const FBounds4& TheBounds4 = State.Bounds4[BoundsIndex / 4];
 		int32 Index = BoundsIndex % 4;
@@ -454,13 +454,16 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 				while (CompiledElementIndex < NumCompiledElements && MaxSize_VisibleOnly < MAX_TEXTURE_SIZE)
 				{
 					const FTextureInstanceView::FCompiledElement& CompiledElement = CompiledElementData[CompiledElementIndex];
-					ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, CompiledElement.bForceLoad, MaxSize, MaxSize_VisibleOnly);
+					if (ensure(BoundsViewInfo.IsValidIndex(CompiledElement.BoundsIndex)))
+					{
+						ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, CompiledElement.bForceLoad, MaxSize, MaxSize_VisibleOnly);
+					}
 					++CompiledElementIndex;
 				}
 
 				if (MaxSize_VisibleOnly >= MAX_TEXTURE_SIZE && CompiledElementIndex > 1)
 				{
-					// This does not realloc anything but moves the close by element to the first entry, making the next update find it immediately.
+					// This does not realloc anything but moves the closest element at head, making the next update find it immediately and early exit.
 					FTextureInstanceView::FCompiledElement* SwapElementData = const_cast<FTextureInstanceView::FCompiledElement*>(CompiledElementData);
 					Swap<FTextureInstanceView::FCompiledElement>(SwapElementData[0], SwapElementData[CompiledElementIndex - 1]);
 				}
@@ -470,11 +473,15 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 		{
 			for (auto It = View->GetElementIterator(InTexture); It && (MaxSize_VisibleOnly < MAX_TEXTURE_SIZE || LogPrefix); ++It)
 			{
-				const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
-				ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), It.GetForceLoad(), MaxSize, MaxSize_VisibleOnly);
-				if (LogPrefix)
+				// Only handle elements that are in bounds.
+				if (ensure(BoundsViewInfo.IsValidIndex(It.GetBoundsIndex())))
 				{
-					It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);
+					const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
+					ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), It.GetForceLoad(), MaxSize, MaxSize_VisibleOnly);
+					if (LogPrefix)
+					{
+						It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);
+					}
 				}
 			}
 		}

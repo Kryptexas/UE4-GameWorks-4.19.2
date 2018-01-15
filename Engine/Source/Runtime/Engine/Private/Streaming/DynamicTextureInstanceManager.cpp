@@ -109,8 +109,11 @@ void FDynamicTextureInstanceManager::OnRefreshVisibilityDone(int32 BeginIndex, i
 	// Move the last valid bound to the first empty place, trying to free the tail.
 	if (CVarStreamingDefragDynamicBounds.GetValueOnGameThread() > 0)
 	{
-		PendingDefragDstBoundIndex = FirstFreeBound;
-		PendingDefragSrcBoundIndex = LastUsedBound;
+		if (FirstFreeBound < LastUsedBound)
+		{
+			PendingDefragDstBoundIndex = FirstFreeBound;
+			PendingDefragSrcBoundIndex = LastUsedBound;
+		}
 	}
 }
 

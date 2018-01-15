@@ -25,11 +25,12 @@ int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, uint32 Pa
 
 	int BoundsIndex = INDEX_NONE;
 
-	if (FreeBoundIndices.Num())
+	while (!Bounds4Components.IsValidIndex(BoundsIndex) && FreeBoundIndices.Num() > 0)
 	{
 		BoundsIndex = FreeBoundIndices.Pop();
 	}
-	else
+
+	if (!Bounds4Components.IsValidIndex(BoundsIndex))
 	{
 		BoundsIndex = Bounds4.Num() * 4;
 		Bounds4.Push(FBounds4());
@@ -53,10 +54,21 @@ int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, uint32 Pa
 
 void FTextureInstanceState::RemoveBounds(int32 BoundsIndex)
 {
-	check(BoundsIndex != INDEX_NONE);
 	checkSlow(!FreeBoundIndices.Contains(BoundsIndex));
 
-	BoundsToUnpack.RemoveSingleSwap(BoundsIndex);
+	// Because components can be removed in CheckRegistrationAndUnpackBounds, which iterates on BoundsToUnpack,
+	// here we invalidate the index, instead of removing it, to avoid resizing the array.
+	int32 BoundsToUnpackIndex = INDEX_NONE;
+	if (BoundsToUnpack.Find(BoundsIndex, BoundsToUnpackIndex))
+	{
+		BoundsToUnpack[BoundsToUnpackIndex] = INDEX_NONE;
+	}
+
+	// If the BoundsIndex is out of range, the next code will crash.	
+	if (!ensure(Bounds4Components.IsValidIndex(BoundsIndex)))
+	{
+		return;
+	}
 
 	// If note all indices were freed
 	if (1 + FreeBoundIndices.Num() != Bounds4.Num() * 4)
@@ -476,7 +488,7 @@ void FTextureInstanceState::UpdateBounds(const UPrimitiveComponent* Component)
 
 bool FTextureInstanceState::UpdateBounds(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		Bounds4[BoundIndex / 4].FullUpdate(BoundIndex % 4, Component->Bounds, Component->LastRenderTimeOnScreen);
@@ -490,7 +502,7 @@ bool FTextureInstanceState::UpdateBounds(int32 BoundIndex)
 
 bool FTextureInstanceState::ConditionalUpdateBounds(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		if (Component->Mobility != EComponentMobility::Static)
@@ -522,7 +534,7 @@ bool FTextureInstanceState::ConditionalUpdateBounds(int32 BoundIndex)
 
 void FTextureInstanceState::UpdateLastRenderTime(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		Bounds4[BoundIndex / 4].UpdateLastRenderTime(BoundIndex % 4, Component->LastRenderTimeOnScreen);
@@ -624,6 +636,14 @@ bool FTextureInstanceState::MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex)
 
 	if (Bounds4Components.IsValidIndex(DstBoundIndex) && Bounds4Components.IsValidIndex(SrcBoundIndex) && !Bounds4Components[DstBoundIndex] && Bounds4Components[SrcBoundIndex])
 	{
+		int32 FreeListIndex = FreeBoundIndices.Find(DstBoundIndex);
+		if (FreeListIndex == INDEX_NONE)
+		{
+			return false; // The destination is not free.
+		}
+		// Update the free list.
+		FreeBoundIndices[FreeListIndex] = SrcBoundIndex;
+
 		const UPrimitiveComponent* Component = Bounds4Components[SrcBoundIndex];
 
 		// Update the elements.
@@ -649,16 +669,6 @@ bool FTextureInstanceState::MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex)
 		// Update the component ptrs.
 		Bounds4Components[DstBoundIndex] = Component;
 		Bounds4Components[SrcBoundIndex] = nullptr;
-
-		// Update the free list.
-		for (int32& BoundIndex : FreeBoundIndices)
-		{
-			if (BoundIndex == DstBoundIndex)
-			{
-				BoundIndex = SrcBoundIndex;
-				break;
-			}
-		}
 
 		UpdateBounds(DstBoundIndex); // Update the bounds using the component.
 		Bounds4[SrcBoundIndex / 4].Clear(SrcBoundIndex % 4);	
@@ -693,6 +703,10 @@ void FTextureInstanceState::TrimBounds()
 				{
 					bDefragRangeIsFree = false;
 					break;
+				}
+				else
+				{
+					checkSlow(FreeBoundIndices.Contains(BoundIndex));
 				}
 			}
 

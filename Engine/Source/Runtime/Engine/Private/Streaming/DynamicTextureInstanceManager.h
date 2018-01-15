@@ -21,6 +21,7 @@ public:
 
 	/** Contructor. */
 	FDynamicTextureInstanceManager();
+	~FDynamicTextureInstanceManager() { StateSync.Sync(); }
 
 	void RegisterTasks(TextureInstanceTask::FDoWorkTask& AsyncTask);
 

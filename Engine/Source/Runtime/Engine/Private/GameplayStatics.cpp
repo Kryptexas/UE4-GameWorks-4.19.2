@@ -40,6 +40,7 @@
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Misc/EngineVersion.h"
+#include "ContentStreaming.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -703,33 +704,35 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject
 }
 
 UParticleSystemComponent* UGameplayStatics::InternalSpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
-		{
+{
 	check(World && EmitterTemplate);
 
-			UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+	UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
 
-			PSC->bAbsoluteLocation = true;
-			PSC->bAbsoluteRotation = true;
-			PSC->bAbsoluteScale = true;
-			PSC->RelativeLocation = SpawnLocation;
-			PSC->RelativeRotation = SpawnRotation;
+	PSC->bAbsoluteLocation = true;
+	PSC->bAbsoluteRotation = true;
+	PSC->bAbsoluteScale = true;
+	PSC->RelativeLocation = SpawnLocation;
+	PSC->RelativeRotation = SpawnRotation;
 	PSC->RelativeScale3D = SpawnScale;
 
-			PSC->RegisterComponentWithWorld(World);
+	PSC->RegisterComponentWithWorld(World);
+	PSC->ActivateSystem(true);
 
-			PSC->ActivateSystem(true);
+	// Notify the texture streamer so that PSC gets managed as a dynamic component.
+	IStreamingManager::Get().NotifyPrimitiveAttached(PSC, DPT_Spawned);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (PSC->Template && PSC->Template->IsImmortal())
-			{
-				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
-					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-					);
-			}
+	if (PSC->Template && PSC->Template->IsImmortal())
+	{
+		UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+			*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+			);
+	}
 #endif
 
-			return PSC;
-		}
+	return PSC;
+}
 
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject* WorldContextObject, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
 {
@@ -739,7 +742,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
 			PSC = InternalSpawnEmitterAtLocation(World, EmitterTemplate, SpawnLocation, SpawnRotation, SpawnScale, bAutoDestroy);
-	}
+		}
 	}
 	return PSC;
 }
@@ -806,6 +809,9 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 
 				PSC->RegisterComponentWithWorld(World);
 				PSC->ActivateSystem(true);
+				
+				// Notify the texture streamer so that PSC gets managed as a dynamic component.
+				IStreamingManager::Get().NotifyPrimitiveAttached(PSC, DPT_Spawned);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (PSC->Template && PSC->Template->IsImmortal())
