@@ -16,7 +16,7 @@ namespace
 {
 	struct FMaterialIteratorWithLambda
 	{
-		typedef TFunctionRef<void(const FString&, const UMaterial*, const FText&)> LambdaFunctionType;
+		typedef TFunction<void(const FString&, const UMaterial*, const FText&)> LambdaFunctionType;
 		LambdaFunctionType Lambda;
 
 		inline FMaterialIteratorWithLambda(const LambdaFunctionType& InLambda)
