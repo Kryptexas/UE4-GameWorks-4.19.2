@@ -7,8 +7,8 @@
 #include "CocoaMenu.h"
 
 @interface FMacMenu : FCocoaMenu <NSMenuDelegate>
-@property (assign) TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
-@property (assign) TSharedPtr<const FMultiBox> MultiBox;
+@property (assign) TWeakPtr<const FMenuEntryBlock> MenuEntryBlock;
+@property (assign) TWeakPtr<const FMultiBox> MultiBox;
 @end
 
 class SLATE_API FSlateMacMenu

@@ -319,19 +319,23 @@ void FSlateMacMenu::UpdateCachedState()
 			TSharedRef<SWidget> Widget = SNullWidget::NullWidget;
 			if (!Menu.MultiBox.IsValid())
 			{
-				if (Menu.MenuEntryBlock->MenuBuilder.IsBound())
+				TSharedPtr<const FMenuEntryBlock> MenuEntryBlock = Menu.MenuEntryBlock.Pin();
+				if (MenuEntryBlock.IsValid())
 				{
-					Widget = Menu.MenuEntryBlock->MenuBuilder.Execute();
-				}
-				else
-				{
-					const bool bShouldCloseWindowAfterMenuSelection = true;
-					FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Menu.MenuEntryBlock->GetActionList(), Menu.MenuEntryBlock->Extender);
+					if (MenuEntryBlock->MenuBuilder.IsBound())
 					{
-						// Have the menu fill its contents
-						Menu.MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
+						Widget = MenuEntryBlock->MenuBuilder.Execute();
 					}
-					Widget = MenuBuilder.MakeWidget();
+					else
+					{
+						const bool bShouldCloseWindowAfterMenuSelection = true;
+						FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, MenuEntryBlock->GetActionList(), MenuEntryBlock->Extender);
+						{
+							// Have the menu fill its contents
+							MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
+						}
+						Widget = MenuBuilder.MakeWidget();
+					}
 				}
 
 				if (Widget->GetType() == FName(TEXT("SMultiBoxWidget")))
@@ -346,7 +350,7 @@ void FSlateMacMenu::UpdateCachedState()
 
 			if (Menu.MultiBox.IsValid())
 			{
-				const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox->GetBlocks();
+				const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox.Pin()->GetBlocks();
 				for (int32 Index = MenuState->Num(); MenuBlocks.Num() > MenuState->Num(); Index++)
 				{
 					MenuState->Add(FMacMenuItemState());
