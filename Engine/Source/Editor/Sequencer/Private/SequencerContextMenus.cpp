@@ -733,7 +733,8 @@ void FSectionContextMenu::AddBlendTypeMenu(FMenuBuilder& MenuBuilder)
 		}
 	}
 
-	FSequencerUtilities::PopulateMenu_SetBlendType(MenuBuilder, Sections);
+	TWeakPtr<FSequencer> WeakSequencer = Sequencer;
+	FSequencerUtilities::PopulateMenu_SetBlendType(MenuBuilder, Sections, WeakSequencer);
 }
 
 void FSectionContextMenu::SelectAllKeys()

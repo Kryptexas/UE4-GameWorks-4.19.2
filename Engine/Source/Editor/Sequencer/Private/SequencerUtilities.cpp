@@ -147,14 +147,14 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 	}
 }
 
-void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, UMovieSceneSection* Section)
+void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, UMovieSceneSection* Section, TWeakPtr<ISequencer> InSequencer)
 {
-	PopulateMenu_SetBlendType(MenuBuilder, TArray<TWeakObjectPtr<UMovieSceneSection>>({ Section }));
+	PopulateMenu_SetBlendType(MenuBuilder, TArray<TWeakObjectPtr<UMovieSceneSection>>({ Section }), InSequencer);
 }
 
-void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UMovieSceneSection>>& InSections)
+void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UMovieSceneSection>>& InSections, TWeakPtr<ISequencer> InSequencer)
 {
-	auto Execute = [InSections](EMovieSceneBlendType BlendType)
+	auto Execute = [InSections, InSequencer](EMovieSceneBlendType BlendType)
 	{
 		FScopedTransaction Transaction(LOCTEXT("SetBlendType", "Set Blend Type"));
 		for (TWeakObjectPtr<UMovieSceneSection> WeakSection : InSections)
@@ -164,6 +164,12 @@ void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, c
 				Section->Modify();
 				Section->SetBlendType(BlendType);
 			}
+		}
+			
+		TSharedPtr<ISequencer> Sequencer = InSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 		}
 	};
 
