@@ -419,6 +419,11 @@ void FLinuxPlatformApplicationMisc::PumpMessages( bool bFromMainLoop )
 				// noop
 			}
 		}
+
+		bool bHasFocus = FApp::UseVRFocus() ? FApp::HasVRFocus() : FLinuxPlatformApplicationMisc::IsThisApplicationForeground();
+
+		// if its our window, allow sound, otherwise apply multiplier
+		FApp::SetVolumeMultiplier( bHasFocus ? 1.0f : FApp::GetUnfocusedVolumeMultiplier() );
 	}
 }
 
