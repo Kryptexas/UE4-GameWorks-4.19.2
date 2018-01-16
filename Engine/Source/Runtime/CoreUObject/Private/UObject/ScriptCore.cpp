@@ -175,6 +175,9 @@ void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 Maximu
 	}
 }
 
+// This is meant to be called from the immediate mode, and for confusing reasons the optimized code isn't always safe in that case
+PRAGMA_DISABLE_OPTIMIZATION
+
 void PrintScriptCallStackImpl()
 {
 #if DO_BLUEPRINT_GUARD
@@ -191,6 +194,8 @@ void PrintScriptCallStackImpl()
 	}
 #endif
 }
+
+PRAGMA_ENABLE_OPTIMIZATION
 
 extern CORE_API void (*GPrintScriptCallStackFn)();
 
