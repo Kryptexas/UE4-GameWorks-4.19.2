@@ -1071,8 +1071,9 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 
 			FVulkanTextureBase* VulkanTexture = FVulkanTextureBase::Cast(InTextures[Index]);
 			VkImageLayout SrcLayout = TransitionState.FindOrAddLayout(VulkanTexture->Surface.Image, VK_IMAGE_LAYOUT_UNDEFINED);
-			ensure(SrcLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 			bool bIsDepthStencil = (VulkanTexture->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0;
+			// During HMD rendering we get a frame where nothing is rendered into the depth buffer, but CopyToTexture is still called...
+			ensure(SrcLayout != VK_IMAGE_LAYOUT_UNDEFINED || bIsDepthStencil);
 			VkImageLayout DstLayout = bIsDepthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			VulkanSetImageLayout(CmdBuffer->GetHandle(), VulkanTexture->Surface.Image, SrcLayout, DstLayout, VulkanRHI::SetupImageSubresourceRange(VulkanTexture->Surface.GetFullAspectMask()));
 			TransitionState.CurrentLayout[VulkanTexture->Surface.Image] = DstLayout;
