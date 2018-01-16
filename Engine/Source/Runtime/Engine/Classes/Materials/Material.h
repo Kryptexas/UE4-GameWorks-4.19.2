@@ -1169,8 +1169,6 @@ public:
 				const TArray<UMaterialFunctionInterface*>* Layers = &LayersExpression->GetLayers();
 				const TArray<UMaterialFunctionInterface*>* Blends = &LayersExpression->GetBlends();
 #if WITH_EDITOR
-				const TArray<UMaterialFunctionInterface*>* InstanceLayers = &LayersExpression->GetInstanceLayers();
-				const TArray<UMaterialFunctionInterface*>* InstanceBlends = &LayersExpression->GetInstanceBlends();
 				const TArray<UMaterialFunctionInterface*>* FilterLayers = &LayersExpression->GetFilterLayers();
 				const TArray<UMaterialFunctionInterface*>* FilterBlends = &LayersExpression->GetFilterBlends();
 				const TArray<FText>* LayerNames = &LayersExpression->GetLayerNames();
@@ -1187,8 +1185,6 @@ public:
 							Layers = &LayersParameter.Value.Layers;
 							Blends = &LayersParameter.Value.Blends;
 #if WITH_EDITOR
-							InstanceLayers = &LayersParameter.Value.InstanceLayers;
-							InstanceBlends = &LayersParameter.Value.InstanceBlends;
 							FilterLayers = &LayersParameter.Value.FilterLayers;
 							FilterBlends = &LayersParameter.Value.FilterBlends;
 							LayerNames = &LayersParameter.Value.LayerNames;

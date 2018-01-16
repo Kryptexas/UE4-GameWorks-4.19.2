@@ -83,7 +83,6 @@ struct ENGINE_API FMaterialLayersFunctions
 		FText LayerName = FText(LOCTEXT("Background", "Background"));
 		LayerNames.Add(LayerName);
 		FilterLayers.AddDefaulted();
-		InstanceLayers.AddDefaulted();
 #endif
 		LayerStates.Push(true);
 
@@ -104,12 +103,6 @@ struct ENGINE_API FMaterialLayersFunctions
 
 	UPROPERTY()
 	TArray<class UMaterialFunctionInterface*> FilterBlends;
-
-	UPROPERTY()
-	TArray<class UMaterialFunctionInterface*> InstanceLayers;
-
-	UPROPERTY()
-	TArray<class UMaterialFunctionInterface*> InstanceBlends;
 #endif
 
 	UPROPERTY()
@@ -125,8 +118,6 @@ struct ENGINE_API FMaterialLayersFunctions
 #if WITH_EDITOR
 		FilterLayers.AddDefaulted();
 		FilterBlends.AddDefaulted();
-		InstanceLayers.AddDefaulted();
-		InstanceBlends.AddDefaulted();
 		FText LayerName = FText::Format(LOCTEXT("LayerPrefix", "Layer {0}"), Layers.Num()-1);
 		LayerNames.Add(LayerName);
 #endif
@@ -143,11 +134,9 @@ struct ENGINE_API FMaterialLayersFunctions
 #if WITH_EDITOR
 		FilterLayers.RemoveAt(Index);
 		FilterBlends.RemoveAt(Index - 1);
-		InstanceLayers.RemoveAt(Index);
-		InstanceBlends.RemoveAt(Index - 1);
 		LayerNames.RemoveAt(Index);
-		KeyString = GetStaticPermutationString();
 #endif
+		KeyString = GetStaticPermutationString();
 	}
 
 	void ToggleBlendedLayerVisibility(int32 Index)
@@ -195,6 +184,9 @@ struct ENGINE_API FMaterialLayersFunctions
 	{
 		KeyString = GetStaticPermutationString();
 	}
+
+	FString GetFilterPath(FMaterialParameterInfo InInfo) const;
+	FString GetInstancePath(FMaterialParameterInfo InInfo) const;
 };
 
 #undef LOCTEXT_NAMESPACE

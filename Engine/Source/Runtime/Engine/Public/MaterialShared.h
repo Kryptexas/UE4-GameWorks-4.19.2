@@ -581,7 +581,7 @@ public:
 	}
 
 	/** Updates the Id's static parameter set */	
-	void UpdateParameterSet(FStaticParameterSet& StaticParameters);
+	void UpdateParameterSet(const FStaticParameterSet& StaticParameters);
 	
 	const FStaticParameterSet& GetParameterSet() const
 	{

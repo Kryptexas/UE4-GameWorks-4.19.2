@@ -5466,8 +5466,6 @@ bool UMaterialExpressionMaterialAttributeLayers::IsNamedParameter(const FMateria
 		OutLayers.Blends = GetBlends();
 		OutLayers.LayerStates = GetLayerStates();
 #if WITH_EDITOR
-		OutLayers.InstanceLayers = GetInstanceLayers();
-		OutLayers.InstanceBlends = GetInstanceBlends();
 		OutLayers.FilterLayers = GetFilterLayers();
 		OutLayers.FilterBlends = GetFilterBlends();
 		OutLayers.LayerNames = GetLayerNames();

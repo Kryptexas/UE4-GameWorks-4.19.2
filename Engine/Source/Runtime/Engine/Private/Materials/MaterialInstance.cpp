@@ -2960,8 +2960,6 @@ void UMaterialInstance::PostLoad()
 #if WITH_EDITORONLY_DATA
 		Dependencies.Append(LayersParam.Value.FilterLayers);
 		Dependencies.Append(LayersParam.Value.FilterBlends);
-		Dependencies.Append(LayersParam.Value.InstanceLayers);
-		Dependencies.Append(LayersParam.Value.InstanceBlends);
 #endif
 
 		for (UMaterialFunctionInterface* Dependency : Dependencies)

@@ -81,6 +81,11 @@ private:
 	/** FMaterialLayersFunctions instance this customization is currently editing */
 	FMaterialLayersFunctions* MaterialLayersFunctions;
 	TArray<class IDetailGroup*> DetailGroups;
+
+public:
+	FString GetFilterPath(FMaterialParameterInfo InInfo) const;
+
+	FString GetInstancePath(FMaterialParameterInfo InInfo) const;
 };
 
 class FMaterialLayerFunctionElement : public IDetailCustomNodeBuilder, public TSharedFromThis< FMaterialLayerFunctionElement >

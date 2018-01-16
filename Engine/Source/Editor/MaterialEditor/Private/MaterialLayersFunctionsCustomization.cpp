@@ -232,6 +232,34 @@ void FMaterialLayersFunctionsCustomization::OnNameChanged(const FText& InText, E
 };
 #endif
 
+FString FMaterialLayersFunctionsCustomization::GetFilterPath(FMaterialParameterInfo InInfo) const
+{
+	FString FilterPath;
+	if (InInfo.Association == EMaterialParameterAssociation::BlendParameter && MaterialLayersFunctions->FilterBlends.IsValidIndex(InInfo.Index))
+	{
+		FilterPath = MaterialLayersFunctions->FilterBlends[InInfo.Index]->GetPathName();
+	}
+	else if (InInfo.Association == EMaterialParameterAssociation::LayerParameter && MaterialLayersFunctions->FilterLayers.IsValidIndex(InInfo.Index))
+	{
+		FilterPath = MaterialLayersFunctions->FilterLayers[InInfo.Index]->GetPathName();
+	}
+	return FilterPath;
+}
+
+FString FMaterialLayersFunctionsCustomization::GetInstancePath(FMaterialParameterInfo InInfo) const
+{
+	FString InstancePath;
+	if (InInfo.Association == EMaterialParameterAssociation::BlendParameter && MaterialLayersFunctions->Blends.IsValidIndex(InInfo.Index))
+	{
+		InstancePath = MaterialLayersFunctions->Blends[InInfo.Index]->GetPathName();
+	}
+	else if (InInfo.Association == EMaterialParameterAssociation::LayerParameter && MaterialLayersFunctions->Layers.IsValidIndex(InInfo.Index))
+	{
+		InstancePath = MaterialLayersFunctions->Layers[InInfo.Index]->GetPathName();
+	}
+	return InstancePath;
+}
+
 void FMaterialLayersFunctionsCustomization::AddLayer()
 {
 	const FScopedTransaction Transaction(LOCTEXT("AddLayerAndBlend", "Add a new Layer and a Blend into it"));
@@ -310,14 +338,12 @@ void FMaterialLayerFunctionElement::ResetInstanceToDefault(TSharedPtr<IPropertyH
 	{
 		InCustomization->GetMaterialLayersFunctions()->FilterLayers[InIndex] = nullptr;
 		InCustomization->GetMaterialLayersFunctions()->Layers[InIndex] = nullptr;
-		InCustomization->GetMaterialLayersFunctions()->InstanceLayers[InIndex] = nullptr;
 		break;
 	}
 	case EMaterialLayerRowType::Blend:
 	{
 		InCustomization->GetMaterialLayersFunctions()->FilterBlends[InIndex] = nullptr;
 		InCustomization->GetMaterialLayersFunctions()->Blends[InIndex] = nullptr;
-		InCustomization->GetMaterialLayersFunctions()->InstanceBlends[InIndex] = nullptr;
 		break;
 	}
 	}
@@ -360,17 +386,17 @@ bool FMaterialLayerFunctionElement::CanResetInstanceToDefault(TSharedPtr<IProper
 	{
 	case EMaterialLayerRowType::Layer:
 	{
-		if (InCustomization->GetMaterialLayersFunctions()->InstanceLayers.IsValidIndex(InIndex))
+		if (InCustomization->GetMaterialLayersFunctions()->Layers.IsValidIndex(InIndex))
 		{
-			StoredObject = InCustomization->GetMaterialLayersFunctions()->InstanceLayers[InIndex];
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->Layers[InIndex];
 		}
 		break;
 	}
 	case EMaterialLayerRowType::Blend:
 	{
-		if (InCustomization->GetMaterialLayersFunctions()->InstanceBlends.IsValidIndex(InIndex))
+		if (InCustomization->GetMaterialLayersFunctions()->Blends.IsValidIndex(InIndex))
 		{
-			StoredObject = InCustomization->GetMaterialLayersFunctions()->InstanceBlends[InIndex];
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->Blends[InIndex];
 		}
 		break;
 	}
@@ -432,27 +458,6 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 	FOnShouldFilterAsset FilterFilter = FOnShouldFilterAsset::CreateStatic(&FMaterialPropertyHelpers::FilterAssetFilters, InAssociation);
 	FOnShouldFilterAsset InstanceFilter = FOnShouldFilterAsset::CreateStatic(&FMaterialPropertyHelpers::FilterAssetInstances, ParentCustomization->GetMaterialLayersFunctions(), InAssociation, Index);
 
-	FString FilterPath;
-	if (RowType == EMaterialLayerRowType::Blend && ParentCustomization->GetMaterialLayersFunctions()->FilterBlends.IsValidIndex(Index))
-	{
-		FilterPath = ParentCustomization->GetMaterialLayersFunctions()->FilterBlends[Index]->GetPathName();
-	}
-	else if (RowType == EMaterialLayerRowType::Layer && ParentCustomization->GetMaterialLayersFunctions()->FilterLayers.IsValidIndex(Index))
-	{
-		FilterPath = ParentCustomization->GetMaterialLayersFunctions()->FilterLayers[Index]->GetPathName();
-	}
-
-	FString InstancePath;
-	if (RowType == EMaterialLayerRowType::Blend && ParentCustomization->GetMaterialLayersFunctions()->InstanceBlends.IsValidIndex(Index))
-	{
-		InstancePath = ParentCustomization->GetMaterialLayersFunctions()->InstanceBlends[Index]->GetPathName();
-	}
-	else if (RowType == EMaterialLayerRowType::Layer && ParentCustomization->GetMaterialLayersFunctions()->InstanceLayers.IsValidIndex(Index))
-	{
-		InstancePath = ParentCustomization->GetMaterialLayersFunctions()->InstanceLayers[Index]->GetPathName();
-	}
-
-
 	FIntPoint ThumbnailOverride;
 	if (RowType == EMaterialLayerRowType::Layer)
 	{
@@ -469,6 +474,10 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 		.TextStyle(FEditorStyle::Get(), "TinyText");
 	ParentTextBlock->SetToolTipText(LOCTEXT("ParentTooltip", "This allows you to set the parent class of your layer or blend asset to filter the possible assets to use."));
 	ParentTextBlock->EnableToolTipForceField(true);
+
+	FMaterialParameterInfo FunctionInfo;
+	FunctionInfo.Index = Index;
+	FunctionInfo.Association = InAssociation;
 
 	NodeRow
 		.NameContent()
@@ -500,7 +509,7 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 				[
 					SNew(SObjectPropertyEntryBox)
 					.AllowedClass(UMaterialFunction::StaticClass())
-					.ObjectPath(FilterPath)
+					.ObjectPath(ParentCustomization, &FMaterialLayersFunctionsCustomization::GetFilterPath, FunctionInfo)
 					.OnObjectChanged(FilterAssetChanged)
 					.OnShouldFilterAsset(FilterFilter)
 					.CustomResetToDefault(ResetFilterOverride)
@@ -511,7 +520,7 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 			[
 				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(UMaterialFunctionInterface::StaticClass())
-				.ObjectPath(InstancePath)
+				.ObjectPath(ParentCustomization, &FMaterialLayersFunctionsCustomization::GetInstancePath, FunctionInfo)
 				.OnObjectChanged(AssetChanged)
 				.OnShouldFilterAsset(InstanceFilter)
 				.CustomResetToDefault(ResetInstanceOverride)

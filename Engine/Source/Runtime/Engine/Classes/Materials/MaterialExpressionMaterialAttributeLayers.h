@@ -44,15 +44,6 @@ class UMaterialExpressionMaterialAttributeLayers : public UMaterialExpression
 	}
 
 #if WITH_EDITOR
-	const TArray<UMaterialFunctionInterface*>& GetInstanceLayers() const
-	{
-		return ParamLayers ? ParamLayers->InstanceLayers : DefaultLayers.InstanceLayers;
-	}
-
-	const TArray<UMaterialFunctionInterface*>& GetInstanceBlends() const
-	{
-		return ParamLayers ? ParamLayers->InstanceBlends : DefaultLayers.InstanceBlends;
-	}
 
 	const TArray<UMaterialFunctionInterface*>& GetFilterLayers() const
 	{

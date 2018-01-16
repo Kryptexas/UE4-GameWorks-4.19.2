@@ -686,7 +686,7 @@ bool FMaterialShaderMapId::operator==(const FMaterialShaderMapId& ReferenceSet) 
 	return true;
 }
 
-void FMaterialShaderMapId::UpdateParameterSet(FStaticParameterSet& StaticParameters)
+void FMaterialShaderMapId::UpdateParameterSet(const FStaticParameterSet& StaticParameters)
 {
 	ParameterSet = StaticParameters;
 
