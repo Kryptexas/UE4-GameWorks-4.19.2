@@ -1620,6 +1620,12 @@ bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, 
 		InstanceReorderTable.RemoveAt(InstanceIndex);
 	}
 
+	// remove instance
+	if (!InstanceAlreadyRemoved && PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		PerInstanceSMData.RemoveAt(InstanceIndex);
+	}
+
 	if (ReorderInstances)
 	{
 		for (int32 i = InstanceIndex; i < InstanceReorderTable.Num(); ++i)
@@ -1631,12 +1637,6 @@ bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, 
 		{
 			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, PerInstanceRenderData->InstanceBuffer.GetNumInstances() - InstanceIndex);
 		}
-	}
-
-	// remove instance
-	if (!InstanceAlreadyRemoved && PerInstanceSMData.IsValidIndex(InstanceIndex))
-	{
-		PerInstanceSMData.RemoveAt(InstanceIndex);
 	}
 
 #if WITH_EDITOR
@@ -1665,7 +1665,7 @@ bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, 
 
 bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 {
-	return RemoveInstanceInternal(InstanceIndex, false, false);
+	return RemoveInstanceInternal(InstanceIndex, true, false);
 }
 
 bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace) const

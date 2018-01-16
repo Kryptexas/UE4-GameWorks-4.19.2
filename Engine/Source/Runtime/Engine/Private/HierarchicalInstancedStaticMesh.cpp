@@ -1880,7 +1880,7 @@ void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 Ins
 	// Remove the instance
 	PerInstanceSMData.RemoveAtSwap(InstanceIndex);
 	InstanceReorderTable.RemoveAtSwap(InstanceIndex);
-	UnbuiltInstanceIndexList.RemoveSwap(InstanceIndex);
+	UnbuiltInstanceIndexList.RemoveAtSwap(InstanceIndex);
 
 #if WITH_EDITOR
 	if (SelectedInstances.Num())
