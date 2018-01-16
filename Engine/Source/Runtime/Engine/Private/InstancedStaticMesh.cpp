@@ -997,6 +997,16 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 #endif
 }
 
+void UInstancedStaticMeshComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		InitPerInstanceRenderData(PerInstanceSMData.Num() > 0);
+	}
+}
+
 FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 {
 	ProxySize = 0;
@@ -2252,7 +2262,10 @@ void UInstancedStaticMeshComponent::ClearInstanceSelection()
 	int32 InstanceCount = SelectedInstances.Num();
 	SelectedInstances.Empty();
 
-	PerInstanceRenderData->UpdateInstanceData(this, 0, InstanceCount);
+	if (PerInstanceRenderData.IsValid())
+	{
+		PerInstanceRenderData->UpdateInstanceData(this, 0, InstanceCount);
+	}
 #endif
 }
 
