@@ -107,7 +107,7 @@ struct FShaderCodeEntry
 
 static FArchive& operator <<(FArchive& Ar, FShaderCodeEntry& Ref)
 {
-	return Ar << Ref.Offset << Ref.Size << Ref.UncompressedSize;
+	return Ar << Ref.Offset << Ref.Size << Ref.UncompressedSize << Ref.Frequency;
 }
 
 class FShaderCodeArchive final : public FShaderFactoryInterface
@@ -567,8 +567,67 @@ struct FEditorShaderCodeArchive
 		return false;
 	}
 	
+	void AddExistingShaderCodeLibrary(FString const& OutputDir, bool bNativeFormat)
+	{
+		// Iterative cook - common case - include previous shader code library if it exists (CAUTION: This may slowly increase the size of the code library on repeated iterative cooking)
+		{
+			FArchive* PrevCookedAr = IFileManager::Get().CreateFileReader(*GetCodeArchiveFilename(OutputDir, FormatName));
+			
+			if(!PrevCookedAr)
+			{
+				// If native library format cooking deletes the generated shader code library we need to handle a "backup" in the intermediate folder
+				// Not native or not iterative - ensure this file does not exist
+				
+				FString BackupfileDir = GetCodeArchiveFilename(FPaths::ProjectIntermediateDir() / TEXT("Shaders"), FormatName);
+				if(bNativeFormat && FParse::Param(FCommandLine::Get(), TEXT("iterate")))
+				{
+					PrevCookedAr = IFileManager::Get().CreateFileReader(*BackupfileDir);
+				}
+				else
+				{
+					IFileManager::Get().Delete(*BackupfileDir);
+				}
+			}
+			
+			if (PrevCookedAr)
+			{
+				TMap<FSHAHash, FShaderCodeEntry> PrevCookedShaders;
+				
+				*PrevCookedAr << PrevCookedShaders;
+				int64 PrevCookedShadersCodeStart = PrevCookedAr->Tell();
+				
+				for (TMap<FSHAHash, FShaderCodeEntry>::TIterator It(PrevCookedShaders); It; ++It)
+				{
+					FSHAHash& Hash = It.Key();
+					
+					if(!Shaders.Contains(Hash))
+					{
+						// Shader not in list - lazy load shader code
+						FShaderCodeEntry& CodeEntry = It.Value();
+						
+						int64 ReadSize = CodeEntry.Size;
+						int64 ReadOffset = PrevCookedShadersCodeStart + CodeEntry.Offset;
+						
+						CodeEntry.LoadedCode.SetNumUninitialized(ReadSize);
+						
+						// Read shader code from archive and add shader to set
+						PrevCookedAr->Seek(ReadOffset);
+						PrevCookedAr->Serialize(CodeEntry.LoadedCode.GetData(), ReadSize);
+						
+						AddShader(CodeEntry.Frequency, Hash, CodeEntry.LoadedCode, CodeEntry.UncompressedSize);
+					}
+				}
+				
+				PrevCookedAr->Close();
+				delete PrevCookedAr;
+			}
+		}
+	}
+	
 	bool Finalize(FString OutputDir, FString DebugDir, bool bNativeFormat)
 	{
+		AddExistingShaderCodeLibrary(OutputDir, bNativeFormat);
+		
 		bool bSuccess = Shaders.Num() > 0;
 		
 		EShaderPlatform Platform = ShaderFormatToLegacyShaderPlatform(FormatName);
@@ -584,9 +643,9 @@ struct FEditorShaderCodeArchive
 				check(Format);
 				if (Format->CanStripShaderCode(bNativeFormat))
 				{
-					FString DebugPlatformDir = DebugDir / FormatName.ToString();
-					IFileManager::Get().MakeDirectory(*DebugPlatformDir, true);	
-										
+					FString DebugPlatformDir = GetShaderCodeFilename(DebugDir, FormatName);
+					IFileManager::Get().MakeDirectory(*DebugPlatformDir, true);
+
 					TMap<FSHAHash, FShaderCodeEntry> StrippedShaders;
 					uint32 TotalSize = 0;
 					for (const auto& Pair : Shaders)
@@ -595,7 +654,7 @@ struct FEditorShaderCodeArchive
 						CompressedCode.Append(Pair.Value.LoadedCode.GetData(), Pair.Value.Size);
 
 						int32 UncompressedSize = Pair.Value.UncompressedSize;
-					
+
 						TArray<uint8> UCode;
 						TArray<uint8>& UncompressedCode = FShaderLibraryHelperUncompressCode(Platform, UncompressedSize, CompressedCode, UCode);
 
@@ -634,14 +693,21 @@ struct FEditorShaderCodeArchive
 						FileWriter->Serialize(Pair.Value.LoadedCode.GetData(), Pair.Value.Size);
 					}
 				}
-						
+
 				FileWriter->Close();
 				delete FileWriter;
 
 				FString OutputFilePath = GetCodeArchiveFilename(OutputDir, FormatName);
 				// As on POSIX only file moves on the same device are atomic
-				IFileManager::Get().Move(*OutputFilePath, *TempFilePath, false, false, true, true);
+				IFileManager::Get().Move(*OutputFilePath, *TempFilePath, true, false, true, true);
 				IFileManager::Get().Delete(*TempFilePath);
+				
+				if(bNativeFormat)
+				{
+					// Copy to intermediate location - support for iterative native library cooking
+					FString IntermediateFilePath = GetCodeArchiveFilename(FPaths::ProjectIntermediateDir() / TEXT("Shaders"), FormatName);
+					IFileManager::Get().Copy(*IntermediateFilePath, *OutputFilePath, true, true);
+				}
 			}
 		}
 		
@@ -658,7 +724,7 @@ struct FEditorShaderCodeArchive
 			
 			FString OutputFilePath = GetPipelinesArchiveFilename(OutputDir, FormatName);
 			// As on POSIX only file moves on the same device are atomic
-			IFileManager::Get().Move(*OutputFilePath, *TempFilePath, false, false, true, true);
+			IFileManager::Get().Move(*OutputFilePath, *TempFilePath, true, false, true, true);
 			IFileManager::Get().Delete(*TempFilePath);
 		}
 		
@@ -679,6 +745,7 @@ struct FEditorShaderCodeArchive
 		{
 			FString OutputPath = GetShaderCodeFilename(ShaderCodeDir, FormatName);
 			FString DebugPath = GetShaderCodeFilename(DebugShaderCodeDir, FormatName);
+			
 			bOK = true;
 			
 			// Add the shaders to the archive.
@@ -701,9 +768,7 @@ struct FEditorShaderCodeArchive
 			{
 				bOK = Archive->Finalize(ShaderCodeDir, DebugPath, nullptr);
 				
-				//Always delete debug directory
-				IFileManager::Get().DeleteDirectory(*DebugShaderCodeDir, true, true);
-				
+				// Delete Shader code library / pipelines as we now have native versions
 				{
 					FString OutputFilePath = GetCodeArchiveFilename(ShaderCodeDir, FormatName);
 					IFileManager::Get().Delete(*OutputFilePath);
@@ -713,6 +778,9 @@ struct FEditorShaderCodeArchive
 					IFileManager::Get().Delete(*OutputFilePath);
 				}
 			}
+			
+			//Always delete debug directory
+			IFileManager::Get().DeleteDirectory(*DebugShaderCodeDir, true, true);
 		}
 		return bOK;
 	}
