@@ -800,7 +800,7 @@ public:
 		if (HelperThreadDynamicHeapAllocator == nullptr)
 		{
 			uint32 NextIndex = FPlatformAtomics::InterlockedIncrement(&NumThreadDynamicHeapAllocators) - 1;
-			check(NextIndex < _countof(ThreadDynamicHeapAllocatorArray));
+			check(NextIndex < (uint32)ThreadDynamicHeapAllocatorArray.Num());
 			HelperThreadDynamicHeapAllocator = new FD3D12FastAllocator(Device, Node, D3D12_HEAP_TYPE_UPLOAD, AsyncTexturePoolSize);
 
 			ThreadDynamicHeapAllocatorArray[NextIndex] = HelperThreadDynamicHeapAllocator;
@@ -809,7 +809,7 @@ public:
 		return *HelperThreadDynamicHeapAllocator;
 	}
 
-	FD3D12FastAllocator* ThreadDynamicHeapAllocatorArray[16];
+	TArray<FD3D12FastAllocator*> ThreadDynamicHeapAllocatorArray;
 	int32 NumThreadDynamicHeapAllocators;
 	static __declspec(thread) FD3D12FastAllocator* HelperThreadDynamicHeapAllocator;
 

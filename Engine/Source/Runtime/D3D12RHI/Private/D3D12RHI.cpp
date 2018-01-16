@@ -46,10 +46,10 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 {
 	LLM(D3D12LLM::Initialise());
 
-	FMemory::Memzero(ThreadDynamicHeapAllocatorArray, sizeof(ThreadDynamicHeapAllocatorArray));
-
 	// The FD3D12DynamicRHI must be a singleton
 	check(SingleD3DRHI == nullptr);
+
+	ThreadDynamicHeapAllocatorArray.AddZeroed(FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 
 	// This should be called once at the start 
 	check(IsInGameThread());
