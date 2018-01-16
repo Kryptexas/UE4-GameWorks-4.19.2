@@ -722,6 +722,10 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	}
 #endif
 
+	FAnsiCharArray GlslCodeAfterExtensions;
+	const ANSICHAR* GlslPlaceHolderAfterExtensions = "// end extensions";
+	bool bGlslCodeHasExtensions = CStringCountOccurances(GlslCodeOriginal, GlslPlaceHolderAfterExtensions) == 1;
+	
 	bool bNeedsExtDrawInstancedDefine = false;
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
@@ -1006,7 +1010,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 						if (!bIsMediumPrecision)
 						{
-							AppendCString(GlslCode,
+							AppendCString(GlslCodeAfterExtensions,
 								"highp float round(highp float value)\n"
 								"{\n"
 								"	return floor(value + 0.5);\n"
@@ -1027,7 +1031,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 						}
 						else
 						{
-							AppendCString(GlslCode,
+							AppendCString(GlslCodeAfterExtensions,
 								"mediump float round(mediump float value)\n"
 								"{\n"
 								"	return floor(value + 0.5);\n"
@@ -1045,6 +1049,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 								"	return floor(value + vec4(0.5, 0.5, 0.5, 0.5));\n"
 								"}\n"
 							);
+						}
+
+						if (!bGlslCodeHasExtensions)
+						{
+							// the initial code has no #extension chunk. append the code to the current position
+							AppendCString(GlslCode, GlslCodeAfterExtensions.GetData());
+							GlslCodeAfterExtensions.Empty();
 						}
 					}
 
@@ -1092,6 +1103,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	// shader source.
 	AppendCString(GlslCode, "\n\n");
 	AppendCString(GlslCode, GlslCodeOriginal.GetData());
+
+	if (bGlslCodeHasExtensions && GlslCodeAfterExtensions.Num() > 0)
+	{
+		// the initial code has an #extension chunk. replace the placeholder line
+		ReplaceCString(GlslCode, GlslPlaceHolderAfterExtensions, GlslCodeAfterExtensions.GetData());
+	}
+
 }
 
 /**

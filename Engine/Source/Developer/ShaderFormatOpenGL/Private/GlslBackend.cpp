@@ -3063,6 +3063,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			}
 
 		}
+		ralloc_asprintf_append(buffer, "// end extensions\n");
 	}
 
 public:

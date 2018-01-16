@@ -704,12 +704,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	// so we set this to false to modify the glsl manually at compile-time.
 	bSupportsTextureCubeLodEXT = false;
 
-	// On some Android devices with Mali GPUs textureCubeLod is not available.
-	if (RendererString.Contains(TEXT("Mali-400")))
-	{
-		bSupportsShaderTextureCubeLod = false;
-	}
-
 	// Nexus 5 (Android 4.4.2) doesn't like glVertexAttribDivisor(index, 0) called when not using a glDrawElementsInstanced
 	if (bIsAdrenoBased && VersionString.Contains(TEXT("OpenGL ES 3.0 V@66.0 AU@  (CL@)")))
 	{

@@ -1334,6 +1334,7 @@ static void CheckTextureCubeLodSupport()
 			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
 			"#extension GL_EXT_shader_texture_lod : enable\n"
 			"#endif\n"
+			"// end extensions\n"
 			"precision mediump float;\n"
 			"precision mediump int;\n"
 			"#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n"
