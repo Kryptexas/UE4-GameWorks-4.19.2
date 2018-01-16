@@ -102,9 +102,14 @@ public:
 		return LayoutHandles;
 	}
 
+	inline uint32 GetHash() const
+	{
+		return Hash;
+	}
+
 private:
 	FVulkanDevice* Device;
-
+	uint32 Hash = 0;
 	TArray<VkDescriptorSetLayout> LayoutHandles;
 };
 
@@ -225,6 +230,11 @@ public:
 	inline bool HasDescriptors() const
 	{
 		return DescriptorSetLayout.GetLayouts().Num() > 0;
+	}
+
+	inline uint32 GetDescriptorSetLayoutHash() const
+	{
+		return DescriptorSetLayout.GetHash();
 	}
 
 protected:
@@ -431,6 +441,69 @@ protected:
 };
 
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+namespace VulkanRHI
+{
+	class FDescriptorSetsAllocator : public VulkanRHI::FDeviceChild
+	{
+	public:
+		FDescriptorSetsAllocator(FVulkanDevice* InDevice, const FVulkanLayout& InLayout, uint32 InNumAllocationsPerPool);
+		~FDescriptorSetsAllocator();
+
+		TArrayView<VkDescriptorSet> Allocate(const FVulkanLayout& Layout, uint32 InNumAllocations/*, FVulkanCmdBuffer* CmdBuffer*/);
+		void Reset(FVulkanCmdBuffer* CmdBuffer);
+		inline void SetFence(FVulkanCmdBuffer* InCmdBuffer, uint64 InCurrentFence)
+		{
+			CurrentCmdBuffer = InCmdBuffer;
+			CurrentFence = InCurrentFence;
+		}
+
+	protected:
+		FVulkanCmdBuffer* CurrentCmdBuffer = nullptr;
+		uint64 CurrentFence = 0;
+
+		struct FPoolEntry
+		{
+			VkDescriptorPool Pool = VK_NULL_HANDLE;
+
+			// We don't use a TArray as these get copied by value!
+			VkDescriptorSet* Sets;
+			int32 MaxSets = 0;
+
+			FPoolEntry() = default;
+
+			FPoolEntry(const FPoolEntry& In)
+				: Pool(In.Pool)
+				, Sets(In.Sets)
+				, MaxSets(In.MaxSets)
+			{
+			}
+		};
+
+		struct FFencedPoolEntry : public FPoolEntry
+		{
+			int32 NumUsedSets = 0;
+			FVulkanCmdBuffer* CmdBuffer = nullptr;
+			uint64 Fence = 0;
+
+			FFencedPoolEntry() = default;
+
+			FFencedPoolEntry(const FPoolEntry& In)
+				: FPoolEntry(In)
+			{
+			}
+		};
+		TArray<FFencedPoolEntry> UsedEntries;
+		TArray<FPoolEntry> FreeEntries;
+
+		FFencedPoolEntry* CreatePool(const FVulkanLayout& Layout);
+
+		VkDescriptorPoolCreateInfo CreateInfo;
+		TArray<VkDescriptorPoolSize> CreateInfoTypes;
+		uint32 NumAllocationsPerPool = 0;
+	};
+}
+#else
 class FVulkanPipelineDescriptorSetAllocator
 {
 public:
@@ -487,4 +560,5 @@ protected:
 	TArray<VkDescriptorPoolSize> CreateInfoTypes;
 	uint32 NumAllocationsPerPool = 0;
 };
+#endif
 #endif

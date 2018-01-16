@@ -8,6 +8,10 @@
 
 #include "CoreMinimal.h"
 #include "VulkanConfiguration.h"
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#include "ArrayView.h"
+#include "VulkanDescriptorSets.h"
+#endif
 
 class FVulkanDevice;
 class FVulkanCommandBufferPool;
@@ -82,6 +86,11 @@ public:
 		return FenceSignaledCounter;
 	}
 
+	inline volatile uint64 GetSubmittedFenceCounter() const
+	{
+		return SubmittedFenceCounter;
+	}
+
 	inline bool HasValidTiming() const
 	{
 		return (Timing != nullptr) && (FMath::Abs((int64)FenceSignaledCounter - (int64)LastValidTiming) < 3);
@@ -108,6 +117,11 @@ public:
 	VkRect2D CurrentScissor;
 	uint32 CurrentStencilRef;
 
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+	TArrayView<VkDescriptorSet> AllocateDescriptorSets(const FVulkanLayout& Layout);
+	void SetDescriptorSetsFence(const FVulkanLayout& Layout);
+#endif
+
 private:
 	FVulkanDevice* Device;
 	VkCommandBuffer CommandBufferHandle;
@@ -116,7 +130,10 @@ private:
 	// Do not cache this pointer as it might change depending on VULKAN_REUSE_FENCES
 	VulkanRHI::FFence* Fence;
 
+	// Last value passed after the fence got signaled
 	volatile uint64 FenceSignaledCounter;
+	// Last value when we submitted the cmd buffer; useful to track down if something waiting for the fence has actually been submitted
+	volatile uint64 SubmittedFenceCounter;
 
 	void RefreshFenceStatus();
 	void InitializeTimings(FVulkanCommandListContext* InContext);
@@ -168,17 +185,26 @@ public:
 	/*
 	void PrepareForNewActiveCommandBuffer();
 */
-
 	inline VkCommandPool GetHandle() const
 	{
 		check(Handle != VK_NULL_HANDLE);
 		return Handle;
 	}
 
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+	TArrayView<VkDescriptorSet> AllocateDescriptorSets(FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
+	void ResetDescriptors(FVulkanCmdBuffer* CmdBuffer);
+	void SetDescriptorSetsFence(FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
+#endif
+
 private:
 	FVulkanDevice* Device;
 	VkCommandPool Handle;
 	//FVulkanCmdBuffer* ActiveCmdBuffer;
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+	TMap<uint32, VulkanRHI::FDescriptorSetsAllocator*> DSAllocators;
+#endif
 
 	FVulkanCmdBuffer* Create();
 
@@ -242,3 +268,16 @@ private:
 	FVulkanCmdBuffer* ActiveCmdBuffer;
 	FVulkanCmdBuffer* UploadCmdBuffer;
 };
+
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+inline TArrayView<VkDescriptorSet> FVulkanCmdBuffer::AllocateDescriptorSets(const FVulkanLayout& Layout)
+{
+	return CommandBufferPool->AllocateDescriptorSets(this, Layout);
+}
+
+inline void FVulkanCmdBuffer::SetDescriptorSetsFence(const FVulkanLayout& Layout)
+{
+	CommandBufferPool->SetDescriptorSetsFence(this, Layout);
+}
+#endif

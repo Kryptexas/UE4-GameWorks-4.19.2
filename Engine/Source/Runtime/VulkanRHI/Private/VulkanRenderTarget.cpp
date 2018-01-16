@@ -1356,8 +1356,9 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 
 		if (bSetExtent)
 		{
-			ensure(Extent.Extent3D.width == Texture->Surface.Width);
-			ensure(Extent.Extent3D.height == Texture->Surface.Height);
+			// Depth can be greater or equal to color
+			ensure(Texture->Surface.Width >= Extent.Extent3D.width);
+			ensure(Texture->Surface.Height >= Extent.Extent3D.height);
 		}
 		else
 		{

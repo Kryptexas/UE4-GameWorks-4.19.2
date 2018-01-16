@@ -206,14 +206,17 @@ void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCmdBuffer* InCmdBuffe
 
 	check(CurrentState);
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-	const FVulkanDescriptorSetArray* DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, InCmdBuffer, &GlobalUniformPool);
+	TArrayView<VkDescriptorSet> DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, InCmdBuffer, &GlobalUniformPool);
 
 	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
 		CurrentPipeline->Bind(CmdBuffer);
-		if (DescriptorSetHandles)
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+		InCmdBuffer->SetDescriptorSetsFence(CurrentPipeline->GetLayout());
+#endif
+		if (DescriptorSetHandles.Num() > 0)
 		{
 			CurrentState->BindDescriptorSets(CmdBuffer, DescriptorSetHandles);
 		}
@@ -251,11 +254,11 @@ void FVulkanPendingGfxState::PrepareForDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimi
 	ensure(Topology == UEToVulkanType(CurrentPipeline->PipelineStateInitializer.PrimitiveType));
 
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-	const FVulkanDescriptorSetArray* DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, CmdBuffer, &GlobalUniformPool);
+	const TArrayView<VkDescriptorSet> DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, CmdBuffer, &GlobalUniformPool);
 
 	UpdateDynamicStates(CmdBuffer);
 
-	if (DescriptorSetHandles)
+	if (DescriptorSetHandles.Num() > 0)
 	{
 		CurrentState->BindDescriptorSets(CmdBuffer->GetHandle(), DescriptorSetHandles);
 	}

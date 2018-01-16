@@ -35,17 +35,6 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if PLATFORM_ANDROID || PLATFORM_LINUX
-
-// Vulkan function pointers
-
-#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type VulkanDynamicAPI::Func = NULL;
-ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
-
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
 TAutoConsoleVariable<int32> GRHIThreadCvar(
 	TEXT("r.Vulkan.RHIThread"),
 	1,
@@ -198,131 +187,6 @@ static inline int32 CountSetBits(int32 n)
 
 DEFINE_LOG_CATEGORY(LogVulkan)
 
-#if PLATFORM_ANDROID || PLATFORM_LINUX
-#include <dlfcn.h>
-
-static void *VulkanLib = nullptr;
-static bool bAttemptedLoad = false;
-
-static bool LoadVulkanLibrary()
-{
-	if (bAttemptedLoad)
-	{
-		return (VulkanLib != nullptr);
-	}
-	bAttemptedLoad = true;
-
-	// try to load libvulkan.so
-#if PLATFORM_LINUX
-	VulkanLib = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
-#else
-	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
-#endif
-	if (VulkanLib == nullptr)
-	{
-		return false;
-	}
-
-	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanDynamicAPI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
-
-	// Initialize all of the entry points we have to query manually
-#define GET_VK_ENTRYPOINTS(Type,Func) VulkanDynamicAPI::Func = (Type)dlsym(VulkanLib, #Func);
-	ENUM_VK_ENTRYPOINTS_BASE(GET_VK_ENTRYPOINTS);
-	ENUM_VK_ENTRYPOINTS_BASE(CHECK_VK_ENTRYPOINTS);
-	if (!bFoundAllEntryPoints)
-	{
-		dlclose(VulkanLib);
-		VulkanLib = nullptr;
-		return false;
-	}
-
-	ENUM_VK_ENTRYPOINTS_OPTIONAL(GET_VK_ENTRYPOINTS);
-	//ENUM_VK_ENTRYPOINTS_OPTIONAL(CHECK_VK_ENTRYPOINTS);
-
-	return true;
-}
-
-static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
-{
-	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanDynamicAPI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
-
-#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) VulkanDynamicAPI::Func = (Type)VulkanDynamicAPI::vkGetInstanceProcAddr(inInstance, #Func);
-	ENUM_VK_ENTRYPOINTS_INSTANCE(GETINSTANCE_VK_ENTRYPOINTS);
-	ENUM_VK_ENTRYPOINTS_INSTANCE(CHECK_VK_ENTRYPOINTS);
-
-	return bFoundAllEntryPoints;
-}
-
-static void FreeVulkanLibrary()
-{
-	if (VulkanLib != nullptr)
-	{
-#define CLEAR_VK_ENTRYPOINTS(Type,Func) VulkanDynamicAPI::Func = nullptr;
-		ENUM_VK_ENTRYPOINTS_ALL(CLEAR_VK_ENTRYPOINTS);
-
-		dlclose(VulkanLib);
-		VulkanLib = nullptr;
-	}
-	bAttemptedLoad = false;
-}
-
-#elif PLATFORM_WINDOWS
-
-#include "AllowWindowsPlatformTypes.h"
-static HMODULE GVulkanDLLModule = nullptr;
-static bool LoadVulkanLibrary()
-{
-	// Try to load the vulkan dll, as not everyone has the sdk installed
-	GVulkanDLLModule = ::LoadLibraryW(TEXT("vulkan-1.dll"));
-	return GVulkanDLLModule != nullptr;
-}
-
-// Annoyingly, some functions do not have static bindings
-namespace VulkanRHI
-{
-	PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR = nullptr;
-}
-
-static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
-{
-	if (!GVulkanDLLModule)
-	{
-		return false;
-	}
-
-	PFN_vkGetInstanceProcAddr GetInstanceProcAddr =  (PFN_vkGetInstanceProcAddr) FPlatformProcess::GetDllExport(GVulkanDLLModule, TEXT("vkGetInstanceProcAddr"));
-
-	if (!GetInstanceProcAddr)
-	{
-		return false;
-	}
-
-#pragma warning(push)
-#pragma warning(disable : 4191) // warning C4191: 'type cast': unsafe conversion
-
-	VulkanRHI::GVkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR) GetInstanceProcAddr(inInstance, "vkGetPhysicalDeviceProperties2KHR");
-
-#pragma warning(pop) // restore 4191
-
-	return true;
-}
-
-static void FreeVulkanLibrary()
-{
-	if (GVulkanDLLModule != nullptr)
-	{
-		::FreeLibrary(GVulkanDLLModule);
-		GVulkanDLLModule = nullptr;
-	}
-}
-#include "HideWindowsPlatformTypes.h"
-
-#else
-#error Unsupported!
-#endif // PLATFORM_ANDROID
-
 bool FVulkanDynamicRHIModule::IsSupported()
 {
 	return true;
@@ -380,11 +244,11 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, FrameCounter(0)
 	, GpuProfiler(this, InDevice)
 {
-	FrameTiming = new FVulkanGPUTiming(this, InDevice);
-	FrameTiming->Initialize();
-
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
+
+	FrameTiming = new FVulkanGPUTiming(this, InDevice);
+	FrameTiming->Initialize();
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
 	PendingGfxState = new FVulkanPendingGfxState(Device, *this);
@@ -435,7 +299,6 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	, bSupportsDebugCallbackExt(false)
 	, MsgCallback(VK_NULL_HANDLE)
 #endif
-	, PresentCount(0)
 {
 	// This should be called once at the start 
 	check(IsInGameThread());
@@ -448,7 +311,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 
 void FVulkanDynamicRHI::Init()
 {
-	if (!LoadVulkanLibrary())
+	if (!FVulkanPlatform::LoadVulkanLibrary())
 	{
 #if PLATFORM_LINUX
 		// be more verbose on Linux
@@ -529,7 +392,7 @@ void FVulkanDynamicRHI::Shutdown()
 	IConsoleManager::Get().UnregisterConsoleObject(DumpMemoryCmd);
 #endif
 
-	FreeVulkanLibrary();
+	FVulkanPlatform::FreeVulkanLibrary();
 
 #if VULKAN_ENABLE_DUMP_LAYER
 	VulkanRHI::FlushDebugWrapperLog();
@@ -612,7 +475,7 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	VERIFYVULKANRESULT(Result);
 
-	if (!LoadVulkanInstanceFunctions(Instance))
+	if (!FVulkanPlatform::LoadVulkanInstanceFunctions(Instance))
 	{
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
 			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
@@ -839,10 +702,12 @@ void FVulkanDynamicRHI::InitInstance()
 	}
 }
 
+//uint32 GVulkanRHIFrameNumber = 0;
 void FVulkanCommandListContext::RHIBeginFrame()
 {
 	check(IsImmediate());
 	RHIPrivateBeginFrame();
+	//++GVulkanRHIFrameNumber;
 
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginFrame()")));
 	PendingGfxState->GetGlobalUniformPool().BeginFrame();
@@ -1180,7 +1045,6 @@ void FVulkanDescriptorSetsLayoutInfo::AddDescriptor(int32 DescriptorSetIndex, co
 void FVulkanDescriptorSetsLayout::Compile()
 {
 	check(LayoutHandles.Num() == 0);
-	check(Device);
 
 	// Check if we obey limits
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
@@ -1221,6 +1085,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 
 	LayoutHandles.Empty(SetLayouts.Num());
 
+	check(Hash == 0);
 	for (FSetLayout& Layout : SetLayouts)
 	{
 		VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo;
@@ -1229,6 +1094,9 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.pNext = nullptr;
 		DescriptorLayoutInfo.bindingCount = Layout.LayoutBindings.Num();
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
+
+		//#todo-rco: Need crc support for static samplers!
+		Hash = FCrc::MemCrc32(Layout.LayoutBindings.GetData(), Layout.LayoutBindings.Num() * sizeof(VkDescriptorSetLayoutBinding), Hash);
 
 		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
 		VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));

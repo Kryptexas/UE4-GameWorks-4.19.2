@@ -216,13 +216,14 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice PhysicalDevice, VkPhysicalDeviceProperties2KHR* Properties)
 	{
 		PrintfBegin(FString::Printf(TEXT("vkGetPhysicalDeviceProperties2KHR(PhysicalDevice=%p, Properties=%p)[...]"), PhysicalDevice, Properties));
-
+#if VULKAN_HAS_PHYSICAL_DEVICE_PROPERTIES2
 		extern PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR;
 		
 		if (GVkGetPhysicalDeviceProperties2KHR != nullptr)
 		{
 			GVkGetPhysicalDeviceProperties2KHR(PhysicalDevice, Properties);
 		}
+#endif
 	}
 
 	static FORCEINLINE_DEBUGGABLE void  vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice PhysicalDevice, uint32* QueueFamilyPropertyCount, VkQueueFamilyProperties* QueueFamilyProperties)
@@ -540,7 +541,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateEvent(VkDevice Device, const VkEventCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkEvent* Event)
 	{
-		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateEvent(CreateInfo=0x%016llx%s, OutEvent=0x%016llx)"), CreateInfo, Event));
+		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateEvent(CreateInfo=0x%p%s, OutEvent=0x%p)"), CreateInfo, Event));
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator ? Allocator : GDefaultMemoryAllocator, Event);
 
@@ -1006,33 +1007,41 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkCmdSetLineWidth(CommandBuffer, LineWidth);
 	}
 
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetDepthBias(
-		VkCommandBuffer                             commandBuffer,
-		float                                       depthBiasConstantFactor,
-		float                                       depthBiasClamp,
-		float                                       depthBiasSlopeFactor);
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetDepthBias(VkCommandBuffer CommandBuffer, float DepthBiasConstantFactor, float DepthBiasClamp, float DepthBiasSlopeFactor)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetDepthBias(ConstFactor=%f, Clamp=%f, SlopeFactor=%f)"), DepthBiasConstantFactor, DepthBiasClamp, DepthBiasSlopeFactor));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetBlendConstants(
-		VkCommandBuffer                             commandBuffer,
-		const float                                 blendConstants[4]);
+		VULKANAPINAMESPACE::vkCmdSetDepthBias(CommandBuffer, DepthBiasConstantFactor, DepthBiasClamp, DepthBiasSlopeFactor);
+	}
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetDepthBounds(
-		VkCommandBuffer                             commandBuffer,
-		float                                       minDepthBounds,
-		float                                       maxDepthBounds);
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetBlendConstants(VkCommandBuffer CommandBuffer, const float BlendConstants[4])
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetBlendConstants(BlendConstants=[%f, %f, %f, %f])"), BlendConstants[0], BlendConstants[1], BlendConstants[2], BlendConstants[3]));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilCompareMask(
-		VkCommandBuffer                             commandBuffer,
-		VkStencilFaceFlags                          faceMask,
-		uint32                                    compareMask);
+		VULKANAPINAMESPACE::vkCmdSetBlendConstants(CommandBuffer, BlendConstants);
+	}
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilWriteMask(
-		VkCommandBuffer                             commandBuffer,
-		VkStencilFaceFlags                          faceMask,
-		uint32                                    writeMask);
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetDepthBounds(VkCommandBuffer CommandBuffer, float MinDepthBounds, float MaxDepthBounds)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetDepthBounds(Min=%f Max=%f])"), MinDepthBounds, MaxDepthBounds));
 
-#endif
+		VULKANAPINAMESPACE::vkCmdSetDepthBounds(CommandBuffer, MinDepthBounds, MaxDepthBounds);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilCompareMask(VkCommandBuffer CommandBuffer, VkStencilFaceFlags FaceMask, uint32 CompareMask)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilCompareMask(FaceMask=%d, CompareMask=%d)"), (int32)FaceMask, (int32)CompareMask));
+
+		VULKANAPINAMESPACE::vkCmdSetStencilCompareMask(CommandBuffer, FaceMask, CompareMask);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilWriteMask(VkCommandBuffer CommandBuffer, VkStencilFaceFlags FaceMask, uint32 WriteMask)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilWriteMask(FaceMask=%d, CompareMask=%d)"), (int32)FaceMask, (int32)WriteMask));
+
+		VULKANAPINAMESPACE::vkCmdSetStencilWriteMask(CommandBuffer, FaceMask, WriteMask);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilReference(VkCommandBuffer CommandBuffer, VkStencilFaceFlags FaceMask, uint32 Reference)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilReference(FaceMask=%d, Ref=%d)"), (int32)FaceMask, (int32)Reference));
@@ -1223,18 +1232,21 @@ namespace VulkanRHI
 
 		VULKANAPINAMESPACE::vkCmdPipelineBarrier(CommandBuffer, SrcStageMask, DstStageMask, DependencyFlags, MemoryBarrierCount, MemoryBarriers, BufferMemoryBarrierCount, BufferMemoryBarriers, ImageMemoryBarrierCount, ImageMemoryBarriers);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdBeginQuery(
-		VkCommandBuffer                             commandBuffer,
-		VkQueryPool                                 queryPool,
-		uint32                                    query,
-		VkQueryControlFlags                         flags);
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdEndQuery(
-		VkCommandBuffer                             commandBuffer,
-		VkQueryPool                                 queryPool,
-		uint32                                    query);
-#endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdBeginQuery(VkCommandBuffer CommandBuffer, VkQueryPool QueryPool, uint32 Query, VkQueryControlFlags Flags)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBeginQuery(QueryPool=%p, Query=%d Flags=%d)"), QueryPool, Query, Flags));
+
+		VULKANAPINAMESPACE::vkCmdBeginQuery(CommandBuffer, QueryPool, Query, Flags);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdEndQuery(VkCommandBuffer CommandBuffer, VkQueryPool QueryPool, uint32 Query)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdEndQuery(QueryPool=%p, Query=%d)"), QueryPool, Query));
+
+		VULKANAPINAMESPACE::vkCmdEndQuery(CommandBuffer, QueryPool, Query);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdResetQueryPool(VkCommandBuffer CommandBuffer, VkQueryPool QueryPool, uint32 FirstQuery, uint32 QueryCount)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdResetQueryPool(QueryPool=%p, FirstQuery=%d, NumQueries=%d)"), QueryPool, FirstQuery, QueryCount));

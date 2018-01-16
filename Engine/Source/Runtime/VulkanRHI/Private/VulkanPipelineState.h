@@ -13,6 +13,7 @@
 #include "VulkanGlobalUniformBuffer.h"
 #include "VulkanPipeline.h"
 #include "VulkanRHIPrivate.h"
+#include "ArrayView.h"
 
 class FVulkanComputePipeline;
 
@@ -44,7 +45,10 @@ public:
 	{
 		ComputePipeline->Release();
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 		DescriptorAllocator.Destroy(Device);
+#endif
 #endif
 	}
 
@@ -52,7 +56,10 @@ public:
 	{
 		PackedUniformBuffersDirty = PackedUniformBuffersMask;
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 		DescriptorAllocator.Reset();
+#endif
 #else
 		DSRingBuffer.Reset();
 #endif
@@ -120,16 +127,14 @@ public:
 	}
 
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-	const FVulkanDescriptorSetArray* UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
+	TArrayView<VkDescriptorSet> UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
-	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const FVulkanDescriptorSetArray* DescriptorSets)
+	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const TArrayView<VkDescriptorSet>& DescriptorSets)
 	{
-		check(DescriptorSets);
-
 		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
 			VK_PIPELINE_BIND_POINT_COMPUTE,
 			ComputePipeline->GetLayout().GetPipelineLayout(),
-			0, DescriptorSets->Num(), DescriptorSets->GetData(),
+			0, DescriptorSets.Num(), DescriptorSets.GetData(),
 			0, nullptr);
 	}
 #else
@@ -144,7 +149,10 @@ public:
 
 protected:
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 	FVulkanPipelineDescriptorSetAllocator DescriptorAllocator;
+#endif
 #endif
 
 	FPackedUniformBuffers PackedUniformBuffers;
@@ -170,7 +178,10 @@ public:
 		GfxPipeline->Release();
 		BSS->Release();
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 		DescriptorAllocator.Destroy(Device);
+#endif
 #endif
 	}
 
@@ -234,16 +245,14 @@ public:
 	}
 
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-	const FVulkanDescriptorSetArray* UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
+	TArrayView<VkDescriptorSet> UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
-	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const FVulkanDescriptorSetArray* DescriptorSets)
+	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const TArrayView<VkDescriptorSet>& DescriptorSets)
 	{
-		check(DescriptorSets);
-
 		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(),
-			0, DescriptorSets->Num(), DescriptorSets->GetData(),
+			0, DescriptorSets.Num(), DescriptorSets.GetData(),
 			0, nullptr);
 	}
 #else
@@ -260,7 +269,10 @@ public:
 	{
 		FMemory::Memcpy(PackedUniformBuffersDirty, PackedUniformBuffersMask);
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 		DescriptorAllocator.Reset();
+#endif
 #else
 		DSRingBuffer.Reset();
 #endif
@@ -308,7 +320,10 @@ protected:
 	FVulkanBoundShaderState* BSS;
 	int32 ID;
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 	FVulkanPipelineDescriptorSetAllocator DescriptorAllocator;
+#endif
 #endif
 
 	void CreateDescriptorWriteInfos();

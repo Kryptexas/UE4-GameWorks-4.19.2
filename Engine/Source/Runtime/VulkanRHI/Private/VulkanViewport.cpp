@@ -676,6 +676,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 #endif
 	++PresentCount;
+	++((FVulkanDynamicRHI*)GDynamicRHI)->TotalPresentCount;
 #if 0
 	{
 		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);

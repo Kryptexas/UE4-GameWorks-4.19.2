@@ -466,6 +466,8 @@ FOLDVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(cons
 #endif
 
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#else
 FVulkanPipelineDescriptorSetAllocator::~FVulkanPipelineDescriptorSetAllocator()
 {
 	ensure(UsedPools.Num() == 0);
@@ -554,6 +556,7 @@ void FVulkanPipelineDescriptorSetAllocator::Reset()
 
 FVulkanDescriptorSetArray* FVulkanPipelineDescriptorSetAllocator::Allocate(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout* InLayout)
 {
+	SCOPE_CYCLE_COUNTER(STAT_VulkanDescriptorSetAllocator);
 	FVulkanDescriptorSetArray* OutSets = nullptr;
 
 	if (CreateInfo.poolSizeCount == 0)
@@ -627,7 +630,7 @@ FVulkanPipelineDescriptorSetAllocator::FPool::FPool(FVulkanDevice* Device, const
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanVkCreateDescriptorPool);
 			INC_DWORD_STAT(STAT_VulkanDescriptorPools);
-			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), CreateInfo, GInstrumentedMemoryAllocator, &Handle));
+			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), CreateInfo, nullptr, &Handle));
 		}
 
 		const TArray<VkDescriptorSetLayout>& LayoutHandles = InLayout->GetDescriptorSetsLayout().GetHandles();
@@ -712,4 +715,5 @@ bool FVulkanPipelineDescriptorSetAllocator::FPool::ProcessFences()
 	check(UsedEntries >= 0 && UsedEntries <= Entries.Num());
 	return (UsedEntries == 0);
 }
+#endif
 #endif

@@ -97,8 +97,8 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 			}
 
 			NumBuffers = bDynamic ? NUM_RENDER_BUFFERS : 1;
+			check(NumBuffers <= ARRAY_COUNT(Buffers));
 
-			Buffers.AddDefaulted(NumBuffers);
 			for (uint32 Index = 0; Index < NumBuffers; ++Index)
 			{
 				Buffers[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize, BufferUsageFlags, BufferMemFlags, __FILE__, __LINE__);

@@ -7,7 +7,7 @@
 #pragma once 
 
 // Enable to store file & line of every mem & resource allocation
-#define VULKAN_MEMORY_TRACK_FILE_LINE	(UE_BUILD_DEBUG)
+#define VULKAN_MEMORY_TRACK_FILE_LINE	0
 
 // Enable to save the callstack for every mem and resource allocation
 #define VULKAN_MEMORY_TRACK_CALLSTACK	0
@@ -22,14 +22,12 @@ namespace VulkanRHI
 
 	enum
 	{
+		GPU_ONLY_HEAP_PAGE_SIZE = 8 * 1024 * 1024,
+		STAGING_HEAP_PAGE_SIZE = 8 * 1024 * 1024,
 #if PLATFORM_ANDROID
 		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 3,
-		GPU_ONLY_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
-		STAGING_HEAP_PAGE_SIZE = 16 * 1024 * 1024,
 #else
-		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 20,
-		GPU_ONLY_HEAP_PAGE_SIZE = 256 * 1024 * 1024,
-		STAGING_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 10,
 #endif
 	};
 

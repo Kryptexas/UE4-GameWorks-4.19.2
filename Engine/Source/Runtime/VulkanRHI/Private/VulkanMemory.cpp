@@ -162,7 +162,27 @@ namespace VulkanRHI
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Hit Maximum # of allocations (%d) reported by device!"), NumAllocations);
 		}
 #endif
-		VERIFYVULKANRESULT(VulkanRHI::vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle));
+		VkResult Result = VulkanRHI::vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle);
+		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+		{
+			UE_LOG(LogVulkanRHI, Error, TEXT("Out of Device Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			DumpMemory();
+			GLog->PanicFlushThreadedLogs();
+#endif
+		}
+		else if (Result == VK_ERROR_OUT_OF_HOST_MEMORY)
+		{
+			UE_LOG(LogVulkanRHI, Error, TEXT("Out of Host Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			DumpMemory();
+			GLog->PanicFlushThreadedLogs();
+#endif
+		}
+		else
+		{
+			VERIFYVULKANRESULT(Result);
+		}
 
 		uint32 HeapIndex = MemoryProperties.memoryTypes[MemoryTypeIndex].heapIndex;
 		HeapInfos[HeapIndex].Allocations.Add(NewAllocation);

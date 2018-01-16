@@ -11,48 +11,13 @@
 #include "Misc/ScopeLock.h"
 #include "RHI.h"
 #include "RenderUtils.h"
+
+// let the platform set up the headers and some defines
+#include "VulkanPlatform.h"
+
+// the configuration will set up anyhting not set up by the platform
 #include "VulkanConfiguration.h"
 
-#if PLATFORM_WINDOWS
-#include "WindowsHWrapper.h"
-#endif
-
-#ifndef VK_PROTOTYPES
-#define VK_PROTOTYPES	1
-#endif
-
-#if PLATFORM_WINDOWS
-	#define VK_USE_PLATFORM_WIN32_KHR 1
-	#define VK_USE_PLATFORM_WIN32_KHX 1
-#endif
-#if PLATFORM_ANDROID
-	#define VK_USE_PLATFORM_ANDROID_KHR 1
-#endif
-
-#if PLATFORM_ANDROID
-	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_DUMP_LAYER
-	#define VULKAN_DYNAMICALLYLOADED 1
-#elif PLATFORM_LINUX
-	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
-	#define VULKAN_DYNAMICALLYLOADED 1
-#else
-	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
-	#define VULKAN_DYNAMICALLYLOADED 0
-#endif
-
-#if PLATFORM_WINDOWS
-#include "AllowWindowsPlatformTypes.h"
-#endif
-
-#if VULKAN_DYNAMICALLYLOADED
-	#include "VulkanLoader.h"
-#else
-	#include <vulkan.h>
-#endif
-
-#if PLATFORM_WINDOWS
-#include "HideWindowsPlatformTypes.h"
-#endif
 
 #if VULKAN_COMMANDWRAPPERS_ENABLE
 	#if VULKAN_DYNAMICALLYLOADED
@@ -429,6 +394,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("UAV Update Time"), STAT_VulkanUAVUpdateTime, STA
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Deletion Queue"), STAT_VulkanDeletionQueue, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Submit"), STAT_VulkanQueueSubmit, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DS Allocator"), STAT_VulkanDescriptorSetAllocator, STATGROUP_VulkanRHI, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Queries"), STAT_VulkanNumQueries, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Query"), STAT_VulkanWaitQuery, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Fence"), STAT_VulkanWaitFence, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Reset Queries"), STAT_VulkanResetQuery, STATGROUP_VulkanRHI, );
@@ -788,3 +755,4 @@ namespace FRCLog
 
 #define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1
 
+//extern uint32 GVulkanRHIFrameNumber;

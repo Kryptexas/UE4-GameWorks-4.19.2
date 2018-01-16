@@ -46,7 +46,7 @@ static inline EBufferUsageFlags UniformBufferToBufferUsage(EUniformBufferUsage U
 	case UniformBuffer_SingleDraw:
 		return BUF_Volatile;
 	case UniformBuffer_SingleFrame:
-		return BUF_Dynamic;
+		return BUF_Volatile;
 	case UniformBuffer_MultiFrame:
 		return BUF_Static;
 	}
