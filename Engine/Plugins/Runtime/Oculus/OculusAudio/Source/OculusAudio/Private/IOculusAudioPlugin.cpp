@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "IOculusAudioPlugin.h"
 #include "OculusAudioContextManager.h"
@@ -19,6 +19,12 @@ void FOculusAudioPlugin::ShutdownModule()
 
 void FOculusAudioPlugin::RegisterAudioDevice(FAudioDevice* AudioDeviceHandle)
 {
+	// Inject the Context into the spatailizer (and reverb) if they're enabled
+	if (!AudioDeviceHandle->IsAudioMixerEnabled())
+	{
+		return; // Not supported in old audio engine
+	}
+
     if (!RegisteredAudioDevices.Contains(AudioDeviceHandle))
     {
         TAudioPluginListenerPtr ContextManager = TAudioPluginListenerPtr(new FOculusAudioContextManager());
