@@ -5994,7 +5994,7 @@ struct FConformCallsToParentFunctionUtils
 
 				if (!FunctionEntryNode->FunctionReference.IsSelfContext())
 				{
-					const UClass* SignatureClass = FunctionEntryNode->FunctionReference.GetMemberParentClass();
+					UClass* SignatureClass = FunctionEntryNode->FunctionReference.GetMemberParentClass();
 					if (const UBlueprint* SignatureClassBlueprint = UBlueprint::GetBlueprintFromClass(SignatureClass))
 					{
 						// Redirect to the skeleton class for Blueprint types.
@@ -6003,7 +6003,7 @@ struct FConformCallsToParentFunctionUtils
 
 					if (SignatureClass)
 					{
-						const UFunction* Function = FunctionEntryNode->FunctionReference.ResolveMember<UFunction>();
+						const UFunction* Function = FunctionEntryNode->FunctionReference.ResolveMember<UFunction>(SignatureClass);
 						if (Function == nullptr)
 						{
 							// Remove any calls to the parent class implementation
