@@ -137,11 +137,7 @@ void FAvfMediaPlayer::OnEndReached()
 	{
 		PlayerTasks.Enqueue([=]() {
 			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
-			
-			float PreSeekRate = CurrentRate;
-			SetRate(0.f);
-			Seek(FTimespan::FromSeconds(0.0f));
-			SetRate(PreSeekRate);
+			Seek(CurrentRate < 0.f ? Duration : FTimespan::FromSeconds(0.0f));
 		});
 	}
 	else
@@ -650,8 +646,6 @@ bool FAvfMediaPlayer::SetRate(float Rate)
 	if (bPrerolled)
 	{
 		[MediaPlayer setRate : CurrentRate];
-
-		Tracks->SetRate(Rate);
 		
 		if (FMath::IsNearlyZero(Rate))
 		{
