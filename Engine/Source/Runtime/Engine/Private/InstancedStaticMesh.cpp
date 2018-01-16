@@ -2171,7 +2171,7 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 				int32 AddedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
 				check(AddedAtIndex != INDEX_NONE);
 
-				AddInstanceInternal(AddedAtIndex, &PerInstanceSMData[AddedAtIndex], FTransform::Identity);
+				AddInstanceInternal(AddedAtIndex, &PerInstanceSMData[AddedAtIndex], PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd ? FTransform::Identity : FTransform(PerInstanceSMData[AddedAtIndex].Transform));
 
 				// added via the property editor, so we will want to interactively work with instances
 				bHasPerInstanceHitProxies = true;
