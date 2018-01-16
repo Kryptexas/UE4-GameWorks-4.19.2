@@ -5167,7 +5167,7 @@ void FSequencer::PasteCopiedTracks()
 		{
 			FMovieScenePossessable* Possessable = MovieScene->FindPossessable(PossessableGuid);
 			UWorld* PlaybackContext = Cast<UWorld>(GetPlaybackContext());
-			if (PlaybackContext)
+			if (Possessable && PlaybackContext)
 			{
 				for ( TActorIterator<AActor> ActorItr( PlaybackContext ); ActorItr; ++ActorItr )
 				{
