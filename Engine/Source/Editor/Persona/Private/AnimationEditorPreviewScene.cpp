@@ -82,6 +82,15 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 
 FAnimationEditorPreviewScene::~FAnimationEditorPreviewScene()
 {
+	bool bInRecording = false;
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>(TEXT("Persona"));
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(SkeletalMeshComponent, bInRecording);
+
+	if (bInRecording)
+	{
+		PersonaModule.OnStopRecording().ExecuteIfBound(SkeletalMeshComponent);
+	}
+
 	if (GEditor)
 	{
 		GEditor->UnregisterForUndo(this);
