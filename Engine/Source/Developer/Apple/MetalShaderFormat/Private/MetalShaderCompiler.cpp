@@ -50,6 +50,8 @@ static FString	GTempFolderPath;
 static bool		GMetalLoggedRemoteCompileNotConfigured;	// This is used to reduce log spam, its not perfect because there is not a place to reset this flag so a log msg will only be given once per editor run
 static bool		GRemoteBuildConfigured = false;
 
+FString GetXcodePath();
+
 // Add (|| PLATFORM_MAC) to enable Mac to Mac remote building
 #define UNIXLIKE_TO_MAC_REMOTE_BUILDING (PLATFORM_LINUX)
 
@@ -198,6 +200,20 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 		GRSyncPath = FPaths::Combine(*DeltaCopyPath, TEXT("rsync.exe"));
 
 	#endif
+		UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building host: '%s'"), *GRemoteBuildServerHost);
+		FString XcodePath = GetXcodePath();
+		if (XcodePath.Len() <= 0)
+		{
+			if (!GMetalLoggedRemoteCompileNotConfigured)
+			{
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH run test failed."));
+				}
+				GMetalLoggedRemoteCompileNotConfigured = true;
+			}
+			return false;
+		}
 		GRemoteBuildConfigured = true;
 	}
 
@@ -222,7 +238,7 @@ bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutRetu
 		return false;
 	}
 
-	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
+	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" \"") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT("\" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
 	return FPlatformProcess::ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
 #endif
 }
