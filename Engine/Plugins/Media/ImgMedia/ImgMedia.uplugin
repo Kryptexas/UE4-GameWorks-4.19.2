@@ -19,7 +19,7 @@
 		{
 			"Name" : "ImgMedia",
 			"Type" : "RuntimeNoCommandlet",
-			"LoadingPhase" : "PreLoadingScreen"
+			"LoadingPhase" : "Default"
 		},
 		{
 			"Name" : "ImgMediaEditor",
