@@ -93,6 +93,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
 	void SetMediaPlayer(UMediaPlayer* NewMediaPlayer);
 
+#if WITH_EDITOR
+
+	/**
+	 * Set the texture's default media player property.
+	 *
+	 * @param NewMediaPlayer The player to set.
+	 * @see SetMediaPlayer
+	 */
+	void SetDefaultMediaPlayer(UMediaPlayer* NewMediaPlayer);
+
+#endif
+
 public:
 
 	//~ UTexture interface.

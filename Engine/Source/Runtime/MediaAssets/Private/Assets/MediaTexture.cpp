@@ -105,6 +105,17 @@ void UMediaTexture::SetMediaPlayer(UMediaPlayer* NewMediaPlayer)
 }
 
 
+#if WITH_EDITOR
+
+void UMediaTexture::SetDefaultMediaPlayer(UMediaPlayer* NewMediaPlayer)
+{
+	MediaPlayer = NewMediaPlayer;
+	CurrentPlayer = MediaPlayer;
+}
+
+#endif
+
+
 /* UTexture interface
  *****************************************************************************/
 
@@ -121,7 +132,7 @@ FTextureResource* UMediaTexture::CreateResource()
 		}
 	}
 
-	return new FMediaTextureResource(*this, Dimensions, Size, ClearColor, CurrentGuid);
+	return new FMediaTextureResource(*this, Dimensions, Size, ClearColor, CurrentGuid.IsValid() ? CurrentGuid : DefaultGuid);
 }
 
 

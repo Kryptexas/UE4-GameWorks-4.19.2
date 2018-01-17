@@ -206,6 +206,8 @@ void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 	{
 		if (Tracks->IsInitialized())
 		{
+			EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+
 			if (CurrentState == EMediaState::Preparing)
 			{
 				CurrentDuration = Tracks->GetDuration();
@@ -225,8 +227,6 @@ void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 					EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpenFailed);
 				}
 			}
-
-			EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
 		}
 		else
 		{

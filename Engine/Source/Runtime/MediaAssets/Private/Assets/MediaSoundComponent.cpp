@@ -2,10 +2,13 @@
 
 #include "MediaSoundComponent.h"
 
+#include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
 #include "IMediaAudioSample.h"
 #include "IMediaPlayer.h"
 #include "MediaAudioResampler.h"
 #include "Misc/ScopeLock.h"
+#include "UObject/UObjectGlobals.h"
 
 #include "MediaPlayer.h"
 #include "MediaPlayerFacade.h"
@@ -26,6 +29,10 @@ UMediaSoundComponent::UMediaSoundComponent(const FObjectInitializer& ObjectIniti
 
 #if PLATFORM_MAC
 	PreferredBufferLength = 2048; // increase buffer callback size on macOS to prevent underruns
+#endif
+
+#if WITH_EDITORONLY_DATA
+	bVisualizeComponent = true;
 #endif
 }
 
@@ -51,6 +58,8 @@ void UMediaSoundComponent::UpdatePlayer()
 	{
 		CachedRate = 0.0f;
 		CachedTime = FTimespan::Zero();
+
+		FScopeLock Lock(&CriticalSection);
 		SampleQueue.Reset();
 
 		return;
@@ -82,6 +91,29 @@ void UMediaSoundComponent::UpdatePlayer()
 
 /* UActorComponent interface
  *****************************************************************************/
+
+void UMediaSoundComponent::OnRegister()
+{
+	Super::OnRegister();
+
+#if WITH_EDITORONLY_DATA
+	if (SpriteComponent != nullptr)
+	{
+		SpriteComponent->SpriteInfo.Category = TEXT("Sounds");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Sounds", "Sounds");
+
+		if (bAutoActivate)
+		{
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));
+		}
+		else
+		{
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent.S_AudioComponent")));
+		}
+	}
+#endif
+}
+
 
 void UMediaSoundComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
