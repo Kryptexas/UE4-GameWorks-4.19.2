@@ -51,10 +51,10 @@ public:
 	{
 		return 0;
 	}
-	
+
 	/**
-	 * @return the type of bulk data for special handling
-	 */
+	* @return the type of bulk data for special handling
+	*/
 	virtual EBulkDataType GetResourceType() const override
 	{
 		return EBulkDataType::MediaTexture;
@@ -81,13 +81,13 @@ public:
 FAppleARKitVideoOverlay::FAppleARKitVideoOverlay()
 	: RenderingOverlayMaterial(nullptr)
 	, LastUpdateTimestamp(-1.0)
-{	
+{
 	RenderingOverlayMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/AppleARKit/ARKitCameraMaterial.ARKitCameraMaterial"));
 	check(RenderingOverlayMaterial != nullptr);
 	RenderingOverlayMaterial->AddToRoot();
 }
 
-void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame)
+void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame, const FSceneViewFamily& InViewFamily)
 {
 	// Allocate and register
 	if (VideoTextureY == nullptr)
@@ -100,7 +100,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		VideoTextureY = RHICmdList.CreateTexture2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
 		VideoTextureCbCr = RHICmdList.CreateTexture2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
 
-		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
+		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap);
 		FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
 		FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
@@ -117,45 +117,100 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		FRHIResourceCreateInfo CreateInfoIB(&IndexBuffer);
 		OverlayIndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfoIB);
 
-		// Setup vertex buffer
-		const float UVOffset = (Frame.Camera.GetAspectRatio() - 1.0f) * 0.5f;
+		check(InViewFamily.Views.Num() > 0);
+		const FSceneView& View = *InViewFamily.Views[0];
 
+		const FVector2D ViewSize(View.UnconstrainedViewRect.Max.X, View.UnconstrainedViewRect.Max.Y);
+		
+		// CameraSize is 1280x720 regardless of the device orientation. We flip it here if needed to make it consistent with the view size
+		FVector2D CameraSize = Frame.Camera.ImageResolution;
+		if ((ViewSize.X > ViewSize.Y) != (CameraSize.X > CameraSize.Y))
+		{
+			CameraSize = FVector2D(CameraSize.Y, CameraSize.X);
+		}
+		
+		const float CameraAspectRatio = CameraSize.X / CameraSize.Y;
+		const float ViewAspectRatio = ViewSize.X / ViewSize.Y;
+		const float ViewAspectRatioLandscape = (ViewSize.X > ViewSize.Y) ? ViewAspectRatio : ViewSize.Y / ViewSize.X;
+		
+		float UVOffset = 0.0f;
+		if (!FMath::IsNearlyEqual(ViewAspectRatio, CameraAspectRatio))
+		{
+			if (ViewAspectRatio > CameraAspectRatio)
+			{
+				UVOffset = 0.5f * (1.0f - (CameraAspectRatio / ViewAspectRatio));
+			}
+			else
+			{
+				UVOffset = 0.5f * (1.0f - (ViewAspectRatio / CameraAspectRatio));
+			}
+		}
+		
+		// Setup vertex buffer
 		const FVector4 Positions[] =
 		{
-			FVector4(0.0f, 1.0f, 0.0f, 1.0f), 
-			FVector4(0.0f, 0.0f, 0.0f, 1.0f), 
-			FVector4(1.0f, 1.0f, 0.0f, 1.0f), 
+			FVector4(0.0f, 1.0f, 0.0f, 1.0f),
+			FVector4(0.0f, 0.0f, 0.0f, 1.0f),
+			FVector4(1.0f, 1.0f, 0.0f, 1.0f),
 			FVector4(1.0f, 0.0f, 0.0f, 1.0f)
 		};
 
-		const FVector2D UVs[] =
+		const FVector2D UVsAdjustWidth[] =
 		{
-			// Landscape right
-			FVector2D(0.0f, 1.0f),
-			FVector2D(0.0f, 0.0f),
-			FVector2D(1.0f, 1.0f), 
-			FVector2D(1.0f, 0.0f),
-
 			// Landscape left
-			FVector2D(1.0f, 0.0f), 
-			FVector2D(1.0f, 1.0f), 
-			FVector2D(0.0f, 0.0f), 
-			FVector2D(0.0f, 1.0f), 
+			FVector2D(UVOffset, 1.0f),
+			FVector2D(UVOffset, 0.0f),
+			FVector2D(1.0f - UVOffset, 1.0f),
+			FVector2D(1.0f - UVOffset, 0.0f),
+
+			// Landscape right
+			FVector2D(1.0f - UVOffset, 0.0f),
+			FVector2D(1.0f - UVOffset, 1.0f),
+			FVector2D(UVOffset, 0.0f),
+			FVector2D(UVOffset, 1.0f),
 
 			// Portrait
-			FVector2D(1.0f + UVOffset, 1.0f),
-			FVector2D(-UVOffset, 1.0f),
-			FVector2D(1.0f + UVOffset, 0.0f),
-			FVector2D(-UVOffset, 0.0f),
+			FVector2D(1.0f - UVOffset, 1.0f),
+			FVector2D(UVOffset, 1.0f),
+			FVector2D(1.0f - UVOffset, 0.0f),
+			FVector2D(UVOffset, 0.0f),
 
 			// Portrait Upside Down
-			FVector2D(-UVOffset, 0.0f),
-			FVector2D(1.0f + UVOffset, 0.0f),
-			FVector2D(-UVOffset, 1.0f),
-			FVector2D(1.0f + UVOffset, 1.0f)
+			FVector2D(UVOffset, 0.0f),
+			FVector2D(1.0f - UVOffset, 0.0f),
+			FVector2D(UVOffset, 1.0f),
+			FVector2D(1.0f - UVOffset, 1.0f)
+		};
+
+		const FVector2D UVsAdjustHeight[] =
+		{
+			// Landscape Left
+			FVector2D(0.0f, 1.0f - UVOffset),
+			FVector2D(0.0f, UVOffset),
+			FVector2D(1.0f, 1.0f - UVOffset),
+			FVector2D(1.0f, UVOffset),
+			
+			// Landscape Right
+			FVector2D(1.0f, UVOffset),
+			FVector2D(1.0f, 1.0f - UVOffset),
+			FVector2D(0.0f, UVOffset),
+			FVector2D(0.0f, 1.0f - UVOffset),
+			
+			// Portrait
+			FVector2D(1.0f, 1.0f - UVOffset),
+			FVector2D(0.0f, 1.0f - UVOffset),
+			FVector2D(1.0f, UVOffset),
+			FVector2D(0.0f, UVOffset),
+			
+			// Portrait Upside Down
+			FVector2D(0.0f, UVOffset),
+			FVector2D(1.0f, UVOffset),
+			FVector2D(0.0f, 1.0f - UVOffset),
+			FVector2D(1.0f, 1.0f - UVOffset)
 		};
 
 		uint32 UVIndex = 0;
+		const FVector2D* const UVs = (ViewAspectRatioLandscape <= Frame.Camera.GetAspectRatio()) ? UVsAdjustWidth : UVsAdjustHeight;
 		for (uint32 OrientationIter = 0; OrientationIter < 4; ++OrientationIter)
 		{
 			TResourceArray<FFilterVertex, VERTEXBUFFER_ALIGNMENT> Vertices;
@@ -163,13 +218,13 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 
 			Vertices[0].Position = Positions[0];
 			Vertices[0].UV = UVs[UVIndex];
-			
+
 			Vertices[1].Position = Positions[1];
 			Vertices[1].UV = UVs[UVIndex + 1];
-			
+
 			Vertices[2].Position = Positions[2];
 			Vertices[2].UV = UVs[UVIndex + 2];
-			
+
 			Vertices[3].Position = Positions[3];
 			Vertices[3].UV = UVs[UVIndex + 3];
 
@@ -202,7 +257,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid);
 			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid);
 
-			FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
+			FSamplerStateInitializerRHI SamplerStateInitializer(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap);
 			FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
 			FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
@@ -216,7 +271,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 			LastUpdateTimestamp = Frame.Timestamp;
 		}
 	}
-	#endif // ARKIT_SUPPORT
+#endif // ARKIT_SUPPORT
 }
 
 // We use something similar to the PostProcessMaterial to render the color camera overlay.
@@ -323,7 +378,7 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 
 			FARKitCameraOverlayVS* const VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS>();
 			FARKitCameraOverlayPS* const PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS>();
-		
+
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -350,7 +405,7 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 			Parameters.InvTargetSizeAndTextureSize = FVector4(
 				1.0f / ViewSize.X, 1.0f / ViewSize.Y,
 				1.0f, 1.0f);
-		
+
 			SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
 
 			FVertexBufferRHIParamRef VertexBufferRHI = nullptr;
@@ -393,5 +448,5 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 			}
 		}
 	}
-	#endif // ARKIT_SUPPORT
+#endif // ARKIT_SUPPORT
 }

@@ -85,7 +85,7 @@ private:
 		
 		if (ARKitSystem.RenderThreadFrame.IsValid())
 		{
-			VideoOverlay.UpdateVideoTexture_RenderThread(RHICmdList, *ARKitSystem.RenderThreadFrame);
+			VideoOverlay.UpdateVideoTexture_RenderThread(RHICmdList, *ARKitSystem.RenderThreadFrame, InViewFamily);
 		}
 		
 		FDefaultXRCamera::PreRenderViewFamily_RenderThread(RHICmdList, InViewFamily);

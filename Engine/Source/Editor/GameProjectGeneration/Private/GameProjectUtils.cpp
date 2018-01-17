@@ -3328,6 +3328,61 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return FileNames.Num() > 0;
 }
 
+static bool RequiresBuild()
+{
+	// determine if there are any project icons
+	FString IconDir = FPaths::Combine(FPaths::ProjectDir(), TEXT("Build/IOS/Resources/Graphics"));
+	struct FDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+		TArray<FString>& FileNames;
+
+		FDirectoryVisitor(TArray<FString>& InFileNames)
+			: FileNames(InFileNames)
+		{
+		}
+
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+		{
+			FString FileName(FilenameOrDirectory);
+			if (FileName.EndsWith(TEXT(".png")) && FileName.Contains(TEXT("Icon")))
+			{
+				FileNames.Add(FileName);
+			}
+			return true;
+		}
+	};
+
+	// Enumerate the contents of the current directory
+	TArray<FString> FileNames;
+	FDirectoryVisitor Visitor(FileNames);
+	FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*IconDir, Visitor);
+
+	if (FileNames.Num() > 0)
+	{
+		return true;
+	}
+	return false;
+}
+
+static bool PlatformRequiresBuild(const FName InPlatformInfoName)
+{
+	const PlatformInfo::FPlatformInfo* const PlatInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
+	check(PlatInfo);
+
+	if (PlatInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::Installed)
+	{
+		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatInfo->TargetPlatformName.ToString());
+		if (Platform)
+		{
+			if (InPlatformInfoName.ToString() == TEXT("IOS"))
+			{
+				return RequiresBuild();
+			}
+		}
+	}
+	return false;
+}
+
 bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 {
 	//  early out on projects with code files
@@ -3342,6 +3397,11 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 	{
 		// check to see if the default build settings have changed
 		bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
+	}
+	else
+	{
+		// check to see if the platform rules we need a build
+		bRequiresBuild |= PlatformRequiresBuild(InPlatformInfoName);
 	}
 
 	// check to see if any plugins beyond the defaults have been enabled
@@ -3430,7 +3490,14 @@ bool GameProjectUtils::HasDefaultBuildSettings(const FName InPlatformInfoName)
 		{
 			FString PlatformSection;
 			Platform->GetBuildProjectSettingKeys(PlatformSection, BoolKeys, IntKeys, StringKeys);
-			return DoProjectSettingsMatchDefault(PlatInfo->TargetPlatformName.ToString(), PlatformSection, &BoolKeys, &IntKeys, &StringKeys);
+			bool bMatchDefault = DoProjectSettingsMatchDefault(PlatInfo->TargetPlatformName.ToString(), PlatformSection, &BoolKeys, &IntKeys, &StringKeys);
+			if (bMatchDefault)
+			{
+				if (InPlatformInfoName.ToString() == TEXT("IOS"))
+				{
+					return !RequiresBuild();
+				}
+			}
 		}
 	}
 	return true;
