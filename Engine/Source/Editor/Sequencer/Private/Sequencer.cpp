@@ -5162,7 +5162,7 @@ void FSequencer::PasteCopiedTracks()
 			}
 		}
 
-		// Fix possessable bindings
+		// Fix possessable actor bindings
 		for (auto PossessableGuid : PossessableGuids)
 		{
 			FMovieScenePossessable* Possessable = MovieScene->FindPossessable(PossessableGuid);
@@ -5184,11 +5184,41 @@ void FSequencer::PasteCopiedTracks()
 				}
 			}
 		}
-		
+
 		OnMovieSceneBindingsPastedDelegate.Broadcast(BindingsPasted);
 
-		NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
+		// Refresh all immediately so that spawned actors will be generated immediately
+		NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::RefreshAllImmediately);
 
+		// Fix possessable component bindings
+		for (auto PossessableGuid : PossessableGuids)
+		{
+			// If a possessable guid does not have any bound objects, they might be 
+			// possessable components for spawnables, so they need to be remapped
+			if (FindBoundObjects(PossessableGuid, ActiveTemplateIDs.Top()).Num() == 0)
+			{
+				FMovieScenePossessable* Possessable = MovieScene->FindPossessable(PossessableGuid);
+				if (Possessable)
+				{
+					FGuid ParentGuid = Possessable->GetParent();
+					for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ParentGuid, ActiveTemplateIDs.Top()))
+					{
+						if (AActor* SpawnedActor = Cast<AActor>(WeakObject.Get()))
+						{
+							for (UActorComponent* Component : SpawnedActor->GetComponents())
+							{
+								if (Component->GetName() == Possessable->GetName())
+								{
+									OwnerSequence->BindPossessableObject( PossessableGuid, *Component, SpawnedActor );
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
 		return;
 	}
 
