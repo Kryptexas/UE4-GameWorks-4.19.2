@@ -403,62 +403,67 @@ bool SScrollBox::InternalScrollDescendantIntoView(const FGeometry& MyGeometry, c
 	// We need to safely find the one WidgetToFind among our descendants.
 	TSet< TSharedRef<SWidget> > WidgetsToFind;
 	{
-		WidgetsToFind.Add( WidgetToFind.ToSharedRef() );
+		if (WidgetToFind.IsValid())
+		{
+			WidgetsToFind.Add(WidgetToFind.ToSharedRef());
+		}
 	}
 	TMap<TSharedRef<SWidget>, FArrangedWidget> Result;
 
 	FindChildGeometries( MyGeometry, WidgetsToFind, Result );
 
-	FArrangedWidget* WidgetGeometry = Result.Find( WidgetToFind.ToSharedRef() );
-	if (!WidgetGeometry)
+	if (WidgetToFind.IsValid())
 	{
-		UE_LOG(LogSlate, Warning, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox"));
-	}
-
-	if ( WidgetGeometry )
-	{
-		float ScrollOffset = 0.0f;
-		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
+		FArrangedWidget* WidgetGeometry = Result.Find(WidgetToFind.ToSharedRef());
+		if (!WidgetGeometry)
 		{
-			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
-			const float MyPosition = InScrollPadding;
-			ScrollOffset = WidgetPosition - MyPosition;
-		}
-		else if ( InDestination == EDescendantScrollDestination::Center )
-		{
-			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()) + (WidgetGeometry->Geometry.GetLocalSize() / 2));
-			const float MyPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() * FVector2D(0.5f, 0.5f));
-			ScrollOffset = WidgetPosition - MyPosition;
+			UE_LOG(LogSlate, Warning, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox"));
 		}
 		else
 		{
-			const float WidgetStartPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
-			const float WidgetEndPosition = WidgetStartPosition + GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalSize());
-			const float ViewStartPosition = InScrollPadding;
-			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() - InScrollPadding);
-
-			const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
-			const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
-
-			if ( WidgetStartPosition < ViewStartPosition )
+			float ScrollOffset = 0.0f;
+			if (InDestination == EDescendantScrollDestination::TopOrLeft)
 			{
-				ScrollOffset = WidgetStartPosition - ViewStartPosition;
+				// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
+				const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
+				const float MyPosition = InScrollPadding;
+				ScrollOffset = WidgetPosition - MyPosition;
 			}
-			else if ( WidgetEndPosition > ViewEndPosition )
+			else if (InDestination == EDescendantScrollDestination::Center)
 			{
-				ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
+				// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
+				const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()) + (WidgetGeometry->Geometry.GetLocalSize() / 2));
+				const float MyPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() * FVector2D(0.5f, 0.5f));
+				ScrollOffset = WidgetPosition - MyPosition;
 			}
-		}
+			else
+			{
+				const float WidgetStartPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
+				const float WidgetEndPosition = WidgetStartPosition + GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalSize());
+				const float ViewStartPosition = InScrollPadding;
+				const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() - InScrollPadding);
 
-		if ( ScrollOffset != 0.0f )
-		{
-			DesiredScrollOffset = ScrollPanel->PhysicalOffset;
-			ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
-		}
+				const float ViewDelta = (ViewEndPosition - ViewStartPosition);
+				const float WidgetDelta = (WidgetEndPosition - WidgetStartPosition);
 
-		return true;
+				if (WidgetStartPosition < ViewStartPosition)
+				{
+					ScrollOffset = WidgetStartPosition - ViewStartPosition;
+				}
+				else if (WidgetEndPosition > ViewEndPosition)
+				{
+					ScrollOffset = (WidgetEndPosition - ViewDelta) - ViewStartPosition;
+				}
+			}
+
+			if (ScrollOffset != 0.0f)
+			{
+				DesiredScrollOffset = ScrollPanel->PhysicalOffset;
+				ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
+			}
+
+			return true;
+		}
 	}
 
 	return false;
