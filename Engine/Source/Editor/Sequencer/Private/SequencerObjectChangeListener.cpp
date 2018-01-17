@@ -340,18 +340,19 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object, con
 	}
 
 	// Call add key/track before the property changes so that pre-animated state can be saved off.
-	FPropertyPath PropertyPath;
-	UProperty* ActiveNode = PropertyChain.GetActiveNode()->GetValue();
-	UProperty* ActiveMemberNode = PropertyChain.GetActiveMemberNode()->GetValue();
 
-	if (ActiveMemberNode)
+	TArray<FPropertyInfo, TInlineAllocator<16>> ReversePropertyPath;
+	FEditPropertyChain::TDoubleLinkedListNode* ActiveNode = PropertyChain.GetActiveNode();
+	while (ActiveNode && ActiveNode->GetValue())
 	{
-		PropertyPath.AddProperty(FPropertyInfo(ActiveMemberNode));
+		ReversePropertyPath.Add(FPropertyInfo(ActiveNode->GetValue()));
+		ActiveNode = ActiveNode->GetPrevNode();
 	}
 
-	if (ActiveMemberNode != ActiveNode)
+	FPropertyPath PropertyPath;
+	for (int32 Index = ReversePropertyPath.Num() - 1; Index >= 0; --Index)
 	{
-		PropertyPath.AddProperty(FPropertyInfo(ActiveNode));
+		PropertyPath.AddProperty(ReversePropertyPath[Index]);
 	}
 
 	TArray<UObject*> Objects;
