@@ -46,12 +46,6 @@
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpScanner.cpp">
       <Filter>glslang\MachineIndependent\preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpMemory.cpp">
-      <Filter>glslang\MachineIndependent\preprocessor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpSymbols.cpp">
-      <Filter>glslang\MachineIndependent\preprocessor</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpTokens.cpp">
       <Filter>glslang\MachineIndependent\preprocessor</Filter>
     </ClCompile>

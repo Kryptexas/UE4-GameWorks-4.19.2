@@ -8,6 +8,7 @@
 enum class EVulkanShaderVersion
 {
 	ES3_1,
+	ES3_1_UB,
 	SM4_UB,
 	ES3_1_ANDROID,
 	SM4,

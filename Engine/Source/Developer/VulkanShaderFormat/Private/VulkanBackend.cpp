@@ -38,7 +38,7 @@
 #include "compiler.h"
 #include "ShaderCompilerCommon.h"
 
-#include "VulkanConfiguration.h"
+#include "VulkanCommon.h"
 
 #include "CrossCompilerCommon.h"
 

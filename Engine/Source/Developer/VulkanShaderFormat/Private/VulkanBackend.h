@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "hlslcc.h"
 #include "LanguageSpec.h"
-#include "VulkanConfiguration.h"
+#include "VulkanCommon.h"
 
 class FVulkanLanguageSpec : public ILanguageSpec
 {
