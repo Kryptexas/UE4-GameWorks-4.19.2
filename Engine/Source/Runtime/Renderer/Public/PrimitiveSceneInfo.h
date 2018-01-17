@@ -390,7 +390,7 @@ public:
 	 * This index is only valid until a primitive is added to or removed from
 	 * the scene!
 	 */
-	ENGINE_API FORCEINLINE int32 GetIndex() const { return PackedIndex; }
+	RENDERER_API FORCEINLINE int32 GetIndex() const { return PackedIndex; }
 	/** 
 	 * Retrieves the address of the primitives index into in the scene's primitives array.
 	 * This address is only for reference purposes
@@ -419,6 +419,12 @@ public:
 
 	void UpdatePrecomputedLightingBuffer();
 	void ClearPrecomputedLightingBuffer(bool bSingleFrameOnly);
+
+	/** Will output the LOD ranges of the static meshes used with this primitive. */
+	RENDERER_API void GetStaticMeshesLODRange(int8& OutMinLOD, int8& OutMaxLOD) const;
+
+	/** Will output the FMeshBatch associated with the specified LODIndex. */
+	RENDERER_API const FMeshBatch* GetMeshBatch(int8 InLODIndex) const;
 
 private:
 

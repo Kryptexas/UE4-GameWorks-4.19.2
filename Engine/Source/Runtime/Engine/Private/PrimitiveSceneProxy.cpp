@@ -791,7 +791,7 @@ bool FPrimitiveSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Sectio
 
 #endif // WITH_EDITORONLY_DATA
 
-FLODMask FPrimitiveSceneProxy::GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenRadiusSquared) const
+FLODMask FPrimitiveSceneProxy::GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenSizeSquared) const
 {
 	return FLODMask();
 }

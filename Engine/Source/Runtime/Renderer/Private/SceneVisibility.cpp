@@ -1706,16 +1706,16 @@ struct FRelevancePacket
 			const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
-			float MeshScreenRadiusSquared = 0;
+			float MeshScreenSizeSquared = 0;
 			FLODMask LODToRender;
 
 			if (PrimitiveSceneInfo->bIsUsingCustomLODRules)
 			{
-				LODToRender = PrimitiveSceneInfo->Proxy->GetCustomLOD(View, ViewData.LODScale, ViewData.ForcedLODLevel, MeshScreenRadiusSquared);
+				LODToRender = PrimitiveSceneInfo->Proxy->GetCustomLOD(View, ViewData.LODScale, ViewData.ForcedLODLevel, MeshScreenSizeSquared);
 			}
 			else
 			{
-				LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, View, Bounds.BoxSphereBounds.Origin, Bounds.BoxSphereBounds.SphereRadius, ViewData.ForcedLODLevel, MeshScreenRadiusSquared, ViewData.LODScale);
+				LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, View, Bounds.BoxSphereBounds.Origin, Bounds.BoxSphereBounds.SphereRadius, ViewData.ForcedLODLevel, MeshScreenSizeSquared, ViewData.LODScale);
 			}
 
 			PrimitivesLODMask.AddPrim(FRelevancePacket::FPrimitiveLODMask(PrimitiveIndex, LODToRender));
@@ -1724,7 +1724,7 @@ struct FRelevancePacket
 
 			if (OutHasViewCustomDataMasks[PrimitiveIndex] != 0) // Has a relevance for this view
 			{
-				UserViewCustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(View, ViewData.LODScale, PrimitiveCustomDataMemStack, true, &LODToRender, MeshScreenRadiusSquared);
+				UserViewCustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(View, ViewData.LODScale, PrimitiveCustomDataMemStack, true, &LODToRender, MeshScreenSizeSquared);
 
 				if (UserViewCustomData != nullptr)
 				{
@@ -3177,24 +3177,31 @@ void FDeferredShadingSceneRenderer::UpdateViewCustomData(FGraphEventArray& OutUp
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateViewCustomData_AsyncTask);
 
-		const int32 BatchSize = 100;
-
+		const int32 MaxPrimitiveUpdateTaskCount = 10;
+		const int32 MinPrimitiveCountByTask = 100;
+		
 		for (FViewInfo& ViewInfo : Views)
 		{
-			int32 UpdateCountLeft = ViewInfo.PrimitivesWithCustomData.Num();
-			int32 StartIndex = 0;
-			int32 CurrentBatchSize = BatchSize;
-
-			while (UpdateCountLeft > 0)
+			if (ViewInfo.PrimitivesWithCustomData.Num() > 0)
 			{
-				if (UpdateCountLeft - CurrentBatchSize < 0)
-				{
-					CurrentBatchSize = UpdateCountLeft;
-				}
+				const int32 BatchSize = FMath::Max(FMath::Max(FMath::RoundToInt((float)ViewInfo.PrimitivesWithCustomData.Num() / (float)MaxPrimitiveUpdateTaskCount), 1), MinPrimitiveCountByTask);
 
-				OutUpdateEvents.Add(TGraphTask<FUpdateViewCustomDataTask>::CreateTask(nullptr, ENamedThreads::GetRenderThread()).ConstructAndDispatchWhenReady(&ViewInfo, StartIndex, CurrentBatchSize));
-				StartIndex += CurrentBatchSize;
-				UpdateCountLeft -= CurrentBatchSize;
+				int32 UpdateCountLeft = ViewInfo.PrimitivesWithCustomData.Num();
+				int32 StartIndex = 0;
+				int32 CurrentBatchSize = BatchSize;
+
+				while (UpdateCountLeft > 0)
+				{
+					if (UpdateCountLeft - CurrentBatchSize < 0)
+					{
+						CurrentBatchSize = UpdateCountLeft;
+					}
+
+					OutUpdateEvents.Add(TGraphTask<FUpdateViewCustomDataTask>::CreateTask(nullptr, ENamedThreads::GetRenderThread()).ConstructAndDispatchWhenReady(&ViewInfo, StartIndex, CurrentBatchSize));
+
+					StartIndex += CurrentBatchSize;
+					UpdateCountLeft -= CurrentBatchSize;
+				}
 			}
 		}
 	}

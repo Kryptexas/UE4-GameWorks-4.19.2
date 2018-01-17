@@ -204,7 +204,7 @@ public:
 		UpdateRHI();
 	}
 
-	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch, const void* ViewCustomData = nullptr) const override;
+	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& InView, const FMeshBatch* InBatch, const void* InViewCustomData = nullptr) const override;
 
 	/** stream component data bound to this vertex factory */
 	FDataType Data;
@@ -466,25 +466,24 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 public:
 	static const int8 MAX_SUBSECTION_COUNT = 2*2;
 
-	// NOTE: this is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
+	// NOTE: CustomData is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
 	struct FViewCustomDataSubSectionLOD
 	{
 		FViewCustomDataSubSectionLOD()
 			: StaticBatchElementIndexToRender(INDEX_NONE)
 			, fBatchElementCurrentLOD(-1.0f)
 			, BatchElementCurrentLOD(INDEX_NONE)
-			, ScreenRadiusSquared(-1.0f)
+			, ScreenSizeSquared(-1.0f)
 			, ShaderCurrentNeighborLOD(FVector4(-1.0f, -1.0f, -1.0f, -1.0f))
 		{}
 
 		int8 StaticBatchElementIndexToRender;
 		float fBatchElementCurrentLOD;
 		int8 BatchElementCurrentLOD;
-		float ScreenRadiusSquared;
+		float ScreenSizeSquared;
 		FVector4 ShaderCurrentNeighborLOD;
 	};
 
-	// NOTE: this is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
 	struct FViewCustomDataLOD
 	{
 		FViewCustomDataLOD()
@@ -511,7 +510,7 @@ protected:
 	int8						MaxLOD;		// Maximum LOD level, user override possible
 	int32						FirstLOD;	// First LOD we have batch elements for
 	int32						LastLOD;	// Last LOD we have batch elements for
-	TArray<float>				LODSquaredScreenRatio;		// Table of valid screen size -> LOD index
+	TArray<float>				LODScreenRatioSquared;		// Table of valid screen size -> LOD index
 	float						ComponentMaxExtend; 		// The max extend value in any axis
 	float						ComponentSquaredScreenSizeToUseSubSections; // Size at which we start to draw in sub lod if LOD are different per sub section
 	float						MinValidLOD;							// Min LOD Taking into account LODBias
@@ -522,6 +521,7 @@ protected:
 	float						TessellationComponentScreenSizeFalloff;	// Min Component screen size before we start applying the tessellation falloff
 	bool						IncludeTessellationInShadowLOD;			// Tell if we should include the tessellation material into the whole scene shadow generation
 	int32						RestrictTessellationToShadowCascade;	// when IncludeTessellationInShadowLOD is true it will tell us on which shadow cascade we restrict the application
+	TArray<FVector>				SubSectionScreenSizeTestingPosition;	// Precomputed sub section testing position for screen size calculation
 
 	/** 
 	 * Number of subsections within the component in each dimension, this can be 1 or 2.
@@ -615,22 +615,22 @@ protected:
 	virtual ~FLandscapeComponentSceneProxy();
 	
 	virtual const ULandscapeComponent* GetLandscapeComponent() const { return LandscapeComponent; }
-	FORCEINLINE void ComputeTessellationFalloffShaderValues(const FViewCustomDataLOD& LODData, const FMatrix& InViewProjectionMatrix, float& OutC, float& OutK) const;
-	bool CanUseMeshBatchForShadowCascade(int8 InLODIndex, float ShadowMapTextureResolution, float ShadowMapCascadeSize) const;
-	FORCEINLINE int32 ConvertBatchElementLODToBatchElementIndex(int8 BatchElementLOD, bool UseCombinedMeshBatch);
-	float GetNeighborLOD(const FSceneView& InView, float BatchElementCurrentLOD, int8 NeighborIndex, int32 SubSectionX, int32 SubSectionY) const;
-	void CalculateBatchElementLOD(const FSceneView& InView, float InMeshBatchScreenRadiusSquared, float InViewLODScale, FViewCustomDataLOD& InOutLODData) const;
-	void CalculateLODFromScreenSize(const FSceneView& InView, float InMeshScreenRadiusSquared, float InViewLODScale, int32 InSubSectionIndex, FViewCustomDataLOD& InOutLODData) const;
-	FORCEINLINE void ComputeStaticBatchIndexToRender(FViewCustomDataLOD& OutLODData, int32 SubSectionIndex);
+	FORCEINLINE void ComputeTessellationFalloffShaderValues(const FViewCustomDataLOD& InLODData, const FMatrix& InViewProjectionMatrix, float& OutC, float& OutK) const;
+	bool CanUseMeshBatchForShadowCascade(int8 InLODIndex, float InShadowMapTextureResolution, float InShadowMapCascadeSize) const;
+	FORCEINLINE int32 ConvertBatchElementLODToBatchElementIndex(int8 InBatchElementLOD, bool InUseCombinedMeshBatch);
+	float GetNeighborLOD(const FSceneView& InView, float InBatchElementCurrentLOD, int8 InNeighborIndex, int8 InSubSectionX, int8 InSubSectionY, int8 InCurrentSubSectionIndex) const;
+	void CalculateBatchElementLOD(const FSceneView& InView, float InMeshScreenSizeSquared, float InViewLODScale, FViewCustomDataLOD& InOutLODData) const;
+	void CalculateLODFromScreenSize(const FSceneView& InView, float InMeshScreenSizeSquared, float InViewLODScale, int32 InSubSectionIndex, FViewCustomDataLOD& InOutLODData) const;
+	FORCEINLINE void ComputeStaticBatchIndexToRender(FViewCustomDataLOD& OutLODData, int32 InSubSectionIndex);
 	int8 GetLODFromScreenSize(float InScreenSizeSquared, float InViewLODScale) const;
-	FORCEINLINE float ComputeBatchElementCurrentLOD(int32 InSelectedLODIndex, float ComponentScreenSize) const;
+	FORCEINLINE float ComputeBatchElementCurrentLOD(int32 InSelectedLODIndex, float InComponentScreenSize) const;
 	
-	FORCEINLINE void GetShaderCurrentNeighborLOD(const FSceneView& InView, float BatchElementCurrentLOD, int32 SubSectionX, int32 SubSectionY, FVector4& OutShaderCurrentNeighborLOD) const;
+	FORCEINLINE void GetShaderCurrentNeighborLOD(const FSceneView& InView, float InBatchElementCurrentLOD, int8 InSubSectionX, int8 InSubSectionY, int8 InCurrentSubSectionIndex, FVector4& OutShaderCurrentNeighborLOD) const;
 	FORCEINLINE FVector4 GetShaderLODBias() const;
 	FORCEINLINE FVector4 GetShaderLODValues(int8 BatchElementCurrentLOD) const;
 
 	bool GetMeshElement(bool UseSeperateBatchForShadow, bool ShadowOnly, bool HasTessellation, uint8 BatchLOD, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams>& OutStaticBatchParamArray) const;
-	void BuildDynamicMeshElement(const FViewCustomDataLOD* PrimitiveCustomData, bool ToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray) const;
+	void BuildDynamicMeshElement(const FViewCustomDataLOD* InPrimitiveCustomData, bool InToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray) const;
 
 	float GetComponentScreenSize(const class FSceneView* View, const FVector& Origin,  float MaxExtend, float ElementRadius) const;
 
@@ -648,10 +648,10 @@ public:
 	virtual void OnTransformChanged() override;
 	virtual void CreateRenderThreadResources() override;
 	virtual void OnLevelAddedToWorld() override;
-	virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshBatchScreenRadiusSquared = -1.0f) override;
+	virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshScreenSizeSquared = -1.0f) override;
 	virtual void UpdateViewCustomData(const FSceneView& InView, void* InViewCustomData) override;
 	virtual bool IsUsingCustomLODRules() const override;
-	virtual FLODMask GetCustomLOD(const FSceneView& View, float InViewLODScale, int32 ForcedLODLevel, float& OutCalculatedScreenRadiusSquared) const override;
+	virtual FLODMask GetCustomLOD(const FSceneView& View, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenSizeSquared) const override;
 	virtual bool IsUsingCustomWholeSceneShadowLODRules() const override;
 	virtual FLODMask GetCustomWholeSceneShadowLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, const struct FLODMask& InVisibilePrimitiveLODMask, float InShadowMapTextureResolution, float InShadowMapCascadeSize, int8 InShadowCascadeId, bool InHasSelfShadow) const override;
 	
@@ -664,7 +664,7 @@ public:
 	friend class FLandscapeVertexFactoryMobilePixelShaderParameters;
 
 	// FLandscapeComponentSceneProxy interface.
-	FORCEINLINE uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch, const void* ViewCustomData) const;
+	FORCEINLINE uint64 GetStaticBatchElementVisibility(const FSceneView& InView, const FMeshBatch* InBatch, const void* InViewCustomData) const;
 #if WITH_EDITOR
 	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
 #endif

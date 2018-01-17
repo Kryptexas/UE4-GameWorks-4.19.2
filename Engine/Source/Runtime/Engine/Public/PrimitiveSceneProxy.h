@@ -646,9 +646,9 @@ public:
   	 * @param InCustomDataMemStack - MemStack to allocate the custom data
    	 * @param InIsStaticRelevant - Tell us if it was called in a static of dynamic relevancy context
    	 * @param InVisiblePrimitiveLODMask - Calculated LODMask for visibile primitive in static relevancy
-   	 * @param InMeshBatchScreenRadiusSquared - Computed mesh batch screen size, passed to prevent recalculation
+   	 * @param InMeshScreenSizeSquared - Computed mesh batch screen size, passed to prevent recalculation
 	 */
-	ENGINE_API virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const struct FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshBatchScreenRadiusSquared = -1.0f) { return nullptr; }
+	ENGINE_API virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const struct FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshScreenSizeSquared = -1.0f) { return nullptr; }
 	
 	/**
 	 * Called during post visibility and shadow setup, just before the frame is rendered. It can be used to update custom data that had a dependency between them.
@@ -668,9 +668,9 @@ public:
   	 * @param InView - Current View
  	 * @param InViewLODScale - View LOD scale	 
   	 * @param InForcedLODLevel - Engine Forced LOD value
-   	 * @param OutScreenRadiusSquared - Computed screen size from the function
+   	 * @param OutScreenSizeSquared - Computed screen size from the function
 	 */
-	ENGINE_API virtual struct FLODMask GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenRadiusSquared) const;
+	ENGINE_API virtual struct FLODMask GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenSizeSquared) const;
 
 	/** Tell us if we should rely on the default shadow LOD computing rules or not for generating whole scene shadow.*/
 	ENGINE_API virtual bool IsUsingCustomWholeSceneShadowLODRules() const { return false; }

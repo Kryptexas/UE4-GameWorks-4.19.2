@@ -682,3 +682,25 @@ void FPrimitiveSceneInfo::ClearPrecomputedLightingBuffer(bool bSingleFrameOnly)
 	}
 }
 
+void FPrimitiveSceneInfo::GetStaticMeshesLODRange(int8& OutMinLOD, int8& OutMaxLOD) const
+{
+	OutMinLOD = MAX_int8;
+	OutMaxLOD = 0;
+
+	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); ++MeshIndex)
+	{
+		const FMeshBatch&  Mesh = StaticMeshes[MeshIndex];
+		OutMinLOD = FMath::Min(OutMinLOD, Mesh.LODIndex);
+		OutMaxLOD = FMath::Max(OutMaxLOD, Mesh.LODIndex);
+	}
+}
+
+const FMeshBatch* FPrimitiveSceneInfo::GetMeshBatch(int8 InLODIndex) const
+{
+	if (StaticMeshes.IsValidIndex(InLODIndex))
+	{
+		return (const FMeshBatch*)&StaticMeshes[InLODIndex];
+	}
+
+	return nullptr;
+}
