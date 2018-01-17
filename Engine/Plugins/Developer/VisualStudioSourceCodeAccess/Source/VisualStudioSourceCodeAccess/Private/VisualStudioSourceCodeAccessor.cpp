@@ -1288,10 +1288,10 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
 				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
 			}
-
-			FPaths::MakeStandardFilename(CachedSolutionPath);
 		}
 	}
+
+	// This must be an absolute path as VS always uses absolute paths
 	return CachedSolutionPath;
 }
 
