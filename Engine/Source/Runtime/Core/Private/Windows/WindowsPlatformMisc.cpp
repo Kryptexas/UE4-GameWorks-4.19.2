@@ -87,106 +87,6 @@ static TAutoConsoleVariable<int32> CVarDriverDetectionMethod(
 	TEXT("  4: Use Windows functions, use the one names like the DirectX Device (newest, most promising)"),
 	ECVF_RenderThreadSafe);
 
-namespace
-{
-	/**
-	 * According to MSDN GetVersionEx without special targeting works to 6.2
-	 * version only. To retrive proper version for later version we can check
-	 * version of system libraries e.g. kernel32.dll.
-	 */
-	int32 GetWindowsGT62Versions(bool bIsWorkstation, FString& out_OSVersionLabel)
-	{
-		const int BufferSize = 256;
-		TCHAR Buffer[BufferSize];
-		
-		if (!GetSystemDirectory(Buffer, BufferSize))
-		{
-			return (int32)FWindowsOSVersionHelper::ERROR_GETWINDOWSGT62VERSIONS_FAILED;
-		}
-
-		FString SystemDir(Buffer);
-		FString KernelPath = FPaths::Combine(*SystemDir, TEXT("kernel32.dll"));
-
-		DWORD Size = GetFileVersionInfoSize(*KernelPath, nullptr);
-
-		if (Size <= 0)
-		{
-			return (int32)FWindowsOSVersionHelper::ERROR_GETWINDOWSGT62VERSIONS_FAILED;
-		}
-
-		TArray<uint8> VerBlock;
-		VerBlock.Reserve(Size);
-
-		if (!GetFileVersionInfo(*KernelPath, 0, Size, VerBlock.GetData()))
-		{
-			return (int32)FWindowsOSVersionHelper::ERROR_GETWINDOWSGT62VERSIONS_FAILED;
-		}
-
-		VS_FIXEDFILEINFO* FileInfo = nullptr;
-		uint32 Len;
-
-		if (!VerQueryValue(VerBlock.GetData(), TEXT("\\"), (void **)&FileInfo, &Len))
-		{
-			return (int32)FWindowsOSVersionHelper::ERROR_GETWINDOWSGT62VERSIONS_FAILED;
-		}
-
-		int Major = FileInfo->dwProductVersionMS >> 16;
-		int Minor = FileInfo->dwProductVersionMS & 0xFFFF;
-
-		switch (Major)
-		{
-		case 6:
-			switch (Minor)
-			{
-			case 3:
-				if (bIsWorkstation)
-				{
-					out_OSVersionLabel = TEXT("Windows 8.1");
-				}
-				else
-				{
-					out_OSVersionLabel = TEXT("Windows Server 2012 R2");
-				}
-				break;
-			case 2:
-				if (bIsWorkstation)
-				{
-					out_OSVersionLabel = TEXT("Windows 8");
-				}
-				else
-				{
-					out_OSVersionLabel = TEXT("Windows Server 2012");
-				}
-				break;
-			default:
-				return (int32)FWindowsOSVersionHelper::ERROR_UNKNOWNVERSION;
-			}
-			break;
-		case 10:
-			switch (Minor)
-			{
-			case 0:
-				if (bIsWorkstation)
-				{
-					out_OSVersionLabel = TEXT("Windows 10");
-				}
-				else
-				{
-					out_OSVersionLabel = TEXT("Windows Server Technical Preview");
-				}
-				break;
-			default:
-				return (int32)FWindowsOSVersionHelper::ERROR_UNKNOWNVERSION;
-			}
-			break;
-		default:
-			return (int32)FWindowsOSVersionHelper::ERROR_UNKNOWNVERSION;
-		}
-
-		return (int32)FWindowsOSVersionHelper::SUCCEEDED;
-	}
-}
-
 int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
 {
 	int32 ErrorCode = (int32)SUCCEEDED;
@@ -214,179 +114,217 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 	{
 		bool bIsInvalidVersion = false;
 
-		switch( OsVersionInfo.dwMajorVersion )
+		switch (OsVersionInfo.dwMajorVersion)
 		{
-			case 5:
-				switch( OsVersionInfo.dwMinorVersion )
-				{
-					case 0:
-						out_OSVersionLabel = TEXT( "Windows 2000" );
-						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
-						{
-							out_OSSubVersionLabel = TEXT( "Professional" );
-						}
-						else
-						{
-							if( OsVersionInfo.wSuiteMask & VER_SUITE_DATACENTER )
-							{
-								out_OSSubVersionLabel = TEXT( "Datacenter Server" );
-							}
-							else if( OsVersionInfo.wSuiteMask & VER_SUITE_ENTERPRISE )
-							{
-								out_OSSubVersionLabel = TEXT( "Advanced Server" );
-							}
-							else
-							{
-								out_OSSubVersionLabel = TEXT( "Server" );
-							}
-						}
-						break;
-					case 1:
-						out_OSVersionLabel = TEXT( "Windows XP" );
-						if( OsVersionInfo.wSuiteMask & VER_SUITE_PERSONAL )
-						{
-							out_OSSubVersionLabel = TEXT( "Home Edition" );
-						}
-						else
-						{
-							out_OSSubVersionLabel = TEXT( "Professional" );
-						}
-						break;
-					case 2:
-						if( GetSystemMetrics( SM_SERVERR2 ) )
-						{
-							out_OSVersionLabel = TEXT( "Windows Server 2003 R2" );
-						}
-						else if( OsVersionInfo.wSuiteMask & VER_SUITE_STORAGE_SERVER )
-						{
-							out_OSVersionLabel = TEXT( "Windows Storage Server 2003" );
-						}
-						else if( OsVersionInfo.wSuiteMask & VER_SUITE_WH_SERVER )
-						{
-							out_OSVersionLabel = TEXT( "Windows Home Server" );
-						}
-						else if( OsVersionInfo.wProductType == VER_NT_WORKSTATION && SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 )
-						{
-							out_OSVersionLabel = TEXT( "Windows XP" );
-							out_OSSubVersionLabel = TEXT( "Professional x64 Edition" );
-						}
-						else
-						{
-							out_OSVersionLabel = TEXT( "Windows Server 2003" );
-						}
-						break;
-					default:
-						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
-				}
-				break;
-			case 6:
-				switch( OsVersionInfo.dwMinorVersion )
-				{
-					case 0:
-						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
-						{
-							out_OSVersionLabel = TEXT( "Windows Vista" );
-						}
-						else
-						{
-							out_OSVersionLabel = TEXT( "Windows Server 2008" );
-						}
-						break;
-					case 1:
-						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
-						{
-							out_OSVersionLabel = TEXT( "Windows 7" );
-						}
-						else
-						{
-							out_OSVersionLabel = TEXT( "Windows Server 2008 R2" );
-						}
-						break;
-					case 2:
-						ErrorCode |= GetWindowsGT62Versions(OsVersionInfo.wProductType == VER_NT_WORKSTATION, out_OSVersionLabel);
-						break;
-					default:
-						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
-				}
-
+		case 5:
+			switch (OsVersionInfo.dwMinorVersion)
 			{
-#pragma warning( push )
-#pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
-				typedef BOOL( WINAPI *LPFN_GETPRODUCTINFO )(DWORD, DWORD, DWORD, DWORD, PDWORD);
-				LPFN_GETPRODUCTINFO fnGetProductInfo = (LPFN_GETPRODUCTINFO)GetProcAddress( GetModuleHandle( TEXT( "kernel32.dll" ) ), "GetProductInfo" );
-#pragma warning( pop )
-				if( fnGetProductInfo != NULL )
+			case 0:
+				out_OSVersionLabel = TEXT("Windows 2000");
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
 				{
-					DWORD Type;
-					fnGetProductInfo( OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, 0, 0, &Type );
-
-					switch( Type )
-					{
-						case PRODUCT_ULTIMATE:
-							out_OSSubVersionLabel = TEXT( "Ultimate Edition" );
-							break;
-						case PRODUCT_PROFESSIONAL:
-							out_OSSubVersionLabel = TEXT( "Professional" );
-							break;
-						case PRODUCT_HOME_PREMIUM:
-							out_OSSubVersionLabel = TEXT( "Home Premium Edition" );
-							break;
-						case PRODUCT_HOME_BASIC:
-							out_OSSubVersionLabel = TEXT( "Home Basic Edition" );
-							break;
-						case PRODUCT_ENTERPRISE:
-							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
-							break;
-						case PRODUCT_BUSINESS:
-							out_OSSubVersionLabel = TEXT( "Business Edition" );
-							break;
-						case PRODUCT_STARTER:
-							out_OSSubVersionLabel = TEXT( "Starter Edition" );
-							break;
-						case PRODUCT_CLUSTER_SERVER:
-							out_OSSubVersionLabel = TEXT( "Cluster Server Edition" );
-							break;
-						case PRODUCT_DATACENTER_SERVER:
-							out_OSSubVersionLabel = TEXT( "Datacenter Edition" );
-							break;
-						case PRODUCT_DATACENTER_SERVER_CORE:
-							out_OSSubVersionLabel = TEXT( "Datacenter Edition (core installation)" );
-							break;
-						case PRODUCT_ENTERPRISE_SERVER:
-							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
-							break;
-						case PRODUCT_ENTERPRISE_SERVER_CORE:
-							out_OSSubVersionLabel = TEXT( "Enterprise Edition (core installation)" );
-							break;
-						case PRODUCT_ENTERPRISE_SERVER_IA64:
-							out_OSSubVersionLabel = TEXT( "Enterprise Edition for Itanium-based Systems" );
-							break;
-						case PRODUCT_SMALLBUSINESS_SERVER:
-							out_OSSubVersionLabel = TEXT( "Small Business Server" );
-							break;
-						case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
-							out_OSSubVersionLabel = TEXT( "Small Business Server Premium Edition" );
-							break;
-						case PRODUCT_STANDARD_SERVER:
-							out_OSSubVersionLabel = TEXT( "Standard Edition" );
-							break;
-						case PRODUCT_STANDARD_SERVER_CORE:
-							out_OSSubVersionLabel = TEXT( "Standard Edition (core installation)" );
-							break;
-						case PRODUCT_WEB_SERVER:
-							out_OSSubVersionLabel = TEXT( "Web Server Edition" );
-							break;
-					}
+					out_OSSubVersionLabel = TEXT("Professional");
 				}
 				else
 				{
-					out_OSSubVersionLabel = TEXT( "(type unknown)" );
-					ErrorCode |= (int32)ERROR_GETPRODUCTINFO_FAILED;
+					if (OsVersionInfo.wSuiteMask & VER_SUITE_DATACENTER)
+					{
+						out_OSSubVersionLabel = TEXT("Datacenter Server");
+					}
+					else if (OsVersionInfo.wSuiteMask & VER_SUITE_ENTERPRISE)
+					{
+						out_OSSubVersionLabel = TEXT("Advanced Server");
+					}
+					else
+					{
+						out_OSSubVersionLabel = TEXT("Server");
+					}
 				}
-			}
+				break;
+			case 1:
+				out_OSVersionLabel = TEXT("Windows XP");
+				if (OsVersionInfo.wSuiteMask & VER_SUITE_PERSONAL)
+				{
+					out_OSSubVersionLabel = TEXT("Home Edition");
+				}
+				else
+				{
+					out_OSSubVersionLabel = TEXT("Professional");
+				}
+				break;
+			case 2:
+				if (GetSystemMetrics(SM_SERVERR2))
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2003 R2");
+				}
+				else if (OsVersionInfo.wSuiteMask & VER_SUITE_STORAGE_SERVER)
+				{
+					out_OSVersionLabel = TEXT("Windows Storage Server 2003");
+				}
+				else if (OsVersionInfo.wSuiteMask & VER_SUITE_WH_SERVER)
+				{
+					out_OSVersionLabel = TEXT("Windows Home Server");
+				}
+				else if (OsVersionInfo.wProductType == VER_NT_WORKSTATION && SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+				{
+					out_OSVersionLabel = TEXT("Windows XP");
+					out_OSSubVersionLabel = TEXT("Professional x64 Edition");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2003");
+				}
 				break;
 			default:
-				ErrorCode |= ERROR_UNKNOWNVERSION;
+				ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+			}
+			break;
+		case 6:
+			switch (OsVersionInfo.dwMinorVersion)
+			{
+			case 0:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+				{
+					out_OSVersionLabel = TEXT("Windows Vista");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2008");
+				}
+				break;
+			case 1:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+				{
+					out_OSVersionLabel = TEXT("Windows 7");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2008 R2");
+				}
+				break;
+			case 2:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+				{
+					out_OSVersionLabel = TEXT("Windows 8");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2012");
+				}
+				break;
+			case 3:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+				{
+					out_OSVersionLabel = TEXT("Windows 8.1");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server 2012 R2");
+				}
+				break;
+			default:
+				ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+				break;
+			}
+			break;
+		case 10:
+			switch (OsVersionInfo.dwMinorVersion)
+			{
+			case 0:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+				{
+					out_OSVersionLabel = TEXT("Windows 10");
+				}
+				else
+				{
+					out_OSVersionLabel = TEXT("Windows Server Technical Preview");
+				}
+				break;
+			default:
+				ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+				break;
+			}
+			break;
+		default:
+			ErrorCode |= ERROR_UNKNOWNVERSION;
+			break;
+		}
+
+		if(OsVersionInfo.dwMajorVersion >= 6)
+		{
+#pragma warning( push )
+#pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
+			typedef BOOL( WINAPI *LPFN_GETPRODUCTINFO )(DWORD, DWORD, DWORD, DWORD, PDWORD);
+			LPFN_GETPRODUCTINFO fnGetProductInfo = (LPFN_GETPRODUCTINFO)GetProcAddress( GetModuleHandle( TEXT( "kernel32.dll" ) ), "GetProductInfo" );
+#pragma warning( pop )
+			if( fnGetProductInfo != NULL )
+			{
+				DWORD Type;
+				fnGetProductInfo( OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, 0, 0, &Type );
+
+				switch( Type )
+				{
+					case PRODUCT_ULTIMATE:
+						out_OSSubVersionLabel = TEXT( "Ultimate Edition" );
+						break;
+					case PRODUCT_PROFESSIONAL:
+						out_OSSubVersionLabel = TEXT( "Professional" );
+						break;
+					case PRODUCT_HOME_PREMIUM:
+						out_OSSubVersionLabel = TEXT( "Home Premium Edition" );
+						break;
+					case PRODUCT_HOME_BASIC:
+						out_OSSubVersionLabel = TEXT( "Home Basic Edition" );
+						break;
+					case PRODUCT_ENTERPRISE:
+						out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+						break;
+					case PRODUCT_BUSINESS:
+						out_OSSubVersionLabel = TEXT( "Business Edition" );
+						break;
+					case PRODUCT_STARTER:
+						out_OSSubVersionLabel = TEXT( "Starter Edition" );
+						break;
+					case PRODUCT_CLUSTER_SERVER:
+						out_OSSubVersionLabel = TEXT( "Cluster Server Edition" );
+						break;
+					case PRODUCT_DATACENTER_SERVER:
+						out_OSSubVersionLabel = TEXT( "Datacenter Edition" );
+						break;
+					case PRODUCT_DATACENTER_SERVER_CORE:
+						out_OSSubVersionLabel = TEXT( "Datacenter Edition (core installation)" );
+						break;
+					case PRODUCT_ENTERPRISE_SERVER:
+						out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+						break;
+					case PRODUCT_ENTERPRISE_SERVER_CORE:
+						out_OSSubVersionLabel = TEXT( "Enterprise Edition (core installation)" );
+						break;
+					case PRODUCT_ENTERPRISE_SERVER_IA64:
+						out_OSSubVersionLabel = TEXT( "Enterprise Edition for Itanium-based Systems" );
+						break;
+					case PRODUCT_SMALLBUSINESS_SERVER:
+						out_OSSubVersionLabel = TEXT( "Small Business Server" );
+						break;
+					case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
+						out_OSSubVersionLabel = TEXT( "Small Business Server Premium Edition" );
+						break;
+					case PRODUCT_STANDARD_SERVER:
+						out_OSSubVersionLabel = TEXT( "Standard Edition" );
+						break;
+					case PRODUCT_STANDARD_SERVER_CORE:
+						out_OSSubVersionLabel = TEXT( "Standard Edition (core installation)" );
+						break;
+					case PRODUCT_WEB_SERVER:
+						out_OSSubVersionLabel = TEXT( "Web Server Edition" );
+						break;
+				}
+			}
+			else
+			{
+				out_OSSubVersionLabel = TEXT( "(type unknown)" );
+				ErrorCode |= (int32)ERROR_GETPRODUCTINFO_FAILED;
+			}
 		}
 
 #if 0
