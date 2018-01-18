@@ -24,6 +24,7 @@ public:
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override
 	{
 		return	SNew(SMotionSourceWidget)
+			.Visibility(this, &SGraphPin::GetDefaultValueVisibility)
 			.OnMotionSourceChanged(this, &SMotionControllerSourceGraphPin::OnMotionSourceChanged)
 			.OnGetMotionSourceText(this, &SMotionControllerSourceGraphPin::GetMotionSourceValueText);
 	}
