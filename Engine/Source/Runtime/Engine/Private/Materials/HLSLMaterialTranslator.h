@@ -2833,6 +2833,63 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float2,TEXT("Parameters.Particle.Size"));
 	}
 
+	//#nv begin #flex
+#if WITH_FLEX
+	virtual int32 FlexFluidSurfaceThickness(int32 Offset, int32 UV, bool bUseOffset) override
+	{
+		if (Offset == INDEX_NONE && bUseOffset)
+		{
+			return INDEX_NONE;
+		}
+
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return NonPixelShaderExpressionError();
+		}
+
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		//This needs to be set as opaque surfaces are rendered as part of the base pass. 
+		MaterialCompilationOutput.bRequiresSceneColorCopy = true;
+
+		int32 ScreenUVCode = GetScreenAlignedUV(Offset, UV, bUseOffset);
+		return AddCodeChunk(
+			MCT_Float,
+			TEXT("CalcFlexFluidSurfaceThicknessForMaterialNode(%s)"),
+			*GetParameterCode(ScreenUVCode)
+		);
+	}
+
+	virtual int32 FlexFluidSurfaceColor(int32 Offset, int32 UV, bool bUseOffset) override
+	{
+		if (Offset == INDEX_NONE && bUseOffset)
+		{
+			return INDEX_NONE;
+		}
+
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return NonPixelShaderExpressionError();
+		}
+
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		int32 ScreenUVCode = GetScreenAlignedUV(Offset, UV, bUseOffset);
+		return AddCodeChunk(
+			MCT_Float4,
+			TEXT("CalcFlexFluidSurfaceColorForMaterialNode(%s)"),
+			*GetParameterCode(ScreenUVCode)
+		);
+	}
+#endif
+	//#nv end
+
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
 		FString FunctionNamePattern;

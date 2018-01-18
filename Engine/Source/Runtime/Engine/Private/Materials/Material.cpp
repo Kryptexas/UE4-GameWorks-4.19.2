@@ -1147,6 +1147,12 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
 		case MATUSAGE_InstancedStaticMeshes: UsageValue = bUsedWithInstancedStaticMeshes; break;
 		case MATUSAGE_Clothing: UsageValue = bUsedWithClothing; break;
+		//#nv begin #flex
+#if WITH_FLEX
+		case MATUSAGE_FlexFluidSurfaces: UsageValue = bUsedWithFlexFluidSurfaces; break;
+		case MATUSAGE_FlexMeshes: UsageValue = bUsedWithFlexMeshes; break;
+#endif
+		//#nv end
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageValue;
@@ -1237,6 +1243,18 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithClothing = NewValue; break;
 		}
+		//#nv begin #flex
+#if WITH_FLEX
+		case MATUSAGE_FlexFluidSurfaces:
+		{
+			bUsedWithFlexFluidSurfaces = NewValue; break;
+		}
+		case MATUSAGE_FlexMeshes:
+		{
+			bUsedWithFlexMeshes = NewValue; break;
+		}
+#endif
+		//#nv end
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 #if WITH_EDITOR
@@ -1262,6 +1280,12 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
 		case MATUSAGE_InstancedStaticMeshes: UsageName = TEXT("bUsedWithInstancedStaticMeshes"); break;
 		case MATUSAGE_Clothing: UsageName = TEXT("bUsedWithClothing"); break;
+		//#nv begin #flex
+#if WITH_FLEX
+		case MATUSAGE_FlexFluidSurfaces: UsageName = TEXT("bUsedWithFlexFluidSurfaces"); break;
+		case MATUSAGE_FlexMeshes: UsageName = TEXT("bUsedWithFlexMeshes"); break;
+#endif
+		//#nv end
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageName;
@@ -1333,7 +1357,14 @@ static bool IsPrimitiveTypeUsageFlag(EMaterialUsage Usage)
 		|| Usage == MATUSAGE_MorphTargets
 		|| Usage == MATUSAGE_SplineMesh
 		|| Usage == MATUSAGE_InstancedStaticMeshes
-		|| Usage == MATUSAGE_Clothing;
+		|| Usage == MATUSAGE_Clothing
+		//#nv begin #flex
+#if WITH_FLEX
+		|| Usage == MATUSAGE_FlexFluidSurfaces
+		|| Usage == MATUSAGE_FlexMeshes
+#endif
+		//#nv end
+		;
 }
 
 bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUsage Usage) const
@@ -3239,6 +3270,13 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 
 	//If we can be sure this material would be the same opaque as it is masked then allow it to be assumed opaque.
 	bCanMaskedBeAssumedOpaque = !OpacityMask.Expression && !(OpacityMask.UseConstant && OpacityMask.Constant < 0.999f) && !bUseMaterialAttributes;
+
+	//#nv begin #flex
+#if WITH_FLEX
+	//Flex fluid surfaces can never be considered fully opaque.
+	bCanMaskedBeAssumedOpaque &= !bUsedWithFlexFluidSurfaces;
+#endif
+	//#nv end
 
 	bool bRequiresCompilation = true;
 	if( PropertyThatChanged ) 

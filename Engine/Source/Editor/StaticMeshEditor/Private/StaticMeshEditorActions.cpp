@@ -40,6 +40,12 @@ void FStaticMeshEditorCommands::RegisterCommands()
 
 	UI_COMMAND( FindSource, "Find Source", "Opens explorer at the location of this asset.", EUserInterfaceActionType::Button, FInputChord() );
 	
+	//#nv begin #flex
+#if WITH_FLEX
+	UI_COMMAND(SetDrawFlexPreview, "Flex", "Draw flex particles.", EUserInterfaceActionType::ToggleButton, FInputGesture());
+#endif
+	//#nv end
+
 	UI_COMMAND( ChangeMesh, "Change Mesh", "Changes the static mesh asset loaded in the Static Mesh Editor to the asset currently selected in the Content Browser.", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( SaveGeneratedLODs, "Save Generated LODs", "Saves the generated LODs in the mesh package.", EUserInterfaceActionType::Button, FInputChord());

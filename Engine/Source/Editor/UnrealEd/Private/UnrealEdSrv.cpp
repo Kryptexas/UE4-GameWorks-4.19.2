@@ -101,6 +101,12 @@
 	#include "WindowsHWrapper.h"
 #endif
 #include "ActorGroupingUtils.h"
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 
@@ -933,6 +939,15 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 									{
 										RadialForceComponent->Radius *= Scale;
 									}
+									//#nv begin #flex
+#if WITH_FLEX
+									else if (GFlexEditorPluginBridge)
+									{
+										GFlexEditorPluginBridge->ScaleComponent(RootComponent, Scale);
+									}
+#endif
+									//#nv end
+
 									/* Other components that have radii
 									UPathFollowingComponent
 									USmartNavLinkComponent

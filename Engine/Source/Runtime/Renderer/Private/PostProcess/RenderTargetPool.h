@@ -225,7 +225,7 @@ public:
 	 * call from RenderThread only
 	 * @return true if the old element was still valid, false if a new one was assigned
 	 */
-	bool FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName, bool bDoWritableBarrier = true, ERenderTargetTransience TransienceHint = ERenderTargetTransience::Transient );
+	RENDERER_API bool FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName, bool bDoWritableBarrier = true, ERenderTargetTransience TransienceHint = ERenderTargetTransience::Transient );
 
 	void CreateUntrackedElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const FSceneRenderTargetItem& Item);
 
@@ -251,7 +251,7 @@ public:
 	void FreeUnusedResource(TRefCountPtr<IPooledRenderTarget>& In);
 
 	/** Good to call between levels or before memory intense operations. */
-	void FreeUnusedResources();
+	RENDERER_API void FreeUnusedResources();
 
 	// for debugging purpose, assumes you call FlushRenderingCommands() be
 	// @return can be 0, that doesn't mean iteration is done
@@ -371,4 +371,4 @@ private:
 };
 
 /** The global render targets for easy shading. */
-extern TGlobalResource<FRenderTargetPool> GRenderTargetPool;
+RENDERER_API extern TGlobalResource<FRenderTargetPool> GRenderTargetPool;

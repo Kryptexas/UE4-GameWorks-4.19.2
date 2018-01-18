@@ -551,6 +551,16 @@ namespace UnrealBuildTool
 			{
 				Definitions.Add("WITH_NVCLOTH=0");
 			}
+            //#nv begin #flex
+            if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
+            {
+                Definitions.Add("WITH_FLEX=1");
+            }
+            else
+            {
+                Definitions.Add("WITH_FLEX=0");
+            }
+            //#nv end
 		}
 
 		/// <summary>

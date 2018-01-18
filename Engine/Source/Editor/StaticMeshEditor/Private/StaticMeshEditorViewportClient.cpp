@@ -31,6 +31,12 @@
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "AssetViewerSettings.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
+
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
 
 #define HITPROXY_SOCKET	1
@@ -827,6 +833,23 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	{
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(NSLOCTEXT("UnrealEd", "MeshSectionsHiddenWarning",  "Mesh Sections Hidden")));
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+	IFlexEditorPluginBridge::FlexAssetStats FlexAssetStats;
+	if (GFlexEditorPluginBridge && GFlexEditorPluginBridge->GetFlexAssetStats(StaticMesh, FlexAssetStats))
+	{
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Particles: {0}")), FText::AsNumber(FlexAssetStats.NumParticles))));
+
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Shapes: {0}")), FText::AsNumber(FlexAssetStats.NumShapes))));
+
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Springs: {0}")), FText::AsNumber(FlexAssetStats.NumSprings))));
+	}
+#endif
+	//#nv end
 
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
 

@@ -50,7 +50,15 @@ namespace FXConsoleVariables
 	int32 bAllowAsyncTick = !WITH_EDITOR;
 	float ParticleSlackGPU = 0.02f;
 	int32 MaxParticleTilePreAllocation = 100;
+
+	//#nv begin #flex
+#if WITH_FLEX	
+	int32 MaxCPUParticlesPerEmitter = 16*1024;
+#else
 	int32 MaxCPUParticlesPerEmitter = 1000;
+#endif
+	//#nv end
+
 	int32 MaxGPUParticlesSpawnedPerFrame = 1024 * 1024;
 	int32 GPUSpawnWarningThreshold = 20000;
 	float GPUCollisionDepthBounds = 500.0f;
@@ -347,6 +355,13 @@ void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDis
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Prepare));
 		PrepareGPUSimulation(RHICmdList);
+
+		//#nv begin #flex
+#if WITH_FLEX
+		// Perform the Flex 'Simulate' - which in effect is just copying the flex state into the particles.
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Flex, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
+#endif
+		//#nv end
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Simulate));
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());

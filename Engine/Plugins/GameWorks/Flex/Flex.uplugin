@@ -1,0 +1,27 @@
+{
+	"FileVersion" : 3,
+
+	"FriendlyName" : "Flex",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "nVidia",
+	"CreatedByURL" : "https://developer.nvidia.com/flex",
+	"Description" : "Flex",
+	"Category" : "GameWorks",
+	"EnabledByDefault" : true,
+
+	"Modules" :
+	[
+		{
+			"Name" : "Flex",
+			"Type" : "Runtime",
+			"LoadingPhase" : "PostConfigInit",
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
+		},
+		{
+			"Name" : "FlexEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "Default"
+		}
+	]
+}

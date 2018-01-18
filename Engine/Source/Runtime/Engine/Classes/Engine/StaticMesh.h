@@ -631,6 +631,13 @@ public:
 	/** Pre-build navigation collision */
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
+
+	//#nv begin #flex
+    /** Properties for the associated Flex object */
+	UPROPERTY()
+	UObject* FlexAsset_DEPRECATED;
+	//#nv end
+
 public:
 	/**
 	 * Default constructor
@@ -657,6 +664,13 @@ public:
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
+
+	//#nv begin #flex
+#if WITH_FLEX
+	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#endif
+	//#nv end
+
 	//~ End UObject Interface.
 
 	/**
@@ -780,10 +794,10 @@ public:
 	int32 GetNumSectionsWithCollision() const;
 
 	//~ Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	ENGINE_API virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	ENGINE_API virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	//~ End IInterface_AssetUserData Interface
 
 

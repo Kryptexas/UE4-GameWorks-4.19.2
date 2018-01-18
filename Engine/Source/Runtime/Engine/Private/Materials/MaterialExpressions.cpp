@@ -149,6 +149,12 @@
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionSceneTexelSize.h"
 #include "Materials/MaterialExpressionSceneTexture.h"
+//#nv begin #flex
+#if WITH_FLEX
+#include "Materials/MaterialExpressionFlexFluidSurfaceThickness.h"
+#include "Materials/MaterialExpressionFlexFluidSurfaceColor.h"
+#endif
+//#nv end
 #include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSine.h"
 #include "Materials/MaterialExpressionSobol.h"
@@ -2369,6 +2375,168 @@ const TCHAR* UMaterialExpressionTextureSampleParameterSubUV::GetRequirements()
 {
 	return UMaterialExpressionTextureSampleParameter2D::GetRequirements();
 }
+
+//#nv begin #flex
+#if WITH_FLEX
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionFlexFluidSurfaceThickness
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionFlexFluidSurfaceThickness::UMaterialExpressionFlexFluidSurfaceThickness(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Texture;
+		FConstructorStatics()
+			: NAME_Texture(LOCTEXT("Texture", "Texture"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITOR
+	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif // WITH_EDITOR
+
+	bShaderInputData = true;
+	ConstInput = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+
+int32 UMaterialExpressionFlexFluidSurfaceThickness::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 OffsetIndex = INDEX_NONE;
+	int32 CoordinateIndex = INDEX_NONE;
+	bool bUseOffset = false;
+
+
+	if (InputMode == EMaterialSceneAttributeInputMode::OffsetFraction)
+	{
+		if (Input.Expression)
+		{
+			OffsetIndex = Input.Compile(Compiler);
+		}
+		else
+		{
+			OffsetIndex = Compiler->Constant2(ConstInput.X, ConstInput.Y);
+		}
+
+		bUseOffset = true;
+	}
+	else if (InputMode == EMaterialSceneAttributeInputMode::Coordinates)
+	{
+		if (Input.Expression)
+		{
+			CoordinateIndex = Input.Compile(Compiler);
+		}
+	}
+
+	int32 Result = Compiler->FlexFluidSurfaceThickness(OffsetIndex, CoordinateIndex, bUseOffset);
+	return Result;
+}
+
+
+void UMaterialExpressionFlexFluidSurfaceThickness::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("FlexFluidSurface Thickness"));
+}
+
+#endif // WITH_EDITOR
+
+FString UMaterialExpressionFlexFluidSurfaceThickness::GetInputName(int32 InputIndex) const
+{
+	if (InputIndex == 0)
+	{
+		// Display the current InputMode enum's display name.
+		UByteProperty* InputModeProperty = NULL;
+		InputModeProperty = FindField<UByteProperty>(UMaterialExpressionFlexFluidSurfaceThickness::StaticClass(), "InputMode");
+		return InputModeProperty->Enum->GetNameStringByIndex((int32)InputMode.GetValue());
+	}
+	return TEXT("");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionFlexFluidSurfaceColor
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionFlexFluidSurfaceColor::UMaterialExpressionFlexFluidSurfaceColor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Texture;
+		FConstructorStatics()
+			: NAME_Texture(LOCTEXT("Texture", "Texture"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITOR
+	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif // WITH_EDITOR
+
+	bShaderInputData = true;
+	ConstInput = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+
+int32 UMaterialExpressionFlexFluidSurfaceColor::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 OffsetIndex = INDEX_NONE;
+	int32 CoordinateIndex = INDEX_NONE;
+	bool bUseOffset = false;
+
+
+	if (InputMode == EMaterialSceneAttributeInputMode::OffsetFraction)
+	{
+		if (Input.Expression)
+		{
+			OffsetIndex = Input.Compile(Compiler);
+		}
+		else
+		{
+			OffsetIndex = Compiler->Constant2(ConstInput.X, ConstInput.Y);
+		}
+
+		bUseOffset = true;
+	}
+	else if (InputMode == EMaterialSceneAttributeInputMode::Coordinates)
+	{
+		if (Input.Expression)
+		{
+			CoordinateIndex = Input.Compile(Compiler);
+		}
+	}
+
+	int32 Result = Compiler->FlexFluidSurfaceColor(OffsetIndex, CoordinateIndex, bUseOffset);
+	return Result;
+}
+
+
+void UMaterialExpressionFlexFluidSurfaceColor::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("FlexFluidSurface Color"));
+}
+
+#endif // WITH_EDITOR
+
+FString UMaterialExpressionFlexFluidSurfaceColor::GetInputName(int32 InputIndex) const
+{
+	if (InputIndex == 0)
+	{
+		// Display the current InputMode enum's display name.
+		UByteProperty* InputModeProperty = NULL;
+		InputModeProperty = FindField<UByteProperty>(UMaterialExpressionFlexFluidSurfaceColor::StaticClass(), "InputMode");
+		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+	}
+	return TEXT("");
+}
+#endif
+//#nv end
 
 #if WITH_EDITOR
 int32 UMaterialExpressionAdd::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)

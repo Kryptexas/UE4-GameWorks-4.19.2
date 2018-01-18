@@ -37,7 +37,7 @@ END_UNIFORM_BUFFER_STRUCT( FDrawRectangleParameters )
  * Flags						see EDrawRectangleFlags
  * InstanceCount				Number of instances of rectangle
  */
-extern void DrawRectangle(
+RENDERER_API extern void DrawRectangle(
 	FRHICommandList& RHICmdList,
 	float X,
 	float Y,
@@ -104,7 +104,7 @@ extern void DrawPostProcessPass(
 	EDrawRectangleFlags Flags = EDRF_Default
 	);
 
-extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+RENDERER_API extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 extern TGlobalResource<FEmptyVertexDeclaration> GEmptyVertexDeclaration;
 
 

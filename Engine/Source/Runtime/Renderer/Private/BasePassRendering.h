@@ -1297,7 +1297,7 @@ public:
 	};
 
 	static void AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh);
-	static bool DrawDynamicMesh(
+	RENDERER_API static bool DrawDynamicMesh(
 		FRHICommandList& RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,

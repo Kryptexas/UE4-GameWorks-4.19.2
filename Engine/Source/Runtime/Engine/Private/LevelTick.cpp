@@ -55,6 +55,12 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 #if WITH_EDITOR
 	#include "Editor.h"
 #endif
@@ -1419,11 +1425,78 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_DuringPhysics"), 10);
 				RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 			}
-			TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+
+			//#nv begin #flex
+#if WITH_FLEX
+			if (GFlexPluginBridge)
 			{
-				SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
-				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_EndPhysics"), 10);
-				RunTickGroup(TG_EndPhysics);
+				// tick Flex asynchronously over the course of the whole frame (adds 1 frame latency)
+				// this is called an 'inverted' tick because it must first of all wait() and then tick()
+				const bool bInvertedFlexTick = true;
+
+				// only tick Flex for source levels
+				if (LevelCollections[i].GetType() == ELevelCollectionType::DynamicSourceLevels)
+				{
+					if (bInvertedFlexTick)
+					{
+						if (PhysicsScene != NULL)
+						{
+							// wait for Flex GPU update to finish		
+							GFlexPluginBridge->WaitFlexScenes(PhysicsScene);
+
+							// all Flex buffer modifications should occur after this point
+							// and before TickFlexScenes() call below
+						}
+
+						TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+						{
+							SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+							RunTickGroup(TG_EndPhysics);
+						}
+
+						if (PhysicsScene != NULL)
+						{
+							// kick of flex work async to rest of frame
+							FGraphEventRef dummy;
+							GFlexPluginBridge->TickFlexScenes(PhysicsScene, ENamedThreads::AnyThread, dummy, DeltaSeconds);
+						}
+					}
+					else
+					{
+						TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+						{
+							SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+							RunTickGroup(TG_EndPhysics);
+						}
+
+						// synchronous Flex update
+						if (PhysicsScene != NULL)
+						{
+							FGraphEventRef dummy;
+							GFlexPluginBridge->TickFlexScenes(PhysicsScene, ENamedThreads::AnyThread, dummy, DeltaSeconds);
+							GFlexPluginBridge->WaitFlexScenes(PhysicsScene);
+						}
+					}
+				}
+				else
+				{
+					TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+					{
+						SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+						RunTickGroup(TG_EndPhysics);
+					}
+				}
+			}
+			else
+#endif
+			//#nv end
+			{
+				TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+				{
+					SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+					SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_EndPhysics"), 10);
+					RunTickGroup(TG_EndPhysics);
+				}
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);

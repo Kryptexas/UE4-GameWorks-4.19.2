@@ -143,6 +143,13 @@ public:
 	virtual int32 ParticleSpeed() = 0;
 	virtual int32 ParticleSize() = 0;
 
+	//#nv begin #flex
+#if WITH_FLEX
+	virtual int32 FlexFluidSurfaceThickness(int32 Offset, int32 UV, bool bUseOffset) = 0;
+	virtual int32 FlexFluidSurfaceColor(int32 Offset, int32 UV, bool bUseOffset) = 0;
+#endif
+	//#nv end
+
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) = 0;
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) = 0;
@@ -378,6 +385,13 @@ public:
 	virtual int32 ParticlePosition() override { return Compiler->ParticlePosition(); }
 	virtual int32 ParticleRadius() override { return Compiler->ParticleRadius(); }
 	virtual int32 SphericalParticleOpacity(int32 Density) override { return Compiler->SphericalParticleOpacity(Density); }
+
+	//#nv begin #flex
+#if WITH_FLEX
+	virtual int32 FlexFluidSurfaceThickness(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->FlexFluidSurfaceThickness(Offset, UV, bUseOffset); }
+	virtual int32 FlexFluidSurfaceColor(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->FlexFluidSurfaceColor(Offset, UV, bUseOffset); }
+#endif
+	//#nv end
 
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) override { return Compiler->If(A,B,AGreaterThanB,AEqualsB,ALessThanB,Threshold); }
 

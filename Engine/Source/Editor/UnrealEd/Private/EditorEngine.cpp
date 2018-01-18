@@ -79,6 +79,15 @@
 #include "UnrealEdGlobals.h"
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
+
+//#nv begin #flex
+#if WITH_FLEX
+#include "Animation/SkeletalMeshActor.h"
+#include "Engine/CollisionProfile.h"
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
+
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
@@ -3613,6 +3622,11 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 	const bool bToInteractiveFoliage = ToClass == AInteractiveFoliageActor::StaticClass();
 	const bool bToStaticMesh = ToClass->IsChildOf( AStaticMeshActor::StaticClass() );
 	const bool bToSkeletalMesh = ToClass->IsChildOf(ASkeletalMeshActor::StaticClass());
+	//#nv begin #flex
+#if WITH_FLEX
+	const bool bToFlex = GFlexEditorPluginBridge && GFlexEditorPluginBridge->IsFlexActor(ToClass);
+#endif
+	//#nv end
 
 	const bool bFoundTarget = bToInteractiveFoliage || bToStaticMesh || bToSkeletalMesh;
 
@@ -3707,6 +3721,16 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					SMActor->RegisterAllComponents();
 					GEditor->SelectActor( SMActor, true, false );
 					Actor = SMActor;
+
+					//#nv begin #flex
+#if WITH_FLEX
+					if (bToFlex)
+					{
+						// always reset collision to default for Flex actors
+						GFlexEditorPluginBridge->SetFlexActorCollisionProfileName(SMActor, UCollisionProfile::NoCollision_ProfileName);
+					}
+#endif
+					//#nv end
 				}
 				else if(bToInteractiveFoliage)
 				{

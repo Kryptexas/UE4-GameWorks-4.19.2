@@ -32,7 +32,11 @@
 #include "CanvasTypes.h"
 #include "Engine/Font.h"
 #include "Engine/StaticMesh.h"
-
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
 	: FEditorViewportClient(nullptr)
@@ -1899,6 +1903,14 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetEmitter()
 					MenuBuilder.AddMenuEntry(FCascadeCommands::Get().DeleteEmitter);
 					MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ExportEmitter);
 					MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ExportAllEmitters);
+					//#nv begin #flex
+#if WITH_FLEX
+					if (GFlexEditorPluginBridge)
+					{
+						MenuBuilder.AddMenuEntry(FCascadeCommands::Get().ConvertToFlexEmitter);
+					}
+#endif
+					//#nv end
 				}
 				MenuBuilder.EndSection();
 			}
@@ -1918,6 +1930,14 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetEmitter()
 							Menu.AddMenuEntry(FCascadeCommands::Get().DeleteEmitter);
 							Menu.AddMenuEntry(FCascadeCommands::Get().ExportEmitter);
 							Menu.AddMenuEntry(FCascadeCommands::Get().ExportAllEmitters);
+							//#nv begin #flex
+#if WITH_FLEX
+							if (GFlexEditorPluginBridge)
+							{
+								Menu.AddMenuEntry(FCascadeCommands::Get().ConvertToFlexEmitter);
+							}
+#endif
+							//#nv end
 						}
 						Menu.EndSection();
 					}
@@ -2044,13 +2064,28 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetBackround()
 	const bool bShouldCloseWindowAfterMenuSelection = true;	// Set the menu to automatically close when the user commits to a choice
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, CascadePtr.Pin()->GetToolkitCommands());
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("ClassName"), FText::FromString( UParticleSpriteEmitter::StaticClass()->GetDescription() ) );
+		//#nv begin #flex
+		auto AddMenuEntry([&](const TCHAR* InKey, UClass* InClass)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ClassName"), FText::FromString(InClass->GetDescription()));
 
-		MenuBuilder.AddMenuEntry( FText::Format( NSLOCTEXT("Cascade", "NewSoundEmitter", "New {ClassName}"), Args ), 
-			FText::GetEmpty(), 
-			FSlateIcon(), 
-			FUIAction(FExecuteAction::CreateSP(CascadePtr.Pin().ToSharedRef(), &FCascade::OnNewEmitter)));
+			//NSLOCTEXT("Cascade", "NewParticleSpriteEmitter", "New {ClassName}")
+			auto Fmt = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(TEXT("New {ClassName}"), TEXT("Cascade"), InKey);
+			MenuBuilder.AddMenuEntry(FText::Format(Fmt, Args),
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(CascadePtr.Pin().ToSharedRef(), &FCascade::OnNewEmitter, InClass)));
+		});
+
+		AddMenuEntry(TEXT("NewParticleSpriteEmitter"), UParticleSpriteEmitter::StaticClass());
+#if WITH_FLEX
+		if (GFlexEditorPluginBridge)
+		{
+			AddMenuEntry(TEXT("NewFlexParticleSpriteEmitter"), GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass());
+		}
+#endif
+		//#nv end
 	}
 
 	return MenuBuilder.MakeWidget();

@@ -83,6 +83,13 @@
 #include "GameFramework/GameState.h"
 #include "HAL/LowLevelMemTracker.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "FrameworkObjectVersion.h"
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderTransform Concurrent"), STAT_ParticleSystemComponent_SendRenderTransform_Concurrent, STATGROUP_Particles);
@@ -782,6 +789,14 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 	EmitterEditorColor = FColor(0, 150, 150, 255);
 #endif // WITH_EDITORONLY_DATA
 
+	//#nv begin #flex
+#if WITH_FLEX
+	FlexContainerTemplate_DEPRECATED = nullptr;
+	Mass_DEPRECATED = 1.0f;
+	bLocalSpace_DEPRECATED = false;
+	FlexFluidSurfaceTemplate_DEPRECATED = nullptr;
+#endif
+	//#nv end
 }
 
 FParticleEmitterInstance* UParticleEmitter::CreateInstance(UParticleSystemComponent* InComponent)
@@ -4485,6 +4500,28 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 	}
 	
+	//#nv begin #flex
+	bool bHasFlexEmitter = false;
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+		{
+			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
+			if (Instance && Instance->SpriteTemplate)
+			{
+				if (GFlexPluginBridge->IsValidFlexEmitter(Instance->SpriteTemplate))
+				{
+					bHasFlexEmitter = true;
+					bDisallowAsync = true;
+					break;
+				}
+			}
+		}
+	}
+#endif
+	//#nv end
+
 	if (bRequiresReset)
 	{
 #if WITH_EDITOR
@@ -4667,6 +4704,16 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 #endif
 
+	//#nv begin #flex
+#if WITH_FLEX
+	}
+
+	// do not change the tick group if there is a Flex emitter
+	// present, as the component must be ticked in the EndPhysics phase
+	if (bHasFlexEmitter == false)
+	{
+#endif
+	//#nv end
 		if(CVarFXEarlySchedule.GetValueOnGameThread())
 		{
 			PrimaryComponentTick.TickGroup = TG_PrePhysics; 
@@ -7098,6 +7145,19 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	}
 	return INDEX_NONE;
 }
+
+//#nv begin #flex
+class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
+{
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		return GFlexPluginBridge->GetFirstFlexContainerTemplate(this);
+	}
+#endif
+	return nullptr;
+}
+//#nv end
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
