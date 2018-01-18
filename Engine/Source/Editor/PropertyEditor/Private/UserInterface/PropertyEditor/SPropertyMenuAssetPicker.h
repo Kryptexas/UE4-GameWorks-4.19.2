@@ -65,6 +65,12 @@ private:
 	 */
 	void OnAssetSelected( const FAssetData& AssetData );
 
+	/** 
+	 * Delegate for handling keyboard selection in the asset browser.
+	 * @param	AssetData	The chosen asset data
+	 */
+	void OnAssetEnterPressed( const TArray<FAssetData>& AssetData );
+
 	/**
 	 * Delegate for handling creating new assets from the menu.
 	 * @param	FactoryPtr		Factory which creates asset

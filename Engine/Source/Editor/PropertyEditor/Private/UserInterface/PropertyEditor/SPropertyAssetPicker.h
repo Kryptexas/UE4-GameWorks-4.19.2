@@ -25,6 +25,7 @@ private:
 	TSharedRef<SWidget> OnGenerateAssetPicker();
 
 	void OnAssetSelectedFromPicker( const struct FAssetData& AssetData );
+	void OnAssetEnterPressedFromPicker( const TArray<struct FAssetData>& AssetData );
 private:
 	/** Menu anchor for opening and closing the asset picker */
 	TSharedPtr< class SMenuAnchor > AssetPickerAnchor;
