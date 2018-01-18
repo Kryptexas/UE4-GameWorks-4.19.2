@@ -27,14 +27,17 @@ void UInheritableComponentHandler::Serialize(FArchive& Ar)
 void UInheritableComponentHandler::PostLoad()
 {
 	Super::PostLoad();
-
+	
+#if WITH_EDITOR
 	if (!GIsDuplicatingClassForReinstancing)
+#endif
 	{
 		for (int32 Index = Records.Num() - 1; Index >= 0; --Index)
 		{
 			FComponentOverrideRecord& Record = Records[Index];
 			if (Record.ComponentTemplate)
 			{
+#if WITH_EDITOR
 				if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::SCSHasComponentTemplateClass)
 				{
 					// Fix up component class on load, if it's not already set.
@@ -63,6 +66,7 @@ void UInheritableComponentHandler::PostLoad()
 						FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
 					}
 				}
+#endif
 
 				if (!CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
 				{
