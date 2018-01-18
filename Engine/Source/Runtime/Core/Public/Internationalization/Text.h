@@ -174,6 +174,28 @@ struct CORE_API FNumberFormattingOptions
 	static const FNumberFormattingOptions& DefaultNoGrouping();
 };
 
+struct CORE_API FNumberParsingOptions
+{
+	FNumberParsingOptions();
+
+	bool UseGrouping;
+	FNumberParsingOptions& SetUseGrouping( bool InValue ){ UseGrouping = InValue; return *this; }
+
+	friend FArchive& operator<<(FArchive& Ar, FNumberParsingOptions& Value);
+
+	/** Get the hash code to use for the given parsing options */
+	friend uint32 GetTypeHash( const FNumberParsingOptions& Key );
+
+	/** Check to see if our parsing options match the other parsing options */
+	bool IsIdentical( const FNumberParsingOptions& Other ) const;
+
+	/** Get the default number parsing options with grouping enabled */
+	static const FNumberParsingOptions& DefaultWithGrouping();
+
+	/** Get the default number parsing options with grouping disabled */
+	static const FNumberParsingOptions& DefaultNoGrouping();
+};
+
 /**
  * Cached compiled expression used by the text formatter.
  * The compiled expression will automatically update if the display string is changed.

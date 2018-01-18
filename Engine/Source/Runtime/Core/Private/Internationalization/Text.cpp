@@ -177,6 +177,42 @@ const FNumberFormattingOptions& FNumberFormattingOptions::DefaultNoGrouping()
 	return Options;
 }
 
+// These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
+FNumberParsingOptions::FNumberParsingOptions()
+	: UseGrouping(true)
+{
+
+}
+
+FArchive& operator<<(FArchive& Ar, FNumberParsingOptions& Value)
+{
+	Ar << Value.UseGrouping;
+	return Ar;
+}
+
+uint32 GetTypeHash(const FNumberParsingOptions& Key)
+{
+	uint32 Hash = GetTypeHash(Key.UseGrouping);
+	return Hash;
+}
+
+bool FNumberParsingOptions::IsIdentical(const FNumberParsingOptions& Other) const
+{
+	return UseGrouping == Other.UseGrouping;
+}
+
+const FNumberParsingOptions& FNumberParsingOptions::DefaultWithGrouping()
+{
+	static const FNumberParsingOptions Options = FNumberParsingOptions().SetUseGrouping(true);
+	return Options;
+}
+
+const FNumberParsingOptions& FNumberParsingOptions::DefaultNoGrouping()
+{
+	static const FNumberParsingOptions Options = FNumberParsingOptions().SetUseGrouping(false);
+	return Options;
+}
+
 FText::FText()
 	: TextData(GetEmpty().TextData)
 	, Flags(0)

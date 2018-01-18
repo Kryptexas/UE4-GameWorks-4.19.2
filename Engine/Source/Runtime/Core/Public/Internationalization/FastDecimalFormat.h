@@ -61,8 +61,8 @@ namespace Internal
 CORE_API void IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions, FString& OutString);
 CORE_API void FractionalToString(const double InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions, FString& OutString);
 
-CORE_API bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, bool& OutIsNegative, uint64& OutVal, int32* OutParsedLen);
-CORE_API bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, double& OutVal, int32* OutParsedLen);
+CORE_API bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, bool& OutIsNegative, uint64& OutVal, int32* OutParsedLen);
+CORE_API bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, double& OutVal, int32* OutParsedLen);
 
 } // namespace Internal
 
@@ -103,32 +103,32 @@ CORE_API bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const
 		return Result;																																												\
 	}
 
-#define FAST_DECIMAL_PARSE_INTEGER_IMPL(NUMBER_TYPE)																																				\
-	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)			\
-	{																																																\
-		bool bIsNegative = false;																																									\
-		uint64 Val = 0;																																												\
-		const bool bResult = Internal::StringToIntegral(InStr, InStrLen, InFormattingRules, bIsNegative, Val, OutParsedLen);																		\
-		OutVal = static_cast<NUMBER_TYPE>(Val);																																						\
-		OutVal *= (bIsNegative ? -1 : 1);																																							\
-		return bResult;																																												\
-	}																																																\
-	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const FDecimalNumberFormattingRules& InFormattingRules, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)									\
-	{																																																\
-		return StringToNumber(InStr, FCString::Strlen(InStr), InFormattingRules, OutVal, OutParsedLen);																								\
+#define FAST_DECIMAL_PARSE_INTEGER_IMPL(NUMBER_TYPE)																																														\
+	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)	\
+	{																																																										\
+		bool bIsNegative = false;																																																			\
+		uint64 Val = 0;																																																						\
+		const bool bResult = Internal::StringToIntegral(InStr, InStrLen, InFormattingRules, InParsingOptions, bIsNegative, Val, OutParsedLen);																								\
+		OutVal = static_cast<NUMBER_TYPE>(Val);																																																\
+		OutVal *= (bIsNegative ? -1 : 1);																																																	\
+		return bResult;																																																						\
+	}																																																										\
+	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)							\
+	{																																																										\
+		return StringToNumber(InStr, FCString::Strlen(InStr), InFormattingRules, InParsingOptions, OutVal, OutParsedLen);																													\
 	}
 
-#define FAST_DECIMAL_PARSE_FRACTIONAL_IMPL(NUMBER_TYPE)																																				\
-	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)			\
-	{																																																\
-		double Val = 0.0;																																											\
-		const bool bResult = Internal::StringToFractional(InStr, InStrLen, InFormattingRules, Val, OutParsedLen);																					\
-		OutVal = static_cast<NUMBER_TYPE>(Val);																																						\
-		return bResult;																																												\
-	}																																																\
-	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const FDecimalNumberFormattingRules& InFormattingRules, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)									\
-	{																																																\
-		return StringToNumber(InStr, FCString::Strlen(InStr), InFormattingRules, OutVal, OutParsedLen);																								\
+#define FAST_DECIMAL_PARSE_FRACTIONAL_IMPL(NUMBER_TYPE)																																														\
+	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)	\
+	{																																																										\
+		double Val = 0.0;																																																					\
+		const bool bResult = Internal::StringToFractional(InStr, InStrLen, InFormattingRules, InParsingOptions, Val, OutParsedLen);																											\
+		OutVal = static_cast<NUMBER_TYPE>(Val);																																																\
+		return bResult;																																																						\
+	}																																																										\
+	FORCEINLINE bool StringToNumber(const TCHAR* InStr, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, NUMBER_TYPE& OutVal, int32* OutParsedLen = nullptr)							\
+	{																																																										\
+		return StringToNumber(InStr, FCString::Strlen(InStr), InFormattingRules, InParsingOptions, OutVal, OutParsedLen);																													\
 	}
 
 FAST_DECIMAL_FORMAT_SIGNED_IMPL(int8)

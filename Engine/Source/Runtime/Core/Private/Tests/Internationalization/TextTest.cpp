@@ -858,7 +858,7 @@ struct FTextParsingTestUtil
 	static void DoSingleTest(FTextParsingTest* InTest, const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const T InExpectedValue, const bool bExpectedToParse, const TCHAR* InDescription)
 	{
 		T Value;
-		const bool bDidParse = FastDecimalFormat::StringToNumber(InStr, InStrLen, InFormattingRules, Value);
+		const bool bDidParse = FastDecimalFormat::StringToNumber(InStr, InStrLen, InFormattingRules, FNumberParsingOptions::DefaultWithGrouping(), Value);
 
 		if (bDidParse != bExpectedToParse)
 		{

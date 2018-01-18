@@ -610,12 +610,21 @@ bool StringToIntegral_StringToUInt64(const TCHAR*& InBuffer, const TCHAR* InBuff
 	return !bFoundUnexpectedNonNumericCharacter;
 }
 
-FORCEINLINE bool StringToIntegral_Common(const TCHAR*& InBuffer, const TCHAR* InBufferEnd, const FDecimalNumberFormattingRules& InFormattingRules, const FDecimalNumberSignParser& InSignParser, bool& OutIsNegative, uint64& OutVal, uint8& OutDigitCount)
+FORCEINLINE bool StringToIntegral_Common(const TCHAR*& InBuffer, const TCHAR* InBufferEnd, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, const FDecimalNumberSignParser& InSignParser, bool& OutIsNegative, uint64& OutVal, uint8& OutDigitCount)
 {
-	return StringToIntegral_StringToUInt64(InBuffer, InBufferEnd, InFormattingRules, InSignParser, EDecimalNumberParseFlags::AllowLeadingSign | EDecimalNumberParseFlags::AllowTrailingSign | EDecimalNumberParseFlags::AllowDecimalSeparators | EDecimalNumberParseFlags::AllowGroupSeparators, OutIsNegative, OutVal, OutDigitCount);
+	return StringToIntegral_StringToUInt64(
+		InBuffer, 
+		InBufferEnd, 
+		InFormattingRules, 
+		InSignParser, 
+		EDecimalNumberParseFlags::AllowLeadingSign | EDecimalNumberParseFlags::AllowTrailingSign | EDecimalNumberParseFlags::AllowDecimalSeparators | (InParsingOptions.UseGrouping ? EDecimalNumberParseFlags::AllowGroupSeparators : EDecimalNumberParseFlags::None), 
+		OutIsNegative, 
+		OutVal, 
+		OutDigitCount
+		);
 }
 
-bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, bool& OutIsNegative, uint64& OutVal, int32* OutParsedLen)
+bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, bool& OutIsNegative, uint64& OutVal, int32* OutParsedLen)
 {
 	const TCHAR* Buffer = InStr;
 	const TCHAR* BufferEnd = InStr + InStrLen;
@@ -623,7 +632,7 @@ bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNu
 
 	// Parse the integral part of the number
 	uint8 IntegralPartDigitCount = 0;
-	bool bResult = StringToIntegral_Common(Buffer, BufferEnd, InFormattingRules, SignParser, OutIsNegative, OutVal, IntegralPartDigitCount);
+	bool bResult = StringToIntegral_Common(Buffer, BufferEnd, InFormattingRules, InParsingOptions, SignParser, OutIsNegative, OutVal, IntegralPartDigitCount);
 
 	// A number can only be valid if we actually parsed some digits
 	bResult &= IntegralPartDigitCount > 0;
@@ -637,7 +646,7 @@ bool StringToIntegral(const TCHAR* InStr, const int32 InStrLen, const FDecimalNu
 	return bResult;
 }
 
-bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, double& OutVal, int32* OutParsedLen)
+bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberParsingOptions& InParsingOptions, double& OutVal, int32* OutParsedLen)
 {
 	const TCHAR* Buffer = InStr;
 	const TCHAR* BufferEnd = InStr + InStrLen;
@@ -647,7 +656,7 @@ bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimal
 	bool bIntegralPartIsNegative = false;
 	uint64 IntegralPart = 0;
 	uint8 IntegralPartDigitCount = 0;
-	bool bResult = StringToIntegral_Common(Buffer, BufferEnd, InFormattingRules, SignParser, bIntegralPartIsNegative, IntegralPart, IntegralPartDigitCount);
+	bool bResult = StringToIntegral_Common(Buffer, BufferEnd, InFormattingRules, InParsingOptions, SignParser, bIntegralPartIsNegative, IntegralPart, IntegralPartDigitCount);
 
 	// Parse the fractional part of the number
 	bool bFractionPartIsNegative = false;
@@ -655,7 +664,7 @@ bool StringToFractional(const TCHAR* InStr, const int32 InStrLen, const FDecimal
 	uint8 FractionalPartDigitCount = 0;
 	if (bResult && Buffer > InStr && *(Buffer - 1) == InFormattingRules.DecimalSeparatorCharacter)
 	{
-		// Only parse the fractional part of the number if the preceeding character was a decimal separator
+		// Only parse the fractional part of the number if the preceding character was a decimal separator
 		bResult &= StringToIntegral_StringToUInt64(Buffer, BufferEnd, InFormattingRules, SignParser, EDecimalNumberParseFlags::AllowTrailingSign, bFractionPartIsNegative, FractionalPart, FractionalPartDigitCount);
 	}
 

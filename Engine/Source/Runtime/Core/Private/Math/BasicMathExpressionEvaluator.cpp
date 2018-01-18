@@ -40,11 +40,11 @@ namespace ExpressionParser
 		// This call will return false if there is some other data after the number, which is why we check the parsed length instead
 		double PrimaryValue = 0.0;
 		int32 PrimaryParsedLen = 0;
-		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InPrimaryFormattingRules, PrimaryValue, &PrimaryParsedLen);
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InPrimaryFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), PrimaryValue, &PrimaryParsedLen);
 
 		double FallbackValue = 0.0;
 		int32 FallbackParsedLen = 0;
-		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFallbackFormattingRules, FallbackValue, &FallbackParsedLen);
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFallbackFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), FallbackValue, &FallbackParsedLen);
 
 		// We take whichever value parsed the most text from the string
 		if (FallbackParsedLen <= PrimaryParsedLen)
@@ -73,7 +73,7 @@ namespace ExpressionParser
 		// This call will return false if there is some other data after the number, which is why we check the parsed length instead
 		double Value = 0.0;
 		int32 ParsedLen = 0;
-		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFormattingRules, Value, &ParsedLen);
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), Value, &ParsedLen);
 
 		if (OutValue)
 		{
