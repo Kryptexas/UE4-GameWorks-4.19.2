@@ -555,6 +555,11 @@ namespace AnimationEditorUtils
 		return false;
 	}
 
+	bool IsAnimGraph(UEdGraph* Graph)
+	{
+		return Cast<UAnimationGraph>(Graph) != nullptr;
+	}
+
 	void RegenerateSubGraphArrays(UAnimBlueprint* Blueprint)
 	{
 		// The anim graph should be the first function graph on the blueprint

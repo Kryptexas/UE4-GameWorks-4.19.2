@@ -125,7 +125,10 @@ namespace AnimationEditorUtils
 	UNREALED_API void RegenerateSubGraphArrays(UAnimBlueprint* Blueprint);
 	void RegenerateGraphSubGraphs(UAnimBlueprint* OwningBlueprint, UEdGraph* GraphToFix);
 	void RemoveDuplicateSubGraphs(UEdGraph* GraphToClean);
-	void FindChildGraphsFromNodes(UEdGraph* GraphToSearch, TArray<UEdGraph*>& ChildGraphs);
+	UNREALED_API void FindChildGraphsFromNodes(UEdGraph* GraphToSearch, TArray<UEdGraph*>& ChildGraphs);
+
+	// Is the supplied UEdGraph an Animation Graph
+	UNREALED_API bool IsAnimGraph(UEdGraph* Graph);
 	UNREALED_API void SetPoseWatch(UPoseWatch* PoseWatch, UAnimBlueprint* AnimBlueprintIfKnown = nullptr);
 	UNREALED_API UPoseWatch* FindPoseWatchForNode(const UEdGraphNode* Node, UAnimBlueprint* AnimBlueprintIfKnown=nullptr);
 	UNREALED_API void MakePoseWatchForNode(UAnimBlueprint* AnimBlueprint, UEdGraphNode* Node, FColor PoseWatchColour);
