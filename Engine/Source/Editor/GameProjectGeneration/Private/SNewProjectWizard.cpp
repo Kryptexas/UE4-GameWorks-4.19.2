@@ -1102,8 +1102,8 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 	if (FPaths::DirectoryExists(FPaths::EnterpriseDir()))
 	{
 		Templates.FindOrAdd(FTemplateCategory::EnterpriseCategoryName).Add(MakeShareable(new FTemplateItem(
-			LOCTEXT("BlankEnterpriseProjectName", "Blank Enterprise"),
-			LOCTEXT("BlankEnterpriseProjectDescription", "A clean empty enterprise project with no code."),
+			LOCTEXT("BlankEnterpriseProjectName", "Blank"),
+			LOCTEXT("BlankEnterpriseProjectDescription", "A clean empty Unreal Studio project with no code."),
 			false, FTemplateCategory::EnterpriseCategoryName,
 			TEXT("_1"),			// SortKey
 			TEXT(""),			// No filename, this is a generation template

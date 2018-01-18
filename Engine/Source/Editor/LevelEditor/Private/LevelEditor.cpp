@@ -102,7 +102,7 @@ public:
 		FString TooltipVersionStr = EngineVersionString;
 		if (IProjectManager::Get().GetCurrentProject() && IProjectManager::Get().GetCurrentProject()->bIsEnterpriseProject)
 		{
-			TooltipVersionStr += TEXT(" Enterprise");
+			TooltipVersionStr += TEXT(" Unreal Studio");
 		}
 		TooltipArgs.Add(TEXT("Version"), FText::FromString(TooltipVersionStr));
 		TooltipArgs.Add(TEXT("Branch"), FText::FromString(FApp::GetBranchName()));

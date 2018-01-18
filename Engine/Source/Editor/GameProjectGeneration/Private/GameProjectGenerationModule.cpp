@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogGameProjectGeneration);
 
 FName FTemplateCategory::BlueprintCategoryName = "Blueprint";
 FName FTemplateCategory::CodeCategoryName = "C++";
-FName FTemplateCategory::EnterpriseCategoryName = "Enterprise";
+FName FTemplateCategory::EnterpriseCategoryName = "Unreal Studio";
 
 void FGameProjectGenerationModule::StartupModule()
 {
@@ -43,8 +43,8 @@ void FGameProjectGenerationModule::StartupModule()
 
 	RegisterTemplateCategory(
 		FTemplateCategory::EnterpriseCategoryName,
-		LOCTEXT("EnterpriseCategory_Name", "Enterprise"),
-		LOCTEXT("EnterpriseCategory_Description", "Enterprise blueprint templates require no programming knowledge.\nEach template include a basic set of blueprints to use as a starting point for your enterprise project."),
+		LOCTEXT("EnterpriseCategory_Name", "Unreal Studio"),
+		LOCTEXT("EnterpriseCategory_Description", "Unreal Studio blueprint templates require no programming knowledge.\nEach template include a basic set of blueprints to use as a starting point for your Unreal Studio project."),
 		FEditorStyle::GetBrush("GameProjectDialog.BlueprintIcon"),
 		FEditorStyle::GetBrush("GameProjectDialog.BlueprintImage"));
 }

@@ -48,7 +48,7 @@ void FCategoryViewModel::Initialize()
 		SortID = 1;
 		break;
 	case EContentSourceCategory::EnterpriseFeature:
-		Text = LOCTEXT("EnterpriseFeature", "Enterprise Feature");
+		Text = LOCTEXT("EnterpriseFeature", "Unreal Studio Feature");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.BlueprintFeatureCategory");
 		SortID = 2;
 		break;
@@ -58,7 +58,7 @@ void FCategoryViewModel::Initialize()
 		SortID = 3;
 		break;
 	case EContentSourceCategory::EnterpriseContent:
-		Text = LOCTEXT("EnterpriseContentPacks", "Enterprise Content Packs");
+		Text = LOCTEXT("EnterpriseContentPacks", "Unreal Studio Content Packs");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.ContentPackCategory");
 		SortID = 4;
 		break;
