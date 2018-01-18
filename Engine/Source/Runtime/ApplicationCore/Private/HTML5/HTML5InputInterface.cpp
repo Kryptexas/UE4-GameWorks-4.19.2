@@ -101,8 +101,11 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 				const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
 				const bool bIsRepeated = KeyEvent.repeat != 0;
 
-				// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
-				MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
+				if ( KeyCode != 227 && KeyCode != 231 ) // UE-54056 -- filtering out Windows/Super key
+				{
+					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+					MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
+				}
 
 				// Backspace/Return input caught here.
 				// Note that TextInput still seems to get characters messages too but slate seems to not process them.
@@ -119,10 +122,12 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 			{
 				SDL_KeyboardEvent keyEvent = Event.key;
 				const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
-				const bool IsRepeat = keyEvent.repeat != 0;
-
-				MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
-				UE_LOG(LogHTML5Input, Verbose, TEXT("KeyUp Code:%d"), KeyCode);
+				if ( KeyCode != 227 && KeyCode != 231 ) // UE-54056 -- filtering out Windows/Super key
+				{
+					const bool IsRepeat = keyEvent.repeat != 0;
+					MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
+					UE_LOG(LogHTML5Input, Verbose, TEXT("KeyUp Code:%d"), KeyCode);
+				}
 			}
 			break;
 		case SDL_TEXTINPUT:
