@@ -5177,6 +5177,21 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("AnimViewportMenu.SceneSetup", new IMAGE_BRUSH("Icons/icon_tab_SceneOutliner_16x", Icon16x16));
 
 		Set( "AnimViewport.MessageFont", DEFAULT_FONT("Bold", 9) );
+
+		Set("AnimViewport.MessageText", FTextBlockStyle(NormalText)
+			.SetFont(DEFAULT_FONT("Bold", FCoreStyle::RegularTextSize))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+		Set("AnimViewport.WarningText", FTextBlockStyle(NormalText)
+			.SetFont(DEFAULT_FONT("Bold", FCoreStyle::RegularTextSize))
+			.SetColorAndOpacity(FLinearColor::Yellow)
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+		Set("AnimViewport.ErrorText", FTextBlockStyle(NormalText)
+			.SetFont(DEFAULT_FONT("Bold", FCoreStyle::RegularTextSize))
+			.SetColorAndOpacity(FLinearColor::Red)
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
 		
 		Set( "Persona.Viewport.BlueprintDirtyText", FTextBlockStyle(NormalText)
 			.SetFont( DEFAULT_FONT( "BoldCondensed", 18 ) )

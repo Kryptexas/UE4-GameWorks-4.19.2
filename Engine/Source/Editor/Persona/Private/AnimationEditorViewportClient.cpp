@@ -719,7 +719,7 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 
 	if (ShouldDisplayAdditiveScaleErrorMessage())
 	{
-		TextValue = ConcatenateLine(TextValue, LOCTEXT("AdditiveRefPoseWarning", "Additive ref pose contains scales of 0.0, this can cause additive animations to not give the desired results"));
+		TextValue = ConcatenateLine(TextValue, LOCTEXT("AdditiveRefPoseWarning", "<AnimViewport.WarningText>Additive ref pose contains scales of 0.0, this can cause additive animations to not give the desired results</>"));
 	}
 
 	if (PreviewMeshComponent->SkeletalMesh->MorphTargets.Num() > 0)
@@ -775,7 +775,7 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 
 		if (MaterialsThatNeedMorphFlagOn.Num() > 0)
 		{
-			TextValue = ConcatenateLine(TextValue, LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):"));
+			TextValue = ConcatenateLine(TextValue, LOCTEXT("MorphSupportNeeded", "<AnimViewport.WarningText>The following materials need morph support ('Used with Morph Targets' in material editor):</>"));
 
 			for(auto Iter = MaterialsThatNeedMorphFlagOn.CreateIterator(); Iter; ++Iter)
 			{
@@ -785,7 +785,7 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 
 		if (MaterialsThatNeedSaving.Num() > 0)
 		{
-			TextValue = ConcatenateLine(TextValue, LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:"));
+			TextValue = ConcatenateLine(TextValue, LOCTEXT("MaterialsNeedSaving", "<AnimViewport.WarningText>The following materials need saving to fully support morph targets:</>"));
 
 			for(auto Iter = MaterialsThatNeedSaving.CreateIterator(); Iter; ++Iter)
 			{
@@ -803,12 +803,12 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 		{
 			if (Sequence->DoesNeedRebake())
 			{
-				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyRawAnimationDataWarning", "Animation is being edited. To apply to raw animation data, click \"Apply\""));
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyRawAnimationDataWarning", "<AnimViewport.WarningText>Animation is being edited. To apply to raw animation data, click \"Apply\"</>"));
 			}
 
 			if (Sequence->DoesNeedRecompress())
 			{
-				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyToCompressedDataWarning", "Animation is being edited. To apply to compressed data (and recalculate baked additives), click \"Apply\""));
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyToCompressedDataWarning", "<AnimViewport.WarningText>Animation is being edited. To apply to compressed data (and recalculate baked additives), click \"Apply\"</>"));
 			}
 		}
 	}
@@ -819,11 +819,11 @@ FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
 		{
 			if( PreviewMeshComponent->GetPhysicsAsset() == NULL )
 			{
-				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupPhysicsAssetForAccurateBounds", "You may need to setup Physics Asset to use more accurate bounds"));
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupPhysicsAssetForAccurateBounds", "<AnimViewport.WarningText>You may need to setup Physics Asset to use more accurate bounds</>"));
 			}
 			else
 			{
-				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupBoundsInPhysicsAsset", "You need to setup bounds in Physics Asset to include whole mesh"));
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupBoundsInPhysicsAsset", "<AnimViewport.WarningText>You need to setup bounds in Physics Asset to include whole mesh</>"));
 			}
 		}
 	}

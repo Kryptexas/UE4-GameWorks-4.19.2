@@ -44,6 +44,7 @@
 #include "IPinnedCommandList.h"
 #include "UICommandList_Pinnable.h"
 #include "BoneSelectionWidget.h"
+#include "SRichTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -315,12 +316,10 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 			.Padding(FMargin(4.0f, 3.0f, 0.0f, 0.0f))
 			[
 				// Display text (e.g., item being previewed)
-				SNew(STextBlock)
+				SNew(SRichTextBlock)
+				.DecoratorStyleSet(&FEditorStyle::Get())
 				.Text(InViewport.Get(), &SAnimationEditorViewportTabBody::GetDisplayString)
-				.Font(FEditorStyle::GetFontStyle(TEXT("AnimViewport.MessageFont")))
-				.ShadowOffset(FVector2D(0.5f, 0.5f))
-				.ShadowColorAndOpacity(FLinearColor(0.3f, 0.3f, 0.3f))
-				.ColorAndOpacity(this, &SAnimViewportToolBar::GetFontColor)
+				.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("AnimViewport.MessageText"))
 			]
 		]
 	];
