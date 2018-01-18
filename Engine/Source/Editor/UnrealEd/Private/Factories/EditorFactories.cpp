@@ -5036,6 +5036,16 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	bDeferCompression     = pTex->DeferCompression;
 	MipGenSettings		  = pTex->MipGenSettings;
 
+	float Brightness = 0.f;
+	float TextureMultiplier = 1.f;
+
+	UTextureLightProfile* pTexLightProfile = Cast<UTextureLightProfile>(Obj);
+	if ( pTexLightProfile )
+	{
+		Brightness = pTexLightProfile->Brightness;
+		TextureMultiplier = pTexLightProfile->TextureMultiplier;
+	}
+
 	// Suppress the import overwrite dialog because we know that for explicitly re-importing we want to preserve existing settings
 	UTextureFactory::SuppressImportOverwriteDialog();
 
@@ -5043,6 +5053,15 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 
 	if (ImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public | RF_Standalone, ResolvedSourceFilePath, nullptr, OutCanceled) != nullptr)
 	{
+		if ( pTexLightProfile )
+		{
+			// We don't update the Brightness and TextureMultiplier during reimport.
+			// The reason is that the IESLoader has changed and calculates these values differently.
+			// Since existing lights have been calibrated, we don't want to screw with those values.
+			pTexLightProfile->Brightness = Brightness;
+			pTexLightProfile->TextureMultiplier = TextureMultiplier;
+		}
+
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
 		pTex->AssetImportData->Update(ResolvedSourceFilePath);

@@ -12,7 +12,7 @@ class UTextureLightProfile : public UTexture2D
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Light brightness in Lumens, imported from IES profile, <= 0 if the profile is used for masking only. Use with InverseSquareFalloff. */
+	/** Light brightness in Candelas, imported from IES profile, <= 0 if the profile is used for masking only. Use with InverseSquareFalloff. */
 	UPROPERTY(EditAnywhere, Category=TextureLightProfile, AssetRegistrySearchable)
 	float Brightness;
 

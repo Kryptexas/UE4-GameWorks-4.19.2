@@ -197,8 +197,6 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 
 	PARSE_FLOAT(LumensPerLamp);
 
-	Brightness = LumensPerLamp / LightCount;
-
 	PARSE_FLOAT(CandelaMult);
 
 	if(CandelaMult < 0)
@@ -316,6 +314,8 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 
 	Error = 0;
 
+	Brightness = ComputeMax(); // Use max candela as the brightness
+
 	if(Brightness <= 0)
 	{
 		// some samples have -1, then the brightness comes from the samples
@@ -393,9 +393,7 @@ float FIESLoadHelper::ExtractInRGBA16F(TArray<uint8>& OutData)
 		}
 	}
 
-	float Integral = ComputeFullIntegral();
-
-	return MaxValue / Integral;
+	return 1.f;
 }
 
 float FIESLoadHelper::ComputeFullIntegral()
