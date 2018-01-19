@@ -140,7 +140,7 @@ public:
 	/**
 	 * Initialize the image sequence loader.
 	 *
-	 * @param SequencePath Path to the EXR image sequence.
+	 * @param SequencePath Path to the image sequence.
 	 * @param FpsOverride The frames per second to use (0.0 = do not override).
 	 * @see IsInitialized
 	 */
@@ -177,6 +177,14 @@ protected:
 	void FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const;
 
 	/**
+	 * Initialize the image sequence loader.
+	 *
+	 * @param SequencePath Path to the image sequence.
+	 * @param FpsOverride The frames per second to use (0.0 = do not override).
+	 */
+	void LoadSequence(const FString& SequencePath, const float FpsOverride);
+
+	/**
 	 * Get the frame number corresponding to the specified play head time.
 	 *
 	 * @param Time The play head time.
@@ -209,7 +217,7 @@ private:
 	/** The image wrapper module to use. */
 	IImageWrapperModule& ImageWrapperModule;
 
-	/** Paths to each EXR image in the currently opened sequence. */
+	/** Paths to each image in the currently opened sequence. */
 	TArray<FString> ImagePaths;
 
 	/** Media information string. */

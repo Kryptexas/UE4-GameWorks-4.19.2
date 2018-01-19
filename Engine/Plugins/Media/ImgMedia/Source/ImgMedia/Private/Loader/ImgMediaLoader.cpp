@@ -143,6 +143,51 @@ void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOve
 {
 	check(!Initialized); // reinitialization not allowed for now
 
+	LoadSequence(SequencePath, FpsOverride);
+	FPlatformMisc::MemoryBarrier();
+
+	Initialized = true;
+}
+
+
+bool FImgMediaLoader::RequestFrame(FTimespan Time, float PlayRate)
+{
+	const int32 FrameIndex = TimeToFrame(Time);
+
+	if ((FrameIndex == INDEX_NONE) || (FrameIndex == LastRequestedFrame))
+	{
+		return false;
+	}
+
+	Update(FrameIndex, PlayRate);
+	LastRequestedFrame = FrameIndex;
+
+	return true;
+}
+
+
+/* FImgMediaLoader implementation
+ *****************************************************************************/
+
+void FImgMediaLoader::FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const
+{
+	if (SequenceFps <= 0.0f)
+	{
+		return;
+	}
+
+	const FTimespan FrameDuration = FTimespan::FromSeconds(1.0 / SequenceFps);
+
+	for (const auto Frame : FrameNumbers)
+	{
+		const FTimespan StartTime = FTimespan::FromSeconds(Frame / SequenceFps);
+		OutRangeSet.Add(TRange<FTimespan>(StartTime, StartTime + FrameDuration));
+	}
+}
+
+
+void FImgMediaLoader::LoadSequence(const FString& SequencePath, const float FpsOverride)
+{
 	if (SequencePath.IsEmpty())
 	{
 		return;
@@ -244,46 +289,6 @@ void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOve
 	Info += FString::Printf(TEXT("    Compression: %s\n"), *FirstFrameInfo.CompressionName);
 	Info += FString::Printf(TEXT("    Frames: %i\n"), ImagePaths.Num());
 	Info += FString::Printf(TEXT("    FPS: %f\n"), SequenceFps);
-
-	FPlatformMisc::MemoryBarrier();
-
-	Initialized = true;
-}
-
-
-bool FImgMediaLoader::RequestFrame(FTimespan Time, float PlayRate)
-{
-	const int32 FrameIndex = TimeToFrame(Time);
-
-	if ((FrameIndex == INDEX_NONE) || (FrameIndex == LastRequestedFrame))
-	{
-		return false;
-	}
-
-	Update(FrameIndex, PlayRate);
-	LastRequestedFrame = FrameIndex;
-
-	return true;
-}
-
-
-/* FImgMediaLoader implementation
- *****************************************************************************/
-
-void FImgMediaLoader::FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const
-{
-	if (SequenceFps <= 0.0f)
-	{
-		return;
-	}
-
-	const FTimespan FrameDuration = FTimespan::FromSeconds(1.0 / SequenceFps);
-
-	for (const auto Frame : FrameNumbers)
-	{
-		const FTimespan StartTime = FTimespan::FromSeconds(Frame / SequenceFps);
-		OutRangeSet.Add(TRange<FTimespan>(StartTime, StartTime + FrameDuration));
-	}
 }
 
 
