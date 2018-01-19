@@ -64,9 +64,6 @@ public:
 	
 	/** The preview primitive we are using. */
 	EThumbnailPrimType PreviewPrimType;
-	
-	/** If true, render background object in the preview scene. */
-	bool bShowBackground;
 
 	/** If true, render grid the preview scene. */
 	bool bShowGrid;
