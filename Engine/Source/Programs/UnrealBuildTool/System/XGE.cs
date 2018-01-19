@@ -363,7 +363,7 @@ namespace UnrealBuildTool
 					CommandPath = "cmd.exe";
 					CommandArguments = string.Format
 					(
-						"/c \"{0} {1}\"",
+						"/c \"\"{0}\" {1}\"",
 						(Action.CommandPath),
 						(Action.CommandArguments)
 					);
