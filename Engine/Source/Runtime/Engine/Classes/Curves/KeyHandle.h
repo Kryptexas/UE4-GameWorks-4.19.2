@@ -64,6 +64,7 @@ public:
 	int32 Num() const;
 	TMap<FKeyHandle, int32>::TConstIterator CreateConstIterator() const;
 	TMap<FKeyHandle, int32>::TIterator CreateIterator();
+	const TMap<FKeyHandle, int32>& GetMap() const { return KeyHandlesToIndices; }
 
 	/** ICPPStructOps implementation */
 	bool Serialize(FArchive& Ar);

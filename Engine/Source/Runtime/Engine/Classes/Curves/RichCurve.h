@@ -328,6 +328,9 @@ public:
 	void RemoveRedundantKeys(float Tolerance);
 	void RemoveRedundantKeys(float Tolerance, float FirstKeyTime, float LastKeyTime);
 
+private:
+	void RemoveRedundantKeysInternal(float Tolerance, int32 InStartKeepKey, int32 InEndKeepKey);
+
 public:
 
 	// FIndexedCurve interface
