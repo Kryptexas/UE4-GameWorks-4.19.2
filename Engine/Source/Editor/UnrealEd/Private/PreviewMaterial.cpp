@@ -629,7 +629,7 @@ void UMaterialEditorPreviewParameters::RegenerateArrays()
 
 void UMaterialEditorPreviewParameters::CopyToSourceInstance()
 {
-	if (PreviewMaterial->IsTemplate(RF_ClassDefaultObject) == false)
+	if (PreviewMaterial->IsTemplate(RF_ClassDefaultObject) == false && OriginalMaterial != nullptr)
 	{
 		OriginalMaterial->MarkPackageDirty();
 		// Scalar Parameters
