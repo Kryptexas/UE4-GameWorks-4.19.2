@@ -568,7 +568,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (UsingLld() && !LinkEnvironment.bIsBuildingDLL)
+			if (UsingLld(LinkEnvironment.Architecture) && !LinkEnvironment.bIsBuildingDLL)
 			{
 				Result += CrossCompiling() ? " -fuse-ld=lld.exe" : " -fuse-ld=lld";
 			}
@@ -741,19 +741,19 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Checks if we actually can use LTO with this set of tools
 		/// </summary>
-		private bool CanUseLTO()
+		private bool CanUseLTO(string Architecture)
 		{
-			return UsingLld() && !String.IsNullOrEmpty(LlvmArPath);
+			return UsingLld(Architecture) && !String.IsNullOrEmpty(LlvmArPath);
 		}
 
 		/// <summary>
 		/// Returns a helpful string for the user
 		/// </summary>
-		protected string ExplainWhyCannotUseLTO()
+		protected string ExplainWhyCannotUseLTO(string Architecture)
 		{
 			string Explanation = "Cannot use LTO on this toolchain:";
 			int NumProblems = 0;
-			if (!UsingLld())
+			if (!UsingLld(Architecture))
 			{
 				Explanation += " not using lld";
 				++NumProblems;
@@ -781,7 +781,7 @@ namespace UnrealBuildTool
 			{
 				// inform the user which C++ library the engine is going to be compiled against - important for compatibility with third party code that uses STL
 				Console.WriteLine("Using {0} standard C++ library.", ShouldUseLibcxx(CompileEnvironment.Architecture) ? "bundled libc++" : "compiler default (most likely libstdc++)");
-				Console.WriteLine("Using {0}", UsingLld() ? "lld linker" : "default linker (ld)");
+				Console.WriteLine("Using {0}", UsingLld(CompileEnvironment.Architecture) ? "lld linker" : "default linker (ld)");
 				Console.WriteLine("Using {0}", !String.IsNullOrEmpty(LlvmArPath) ? String.Format("llvm-ar : {0}", LlvmArPath) : String.Format("ar and ranlib: {0}, {1}", GetArPath(CompileEnvironment.Architecture), GetRanlibPath(CompileEnvironment.Architecture)));
 			}
 
@@ -847,9 +847,9 @@ namespace UnrealBuildTool
 				bHasPrintedBuildDetails = true;
 			}
 
-			if (CompileEnvironment.bAllowLTCG && !CanUseLTO())
+			if (CompileEnvironment.bAllowLTCG && !CanUseLTO(CompileEnvironment.Architecture))
 			{
-				throw new BuildException(ExplainWhyCannotUseLTO());
+				throw new BuildException(ExplainWhyCannotUseLTO(CompileEnvironment.Architecture));
 			}
 
 			if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
@@ -1006,9 +1006,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		bool UsingLld()
+		bool UsingLld(string Architecture)
 		{
-			return bUseLld;
+			return bUseLld && Architecture.StartsWith("x86_64");
 		}
 
 		/// <summary>
@@ -1157,9 +1157,9 @@ namespace UnrealBuildTool
 		{
 			Debug.Assert(!bBuildImportLibraryOnly);
 
-			if (LinkEnvironment.bAllowLTCG && !CanUseLTO())
+			if (LinkEnvironment.bAllowLTCG && !CanUseLTO(LinkEnvironment.Architecture))
 			{
-				throw new BuildException(ExplainWhyCannotUseLTO());
+				throw new BuildException(ExplainWhyCannotUseLTO(LinkEnvironment.Architecture));
 			}
 
 			List<string> RPaths = new List<string>();
