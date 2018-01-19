@@ -244,11 +244,9 @@ bool UAnimationBlueprintLibrary::IsRootMotionEnabled(const UAnimSequence* Animat
 
 void UAnimationBlueprintLibrary::SetRootMotionEnabled(UAnimSequence* AnimationSequence, bool bEnabled)
 {
-	bool bIsEnabled = false;
-
 	if (AnimationSequence)
 	{
-		bIsEnabled = AnimationSequence->bEnableRootMotion;
+		AnimationSequence->bEnableRootMotion = bEnabled;
 	}
 	else
 	{
