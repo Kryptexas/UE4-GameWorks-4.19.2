@@ -400,7 +400,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 
 	if (MaterialEditorModule->MaterialLayersEnabled() && !bIsFunctionPreviewMaterial)
 	{
-		StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialInstanceEditor_Layout_v6")
+		StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialInstanceEditor_Layout_v7")
 			->AddArea
 			(
 				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -423,6 +423,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 						FTabManager::NewStack()->SetSizeCoefficient(0.30f)
 						->AddTab(PropertiesTabId, ETabState::OpenedTab)
 						->AddTab(LayerPropertiesTabId, ETabState::OpenedTab)
+						->SetForegroundTab(PropertiesTabId)
 					)
 				)
 			);
