@@ -432,7 +432,7 @@ void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 							}
 						}
 						// once we get it, we have to blend by weight
-						FAnimationRuntime::BlendTwoPosesTogetherPerBone(LocalCurrentPose.Pose, LocalSourcePose.Pose, LocalCurrentPose.Curve, LocalSourcePose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
+						FAnimationRuntime::BlendTwoPosesTogetherPerBone(LocalSourcePose.Pose, LocalCurrentPose.Pose, LocalSourcePose.Curve, LocalCurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
 					}
 				}
 			}

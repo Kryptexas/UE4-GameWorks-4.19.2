@@ -249,7 +249,7 @@ void FAnimationRuntime::BlendTwoPosesTogetherPerBone(
 	const FCompactPose& SourcePose2,
 	const FBlendedCurve& SourceCurve1,
 	const FBlendedCurve& SourceCurve2,
-	const TArray<float> WeightsOfSource2,
+	const TArray<float>& WeightsOfSource2,
 	/*out*/ FCompactPose& ResultPose,
 	/*out*/ FBlendedCurve& ResultCurve)
 {
