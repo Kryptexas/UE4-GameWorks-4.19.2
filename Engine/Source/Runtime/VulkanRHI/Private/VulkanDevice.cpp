@@ -585,6 +585,10 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	StagingManager.Init(this);
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	DescriptorPoolsManager = new FVulkanDescriptorPoolsManager();
+	DescriptorPoolsManager->Init(this);
+#endif
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
 	TArray<FString> CacheFilenames;
@@ -646,6 +650,11 @@ void FVulkanDevice::Destroy()
 {
 	VulkanRHI::vkDestroyImageView(GetInstanceHandle(), DefaultImageView, nullptr);
 	DefaultImageView = VK_NULL_HANDLE;
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	delete DescriptorPoolsManager;
+	DescriptorPoolsManager = nullptr;
+#endif
 
 	delete DefaultSampler;
 	DefaultSampler = nullptr;

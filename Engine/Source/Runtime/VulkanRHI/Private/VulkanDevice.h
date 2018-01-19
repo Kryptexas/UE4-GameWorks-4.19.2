@@ -9,6 +9,9 @@
 #include "VulkanMemory.h"
 
 class FOLDVulkanDescriptorPool;
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+class FVulkanDescriptorPoolsManager;
+#endif
 class FVulkanCommandListContext;
 class FVulkanOcclusionQueryPool;
 class FOLDVulkanQueryPool;
@@ -135,6 +138,13 @@ public:
 		return FenceManager;
 	}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline FVulkanDescriptorPoolsManager& GetDescriptorPoolsManager()
+	{
+		return *DescriptorPoolsManager;
+	}
+#endif
+
 	inline FVulkanCommandListContext& GetImmediateContext()
 	{
 		return *ImmediateContext;
@@ -243,6 +253,10 @@ private:
 	VulkanRHI::FStagingManager StagingManager;
 
 	VulkanRHI::FFenceManager FenceManager;
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FVulkanDescriptorPoolsManager* DescriptorPoolsManager = nullptr;
+#endif
 
 	FVulkanSamplerState* DefaultSampler;
 	FVulkanSurface* DefaultImage;

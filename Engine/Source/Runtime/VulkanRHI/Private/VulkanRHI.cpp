@@ -255,9 +255,11 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	PendingComputeState = new FVulkanPendingComputeState(Device, *this);
 
 #if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if !VULKAN_USE_DESCRIPTOR_POOL_MANAGER
 	// Add an initial pool
 	FOLDVulkanDescriptorPool* Pool = new FOLDVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
+#endif
 #endif
 	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
 }
@@ -277,11 +279,24 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	TempFrameAllocationBuffer.Destroy();
 
 #if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	for (auto TypedDescriptorPoolsPair : DescriptorPools)
+	{
+		auto& TypedDescriptorPools = TypedDescriptorPoolsPair.Value;
+		for (int32 Index = 0; Index < TypedDescriptorPools.Num(); ++Index)
+		{
+			delete TypedDescriptorPools[Index];
+		}
+
+		TypedDescriptorPools.Reset(0);
+	}
+#else
 	for (int32 Index = 0; Index < DescriptorPools.Num(); ++Index)
 	{
 		delete DescriptorPools[Index];
 	}
 	DescriptorPools.Reset(0);
+#endif
 #endif
 }
 
@@ -322,6 +337,21 @@ void FVulkanDynamicRHI::Init()
 	}
 
 	InitInstance();
+
+	if (GPoolSizeVRAMPercentage > 0)
+	{
+		const uint64 TotalGPUMemory = Device->GetMemoryManager().GetTotalMemory(true);
+
+		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGPUMemory);
+
+		// Truncate GTexturePoolSize to MB (but still counted in bytes)
+		GTexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+
+		UE_LOG(LogRHI, Log, TEXT("Texture pool is %llu MB (%d%% of %llu MB)"),
+			GTexturePoolSize / 1024 / 1024,
+			GPoolSizeVRAMPercentage,
+			TotalGPUMemory / 1024 / 1024);
+	}
 }
 
 void FVulkanDynamicRHI::Shutdown()
@@ -779,6 +809,9 @@ void FVulkanCommandListContext::RHIEndFrame()
 	Device->GetStagingManager().ProcessPendingFree(false, true);
 	Device->GetResourceHeapManager().ReleaseFreedPages();
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	Device->GetDescriptorPoolsManager().GC();
+#endif
 
 	++FrameCounter;
 }
@@ -938,7 +971,7 @@ FVulkanBuffer::FVulkanBuffer(FVulkanDevice& InDevice, uint32 InSize, VkFlags InU
 	VkMemoryRequirements MemoryRequirements;
 	VulkanRHI::vkGetBufferMemoryRequirements(Device.GetInstanceHandle(), Buf, &MemoryRequirements);
 
-	Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
+	Allocation = InDevice.GetMemoryManager().Alloc(false, MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
 	check(Allocation);
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkBindBufferMemory(Device.GetInstanceHandle(), Buf, Allocation->GetHandle(), 0));
 }
@@ -1042,6 +1075,26 @@ void FVulkanDescriptorSetsLayoutInfo::AddDescriptor(int32 DescriptorSetIndex, co
 	Hash = FCrc::MemCrc32(&Binding, sizeof(Binding), Hash);
 }
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+void FVulkanDescriptorSetsLayoutInfo::CompileTypesUsageID()
+{
+	static TMap<uint32, uint32> GTypesUsageHashMap;
+	static uint32 GUniqueID = 1;
+
+	const uint32 TypesUsageHash = FCrc::MemCrc32(LayoutTypes, sizeof(LayoutTypes));
+
+	uint32* UniqueID = GTypesUsageHashMap.Find(TypesUsageHash);
+	if (UniqueID == nullptr)
+	{
+		TypesUsageID = GTypesUsageHashMap.Add(TypesUsageHash, GUniqueID++);
+	}
+	else
+	{
+		TypesUsageID = *UniqueID;
+	}
+}
+#endif
+
 void FVulkanDescriptorSetsLayout::Compile()
 {
 	check(LayoutHandles.Num() == 0);
@@ -1085,7 +1138,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 
 	LayoutHandles.Empty(SetLayouts.Num());
 
-	check(Hash == 0);
+	//check(Hash == 0);
 	for (FSetLayout& Layout : SetLayouts)
 	{
 		VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo;
@@ -1096,11 +1149,22 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
 
 		//#todo-rco: Need crc support for static samplers!
-		Hash = FCrc::MemCrc32(Layout.LayoutBindings.GetData(), Layout.LayoutBindings.Num() * sizeof(VkDescriptorSetLayoutBinding), Hash);
+		//Hash = FCrc::MemCrc32(Layout.LayoutBindings.GetData(), Layout.LayoutBindings.Num() * sizeof(VkDescriptorSetLayoutBinding), Hash);
 
 		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
 		VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	if (TypesUsageID == ~0)
+	{
+		CompileTypesUsageID();
+	}
+
+	DescriptorSetAllocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	DescriptorSetAllocateInfo.descriptorSetCount = LayoutHandles.Num();
+	DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
+#endif
 }
 
 #if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
@@ -1125,6 +1189,10 @@ FOLDVulkanDescriptorSets::FOLDVulkanDescriptorSets(FVulkanDevice* InDevice, cons
 		Pool = InContext->AllocateDescriptorSets(DescriptorSetAllocateInfo, InLayout, Sets.GetData());
 		Pool->TrackAddUsage(Layout);
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	INC_DWORD_STAT_BY(STAT_VulkanNumDescSetsTotal, LayoutHandles.Num());
+#endif
 }
 
 FOLDVulkanDescriptorSets::~FOLDVulkanDescriptorSets()
@@ -1135,6 +1203,10 @@ FOLDVulkanDescriptorSets::~FOLDVulkanDescriptorSets()
 	{
 		VERIFYVULKANRESULT(VulkanRHI::vkFreeDescriptorSets(Device->GetInstanceHandle(), Pool->GetHandle(), Sets.Num(), Sets.GetData()));
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	DEC_DWORD_STAT_BY(STAT_VulkanNumDescSetsTotal, Sets.Num());
+#endif
 }
 #endif
 

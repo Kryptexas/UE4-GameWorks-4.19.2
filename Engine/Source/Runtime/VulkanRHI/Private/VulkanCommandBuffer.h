@@ -8,7 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "VulkanConfiguration.h"
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 #include "ArrayView.h"
 #include "VulkanDescriptorSets.h"
 #endif
@@ -18,6 +18,9 @@ class FVulkanCommandBufferPool;
 class FVulkanCommandBufferManager;
 class FVulkanRenderTargetLayout;
 class FVulkanQueue;
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+class FVulkanDescriptorPoolSet;
+#endif
 
 namespace VulkanRHI
 {
@@ -117,7 +120,11 @@ public:
 	VkRect2D CurrentScissor;
 	uint32 CurrentStencilRef;
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FVulkanDescriptorPoolSet* CurrentDescriptorPoolSet = nullptr;
+#endif
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	TArrayView<VkDescriptorSet> AllocateDescriptorSets(const FVulkanLayout& Layout);
 	void SetDescriptorSetsFence(const FVulkanLayout& Layout);
 #endif
@@ -191,7 +198,7 @@ public:
 		return Handle;
 	}
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	TArrayView<VkDescriptorSet> AllocateDescriptorSets(FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
 	void ResetDescriptors(FVulkanCmdBuffer* CmdBuffer);
 	void SetDescriptorSetsFence(FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
@@ -202,7 +209,7 @@ private:
 	VkCommandPool Handle;
 	//FVulkanCmdBuffer* ActiveCmdBuffer;
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	TMap<uint32, VulkanRHI::FDescriptorSetsAllocator*> DSAllocators;
 #endif
 
@@ -270,7 +277,7 @@ private:
 };
 
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 inline TArrayView<VkDescriptorSet> FVulkanCmdBuffer::AllocateDescriptorSets(const FVulkanLayout& Layout)
 {
 	return CommandBufferPool->AllocateDescriptorSets(this, Layout);

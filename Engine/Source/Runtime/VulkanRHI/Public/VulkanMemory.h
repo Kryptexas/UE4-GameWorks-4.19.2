@@ -254,13 +254,15 @@ namespace VulkanRHI
 			return MemoryProperties;
 		}
 
-		FDeviceMemoryAllocation* Alloc(VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line);
 
-		inline FDeviceMemoryAllocation* Alloc(VkDeviceSize AllocationSize, uint32 MemoryTypeBits, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
+		// bCanFail means an allocation failing is not a fatal error, just returns nullptr
+		FDeviceMemoryAllocation* Alloc(bool bCanFail, VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line);
+
+		inline FDeviceMemoryAllocation* Alloc(bool bCanFail, VkDeviceSize AllocationSize, uint32 MemoryTypeBits, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
 		{
 			uint32 MemoryTypeIndex = ~0;
 			VERIFYVULKANRESULT(this->GetMemoryTypeFromProperties(MemoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
-			return Alloc(AllocationSize, MemoryTypeIndex, File, Line);
+			return Alloc(bCanFail, AllocationSize, MemoryTypeIndex, File, Line);
 		}
 
 		// Sets the Allocation to nullptr
@@ -296,7 +298,7 @@ namespace VulkanRHI
 		};
 
 		TArray<FHeapInfo> HeapInfos;
-		void PrintMemInfo();
+		void SetupAndPrintMemInfo();
 	};
 
 	class FOldResourceHeap;

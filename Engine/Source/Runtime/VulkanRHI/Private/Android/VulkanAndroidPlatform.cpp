@@ -96,3 +96,4 @@ void FVulkanAndroidPlatform::GetDeviceExtensions(TArray<const ANSICHAR*>& OutExt
 	OutExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
 	OutExtensions.Add(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 }
+

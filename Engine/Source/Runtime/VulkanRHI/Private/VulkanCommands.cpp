@@ -63,7 +63,7 @@ void FVulkanCommandListContext::RHISetComputePipelineState(FRHIComputePipelineSt
 	//#todo-rco: Set PendingGfx to null
 	FVulkanComputePipeline* ComputePipeline = ResourceCast(ComputePipelineState);
 	PendingComputeState->SetComputePipeline(ComputePipeline);
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	CmdBuffer->SetDescriptorSetsFence(ComputePipeline->GetLayout());
 #endif
 }

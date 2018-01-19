@@ -234,7 +234,12 @@ protected:
 	FVulkanCommandBufferManager* CommandBufferManager;
 
 #if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	typedef TArray<FOLDVulkanDescriptorPool*> FDescriptorPoolArray;
+	TMap<uint32, FDescriptorPoolArray> DescriptorPools;
+#else
 	TArray<FOLDVulkanDescriptorPool*> DescriptorPools;
+#endif
 #endif
 
 	struct FTransitionState

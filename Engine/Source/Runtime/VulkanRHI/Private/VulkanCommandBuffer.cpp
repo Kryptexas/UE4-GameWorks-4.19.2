@@ -6,6 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanContext.h"
+#include "VulkanDescriptorSets.h"
 
 static int32 GUseSingleQueue = 0;
 static FAutoConsoleVariableRef CVarVulkanUseSingleQueue(
@@ -24,6 +25,8 @@ static FAutoConsoleVariableRef CVarVulkanProfileCmdBuffers(
 	TEXT("Insert GPU timing queries in every cmd buffer\n"),
 	ECVF_Default
 );
+
+const uint32 GNumberOfFramesBeforeDeletingDescriptorPool = 300;
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool)
 	: bNeedsDynamicStateSet(true)
@@ -182,7 +185,15 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 #endif
 			++FenceSignaledCounter;
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+			if (CurrentDescriptorPoolSet)
+			{
+				CurrentDescriptorPoolSet->SetUsed(false);
+				CurrentDescriptorPoolSet = nullptr;
+			}
+#endif
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 			CommandBufferPool->ResetDescriptors(this);
 #endif
 		}
@@ -201,7 +212,7 @@ FVulkanCommandBufferPool::FVulkanCommandBufferPool(FVulkanDevice* InDevice)
 
 FVulkanCommandBufferPool::~FVulkanCommandBufferPool()
 {
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	for (auto Pair : DSAllocators)
 	{
 		delete Pair.Value;
@@ -398,7 +409,7 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
 	return UploadCmdBuffer;
 }
 
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS && VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 TArrayView<VkDescriptorSet> FVulkanCommandBufferPool::AllocateDescriptorSets(FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDescriptorSetAllocator);
@@ -415,8 +426,24 @@ TArrayView<VkDescriptorSet> FVulkanCommandBufferPool::AllocateDescriptorSets(FVu
 	return Allocator->Allocate(Layout, 8);
 }
 
+static bool GDump = false;
 void FVulkanCommandBufferPool::ResetDescriptors(FVulkanCmdBuffer* CmdBuffer)
 {
+	if (GDump)
+	{
+		int32 NumPools = 0;
+		int32 UsedPools = 0;
+		int32 FreePools = 0;
+		for (auto Pair : DSAllocators)
+		{
+			VulkanRHI::FDescriptorSetsAllocator* Pool = Pair.Value;
+			UsedPools += Pool->UsedEntries.Num();
+			FreePools += Pool->FreeEntries.Num();
+			NumPools += Pool->FreeEntries.Num() + Pool->UsedEntries.Num();
+		}
+		UE_LOG(LogVulkanRHI, Log, TEXT("*** Descriptor Sets: %d unique layouts, %d used pools, %d total pools, Waste %.2f%%"), DSAllocators.Num(), UsedPools, NumPools, (float)FreePools * 100.0f / (float)NumPools);
+	}
+
 	for (auto Pair : DSAllocators)
 	{
 		Pair.Value->Reset(CmdBuffer);
@@ -472,6 +499,7 @@ namespace VulkanRHI
 
 	FDescriptorSetsAllocator::~FDescriptorSetsAllocator()
 	{
+		DEC_DWORD_STAT_BY(STAT_VulkanNumDescPools, UsedEntries.Num() + FreeEntries.Num());
 		for (int32 Index = 0; Index < UsedEntries.Num(); ++Index)
 		{
 			FFencedPoolEntry& Entry = UsedEntries[Index];
@@ -480,7 +508,7 @@ namespace VulkanRHI
 		}
 		for (int32 Index = 0; Index < FreeEntries.Num(); ++Index)
 		{
-			FPoolEntry& Entry = FreeEntries[Index];
+			FFreePoolEntry& Entry = FreeEntries[Index];
 			VulkanRHI::vkDestroyDescriptorPool(Device->GetInstanceHandle(), Entry.Pool, nullptr);
 			delete[] Entry.Sets;
 		}
@@ -539,7 +567,7 @@ namespace VulkanRHI
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanVkCreateDescriptorPool);
-			INC_DWORD_STAT(STAT_VulkanDescriptorPools);
+			INC_DWORD_STAT(STAT_VulkanNumDescPools);
 			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), &CreateInfo, nullptr, &Entry->Pool));
 		}
 
@@ -564,13 +592,28 @@ namespace VulkanRHI
 
 	void FDescriptorSetsAllocator::Reset(FVulkanCmdBuffer* CmdBuffer)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanDescriptorSetAllocator);
+		uint32 CurrentFrame = GFrameNumberRenderThread;
+		for (int32 Index = FreeEntries.Num() - 1; Index >= 0; --Index)
+		{
+			FFreePoolEntry& Entry = FreeEntries[Index];
+			if (Entry.LastUsedFrame + GNumberOfFramesBeforeDeletingDescriptorPool < CurrentFrame)
+			{
+				DEC_DWORD_STAT(STAT_VulkanNumDescPools);
+				VulkanRHI::vkDestroyDescriptorPool(Device->GetInstanceHandle(), Entry.Pool, nullptr);
+				delete[] Entry.Sets;
+				FreeEntries.RemoveAtSwap(Index, 1, false);
+			}
+		}
+
 		for (int32 Index = UsedEntries.Num() - 1; Index >= 0; --Index)
 		{
 			FFencedPoolEntry& Entry = UsedEntries[Index];
 			if (Entry.CmdBuffer == CmdBuffer && Entry.Fence < CmdBuffer->GetFenceSignaledCounter())
 			{
-				FPoolEntry* FreeEntry = new(FreeEntries) FPoolEntry(Entry);
+				FFreePoolEntry* FreeEntry = new(FreeEntries) FFreePoolEntry(Entry);
 				UsedEntries.RemoveAtSwap(Index, 1, false);
+				FreeEntry->LastUsedFrame = CurrentFrame;
 			}
 		}
 	}

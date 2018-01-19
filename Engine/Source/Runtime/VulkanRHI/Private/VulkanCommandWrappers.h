@@ -837,12 +837,14 @@ namespace VulkanRHI
 
 		VULKANAPINAMESPACE::vkDestroyDescriptorPool(Device, DescriptorPool, Allocator ? Allocator : GDefaultMemoryAllocator);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE VkResult  vkResetDescriptorPool(
-		VkDevice                                    Device,
-		VkDescriptorPool                            descriptorPool,
-		VkDescriptorPoolResetFlags                  flags);
-#endif
+
+	static FORCEINLINE_DEBUGGABLE VkResult  vkResetDescriptorPool(VkDevice Device, VkDescriptorPool DescriptorPool, VkDescriptorPoolResetFlags Flags)
+	{
+		DevicePrintfBegin(Device, FString::Printf(TEXT("vkResetDescriptorPool(DescriptorPool=%p)"), DescriptorPool));
+
+		return VULKANAPINAMESPACE::vkResetDescriptorPool(Device, DescriptorPool, Flags);
+	}
+
 	static FORCEINLINE_DEBUGGABLE VkResult  vkAllocateDescriptorSets(VkDevice Device, const VkDescriptorSetAllocateInfo* AllocateInfo, VkDescriptorSet* DescriptorSets)
 	{
 		DumpAllocateDescriptorSets(Device, AllocateInfo, DescriptorSets);

@@ -30,9 +30,24 @@ public:
 	}
 
 protected:
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline void Bind(VkCommandBuffer CmdBuffer, VkPipelineLayout PipelineLayout, VkPipelineBindPoint BindPoint)
+	{
+		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
+			BindPoint,
+			PipelineLayout,
+			0, DescriptorSetHandles.Num(), DescriptorSetHandles.GetData(),
+			0, nullptr);
+	}
+#endif
 	FVulkanDescriptorSetWriteContainer DSWriteContainer;
 #if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	FOLDVulkanDescriptorSetRingBuffer DSRingBuffer;
+#endif
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FVulkanTypedDescriptorPoolSet* CurrentDescriptorPoolSet = nullptr;
+	TArray<VkDescriptorSet> DescriptorSetHandles;
 #endif
 };
 
@@ -44,22 +59,12 @@ public:
 	~FVulkanComputePipelineState()
 	{
 		ComputePipeline->Release();
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-		DescriptorAllocator.Destroy(Device);
-#endif
-#endif
 	}
 
 	void Reset()
 	{
 		PackedUniformBuffersDirty = PackedUniformBuffersMask;
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-		DescriptorAllocator.Reset();
-#endif
 #else
 		DSRingBuffer.Reset();
 #endif
@@ -142,19 +147,16 @@ public:
 
 	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer)
 	{
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		Bind(CmdBuffer, ComputePipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE);
+#else
 		check(DSRingBuffer.CurrDescriptorSets);
 		DSRingBuffer.CurrDescriptorSets->Bind(CmdBuffer, ComputePipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE);
+#endif
 	}
 #endif
 
 protected:
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-	FVulkanPipelineDescriptorSetAllocator DescriptorAllocator;
-#endif
-#endif
-
 	FPackedUniformBuffers PackedUniformBuffers;
 	uint64 PackedUniformBuffersMask;
 	uint64 PackedUniformBuffersDirty;
@@ -177,12 +179,6 @@ public:
 	{
 		GfxPipeline->Release();
 		BSS->Release();
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-		DescriptorAllocator.Destroy(Device);
-#endif
-#endif
 	}
 
 	inline void SetStorageBuffer(EShaderFrequency Stage, uint32 BindPoint, VkBuffer Buffer, uint32 Offset, uint32 Size, VkBufferUsageFlags UsageFlags)
@@ -260,8 +256,12 @@ public:
 
 	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer)
 	{
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		Bind(CmdBuffer, GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+#else
 		check(DSRingBuffer.CurrDescriptorSets);
 		DSRingBuffer.CurrDescriptorSets->Bind(CmdBuffer, GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+#endif
 	}
 #endif
 
@@ -269,10 +269,6 @@ public:
 	{
 		FMemory::Memcpy(PackedUniformBuffersDirty, PackedUniformBuffersMask);
 #if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-		DescriptorAllocator.Reset();
-#endif
 #else
 		DSRingBuffer.Reset();
 #endif
@@ -319,12 +315,6 @@ protected:
 	FVulkanGraphicsPipelineState* GfxPipeline;
 	FVulkanBoundShaderState* BSS;
 	int32 ID;
-#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
-#if VULKAN_USE_PER_LAYOUT_DESCRIPTOR_POOLS
-#else
-	FVulkanPipelineDescriptorSetAllocator DescriptorAllocator;
-#endif
-#endif
 
 	void CreateDescriptorWriteInfos();
 

@@ -450,7 +450,7 @@ DEFINE_STAT(STAT_VulkanWaitSwapchain);
 DEFINE_STAT(STAT_VulkanAcquireBackBuffer);
 DEFINE_STAT(STAT_VulkanStagingBuffer);
 DEFINE_STAT(STAT_VulkanVkCreateDescriptorPool);
-DEFINE_STAT(STAT_VulkanDescriptorPools);
+DEFINE_STAT(STAT_VulkanNumDescPools);
 DEFINE_STAT(STAT_VulkanDescriptorSetAllocator);
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DEFINE_STAT(STAT_VulkanUpdateDescriptorSets);
@@ -460,3 +460,4 @@ DEFINE_STAT(STAT_VulkanSetUniformBufferTime);
 DEFINE_STAT(STAT_VulkanVkUpdateDS);
 DEFINE_STAT(STAT_VulkanBindVertexStreamsTime);
 #endif
+DEFINE_STAT(STAT_VulkanNumDescSetsTotal);

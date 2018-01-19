@@ -54,10 +54,10 @@ namespace VulkanRHI
 
 		HeapInfos.AddDefaulted(MemoryProperties.memoryHeapCount);
 
-		PrintMemInfo();
+		SetupAndPrintMemInfo();
 	}
 
-	void FDeviceMemoryManager::PrintMemInfo()
+	void FDeviceMemoryManager::SetupAndPrintMemInfo()
 	{
 		const uint32 MaxAllocations = Device->GetLimits().maxMemoryAllocationCount;
 		UE_LOG(LogVulkanRHI, Display, TEXT("%d Device Memory Heaps; Max memory allocations %d"), MemoryProperties.memoryHeapCount, MaxAllocations);
@@ -108,6 +108,16 @@ namespace VulkanRHI
 				MemoryProperties.memoryTypes[Index].heapIndex,
 				*GetFlagsString(MemoryProperties.memoryTypes[Index].propertyFlags));
 		}
+
+		for (uint32 Index = 0; Index < MemoryProperties.memoryHeapCount; ++Index)
+		{
+			const bool bIsGPUHeap = ((MemoryProperties.memoryHeaps[Index].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+			if (bIsGPUHeap)
+			{
+				// Target using 95% of our budget to account for some fragmentation.
+				HeapInfos[Index].TotalSize = (uint64)((float)HeapInfos[Index].TotalSize * 0.95f);
+			}
+		}
 	}
 
 	void FDeviceMemoryManager::Deinit()
@@ -125,7 +135,7 @@ namespace VulkanRHI
 		NumAllocations = 0;
 	}
 
-	FDeviceMemoryAllocation* FDeviceMemoryManager::Alloc(VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line)
+	FDeviceMemoryAllocation* FDeviceMemoryManager::Alloc(bool bCanFail, VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line)
 	{
 		FScopeLock Lock(&GAllocationLock);
 
@@ -154,17 +164,14 @@ namespace VulkanRHI
 #if VULKAN_MEMORY_TRACK_CALLSTACK
 		CaptureCallStack(NewAllocation->Callstack);
 #endif
-		++NumAllocations;
-		PeakNumAllocations = FMath::Max(NumAllocations, PeakNumAllocations);
-#if !VULKAN_SINGLE_ALLOCATION_PER_RESOURCE
-		if (NumAllocations == Device->GetLimits().maxMemoryAllocationCount)
-		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("Hit Maximum # of allocations (%d) reported by device!"), NumAllocations);
-		}
-#endif
 		VkResult Result = VulkanRHI::vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle);
 		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY)
 		{
+			if (bCanFail)
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Failed to allocate Device Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
+				return nullptr;
+			}
 			UE_LOG(LogVulkanRHI, Error, TEXT("Out of Device Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			DumpMemory();
@@ -173,6 +180,11 @@ namespace VulkanRHI
 		}
 		else if (Result == VK_ERROR_OUT_OF_HOST_MEMORY)
 		{
+			if (bCanFail)
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Failed to allocate Host Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
+				return nullptr;
+			}
 			UE_LOG(LogVulkanRHI, Error, TEXT("Out of Host Memory, Requested=%fKb MemTypeIndex=%d"), (float)Info.allocationSize / 1024.0f, Info.memoryTypeIndex);
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			DumpMemory();
@@ -183,6 +195,15 @@ namespace VulkanRHI
 		{
 			VERIFYVULKANRESULT(Result);
 		}
+
+		++NumAllocations;
+		PeakNumAllocations = FMath::Max(NumAllocations, PeakNumAllocations);
+#if !VULKAN_SINGLE_ALLOCATION_PER_RESOURCE
+		if (NumAllocations == Device->GetLimits().maxMemoryAllocationCount)
+		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Hit Maximum # of allocations (%d) reported by device!"), NumAllocations);
+		}
+#endif
 
 		uint32 HeapIndex = MemoryProperties.memoryTypes[MemoryTypeIndex].heapIndex;
 		HeapInfos[HeapIndex].Allocations.Add(NewAllocation);
@@ -219,7 +240,7 @@ namespace VulkanRHI
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	void FDeviceMemoryManager::DumpMemory()
 	{
-		PrintMemInfo();
+		SetupAndPrintMemInfo();
 		UE_LOG(LogVulkanRHI, Display, TEXT("Device Memory: %d allocations on %d heaps"), NumAllocations, HeapInfos.Num());
 		for (int32 Index = 0; Index < HeapInfos.Num(); ++Index)
 		{
@@ -649,7 +670,12 @@ namespace VulkanRHI
 		}
 		uint32 AllocationSize = FMath::Max(Size, DefaultPageSize);
 #endif
-		FDeviceMemoryAllocation* DeviceMemoryAllocation = Owner->GetParent()->GetMemoryManager().Alloc(AllocationSize, MemoryTypeIndex, File, Line);
+		FDeviceMemoryAllocation* DeviceMemoryAllocation = Owner->GetParent()->GetMemoryManager().Alloc(true, AllocationSize, MemoryTypeIndex, File, Line);
+		if (!DeviceMemoryAllocation && Size < AllocationSize)
+		{
+			// Retry with a smaller size
+			DeviceMemoryAllocation = Owner->GetParent()->GetMemoryManager().Alloc(false, AllocationSize, MemoryTypeIndex, File, Line);
+		}
 		++PageIDCounter;
 		FOldResourceHeapPage* NewPage = new FOldResourceHeapPage(this, DeviceMemoryAllocation, PageIDCounter);
 		UsedPages.Add(NewPage);
@@ -941,7 +967,7 @@ namespace VulkanRHI
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
-		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(MemReqs.size, MemoryTypeIndex, File, Line);
+		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(false, MemReqs.size, MemoryTypeIndex, File, Line);
 		VERIFYVULKANRESULT(VulkanRHI::vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
 		if (DeviceMemoryAllocation->CanBeMapped())
 		{
