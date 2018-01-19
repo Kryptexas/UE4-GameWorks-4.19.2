@@ -279,7 +279,7 @@ void FBrushDetails::OnClassPicked(UClass* InChosenClass)
 	TArray<FNewBrushBuilder> NewBuilders;
 	TArray<FString> NewObjectPaths;
 
-	if(BrushBuilderHandle->IsValidHandle() && OuterObjects.Num() == 0)
+	if(BrushBuilderHandle->IsValidHandle() && OuterObjects.Num() > 0)
 	{
 		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set"));
 		for (UObject* OuterObject : OuterObjects)
