@@ -35,9 +35,14 @@ struct FMovieSceneSubSequenceData
 	MOVIESCENE_API FMovieSceneSubSequenceData(const UMovieSceneSubSection& InSubSection);
 
 	/**
-	 * Get this sub sequence's sequence asset
+	 * Get this sub sequence's sequence asset, potentially loading it through its soft object path
 	 */
 	MOVIESCENE_API UMovieSceneSequence* GetSequence() const;
+
+	/**
+	 * Get this sub sequence's sequence asset if it is already loaded, will not attempt to load the sequence if not
+	 */
+	MOVIESCENE_API UMovieSceneSequence* GetLoadedSequence() const;
 
 	/** The sequence that the sub section references */
 	UPROPERTY(meta=(AllowedClasses="MovieSceneSequence"))

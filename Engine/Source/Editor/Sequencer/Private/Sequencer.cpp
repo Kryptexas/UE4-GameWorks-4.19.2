@@ -2486,10 +2486,15 @@ void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 
 	if (RootTemplateInstance.IsValid())
 	{
+		const FMovieSceneSequenceHierarchy& Hierarchy = RootTemplateInstance.GetHierarchy();
+
 		// Sequencer references all active sub sequences
 		for (FMovieSceneSequenceIDRef SequenceID : RootTemplateInstance.GetThisFrameMetaData().ActiveSequences)
 		{
-			if (UMovieSceneSequence* Sequence = RootTemplateInstance.GetSequence(SequenceID))
+			const FMovieSceneSubSequenceData* SubData  = Hierarchy.FindSubData(SequenceID);
+			UMovieSceneSequence*              Sequence = SubData ? SubData->GetLoadedSequence() : nullptr;
+
+			if (Sequence)
 			{
 				Collector.AddReferencedObject(Sequence);
 			}

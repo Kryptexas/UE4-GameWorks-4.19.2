@@ -44,18 +44,21 @@ FMovieSceneSubSequenceData::FMovieSceneSubSequenceData(const UMovieSceneSubSecti
 	}
 }
 
-/**
- * Get this sub sequence's sequence asset
- */
 UMovieSceneSequence* FMovieSceneSubSequenceData::GetSequence() const
 {
-	UMovieSceneSequence* ResolvedSequence = CachedSequence.Get();
+	UMovieSceneSequence* ResolvedSequence = GetLoadedSequence();
 	if (!ResolvedSequence)
 	{
 		ResolvedSequence = Cast<UMovieSceneSequence>(Sequence.ResolveObject());
 		CachedSequence = ResolvedSequence;
 	}
 	return ResolvedSequence;
+}
+
+
+UMovieSceneSequence* FMovieSceneSubSequenceData::GetLoadedSequence() const
+{
+	return CachedSequence.Get();
 }
 
 void FMovieSceneSequenceHierarchy::Add(const FMovieSceneSubSequenceData& Data, FMovieSceneSequenceIDRef ThisSequenceID, FMovieSceneSequenceIDRef ParentID)
