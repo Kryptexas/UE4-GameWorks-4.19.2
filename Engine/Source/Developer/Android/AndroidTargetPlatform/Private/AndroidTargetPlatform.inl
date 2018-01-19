@@ -17,6 +17,7 @@
 #include "Stats/Stats.h"
 #include "Serialization/Archive.h"
 #include "Misc/FileHelper.h"
+#include "Misc/SecureHash.h"
 #include "FileManager.h"
 #include "PlatformFilemanager.h"
 #include "Interfaces/IAndroidDeviceDetectionModule.h"
