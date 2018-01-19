@@ -486,7 +486,9 @@ void UAnimInstance::PostUpdateAnimation()
 
 	Proxy.PostUpdate(this);
 
-	ExtractedRootMotion.Accumulate(Proxy.GetExtractedRootMotion());
+	FTransform ProxyTransform = Proxy.GetExtractedRootMotion().GetRootMotionTransform();
+	ProxyTransform.NormalizeRotation();
+	ExtractedRootMotion.Accumulate(ProxyTransform);
 	Proxy.GetExtractedRootMotion().Clear();
 
 	// blend in any montage-blended root motion that we now have correct weights for
