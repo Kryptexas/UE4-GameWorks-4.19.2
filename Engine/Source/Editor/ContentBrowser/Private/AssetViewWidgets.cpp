@@ -217,7 +217,7 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 		[
 			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
 			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
-			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility, InTileOrListItem->AssetThumbnail->GetAssetData().GetFullName())
+			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
 		];
 	}
 
@@ -647,10 +647,9 @@ const FSlateBrush* SAssetViewItem::GetDirtyImage() const
 	return IsDirty() ? AssetDirtyBrush : NULL;
 }
 
-EVisibility SAssetViewItem::GetThumbnailEditModeUIVisibility(FString AssetDataFullName) const
+EVisibility SAssetViewItem::GetThumbnailEditModeUIVisibility() const
 {
-	return !IsFolder() && ThumbnailEditMode.Get() && !ThumbnailTools::AssetHasCustomCreatedThumbnail(AssetDataFullName) 
-		== true ? EVisibility::Visible : EVisibility::Collapsed;
+	return !IsFolder() && ThumbnailEditMode.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

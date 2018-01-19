@@ -360,7 +360,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 
 	// Capture Thumbnail
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	if (SelectedAssets.Num() == 1)
+	if (SelectedAssets.Num() == 1 && AssetToolsModule.Get().AssetUsesGenericThumbnail(SelectedAssets[0]))
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CaptureThumbnail", "Capture Thumbnail"),

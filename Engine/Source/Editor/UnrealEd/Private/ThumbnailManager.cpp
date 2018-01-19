@@ -13,7 +13,6 @@
 #include "Engine/StaticMesh.h"
 #include "UnrealClient.h"
 #include "Engine/TextureCube.h"
-#include "ObjectTools.h"
 
 #include "ImageUtils.h"
 
@@ -144,18 +143,10 @@ FThumbnailRenderingInfo* UThumbnailManager::GetRenderingInfo(UObject* Object)
 		RenderInfoMap.Add(ClassToCheck, (RenderInfo != nullptr) ? RenderInfo : &NotSupported);
 	}
 
-	if ( RenderInfo && RenderInfo->Renderer )
+	if ( RenderInfo && RenderInfo->Renderer && !RenderInfo->Renderer->CanVisualizeAsset(Object))
 	{
-		if (!RenderInfo->Renderer->CanVisualizeAsset(Object))
-		{
-			// This is an asset with a thumbnail renderer, but it can't visualized (i.e it is something like a blueprint that doesn't contain any visible primitive components)
-			RenderInfo = nullptr;
-		}
-		else if (ThumbnailTools::AssetHasCustomCreatedThumbnail(FAssetData(Object).GetFullName()))
-		{
-			// This thumbnail was captured from a viewport.
-			RenderInfo = nullptr;
-		}
+		// This is an asset with a thumbnail renderer, but it can't visualized (i.e it is something like a blueprint that doesn't contain any visible primitive components)
+		RenderInfo = nullptr;
 	}
 
 	// Check to see if this object is the "not supported" type or not
