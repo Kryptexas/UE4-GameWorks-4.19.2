@@ -155,24 +155,31 @@ bool FMaterialEditorViewportClient::InputAxis(FViewport* InViewport, int32 Contr
 
 FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 {
-	FLinearColor BackgroundColor = FLinearColor::Black;
-	if( MaterialEditorPtr.IsValid() )
+	if (AdvancedPreviewScene != nullptr)
 	{
-		UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface();
-		if(MaterialInterface)
+		return AdvancedPreviewScene->GetBackgroundColor();
+	}
+	else
+	{
+		FLinearColor BackgroundColor = FLinearColor::Black;
+		if (MaterialEditorPtr.IsValid())
 		{
-			const EBlendMode PreviewBlendMode = (EBlendMode)MaterialInterface->GetBlendMode();
-			if(PreviewBlendMode == BLEND_Modulate)
+			UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface();
+			if (MaterialInterface)
 			{
-				BackgroundColor = FLinearColor::White;
-			}
-			else if(PreviewBlendMode == BLEND_Translucent || PreviewBlendMode == BLEND_AlphaComposite)
-			{
-				BackgroundColor = FColor(64, 64, 64);
+				const EBlendMode PreviewBlendMode = (EBlendMode)MaterialInterface->GetBlendMode();
+				if (PreviewBlendMode == BLEND_Modulate)
+				{
+					BackgroundColor = FLinearColor::White;
+				}
+				else if (PreviewBlendMode == BLEND_Translucent || PreviewBlendMode == BLEND_AlphaComposite)
+				{
+					BackgroundColor = FColor(64, 64, 64);
+				}
 			}
 		}
+		return BackgroundColor;
 	}
-	return BackgroundColor;
 }
 
 void FMaterialEditorViewportClient::SetShowGrid(bool bShowGrid)
