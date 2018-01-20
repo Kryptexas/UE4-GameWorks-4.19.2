@@ -310,7 +310,7 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 
 	auto GetCppTypeFromProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix](const UProperty* InProperty, FString& OutExtendedCppType) -> FString
 	{
-		auto GetCppTypeFromObjectProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass, FString& OutExtendedCppType) -> FString
+		auto GetCppTypeFromObjectProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix, &OutExtendedCppType](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass) -> FString
 		{
 			FString Result;
 
@@ -330,15 +330,15 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 		FString Result;
 		if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(InProperty))
 		{
-			Result = GetCppTypeFromObjectProperty(ClassProperty, ClassProperty->MetaClass, OutExtendedCppType);
+			Result = GetCppTypeFromObjectProperty(ClassProperty, ClassProperty->MetaClass);
 		}
 		else if (auto SoftClassProperty = Cast<const USoftClassProperty>(InProperty))
 		{
-			Result = GetCppTypeFromObjectProperty(SoftClassProperty, SoftClassProperty->MetaClass, OutExtendedCppType);
+			Result = GetCppTypeFromObjectProperty(SoftClassProperty, SoftClassProperty->MetaClass);
 		}
 		else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(InProperty))
 		{
-			Result = GetCppTypeFromObjectProperty(ObjectProperty, ObjectProperty->PropertyClass, OutExtendedCppType);
+			Result = GetCppTypeFromObjectProperty(ObjectProperty, ObjectProperty->PropertyClass);
 		}
 		else if (auto StructProperty = Cast<const UStructProperty>(InProperty))
 		{
