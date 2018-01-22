@@ -64,12 +64,12 @@ public class AlembicLib : ModuleRules
 
                 if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
                 {
-                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/zlibd1.dll"));
-                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5_D.dll"));
+                    RuntimeDependencies.Add("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/zlibd1.dll");
+                    RuntimeDependencies.Add("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5_D.dll");
                 }
                 else
                 {
-                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5.dll"));
+                    RuntimeDependencies.Add("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5.dll");
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac)
