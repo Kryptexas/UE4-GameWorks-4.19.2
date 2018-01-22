@@ -1,9 +1,10 @@
 // Copyright 2017 Google Inc.
 
 #include "GoogleARCorePlaneRendererComponent.h"
-#include "GoogleARCoreFunctionLibrary.h"
-#include "DrawDebugHelpers.h"
-#include "GoogleARCorePlane.h"
+#include "ARBlueprintLibrary.h"
+#include "ARSystem.h"
+#include "ARTrackable.h"
+#include "Templates/Casts.h"
 
 UGoogleARCorePlaneRendererComponent::UGoogleARCorePlaneRendererComponent()
 {
@@ -22,44 +23,26 @@ void UGoogleARCorePlaneRendererComponent::TickComponent(float DeltaTime, enum EL
 void UGoogleARCorePlaneRendererComponent::DrawPlanes()
 {
 	UWorld* World = GetWorld();
-#if PLATFORM_ANDROID
-	if (UGoogleARCoreSessionFunctionLibrary::GetSessionStatus() == EGoogleARCoreSessionStatus::Tracking)
+	if (UARBlueprintLibrary::GetTrackingQuality() == EARTrackingQuality::OrientationAndPosition)
 	{
-		TArray<UGoogleARCorePlane*> PlaneList;
-		UGoogleARCoreFrameFunctionLibrary::GetAllPlanes(PlaneList);
-		for (UGoogleARCorePlane* Plane : PlaneList)
+		TArray<UARTrackedGeometry*> PlaneList;
+		PlaneList = UARBlueprintLibrary::GetAllGeometries();
+		for (UARTrackedGeometry* Plane : PlaneList)
 		{
-			if (Plane->GetTrackingState() != EGoogleARCorePlaneTrackingState::Tracking)
+			if (!Plane->IsA(UARPlaneGeometry::StaticClass()))
+			{
+				continue;
+			}
+
+			if (Plane->GetTrackingState() != EARTrackingState::Tracking)
 			{
 				continue;
 			}
 
 			if (bRenderPlane)
 			{
-				FTransform BoundingBoxTransform = Plane->GetBoundingBoxWorldTransform();
-				FVector BoundingBoxLocation = BoundingBoxTransform.GetLocation();
-				FVector2D BoundingBoxSize = Plane->GetBoundingBoxSize();
-
-				PlaneVertices.Empty();
-				PlaneVertices.Add(BoundingBoxTransform.TransformPosition(FVector(-BoundingBoxSize.X / 2.0f, -BoundingBoxSize.Y / 2.0f, 0)));
-				PlaneVertices.Add(BoundingBoxTransform.TransformPosition(FVector(-BoundingBoxSize.X / 2.0f, BoundingBoxSize.Y / 2.0f, 0)));
-				PlaneVertices.Add(BoundingBoxTransform.TransformPosition(FVector(BoundingBoxSize.X / 2.0f, BoundingBoxSize.Y / 2.0f, 0)));
-				PlaneVertices.Add(BoundingBoxTransform.TransformPosition(FVector(BoundingBoxSize.X / 2.0f, -BoundingBoxSize.Y / 2.0f, 0)));
-				// plane quad
-				DrawDebugMesh(World, PlaneVertices, PlaneIndices, PlaneColor);
-			}
-
-			if (bRenderBoundaryPolygon)
-			{
-				const TArray<FVector>& BoundaryPolygonData = Plane->GetWorldSpaceBoundaryPolygon();
-				for (int i = 0; i < BoundaryPolygonData.Num(); i++)
-				{
-					FVector Start = BoundaryPolygonData[i];
-					FVector End = BoundaryPolygonData[(i + 1) % BoundaryPolygonData.Num()];
-					DrawDebugLine(World, Start, End, BoundaryPolygonColor, false, -1.f, 0, BoundaryPolygonThickness);
-				}
+				CastChecked<UARPlaneGeometry>(Plane)->DebugDraw(World, BoundaryPolygonColor, BoundaryPolygonThickness);
 			}
 		}
 	}
-#endif
 }

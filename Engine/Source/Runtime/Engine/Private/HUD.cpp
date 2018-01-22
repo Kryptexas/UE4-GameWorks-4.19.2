@@ -263,9 +263,17 @@ void AHUD::DrawSafeZoneOverlay()
 		FDisplayMetrics Metrics;
 		FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
-		const FMargin SafeMargin = (DebugSafeZoneMode == 1) ?
-			FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W) :
-			FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+		const FMargin SafeMargin =
+#if PLATFORM_IOS
+			// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+			(DebugSafeZoneMode == 1)
+			? FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W)
+			: FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+#else
+			(DebugSafeZoneMode == 1) ?
+			FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+			FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+#endif
 
 		const float UnsafeZoneAlpha = GSafeZoneVisualizationAlphaCVar.GetValueOnGameThread();
 		const FLinearColor UnsafeZoneColor(1.0f, 0.5f, 0.5f, UnsafeZoneAlpha);

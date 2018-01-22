@@ -4,98 +4,15 @@
 #include "IXRTrackingSystem.h"
 #include "Features/IModularFeatures.h"
 #include "ARBlueprintLibrary.h"
-#include "DrawDebugHelpers.h"
-
-
-//
-//
-//
-void UARTrackedGeometry::InitTrackedGeometry( const TSharedRef<FARSystemBase, ESPMode::ThreadSafe>& InARSystem )
-{
-	ARSystem = InARSystem;
-}
-
-void UARTrackedGeometry::DebugDraw( UWorld* World, const FLinearColor& OutlineColor, float OutlineThickness, float PersistForSeconds ) const
-{
-	ensureMsgf( false, TEXT("Unimplemented UARTrackedGeometry::DebugDraw") );
-}
-
-TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> UARTrackedGeometry::GetARSystem() const
-{
-	auto MyARSystem = ARSystem.Pin();
-	return MyARSystem;
-}
-
-//
-//
-//
-void UARPlaneGeometry::UpdateTrackedGeometry( const TSharedRef<FARSystemBase, ESPMode::ThreadSafe>& InTrackingSystem, const FTransform& InLocalToTrackingTransform, const FVector InCenter, const FVector InExtent )
-{
-	InitTrackedGeometry(InTrackingSystem);
-	LocalToTrackingTransform = InLocalToTrackingTransform;
-	Center = InCenter;
-	Extent = InExtent;
-}
-
-void UARPlaneGeometry::DebugDraw( UWorld* World, const FLinearColor& OutlineColor, float OutlineThickness, float PersistForSeconds ) const
-{
-	const FTransform LocalToWorldTransform = GetLocalToWorldTransform();
-	DrawDebugBox( World, LocalToWorldTransform.TransformPosition(Center), Extent, LocalToWorldTransform.GetRotation(), OutlineColor.ToFColor(false), false, PersistForSeconds, 0, OutlineThickness );
-}
-
-FTransform UARPlaneGeometry::GetLocalToTrackingTransform() const
-{
-	return LocalToTrackingTransform;
-}
-
-FTransform UARPlaneGeometry::GetLocalToWorldTransform() const
-{
-	return LocalToTrackingTransform * GetARSystem()->GetTrackingToWorldTransform();
-}
-
-
-
-//
-//
-//
-FARTraceResult::FARTraceResult()
-: FARTraceResult(nullptr, FTransform(), nullptr)
-{
-	
-}
-
-
-FARTraceResult::FARTraceResult( const TSharedPtr<FARSystemBase, ESPMode::ThreadSafe>& InARSystem, const FTransform& InLocalToTrackingTransform, UARTrackedGeometry* InTrackedGeometry )
-: LocalToTrackingTransform(InLocalToTrackingTransform)
-, TrackedGeometry(InTrackedGeometry)
-, ARSystem(InARSystem)
-{
-	
-}
-
-
-FTransform FARTraceResult::GetLocalToTrackingTransform() const
-{
-	return LocalToTrackingTransform;
-}
-
-
-FTransform FARTraceResult::GetLocalToWorldTransform() const
-{
-	return LocalToTrackingTransform * ARSystem->GetTrackingToWorldTransform();
-}
-
-
-UARTrackedGeometry* FARTraceResult::GetTrackedGeometry() const
-{
-	return TrackedGeometry;
-}
-
+#include "ARSessionConfig.h"
+#include "GeneralProjectSettings.h"
+#include "Engine/Engine.h"
 
 
 
 FARSystemBase::FARSystemBase()
-: bIsActive(false)
+: AlignmentTransform(FTransform::Identity)
+, ARSettings( NewObject<UARSessionConfig>() )
 {
 	// See Initialize(), as we need access to SharedThis()
 }
@@ -122,33 +39,53 @@ EARTrackingQuality FARSystemBase::GetTrackingQuality() const
 	return OnGetTrackingQuality();
 }
 
-bool FARSystemBase::StartAR()
+void FARSystemBase::StartARSession(UARSessionConfig* InSessionConfig)
 {
-	if (!IsARActive())
-	{
-		bIsActive = OnStartAR();
-	}
+	static const TCHAR* NotARApp_Warning = TEXT("To use AR, enable bIsARApp under Project Settings.");
 	
-	return bIsActive;
-}
-
-void FARSystemBase::StopAR()
-{
-	if (IsARActive())
+	const bool bIsARApp = GetDefault<UGeneralProjectSettings>()->bSupportAR;
+	if (ensureAlwaysMsgf(bIsARApp, NotARApp_Warning))
 	{
-		OnStopAR();
-		bIsActive = false;
+		if (GetARSessionStatus().Status != EARSessionStatus::Running)
+		{
+			OnStartARSession(InSessionConfig);
+			ARSettings = InSessionConfig;
+		}
+	}
+	else
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Ensures don't show up on iOS, but we definitely want a developer to see this
+		// Their AR project just doesn't make sense unless they have enabled the AR setting.
+		GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 3600.0f, FColor(255,48,16),NotARApp_Warning);
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 }
 
-bool FARSystemBase::IsARActive() const
+void FARSystemBase::PauseARSession()
 {
-	return bIsActive;
+	if (GetARSessionStatus().Status == EARSessionStatus::Running)
+	{
+		OnPauseARSession();
+	}
 }
 
-TArray<FARTraceResult> FARSystemBase::LineTraceTrackedObjects( const FVector2D ScreenCoord )
+void FARSystemBase::StopARSession()
 {
-	return OnLineTraceTrackedObjects(ScreenCoord);
+	if (GetARSessionStatus().Status == EARSessionStatus::Running)
+	{
+		OnStopARSession();
+	}
+}
+
+FARSessionStatus FARSystemBase::GetARSessionStatus() const
+{
+	return OnGetARSessionStatus();
+}
+
+TArray<FARTraceResult> FARSystemBase::LineTraceTrackedObjects( const FVector2D ScreenCoord, EARLineTraceChannels TraceChannels )
+{
+	return OnLineTraceTrackedObjects(ScreenCoord, TraceChannels);
 }
 
 TArray<UARTrackedGeometry*> FARSystemBase::GetAllTrackedGeometries() const
@@ -156,6 +93,74 @@ TArray<UARTrackedGeometry*> FARSystemBase::GetAllTrackedGeometries() const
 	return OnGetAllTrackedGeometries();
 }
 
+TArray<UARPin*> FARSystemBase::GetAllPins() const
+{
+	return OnGetAllPins();
+}
+
+bool FARSystemBase::IsSessionTypeSupported(EARSessionType SessionType) const
+{
+	return OnIsTrackingTypeSupported(SessionType);
+}
+
+void FARSystemBase::SetAlignmentTransform( const FTransform& InAlignmentTransform )
+{
+	return OnSetAlignmentTransform(InAlignmentTransform);
+}
 
 
+UARLightEstimate* FARSystemBase::GetCurrentLightEstimate() const
+{
+	return OnGetCurrentLightEstimate();
+}
+
+UARPin* FARSystemBase::PinComponent( USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry, const FName DebugName )
+{
+	return OnPinComponent( ComponentToPin, PinToWorldTransform, TrackedGeometry, DebugName );
+}
+
+UARPin* FARSystemBase::PinComponent( USceneComponent* ComponentToPin, const FARTraceResult& HitResult, const FName DebugName )
+{
+	return OnPinComponent( ComponentToPin, HitResult.GetLocalToWorldTransform(), HitResult.GetTrackedGeometry(), DebugName );
+}
+
+void FARSystemBase::RemovePin( USceneComponent* ComponentToUnpin )
+{
+	OnRemovePin( ComponentToUnpin );
+}
+
+void FARSystemBase::RemovePin( UARPin* PinToRemove )
+{
+	OnRemovePin( PinToRemove );
+}
+
+const FTransform& FARSystemBase::GetAlignmentTransform() const
+{
+	return AlignmentTransform;
+}
+
+const UARSessionConfig& FARSystemBase::GetSessionConfig() const
+{
+	check(ARSettings != nullptr);
+	return *ARSettings;
+}
+
+UARSessionConfig& FARSystemBase::AccessSessionConfig()
+{
+	check(ARSettings != nullptr);
+	return *ARSettings;
+}
+
+void FARSystemBase::SetAlignmentTransform_Internal(const FTransform& NewAlignmentTransform)
+{
+	AlignmentTransform = NewAlignmentTransform;
+}
+
+void FARSystemBase::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	if (ARSettings != nullptr)
+	{
+		Collector.AddReferencedObject(ARSettings);
+	}
+}
 

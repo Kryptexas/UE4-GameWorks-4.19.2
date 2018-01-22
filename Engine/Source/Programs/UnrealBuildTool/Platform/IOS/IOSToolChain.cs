@@ -1528,6 +1528,12 @@ namespace UnrealBuildTool
 
         public static void PostBuildSync(UEBuildTarget Target)
 		{
+			if (Target.Rules == null)
+			{
+				Log.TraceWarning("Unable to PostBuildSync, Target has no Rules object");
+				return;
+			}
+
 			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
 
 			string AppName = Target.TargetType == TargetType.Game ? Target.TargetName : Target.AppName;

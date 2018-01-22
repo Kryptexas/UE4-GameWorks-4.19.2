@@ -3,8 +3,9 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "GoogleARCoreAnchor.h"
+#include "GoogleARCoreTypes.h"
 #include "GameFramework/Actor.h"
+#include "ARPin.h"
 
 #include "GoogleARCoreAnchorActor.generated.h"
 
@@ -48,11 +49,11 @@ public:
 
 	/** Connects an ARCoreAnchor object to this Actor. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleARAnchor")
-	void SetARAnchor(UGoogleARCoreAnchorBase* InARAnchorObject);
+	void SetARAnchor(UARPin* InARAnchorObject);
 
 	/** Returns the ARCoreAnchor object that is connected with this Actor. */
 	UFUNCTION(BlueprintPure, Category = "GoogleARAnchor")
-	UGoogleARCoreAnchorBase* GetARAnchor();
+	UARPin* GetARAnchor();
 
 	/** Tick function on this Actor.*/
 	virtual void Tick(float DeltaSeconds) override;
@@ -63,5 +64,5 @@ public:
 private:
 	/** Pointer to the ARAnchorObject. */
 	UPROPERTY()
-	UGoogleARCoreAnchorBase* ARAnchorObject;
+	UARPin* ARAnchorObject;
 };

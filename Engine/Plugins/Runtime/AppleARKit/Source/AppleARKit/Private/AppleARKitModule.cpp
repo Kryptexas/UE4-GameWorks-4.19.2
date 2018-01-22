@@ -5,6 +5,7 @@
 #include "ModuleManager.h"
 #include "Features/IModularFeature.h"
 #include "Features/IModularFeatures.h"
+#include "CoreGlobals.h"
 
 
 TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitARKitSystemPtr;
@@ -31,6 +32,16 @@ void FAppleARKitModule::StartupModule()
 {
 	ensureMsgf(FModuleManager::Get().LoadModule("AugmentedReality"), TEXT("ARKit depends on the AugmentedReality module."));
 	IHeadMountedDisplayModule::StartupModule();
+
+	// LiveLink listener needs to be created here so that the editor can receive remote publishing events
+#if PLATFORM_DESKTOP
+	bool bEnableLiveLinkForFaceTracking = false;
+	GConfig->GetBool(TEXT("/Script/AppleARKit.AppleARKitSettings"), TEXT("bEnableLiveLinkForFaceTracking"), bEnableLiveLinkForFaceTracking, GEngineIni);
+	if (bEnableLiveLinkForFaceTracking)
+	{
+		FAppleARKitLiveLinkSourceFactory::CreateLiveLinkRemoteListener();
+	}
+#endif
 }
 
 void FAppleARKitModule::ShutdownModule()

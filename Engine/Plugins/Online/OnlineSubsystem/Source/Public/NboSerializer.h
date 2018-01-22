@@ -85,6 +85,15 @@ public:
 	}
 
 	/**
+	 * Act as if the buffer is now empty. Useful for buffers that are reused
+	 */
+	inline void Reset()
+	{
+		NumBytes = 0;
+		bHasOverflowed = false;
+	}
+
+	/**
 	 * Adds a char to the buffer
 	 */
 	friend inline FNboSerializeToBuffer& operator<<(FNboSerializeToBuffer& Ar,const char Ch)

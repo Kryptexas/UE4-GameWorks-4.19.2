@@ -2,16 +2,14 @@
 
 #include "GoogleARCoreMotionController.h"
 #include "GoogleARCoreBaseLogCategory.h"
-
-#include "GoogleARCoreMotionManager.h"
 #include "GoogleARCoreDevice.h"
 
-static bool bLastRenderThreadPoseWasValid = false;
+FName FGoogleARCoreMotionController::ARCoreMotionSourceId(TEXT("ARCoreDevice"));
 
 FGoogleARCoreMotionController::FGoogleARCoreMotionController()
-	: TangoDeviceInstance(nullptr)
+	: ARCoreDeviceInstance(nullptr)
 {
-	TangoDeviceInstance = FGoogleARCoreDevice::GetInstance();
+	ARCoreDeviceInstance = FGoogleARCoreDevice::GetInstance();
 }
 
 void FGoogleARCoreMotionController::RegisterController()
@@ -24,64 +22,45 @@ void FGoogleARCoreMotionController::UnregisterController()
 	IModularFeatures::Get().UnregisterModularFeature(GetModularFeatureName(), this);
 }
 
-bool FGoogleARCoreMotionController::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
+FName FGoogleARCoreMotionController::GetMotionControllerDeviceTypeName() const
 {
-	if (IsInGameThread())
-	{
-		FGoogleARCorePose OutPose;
-		bool bIsValidPose = TangoDeviceInstance->TangoMotionManager.GetCurrentPose(EGoogleARCoreReferenceFrame::DEVICE, OutPose);
-
-		OutOrientation = FRotator(OutPose.Pose.GetRotation());
-		OutPosition = OutPose.Pose.GetTranslation();
-		return bIsValidPose;
-	}
-	else // presumed render thread.
-	{
-		if(FGoogleARCoreDevice::GetInstance()->GetIsTangoRunning())
-		{
-			FGoogleARCorePose OutPose;
-			bool bIsValidPose = TangoDeviceInstance->TangoMotionManager.GetPoseAtTime(EGoogleARCoreReferenceFrame::DEVICE, 0, OutPose);
-
-			bLastRenderThreadPoseWasValid = bIsValidPose;
-
-			OutOrientation = FRotator(OutPose.Pose.GetRotation());
-			OutPosition = OutPose.Pose.GetTranslation();
-			return bIsValidPose;
-		}
-		else
-		{
-			return false;
-		}
-	}
+	static const FName DeviceName(TEXT("ARcoreCameraMotionController"));
+	return DeviceName;
 }
 
-ETrackingStatus FGoogleARCoreMotionController::GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const
+bool FGoogleARCoreMotionController::GetControllerOrientationAndPosition(const int32 ControllerIndex, const FName MotionSource, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
-	bool isTracked;
-
-	if (IsInGameThread())
+	if (MotionSource != ARCoreMotionSourceId)
 	{
-		isTracked = TangoDeviceInstance->TangoMotionManager.IsTrackingValid();
+		return false;
+	}
+
+	// Only update in game thread and opt out updating on render thread since we only update the ARCore pose on game thread.
+	if (IsInGameThread() && ARCoreDeviceInstance->GetTrackingState() == EGoogleARCoreTrackingState::Tracking)
+	{
+		FTransform LatestPose = ARCoreDeviceInstance->GetLatestPose();
+		OutOrientation = FRotator(LatestPose.GetRotation());
+		OutPosition = LatestPose.GetTranslation();
+
+		return true;
+	}
+
+	return false;
+}
+
+ETrackingStatus FGoogleARCoreMotionController::GetControllerTrackingStatus(const int32 ControllerIndex, const FName MotionSource) const
+{
+	if (MotionSource == ARCoreMotionSourceId && ARCoreDeviceInstance->GetTrackingState() == EGoogleARCoreTrackingState::Tracking)
+	{
+		return ETrackingStatus::Tracked;
 	}
 	else
 	{
-		// TODO:
-		// When called on the render thread, this assumes very blatantly that GetControllerOrientationAndPosition will be
-		// called immediately preceeding this, as is the behaviour of UMotionControllerComponent::PollControllerState().
-		//
-		// The essential problem is how to get the 'most current and up to date' tracking during rendering but still use
-		// the same pose or all associated calls to prevent inconsistencies.
-		//
-		// There is surely a cleaner way to do this.
-
-		isTracked = bLastRenderThreadPoseWasValid;
+		return ETrackingStatus::NotTracked;
 	}
-
-	return isTracked ? ETrackingStatus::Tracked : ETrackingStatus::NotTracked;
 }
 
-FName FGoogleARCoreMotionController::GetMotionControllerDeviceTypeName() const
+void FGoogleARCoreMotionController::EnumerateSources(TArray<FMotionControllerSource>& SourcesOut) const
 {
-	static const FName DeviceName(TEXT("TangoMotionController"));
-	return DeviceName;
+	SourcesOut.Add(ARCoreMotionSourceId);
 }

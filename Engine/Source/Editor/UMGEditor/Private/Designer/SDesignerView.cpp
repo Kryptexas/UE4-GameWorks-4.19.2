@@ -2029,9 +2029,17 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 			FDisplayMetrics Metrics;
 			FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
-			const FMargin DebugSafeMargin = ( DebugSafeZoneMode == 1 ) ?
-				FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W) :
-				FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+			const FMargin DebugSafeMargin = 
+#if PLATFORM_IOS
+				// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+				( DebugSafeZoneMode == 1 )
+				? FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W)
+				: FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+#else
+				( DebugSafeZoneMode == 1 ) ?
+				FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+				FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+#endif
 
 			float PaddingRatio = DebugSafeMargin.Left / ( Metrics.PrimaryDisplayWidth * 0.5 );
 

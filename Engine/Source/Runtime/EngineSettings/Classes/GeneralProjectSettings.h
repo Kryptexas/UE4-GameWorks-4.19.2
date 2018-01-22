@@ -79,9 +79,13 @@ class ENGINESETTINGS_API UGeneralProjectSettings
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bStartInVR;
 	
-	/** Should the game start in AR */
+	/** This field is no longer used; @see FARSystemBase::StartARSession(); @see UARBlueprintLibrary::StartARSession() */
+	UPROPERTY()
+	bool bStartInAR_DEPRECATED;
+
+	/** Will this app support Augmented Reality (AR) in some capacity? */
 	UPROPERTY(config, EditAnywhere, Category = Settings)
-	bool bStartInAR;
+	bool bSupportAR;
 	
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bAllowWindowResize;

@@ -5,6 +5,26 @@
 #include "Features/IModularFeatures.h"
 #include "Engine/Engine.h"
 #include "ARSystem.h"
+#include "ARPin.h"
+#include "ARTrackable.h"
+
+
+
+
+
+//
+//
+//
+//UARPinEventHandlers* UARPinEventHandlers::HandleARPinEvents( UARPin* Pin )
+//{
+//	UARPinEventHandlers* NewEventHandlers = NewObject<UARPinEventHandlers>();
+//	Pin->SetOnTarckingStateChanged(NewEventHandlers->OnARTrackingStateChanged);
+//	Pin->SetOnTransformUpdated(NewEventHandlers->OnARTransformUpdated);
+//	
+//	return NewEventHandlers;
+//}
+
+
 
 
 TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> UARBlueprintLibrary::RegisteredARSystem = nullptr;
@@ -49,53 +69,97 @@ EARTrackingQuality UARBlueprintLibrary::GetTrackingQuality()
 	}
 	else
 	{
-		return EARTrackingQuality::NotAvailable;
+		return EARTrackingQuality::NotTracking;
 	}
 }
 
-bool UARBlueprintLibrary::StartAR()
+void UARBlueprintLibrary::StartARSession(UARSessionConfig* SessionConfig)
 {
+	static const TCHAR* NotARApp_Warning = TEXT("Attempting to Start an AR session but there is no AR system. To use AR, enable bIsARApp under Project Settings.");
+	
 	auto ARSystem = GetARSystem();
-	if (ARSystem.IsValid())
+	if (ensureAlwaysMsgf(ARSystem.IsValid(), NotARApp_Warning))
 	{
-		return ARSystem->StartAR();
+		ARSystem->StartARSession(SessionConfig);
 	}
 	else
 	{
-		return false;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Ensures don't show up on iOS, but we definitely want a developer to see this
+		// Their AR project just doesn't make sense unless they have enabled the AR setting.
+		GEngine->AddOnScreenDebugMessage(INDEX_NONE, 3600.0f, FColor(255,48,16),NotARApp_Warning);
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 }
 
-void UARBlueprintLibrary::StopAR()
+void UARBlueprintLibrary::PauseARSession()
 {
 	auto ARSystem = GetARSystem();
 	if (ARSystem.IsValid())
 	{
-		ARSystem->StopAR();
+		ARSystem->PauseARSession();
 	}
 }
 
-bool UARBlueprintLibrary::IsARActive()
+void UARBlueprintLibrary::StopARSession()
 {
 	auto ARSystem = GetARSystem();
 	if (ARSystem.IsValid())
 	{
-		return ARSystem->IsARActive();
+		ARSystem->StopARSession();
+	}
+}
+
+FARSessionStatus UARBlueprintLibrary::GetARSessionStatus()
+{
+	auto ARSystem = GetARSystem();
+	if (ARSystem.IsValid())
+	{
+		return ARSystem->GetARSessionStatus();
 	}
 	else
 	{
-		return false;
+		return FARSessionStatus(EARSessionStatus::NotStarted);
+	}
+}
+UARSessionConfig* UARBlueprintLibrary::GetSessionConfig()
+{
+	auto ARSystem = GetARSystem();
+	if (ARSystem.IsValid())
+	{
+		return &ARSystem->AccessSessionConfig();
+	}
+	else
+	{
+		return nullptr;
 	}
 }
 
-TArray<FARTraceResult> UARBlueprintLibrary::LineTraceTrackedObjects( const FVector2D ScreenCoord )
+
+void UARBlueprintLibrary::SetAlignmentTransform( const FTransform& InAlignmentTransform )
+{
+	auto ARSystem = GetARSystem();
+	if (ARSystem.IsValid())
+	{
+		return ARSystem->SetAlignmentTransform( InAlignmentTransform );
+	}
+}
+
+
+TArray<FARTraceResult> UARBlueprintLibrary::LineTraceTrackedObjects( const FVector2D ScreenCoord, bool bTestFeaturePoints, bool bTestGroundPlane, bool bTestPlaneExtents, bool bTestPlaneBoundaryPolygon )
 {
 	TArray<FARTraceResult> Result;
 	
 	auto ARSystem = GetARSystem();
 	if (ensure(ARSystem.IsValid()))
 	{
-		Result = ARSystem->LineTraceTrackedObjects(ScreenCoord);
+		EARLineTraceChannels ActiveTraceChannels =
+		(bTestFeaturePoints ? EARLineTraceChannels::FeaturePoint : EARLineTraceChannels::None) |
+			(bTestGroundPlane ? EARLineTraceChannels::GroundPlane : EARLineTraceChannels::None) |
+			(bTestPlaneExtents ? EARLineTraceChannels::PlaneUsingExtent : EARLineTraceChannels::None ) |
+			(bTestPlaneBoundaryPolygon ? EARLineTraceChannels::PlaneUsingBoundaryPolygon : EARLineTraceChannels::None);
+		
+		Result = ARSystem->LineTraceTrackedObjects(ScreenCoord, ActiveTraceChannels);
 	}
 	
 	return Result;
@@ -113,21 +177,28 @@ TArray<UARTrackedGeometry*> UARBlueprintLibrary::GetAllGeometries()
 	return Geometries;
 }
 
-
-FTransform UARBlueprintLibrary::GetLocalToTrackingTransform( const FARTraceResult& TraceResult )
+TArray<UARPin*> UARBlueprintLibrary::GetAllPins()
 {
-	return TraceResult.GetLocalToTrackingTransform();
+	TArray<UARPin*> Pins;
+	
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		Pins = ARSystem->GetAllPins();
+	}
+	return Pins;
 }
 
-FTransform UARBlueprintLibrary::GetLocalToWorldTransform( const FARTraceResult& TraceResult )
+bool UARBlueprintLibrary::IsSessionTypeSupported(EARSessionType SessionType)
 {
-	return TraceResult.GetLocalToWorldTransform();
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->IsSessionTypeSupported(SessionType);
+	}
+	return false;
 }
 
-UARTrackedGeometry* UARBlueprintLibrary::GetTrackedGeometry( const FARTraceResult& TraceResult )
-{
-	return TraceResult.GetTrackedGeometry();
-}
 
 void UARBlueprintLibrary::DebugDrawTrackedGeometry( UARTrackedGeometry* TrackedGeometry, UObject* WorldContextObject, FLinearColor Color, float OutlineThickness, float PersistForSeconds )
 {
@@ -138,6 +209,66 @@ void UARBlueprintLibrary::DebugDrawTrackedGeometry( UARTrackedGeometry* TrackedG
 	}
 }
 
+void UARBlueprintLibrary::DebugDrawPin( UARPin* ARPin, UObject* WorldContextObject, FLinearColor Color, float Scale, float PersistForSeconds )
+{
+	UWorld* MyWorld = WorldContextObject->GetWorld();
+	if (ensure(ARPin != nullptr) && ensure(MyWorld != nullptr))
+	{
+		ARPin->DebugDraw(MyWorld, Color, Scale, PersistForSeconds);
+	}
+}
+
+
+UARLightEstimate* UARBlueprintLibrary::GetCurrentLightEstimate()
+{
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->GetCurrentLightEstimate();
+	}
+	return nullptr;
+}
+
+UARPin* UARBlueprintLibrary::PinComponent( USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry, const FName DebugName )
+{
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->PinComponent( ComponentToPin, PinToWorldTransform, TrackedGeometry, DebugName );
+	}
+	return nullptr;
+}
+
+UARPin* UARBlueprintLibrary::PinComponentToTraceResult( USceneComponent* ComponentToPin, const FARTraceResult& TraceResult, const FName DebugName )
+{
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->PinComponent( ComponentToPin, TraceResult, DebugName );
+	}
+	return nullptr;
+}
+
+void UARBlueprintLibrary::UnpinComponent( USceneComponent* ComponentToUnpin )
+{
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->RemovePin( ComponentToUnpin );
+	}
+}
+
+void UARBlueprintLibrary::RemovePin( UARPin* PinToRemove )
+{
+	auto ARSystem = GetARSystem();
+	if (ensure(ARSystem.IsValid()))
+	{
+		return ARSystem->RemovePin( PinToRemove );
+	}
+}
+
+
+
 void UARBlueprintLibrary::RegisterAsARSystem(const TSharedPtr<FARSystemBase, ESPMode::ThreadSafe>& NewARSystem)
 {
 	RegisteredARSystem = NewARSystem;
@@ -147,4 +278,31 @@ void UARBlueprintLibrary::RegisterAsARSystem(const TSharedPtr<FARSystemBase, ESP
 const TSharedPtr<FARSystemBase, ESPMode::ThreadSafe>& UARBlueprintLibrary::GetARSystem()
 {
 	return RegisteredARSystem;
+}
+
+
+
+float UARTraceResultLibrary::GetDistanceFromCamera( const FARTraceResult& TraceResult )
+{
+	return TraceResult.GetDistanceFromCamera();
+}
+
+FTransform UARTraceResultLibrary::GetLocalToTrackingTransform( const FARTraceResult& TraceResult )
+{
+	return TraceResult.GetLocalToTrackingTransform();
+}
+
+FTransform UARTraceResultLibrary::GetLocalToWorldTransform( const FARTraceResult& TraceResult )
+{
+	return TraceResult.GetLocalToWorldTransform();
+}
+
+UARTrackedGeometry* UARTraceResultLibrary::GetTrackedGeometry( const FARTraceResult& TraceResult )
+{
+	return TraceResult.GetTrackedGeometry();
+}
+
+EARLineTraceChannels UARTraceResultLibrary::GetTraceChannel( const FARTraceResult& TraceResult )
+{
+	return TraceResult.GetTraceChannel();
 }

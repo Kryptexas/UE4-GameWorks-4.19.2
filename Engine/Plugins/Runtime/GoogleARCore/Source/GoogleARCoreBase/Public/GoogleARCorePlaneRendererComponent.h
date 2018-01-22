@@ -1,10 +1,9 @@
 // Copyright 2017 Google Inc.
 
 #pragma once
-
-#include "GoogleARCorePrimitives.h"
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+
 #include "GoogleARCorePlaneRendererComponent.generated.h"
 
 /** A helper component that renders all the ARCore planes in the current tracking session. */
@@ -24,11 +23,11 @@ public:
 
 	/** The color of the plane. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
-	FColor PlaneColor = FColor::Green;
+	FLinearColor PlaneColor = FLinearColor::Green;
 
 	/** The color of the boundary polygon. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
-	FColor BoundaryPolygonColor = FColor::Blue;
+	FLinearColor BoundaryPolygonColor = FLinearColor::Blue;
 
 	/** The line thickness for the plan boundary polygon. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")

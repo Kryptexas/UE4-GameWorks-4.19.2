@@ -672,7 +672,7 @@ namespace UnrealBuildTool
 		{
 			if (TargetPlatform == UnrealTargetPlatform.IOS || TargetPlatform == UnrealTargetPlatform.TVOS)
 			{
-				if (TargetName.StartsWith("UE4Game") || (IsProjectBuild && TargetName.StartsWith(GameProjectName)))
+				if ((TargetName.StartsWith("UE4Game") || (IsProjectBuild && TargetName.StartsWith(GameProjectName)) || TargetName.StartsWith("QAGame")) && !TargetName.StartsWith("QAGameEditor"))
 				{
 				    return false;
 				}
@@ -694,6 +694,10 @@ namespace UnrealBuildTool
 					(TargetName.StartsWith("ShaderCompileWorker") || TargetName.StartsWith("CrashReportClient")))
 				{
 					return false;
+				}
+				else if ((TargetName.StartsWith("QAGameEditor") && !TargetName.StartsWith("QAGameEditorServices")) || TargetName.StartsWith("QAGame"))
+				{
+				    return false;
 				}
 				return true;
 			}

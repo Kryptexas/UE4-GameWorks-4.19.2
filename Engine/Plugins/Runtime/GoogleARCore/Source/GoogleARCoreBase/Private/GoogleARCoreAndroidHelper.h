@@ -3,12 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GoogleARCoreCameraManager.h"
 #if PLATFORM_ANDROID
 #include "Android/AndroidApplication.h"
 #endif
 
-/** Wrappers for accessing Tango stuff that lives in Java. */
+/** Wrappers for accessing Android Java stuff */
 class FGoogleARCoreAndroidHelper
 {
 public:
@@ -23,13 +22,7 @@ public:
 	 */
 	static int32 GetDisplayRotation();
 
-	/**
-	 * Get Android camera orientation as per the android.hardware.Camera.CameraInfo class' orientation field.
-	 */
-	static int32 GetColorCameraRotation();
-
-	static bool HasAreaDescriptionPermission();
-	static void RequestAreaDescriptionPermission();
+	static void QueueStartSessionOnUiThread();
 
 #if PLATFORM_ANDROID
 	// Helpers for redirecting Android events.
@@ -40,14 +33,7 @@ public:
 	static void OnApplicationStop();
 	static void OnApplicationStart();
 	static void OnDisplayOrientationChanged();
-
-	static void OnTangoServiceConnect();
 #endif
-
-	static bool IsTangoCorePresent();
-	static bool IsTangoCoreUpToDate();
-	static bool IsARCoreSupported();
-	static void CreateTangoObject();
 
 private:
 	static int32 CurrentDisplayRotation;

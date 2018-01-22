@@ -47,4 +47,11 @@ struct APPLEARKIT_API FAppleARKitLightEstimate
 	 */
 	UPROPERTY( BlueprintReadOnly, Category="AppleARKit|Light Estimate" )
 	float AmbientIntensity;
+	
+	/**
+	 * Color Temperature in Kelvin of light
+	 *
+	 */
+	UPROPERTY( BlueprintReadOnly, Category="AppleARKit|Light Estimate" )
+	float AmbientColorTemperatureKelvin;
 };

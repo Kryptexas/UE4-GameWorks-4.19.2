@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "GoogleARCorePrimitives.h"
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+
 #include "GoogleARCorePointCloudRendererComponent.generated.h"
 
 /** A helper component that renders the latest point cloud from the ARCore tracking session. */

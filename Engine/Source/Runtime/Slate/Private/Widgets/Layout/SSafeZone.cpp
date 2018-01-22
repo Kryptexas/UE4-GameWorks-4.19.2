@@ -63,9 +63,18 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 	FDisplayMetrics Metrics;
 	FSlateApplication::Get().GetDisplayMetrics( Metrics );
 
-	const FMargin DeviceSafeMargin = bIsTitleSafe ?
-		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W) :
-		FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+	const FMargin DeviceSafeMargin =
+#if PLATFORM_IOS
+		// Hack: This is a temp solution to support iPhoneX safeArea. TitleSafePaddingSize and ActionSafePaddingSize should be FVector4 and use them separately.
+		bIsTitleSafe
+		? FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W)
+		: FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
+#else
+		bIsTitleSafe ?
+		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+		FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+#endif
+
 
 #if WITH_EDITOR
 	if ( OverrideScreenSize.IsSet() )

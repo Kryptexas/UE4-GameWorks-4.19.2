@@ -274,9 +274,9 @@ namespace UnrealBuildTool
 				}
 			}
 			ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirRef, UnrealTargetPlatform.IOS);
-			bool bStartInAR = false;
-			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bStartInAR", out bStartInAR);
-			if (bStartInAR)
+			bool bSupportAR = false;
+			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bSupportAR", out bSupportAR);
+			if (bSupportAR)
 			{
 				RequiredCaps += "\t\t<string>arkit</string>\n";
 			}
@@ -647,7 +647,7 @@ namespace UnrealBuildTool
 			}
 
 			// add the camera usage key
-			if (bStartInAR)
+			if (bSupportAR)
 			{
 				Text.AppendLine("\t<key>NSCameraUsageDescription</key>");
 				Text.AppendLine("\t\t<string>The camera is used for augmenting reality.</string>");
@@ -824,7 +824,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
+        public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -1004,9 +1004,9 @@ namespace UnrealBuildTool
                 CopyGraphicsResources(bSkipDefaultPNGs, bSkipIcons, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory, bSupportsPortrait, bSupportsLandscape);
 				CopyLocalizationsResources(InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory);
 
-				// copy additional engine framework assets in
-				// @todo tvos: TVOS probably needs its own assets?
-				string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
+                // copy additional engine framework assets in
+                // @todo tvos: TVOS probably needs its own assets?
+                string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
 
                 // Let project override assets if they exist
                 if (Directory.Exists(InProjectDirectory + "/Intermediate/IOS/FrameworkAssets"))
@@ -1051,7 +1051,7 @@ namespace UnrealBuildTool
 			else
 			{
                 // @todo tvos merge: This used to copy the bundle back - where did that code go? It needs to be fixed up for TVOS directories
-				bool bSupportPortrait, bSupportLandscape, bSkipIcons;
+                bool bSupportPortrait, bSupportLandscape, bSkipIcons;
 				GeneratePList(InTarget.ProjectFile, InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "", out bSupportPortrait, out bSupportLandscape, out bSkipIcons);
 			}
 			return true;

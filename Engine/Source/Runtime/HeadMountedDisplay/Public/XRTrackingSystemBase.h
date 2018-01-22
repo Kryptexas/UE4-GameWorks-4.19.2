@@ -104,14 +104,14 @@ public:
 	 */
 	virtual void UpdateTrackingToWorldTransform(const FTransform& TrackingToWorldOverride) override;
 
-protected:
-
 	/**
 	 * This method should return the world to meters scale for the current frame.
 	 * Should be callable on both the render and the game threads.
 	 * @return the current world to meter scale.
 	 */
 	virtual float GetWorldToMetersScale() const =0;
+
+protected:
 
 	/**
 	 * Computes the project's tracking-to-world transform based off how the user 

@@ -8,6 +8,8 @@
 #include "Kismet/BlueprintPlatformLibrary.h"
 #include "AppleARKitVideoOverlay.generated.h"
 
+class FSceneViewFamily;
+
 /** Helper class to ensure the ARKit camera material is cooked. */
 UCLASS()
 class UARKitCameraOverlayMaterialLoader : public UObject
@@ -32,7 +34,7 @@ class FAppleARKitVideoOverlay
 public:
 	FAppleARKitVideoOverlay();
 
-	void UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame);
+	void UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame, const FSceneViewFamily& InViewFamily);
 	void RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView, const EScreenOrientation::Type DeviceOrientation);
 
 private:

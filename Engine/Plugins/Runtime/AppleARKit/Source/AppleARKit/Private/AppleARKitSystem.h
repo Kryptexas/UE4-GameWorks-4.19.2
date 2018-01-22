@@ -6,6 +6,7 @@
 #include "AppleARKitConfiguration.h"
 #include "ARSystem.h"
 #include "AppleARKitHitTestResult.h"
+#include "AppleARKitLiveLinkSourceFactory.h"
 #include "Kismet/BlueprintPlatformLibrary.h"
 
 // ARKit
@@ -24,7 +25,7 @@ DECLARE_STATS_GROUP(TEXT("AppleARKit"), STATGROUP_APPLEARKIT, STATCAT_Advanced);
 struct FAppleARKitFrame;
 struct FAppleARKitAnchorData;
 
-class FAppleARKitSystem : public FARSystemBase, public FGCObject
+class FAppleARKitSystem : public FARSystemBase
 {
 	friend class FAppleARKitXRCamera;
 	
@@ -56,15 +57,23 @@ protected:
 	//~IARSystemSupport
 	virtual void OnARSystemInitialized() override;
 	virtual EARTrackingQuality OnGetTrackingQuality() const override;
-	virtual bool OnStartAR() override;
-	virtual void OnStopAR() override;
-	virtual TArray<FARTraceResult> OnLineTraceTrackedObjects( const FVector2D ScreenCoord ) override;
+	virtual void OnStartARSession(UARSessionConfig* SessionConfig) override;
+	virtual void OnPauseARSession() override;
+	virtual void OnStopARSession() override;
+	virtual FARSessionStatus OnGetARSessionStatus() const override;
+	virtual void OnSetAlignmentTransform(const FTransform& InAlignmentTransform) override;
+	virtual TArray<FARTraceResult> OnLineTraceTrackedObjects( const FVector2D ScreenCoord, EARLineTraceChannels TraceChannels ) override;
 	virtual TArray<UARTrackedGeometry*> OnGetAllTrackedGeometries() const override;
+	virtual TArray<UARPin*> OnGetAllPins() const override;
+	virtual bool OnIsTrackingTypeSupported(EARSessionType SessionType) const override;
+	virtual UARLightEstimate* OnGetCurrentLightEstimate() const override;
+	virtual UARPin* OnPinComponent(USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry = nullptr, const FName DebugName = NAME_None) override;
+	virtual void OnRemovePin(UARPin* PinToRemove) override;
+	virtual void OnRemovePin(USceneComponent* ComponentToUnpin) override;
 	//~IARSystemSupport
 
 private:
-	void Run();
-	bool RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration);
+	bool Run(UARSessionConfig* SessionConfig);
 	bool IsRunning() const;
 	bool Pause();
 	void OrientationChanged(const int32 NewOrientation);
@@ -126,11 +135,31 @@ private:
 	
 #endif // ARKIT_SUPPORT
 
+	//
+	// PROPERTIES REPORTED TO FGCObject
+	// ...
 	TMap< FGuid, UARTrackedGeometry* > TrackedGeometries;
+	TMap< USceneComponent*, UARPin* > ComponentsToPins;
+	TMap< UARTrackedGeometry*, UARPin* > GeometriesToPins;
+	UARLightEstimate* LightEstimate;
+	// ...
+	// PROPERTIES REPORTED TO FGCObject
+	//
 	
-	
-	// The frame number when LastReceivedFrame was last updated
+
+	/** The ar frame number when LastReceivedFrame was last updated */
 	uint32 GameThreadFrameNumber;
+	/** The ar timestamp of when the LastReceivedFrame was last updated */
+	double GameThreadTimestamp;
+
+	/** If requested, publishes face ar updates to LiveLink for the animation system to use */
+	TSharedPtr<ILiveLinkSourceARKit> LiveLinkSource;
+	/** Copied from the UARSessionConfig project settings object */
+	FName FaceTrackingLiveLinkSubjectName;
+	
+	
+	// An int counter that provides a human-readable debug number for Tracked Geometries.
+	uint32 LastTrackedGeometry_DebugId;
 
 	//'threadsafe' sharedptrs merely guaranteee atomicity when adding/removing refs.  You can still have a race
 	//with destruction and copying sharedptrs.

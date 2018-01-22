@@ -53,10 +53,10 @@ public:
 	{
 		return 0;
 	}
-	
+
 	/**
-	 * @return the type of bulk data for special handling
-	 */
+	* @return the type of bulk data for special handling
+	*/
 	virtual EBulkDataType GetResourceType() const override
 	{
 		return EBulkDataType::MediaTexture;
@@ -83,13 +83,13 @@ public:
 FAppleARKitVideoOverlay::FAppleARKitVideoOverlay()
 	: RenderingOverlayMaterial(nullptr)
 	, LastUpdateTimestamp(-1.0)
-{	
+{
 	RenderingOverlayMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/AppleARKit/ARKitCameraMaterial.ARKitCameraMaterial"));
 	check(RenderingOverlayMaterial != nullptr);
 	RenderingOverlayMaterial->AddToRoot();
 }
 
-void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame)
+void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame, const FSceneViewFamily& InViewFamily)
 {
 	// Allocate and register
 	if (VideoTextureY == nullptr)
@@ -102,7 +102,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		VideoTextureY = RHICmdList.CreateTexture2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
 		VideoTextureCbCr = RHICmdList.CreateTexture2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
 
-		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
+		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap);
 		FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
 		FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
@@ -119,42 +119,71 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		FRHIResourceCreateInfo CreateInfoIB(&IndexBuffer);
 		OverlayIndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfoIB);
 
-		// Setup vertex buffer
-		const float UVOffset = (Frame.Camera.GetAspectRatio() - 1.0f) * 0.5f;
+		check(InViewFamily.Views.Num() > 0);
+		const FSceneView& View = *InViewFamily.Views[0];
 
+		const FVector2D ViewSize(View.UnconstrainedViewRect.Max.X, View.UnconstrainedViewRect.Max.Y);
+		
+		// CameraSize is 1280 x 720 regardless of the device orientation. We flip it here if needed to make it consistent with the view size.
+		FVector2D CameraSize = Frame.Camera.ImageResolution;
+		if ((ViewSize.X > ViewSize.Y) != (CameraSize.X > CameraSize.Y))
+		{
+			CameraSize = FVector2D(CameraSize.Y, CameraSize.X);
+		}
+		
+		const float CameraAspectRatio = CameraSize.X / CameraSize.Y;
+		const float ViewAspectRatio = ViewSize.X / ViewSize.Y;
+		const float ViewAspectRatioLandscape = (ViewSize.X > ViewSize.Y) ? ViewAspectRatio : ViewSize.Y / ViewSize.X;
+		
+		float UVOffsetAmount = 0.0f;
+		if (!FMath::IsNearlyEqual(ViewAspectRatio, CameraAspectRatio))
+		{
+			if (ViewAspectRatio > CameraAspectRatio)
+			{
+				UVOffsetAmount = 0.5f * (1.0f - (CameraAspectRatio / ViewAspectRatio));
+			}
+			else
+			{
+				UVOffsetAmount = 0.5f * (1.0f - (ViewAspectRatio / CameraAspectRatio));
+			}
+		}
+		
+		const FVector2D UVOffset = (ViewAspectRatioLandscape <= Frame.Camera.GetAspectRatio()) ? FVector2D(UVOffsetAmount, 0.0f) : FVector2D(0.0f, UVOffsetAmount);
+		
+		// Setup vertex buffer
 		const FVector4 Positions[] =
 		{
-			FVector4(0.0f, 1.0f, 0.0f, 1.0f), 
-			FVector4(0.0f, 0.0f, 0.0f, 1.0f), 
-			FVector4(1.0f, 1.0f, 0.0f, 1.0f), 
+			FVector4(0.0f, 1.0f, 0.0f, 1.0f),
+			FVector4(0.0f, 0.0f, 0.0f, 1.0f),
+			FVector4(1.0f, 1.0f, 0.0f, 1.0f),
 			FVector4(1.0f, 0.0f, 0.0f, 1.0f)
 		};
 
 		const FVector2D UVs[] =
 		{
-			// Landscape right
-			FVector2D(0.0f, 1.0f),
-			FVector2D(0.0f, 0.0f),
-			FVector2D(1.0f, 1.0f), 
-			FVector2D(1.0f, 0.0f),
-
 			// Landscape left
-			FVector2D(1.0f, 0.0f), 
-			FVector2D(1.0f, 1.0f), 
-			FVector2D(0.0f, 0.0f), 
-			FVector2D(0.0f, 1.0f), 
+			FVector2D(UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(UVOffset.X, UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, UVOffset.Y),
+
+			// Landscape right
+			FVector2D(1.0f - UVOffset.X, UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(UVOffset.X, UVOffset.Y),
+			FVector2D(UVOffset.X, 1.0f - UVOffset.Y),
 
 			// Portrait
-			FVector2D(1.0f + UVOffset, 1.0f),
-			FVector2D(-UVOffset, 1.0f),
-			FVector2D(1.0f + UVOffset, 0.0f),
-			FVector2D(-UVOffset, 0.0f),
+			FVector2D(1.0f - UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, UVOffset.Y),
+			FVector2D(UVOffset.X, UVOffset.Y),
 
 			// Portrait Upside Down
-			FVector2D(-UVOffset, 0.0f),
-			FVector2D(1.0f + UVOffset, 0.0f),
-			FVector2D(-UVOffset, 1.0f),
-			FVector2D(1.0f + UVOffset, 1.0f)
+			FVector2D(UVOffset.X, UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, UVOffset.Y),
+			FVector2D(UVOffset.X, 1.0f - UVOffset.Y),
+			FVector2D(1.0f - UVOffset.X, 1.0f - UVOffset.Y)
 		};
 
 		uint32 UVIndex = 0;
@@ -165,13 +194,13 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 
 			Vertices[0].Position = Positions[0];
 			Vertices[0].UV = UVs[UVIndex];
-			
+
 			Vertices[1].Position = Positions[1];
 			Vertices[1].UV = UVs[UVIndex + 1];
-			
+
 			Vertices[2].Position = Positions[2];
 			Vertices[2].UV = UVs[UVIndex + 2];
-			
+
 			Vertices[3].Position = Positions[3];
 			Vertices[3].UV = UVs[UVIndex + 3];
 
@@ -204,7 +233,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid);
 			FExternalTextureRegistry::Get().UnregisterExternalTexture(ARKitPassthroughCameraExternalTextureCbCrGuid);
 
-			FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap);
+			FSamplerStateInitializerRHI SamplerStateInitializer(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap);
 			FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
 			FExternalTextureRegistry::Get().RegisterExternalTexture(ARKitPassthroughCameraExternalTextureYGuid, VideoTextureY, SamplerStateRHI);
@@ -218,10 +247,11 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 			LastUpdateTimestamp = Frame.Timestamp;
 		}
 	}
-	#endif // ARKIT_SUPPORT
+#endif // ARKIT_SUPPORT
 }
 
 // We use something similar to the PostProcessMaterial to render the color camera overlay.
+template <bool bIsMobileRenderer>
 class FARKitCameraOverlayVS : public FMaterialShader
 {
 	DECLARE_SHADER_TYPE(FARKitCameraOverlayVS, Material);
@@ -229,15 +259,20 @@ public:
 
 	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
+		if (bIsMobileRenderer)
+		{
+			return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
+		}
+		else
+		{
+			return Material->GetMaterialDomain() == MD_PostProcess && !IsMobilePlatform(Platform);
+		}
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL"), 1);
-
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
 	}
 
@@ -255,13 +290,15 @@ public:
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
-		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
+		const bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 		return bShaderHasOutdatedParameters;
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FARKitCameraOverlayVS, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainVS_ES2"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, FARKitCameraOverlayVS<true>, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainVS_ES2"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, FARKitCameraOverlayVS<false>, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainVS_VideoOverlay"), SF_Vertex);
 
+template <bool bIsMobileRenderer>
 class FARKitCameraOverlayPS : public FMaterialShader
 {
 	DECLARE_SHADER_TYPE(FARKitCameraOverlayPS, Material);
@@ -269,13 +306,19 @@ public:
 
 	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
+		if (bIsMobileRenderer)
+		{
+			return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
+		}
+		else
+		{
+			return Material->GetMaterialDomain() == MD_PostProcess && !IsMobilePlatform(Platform);
+		}
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL"), 1);
 		OutEnvironment.SetDefine(TEXT("OUTPUT_GAMMA_SPACE"), IsMobileHDR() ? 0 : 1);
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
@@ -290,18 +333,18 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView View, const FMaterialRenderProxy* Material)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
 		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Material, *Material->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, true, ESceneRenderTargetsMode::DontSet);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
-		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
+		const bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 		return bShaderHasOutdatedParameters;
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FARKitCameraOverlayPS, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainPS_ES2"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, FARKitCameraOverlayPS<true>, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainPS_ES2"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, FARKitCameraOverlayPS<false>, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainPS_VideoOverlay"), SF_Pixel);
 
 void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView, const EScreenOrientation::Type DeviceOrientation)
 {
@@ -309,7 +352,6 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 
 	if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 	{
-		// Draw a screen quad?
 		if (RenderingOverlayMaterial == nullptr || !RenderingOverlayMaterial->IsValidLowLevel())
 		{
 			return;
@@ -318,82 +360,99 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 		const auto FeatureLevel = InView.GetFeatureLevel();
 		IRendererModule& RendererModule = GetRendererModule();
 
-		if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+		const FMaterial* const CameraMaterial = RenderingOverlayMaterial->GetRenderProxy(false)->GetMaterial(FeatureLevel);
+		const FMaterialShaderMap* const MaterialShaderMap = CameraMaterial->GetRenderingThreadShaderMap();
+
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
+		
+		const bool bIsMobileRenderer = FeatureLevel <= ERHIFeatureLevel::ES3_1;
+		FMaterialShader* VertexShader = nullptr;
+		FMaterialShader* PixelShader = nullptr;
+		if (bIsMobileRenderer)
 		{
-			const FMaterial* const CameraMaterial = RenderingOverlayMaterial->GetRenderProxy(false)->GetMaterial(FeatureLevel);
-			const FMaterialShaderMap* const MaterialShaderMap = CameraMaterial->GetRenderingThreadShaderMap();
-
-			FARKitCameraOverlayVS* const VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS>();
-			FARKitCameraOverlayPS* const PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS>();
+			VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS<true>>();
+			PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS<true>>();
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(reinterpret_cast<FARKitCameraOverlayVS<true>*>(VertexShader));
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(reinterpret_cast<FARKitCameraOverlayPS<true>*>(PixelShader));
+		}
+		else
+		{
+			VertexShader = MaterialShaderMap->GetShader<FARKitCameraOverlayVS<false>>();
+			PixelShader = MaterialShaderMap->GetShader<FARKitCameraOverlayPS<false>>();
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(reinterpret_cast<FARKitCameraOverlayVS<false>*>(VertexShader));
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(reinterpret_cast<FARKitCameraOverlayPS<false>*>(PixelShader));
+		}
 		
-			FGraphicsPipelineStateInitializer GraphicsPSOInit;
-			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
-
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
-			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			VertexShader->SetParameters(RHICmdList, InView);
-			PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
-
-			const FIntPoint ViewSize = InView.UnconstrainedViewRect.Size();
-
-			FDrawRectangleParameters Parameters;
-			Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);
-			Parameters.UVScaleBias = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
-
-			Parameters.InvTargetSizeAndTextureSize = FVector4(
-				1.0f / ViewSize.X, 1.0f / ViewSize.Y,
-				1.0f, 1.0f);
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 		
-			SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+		const FIntPoint ViewSize = InView.UnconstrainedViewRect.Size();
+		FDrawRectangleParameters Parameters;
+		Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);
+		Parameters.UVScaleBias = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
+		Parameters.InvTargetSizeAndTextureSize = FVector4(
+														  1.0f / ViewSize.X, 1.0f / ViewSize.Y,
+														  1.0f, 1.0f);
 
-			FVertexBufferRHIParamRef VertexBufferRHI = nullptr;
-			switch (DeviceOrientation)
-			{
-				case EScreenOrientation::Type::LandscapeLeft:
-					VertexBufferRHI = OverlayVertexBufferRHI[0];
-					break;
+		if (bIsMobileRenderer)
+		{
+			FARKitCameraOverlayVS<true>* const VertexShaderPtr = reinterpret_cast<FARKitCameraOverlayVS<true>*>(VertexShader);
+			SetUniformBufferParameterImmediate(RHICmdList, VertexShaderPtr->GetVertexShader(), VertexShaderPtr->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+			VertexShaderPtr->SetParameters(RHICmdList, InView);
+			reinterpret_cast<FARKitCameraOverlayPS<true>*>(PixelShader)->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
+		}
+		else
+		{
+			FARKitCameraOverlayVS<false>* const VertexShaderPtr = reinterpret_cast<FARKitCameraOverlayVS<false>*>(VertexShader);
+			SetUniformBufferParameterImmediate(RHICmdList, VertexShaderPtr->GetVertexShader(), VertexShaderPtr->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+			VertexShaderPtr->SetParameters(RHICmdList, InView);
+			reinterpret_cast<FARKitCameraOverlayPS<false>*>(PixelShader)->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
+		}
 
-				case EScreenOrientation::Type::LandscapeRight:
-					VertexBufferRHI = OverlayVertexBufferRHI[1];
-					break;
+		FVertexBufferRHIParamRef VertexBufferRHI = nullptr;
+		switch (DeviceOrientation)
+		{
+			case EScreenOrientation::Type::LandscapeLeft:
+				VertexBufferRHI = OverlayVertexBufferRHI[0];
+				break;
 
-				case EScreenOrientation::Type::Portrait:
-					VertexBufferRHI = OverlayVertexBufferRHI[2];
-					break;
+			case EScreenOrientation::Type::LandscapeRight:
+				VertexBufferRHI = OverlayVertexBufferRHI[1];
+				break;
 
-				case EScreenOrientation::Type::PortraitUpsideDown:
-					VertexBufferRHI = OverlayVertexBufferRHI[3];
-					break;
+			case EScreenOrientation::Type::Portrait:
+				VertexBufferRHI = OverlayVertexBufferRHI[2];
+				break;
 
-				default:
-					VertexBufferRHI = OverlayVertexBufferRHI[0];
-					break;
-			}
+			case EScreenOrientation::Type::PortraitUpsideDown:
+				VertexBufferRHI = OverlayVertexBufferRHI[3];
+				break;
 
-			if (VertexBufferRHI && OverlayIndexBufferRHI.IsValid())
-			{
-				RHICmdList.SetStreamSource(0, VertexBufferRHI, 0);
-				RHICmdList.DrawIndexedPrimitive(
-					OverlayIndexBufferRHI,
-					PT_TriangleList,
-					/*BaseVertexIndex=*/ 0,
-					/*MinIndex=*/ 0,
-					/*NumVertices=*/ 4,
-					/*StartIndex=*/ 0,
-					/*NumPrimitives=*/ 2,
-					/*NumInstances=*/ 1
-				);
-			}
+			default:
+				VertexBufferRHI = OverlayVertexBufferRHI[0];
+				break;
+		}
+
+		if (VertexBufferRHI && OverlayIndexBufferRHI.IsValid())
+		{
+			RHICmdList.SetStreamSource(0, VertexBufferRHI, 0);
+			RHICmdList.DrawIndexedPrimitive(
+				OverlayIndexBufferRHI,
+				PT_TriangleList,
+				/*BaseVertexIndex=*/ 0,
+				/*MinIndex=*/ 0,
+				/*NumVertices=*/ 4,
+				/*StartIndex=*/ 0,
+				/*NumPrimitives=*/ 2,
+				/*NumInstances=*/ 1
+			);
 		}
 	}
-	#endif // ARKIT_SUPPORT
+#endif // ARKIT_SUPPORT
 }

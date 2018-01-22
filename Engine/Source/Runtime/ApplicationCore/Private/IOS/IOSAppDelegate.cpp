@@ -232,7 +232,9 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
             // free any autoreleased objects every once in awhile to keep memory use down (strings, splash screens, etc)
             if (((GFrameCounter) & 31) == 0)
             {
-                [AutoreleasePool release];
+				// If you crash upon release, turn on Zombie Objects (Edit Scheme... | Diagnostics | Zombie Objects)
+				// This will list the last object sent the release message, which will help identify the double free
+				[AutoreleasePool release];
                 AutoreleasePool = [[NSAutoreleasePool alloc] init];
             }
         }

@@ -159,12 +159,13 @@ FTransform FXRTrackingSystemBase::ComputeTrackingToWorldTransform(FWorldContext&
 					{
 						FVector HMDPos;
 						FQuat   HMDRot;
-						GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HMDRot, HMDPos);
-
-						// @TODO: This is assuming users are using the PlayerController's default implementation for
-						//        UpdateRotation(). If they're not calling ApplyHMDRotation() then this is wrong, 
-						//        and ViewRot should be left unmodified.
-						ViewRot = FRotator(ViewRot.Quaternion() * HMDRot.Inverse());
+						if (GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HMDRot, HMDPos))
+						{
+							// @TODO: This is assuming users are using the PlayerController's default implementation for
+							//        UpdateRotation(). If they're not calling ApplyHMDRotation() then this is wrong,
+							//        and ViewRot should be left unmodified.
+							ViewRot = FRotator(ViewRot.Quaternion() * HMDRot.Inverse());
+						}
 					}
 
 					TrackingToWorld = FTransform(ViewRot, ViewPos);

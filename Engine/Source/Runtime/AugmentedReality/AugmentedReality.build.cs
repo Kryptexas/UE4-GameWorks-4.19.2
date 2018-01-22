@@ -15,7 +15,8 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"RenderCore",
+                    "EngineSettings",
+                    "RenderCore",
 					"ShaderCore",
 					"RHI",
                     "HeadMountedDisplay"

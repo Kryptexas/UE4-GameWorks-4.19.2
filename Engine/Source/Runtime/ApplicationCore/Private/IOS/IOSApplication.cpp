@@ -11,11 +11,6 @@
 #include "Misc/ScopeLock.h"
 #include "HAL/IConsoleManager.h"
 
-static TAutoConsoleVariable<float> CVarIOSSafeZoneMarginLeft(TEXT("IOSSafeZoneMarginLeft"), 0.f, TEXT("IOS SafeZone Margin Left"), ECVF_Scalability);
-static TAutoConsoleVariable<float> CVarIOSSafeZoneMarginTop(TEXT("IOSSafeZoneMarginTop"), 0.f, TEXT("IOS SafeZone Margin Top"), ECVF_Scalability);
-static TAutoConsoleVariable<float> CVarIOSSafeZoneMarginRight(TEXT("IOSSafeAoneMarginRight"), 0.f, TEXT("IOS SafeZone Margin Right"), ECVF_Scalability);
-static TAutoConsoleVariable<float> CVarIOSSafeZoneMarginBottom(TEXT("IOSSafeZoneMarginBottom"), 0.f, TEXT("IOS SafeZone Margin Bottom"), ECVF_Scalability);
-
 FCriticalSection FIOSApplication::CriticalSection;
 bool FIOSApplication::bOrientationChanged = false;
 
@@ -118,19 +113,16 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	OutDisplayMetrics.PrimaryDisplayWidth = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 	OutDisplayMetrics.PrimaryDisplayHeight = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
 
-	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
-	float RequestedContentScaleFactor = CVar->GetFloat();
-
-#ifdef __IPHONE_11_0
-	if ([[[[UIApplication sharedApplication] delegate] window] respondsToSelector : @selector(safeAreaInsets)] == YES)
+#if !PLATFORM_TVOS
+	if (@available(iOS 11, *))
 	{
-		UIEdgeInsets insets = [[[[UIApplication sharedApplication] delegate] window] safeAreaInsets];
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
+		float RequestedContentScaleFactor = CVar->GetFloat();
 
-		// Apply the debug safe zones
-		OutDisplayMetrics.TitleSafePaddingSize.X = insets.left * RequestedContentScaleFactor;
-		OutDisplayMetrics.TitleSafePaddingSize.Z = insets.right * RequestedContentScaleFactor;
-		OutDisplayMetrics.TitleSafePaddingSize.Y = insets.top * RequestedContentScaleFactor;
-		OutDisplayMetrics.TitleSafePaddingSize.W = insets.bottom * RequestedContentScaleFactor;
+		UIEdgeInsets insets = [[[[UIApplication sharedApplication] delegate] window] safeAreaInsets];
+		// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+		OutDisplayMetrics.TitleSafePaddingSize =
+		OutDisplayMetrics.ActionSafePaddingSize = FVector4(insets.left, insets.top, insets.right, insets.bottom) * RequestedContentScaleFactor;
 	}
 	else
 #endif

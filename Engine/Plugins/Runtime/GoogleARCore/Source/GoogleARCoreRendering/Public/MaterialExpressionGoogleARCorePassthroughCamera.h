@@ -9,7 +9,7 @@
 #include "MaterialExpressionGoogleARCorePassthroughCamera.generated.h"
 
 /**
-* Implements a node sampling from the Tango Passthrough external texture.
+* Implements a node sampling from the ARCore Passthrough external texture.
 */
 UCLASS(collapsecategories, hidecategories = Object)
 class GOOGLEARCORERENDERING_API UMaterialExpressionGoogleARCorePassthroughCamera : public UMaterialExpression

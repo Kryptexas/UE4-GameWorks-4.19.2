@@ -332,7 +332,15 @@ void SScaleBox::RefreshSafeZoneScale()
 				FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
 				// Safe zones are uniform, so the axis we check is irrelevant
-				ScaleDownBy = (Metrics.TitleSafePaddingSize.X + Metrics.TitleSafePaddingSize.Z) / (float)ViewportSize.X;
+#if PLATFORM_IOS
+				// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+				// Consequence: Left and Right safe zones are represented by X and Z.
+				const float LeftSafeZone = Metrics.TitleSafePaddingSize.X;
+				const float RightSafeZone = Metrics.TitleSafePaddingSize.Z;
+				ScaleDownBy = (LeftSafeZone + RightSafeZone) / (float)ViewportSize.X;
+#else
+				ScaleDownBy = (Metrics.TitleSafePaddingSize.X * 2.f) / (float)ViewportSize.X;
+#endif
 			}
 		}
 	}

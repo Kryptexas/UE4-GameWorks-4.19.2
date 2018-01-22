@@ -121,9 +121,9 @@ public:
     virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) = 0;
 
 	/**
-	 * Called right after MobileBasePass rendering finished
+	 * Called right after Base Pass rendering finished
 	 */
-	virtual void PostRenderMobileBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
+	virtual void PostRenderBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
 
 	/**
 	 * Allows to render content after the 3D content scene, useful for debugging
