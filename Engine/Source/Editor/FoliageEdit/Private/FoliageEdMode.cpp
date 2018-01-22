@@ -511,6 +511,26 @@ void FEdModeFoliage::Exit()
 	FEdMode::Exit();
 }
 
+EFoliageEditingState FEdModeFoliage::GetEditingState() const
+{
+	UWorld* World = GetWorld();
+
+	if (GEditor->bIsSimulatingInEditor)
+	{
+		return EFoliageEditingState::SIEWorld;
+	}
+	else if (GEditor->PlayWorld != NULL)
+	{
+		return EFoliageEditingState::PIEWorld;
+	}
+	else if (World == nullptr)
+	{
+		return EFoliageEditingState::Unknown;
+	}
+
+	return EFoliageEditingState::Enabled;
+}
+
 void FEdModeFoliage::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
 	UVREditorMode* VREditorMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UVREditorMode::StaticClass() ) );
@@ -790,6 +810,11 @@ void FEdModeFoliage::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 
 void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
+	if (!IsEditingEnabled())
+	{
+		return;
+	}
+
 	if (bToolActive)
 	{
 		ApplyBrush(ViewportClient);
@@ -922,7 +947,7 @@ bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport*
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
 	UVREditorMode* VREditorMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UVREditorMode::StaticClass() ) );
-	if (VREditorMode == nullptr || !VREditorMode->IsActive())
+	if (IsEditingEnabled() && (VREditorMode == nullptr || !VREditorMode->IsActive()))
 	{
 		// Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -3270,6 +3295,11 @@ void FEdModeFoliage::ReallocateClusters(UFoliageType* Settings)
 /** FEdMode: Called when a key is pressed */
 bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+	if (!IsEditingEnabled())
+	{
+		return false;
+	}
+
 	if (Event != IE_Released)
 	{
 		if (UICommandList->ProcessCommandBindings(Key, FSlateApplication::Get().GetModifierKeys(), false/*Event == IE_Repeat*/))
