@@ -19,10 +19,10 @@ FOLDVulkanDescriptorPool::FOLDVulkanDescriptorPool(FVulkanDevice* InDevice)
 	, MaxDescriptorSets(0)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
-	, DescriptorPool(VK_NULL_HANDLE)
 #if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
 	, Layout(InLayout)
 #endif
+	, DescriptorPool(VK_NULL_HANDLE)
 {
 #if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
 	INC_DWORD_STAT(STAT_VulkanNumDescPools);

@@ -263,9 +263,10 @@ class FVulkanDescriptorPoolSet
 public:
 	FVulkanDescriptorPoolSet(FVulkanDevice* InDevice)
 		: Device(InDevice)
-		, bUsed(true)
 		, LastFrameUsed(GFrameNumberRenderThread)
-	{};
+		, bUsed(true)
+	{
+	}
 
 	~FVulkanDescriptorPoolSet();
 
