@@ -121,7 +121,7 @@ bool FShaderCompileXGEThreadRunnable_XmlInterface::IsSupported()
 
 		if (!bXgeFound)
 		{
-			UE_LOG(LogShaderCompilers, Warning, TEXT("Cannot use XGE Shader Compiler as Incredibuild is not installed on this machine."));
+			UE_LOG(LogShaderCompilers, Log, TEXT("Cannot use XGE Shader Compiler as Incredibuild is not installed on this machine."));
 		}
 	}
 
