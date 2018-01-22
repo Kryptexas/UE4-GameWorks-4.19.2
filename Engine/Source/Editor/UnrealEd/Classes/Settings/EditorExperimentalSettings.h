@@ -121,10 +121,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Enable mobile PIE with preview device launch options."))
 	bool bMobilePIEPreviewDeviceLaunch;
 
-	/** Enables the ability to bake materials inside of the Static Mesh and Skeletal Mesh Editor, and for static mesh instances. */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
-	bool bAssetMaterialBaking;
-
 	/** Enables in-editor support for text asset formats */
 	//UPROPERTY(EditAnywhere, config, Category = Core)
 	bool bTextAssetFormatSupport;
