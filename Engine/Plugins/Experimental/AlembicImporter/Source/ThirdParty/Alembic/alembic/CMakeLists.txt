@@ -235,6 +235,11 @@ IF (USE_HDF5)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DH5_USE_18_API")
 ENDIF()
 
+IF (USE_STATIC_HDF5)
+ELSE()
+	ADD_DEFINITIONS(-DH5_BUILT_AS_DYNAMIC_LIB)
+ENDIF()
+
 #-******************************************************************************
 # BUILD LIBRARIES
 #-******************************************************************************

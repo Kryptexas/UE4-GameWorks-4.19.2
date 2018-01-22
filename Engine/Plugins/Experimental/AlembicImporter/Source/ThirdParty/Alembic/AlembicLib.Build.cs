@@ -42,6 +42,9 @@ public class AlembicLib : ModuleRules
 
             if (Target.Platform == UnrealTargetPlatform.Win64)
             {
+                PublicDefinitions.Add("H5_BUILT_AS_DYNAMIC_LIB");
+                PublicDefinitions.Add("OPENEXR_DLL");
+
                 List<string> ReqLibraryNames = new List<string>();
                 ReqLibraryNames.AddRange
                 (
@@ -50,9 +53,10 @@ public class AlembicLib : ModuleRules
                         "Iex",
                         "IlmThread",
                         "Imath",
+                        "IexMath",
+                        (bDebug && bAllowDynamicLibs) ? "hdf5_" : "hdf5",
                         "Alembic"
                 });
-
                 foreach (string LibraryName in ReqLibraryNames)
                 {
                     PublicAdditionalLibraries.Add(LibraryName + LibPostFix + LibExtension);
@@ -60,7 +64,12 @@ public class AlembicLib : ModuleRules
 
                 if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
                 {
-                    RuntimeDependencies.Add("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll");
+                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/zlibd1.dll"));
+                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5_D.dll"));
+                }
+                else
+                {
+                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/Win64/hdf5.dll"));
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac)
