@@ -123,7 +123,10 @@ class WebViewControl
 				webView.getSettings().setAllowContentAccess( true );
 				webView.getSettings().setAllowFileAccessFromFileURLs(true);
 				webView.getSettings().setAllowUniversalAccessFromFileURLs(true);
-				webView.getSettings().setMixedContentMode(0); // 0 = MIXED_CONTENT_ALWAYS_ALLOW
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+				{
+					webView.getSettings().setMixedContentMode(0); // 0 = MIXED_CONTENT_ALWAYS_ALLOW
+				}
 
 				webView.getSettings().setCacheMode( WebSettings.LOAD_DEFAULT );
 				webView.getSettings().setLoadWithOverviewMode(true);
