@@ -33,8 +33,11 @@ void ResetAnimSequencerInstance(UObject& ObjectToRestore, IMovieScenePlayer& Pla
 struct FStopPlayingMontageTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
 	TWeakObjectPtr<UAnimInstance> TempInstance;
+	int32 TempMontageInstanceId;
 
-	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimInstance> InTempInstance) : TempInstance(InTempInstance) {}
+	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimInstance> InTempInstance, int32 InTempMontageInstanceId)
+	: TempInstance(InTempInstance)
+	, TempMontageInstanceId(InTempMontageInstanceId){}
 
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
@@ -43,20 +46,25 @@ struct FStopPlayingMontageTokenProducer : IMovieScenePreAnimatedTokenProducer
 			TWeakObjectPtr<UAnimInstance> WeakInstance;
 			int32 MontageInstanceId;
 
-			FToken(TWeakObjectPtr<UAnimInstance> InWeakInstance) : WeakInstance(InWeakInstance) {}
+			FToken(TWeakObjectPtr<UAnimInstance> InWeakInstance, int32 InMontageInstanceId) 
+			: WeakInstance(InWeakInstance)
+			, MontageInstanceId(InMontageInstanceId) {}
 
 			virtual void RestoreState(UObject& ObjectToRestore, IMovieScenePlayer& Player) override
 			{
-				UAnimMontage* Montage = CastChecked<UAnimMontage>(&ObjectToRestore);
 				UAnimInstance* AnimInstance = WeakInstance.Get();
-				if (AnimInstance && Montage)
+				if (AnimInstance)
 				{
-					AnimInstance->Montage_Stop(0.f, Montage);
+					FAnimMontageInstance* MontageInstance = AnimInstance->GetMontageInstanceForID(MontageInstanceId);
+					if (MontageInstance)
+					{
+						MontageInstance->Stop(FAlphaBlend(0.f), false);
+					}
 				}
 			}
 		};
 
-		return FToken(TempInstance);
+		return FToken(TempInstance, TempMontageInstanceId);
 	}
 };
 
@@ -268,7 +276,7 @@ namespace MovieScene
 					DataContainer.MontageInstanceId = InstanceId;
 
 					FMovieSceneAnimTypeID SlotTypeID = SectionToAnimationIDs.GetAnimTypeID(Section);
-					Player.SavePreAnimatedState(*Montage.Get(), SlotTypeID, FStopPlayingMontageTokenProducer(AnimInst));
+					Player.SavePreAnimatedState(*Montage.Get(), SlotTypeID, FStopPlayingMontageTokenProducer(AnimInst, InstanceId));
 
 					// make sure it's playing
 					FAnimMontageInstance* Instance = AnimInst->GetMontageInstanceForID(InstanceId);
@@ -308,7 +316,7 @@ namespace MovieScene
 					DataContainer.MontageInstanceId = InstanceId;
 
 					FMovieSceneAnimTypeID AnimTypeID = SectionToAnimationIDs.GetAnimTypeID(InAnimSequence);
-					Player.SavePreAnimatedState(*Montage.Get(), AnimTypeID, FStopPlayingMontageTokenProducer(AnimInst));
+					Player.SavePreAnimatedState(*Montage.Get(), AnimTypeID, FStopPlayingMontageTokenProducer(AnimInst, InstanceId));
 
 					FAnimMontageInstance* Instance = AnimInst->GetMontageInstanceForID(InstanceId);
 					Instance->bPlaying = bPlaying;

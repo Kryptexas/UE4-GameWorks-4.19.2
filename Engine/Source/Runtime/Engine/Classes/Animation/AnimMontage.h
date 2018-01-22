@@ -424,7 +424,7 @@ public:
 
 	//~ Begin montage instance Interfaces
 	void Play(float InPlayRate = 1.f);
-	void Stop(const FAlphaBlend& InBlendOut, bool bInterrupt=true);
+	ENGINE_API void Stop(const FAlphaBlend& InBlendOut, bool bInterrupt=true);
 	void Pause();
 	void Initialize(class UAnimMontage * InMontage);
 
