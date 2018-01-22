@@ -429,6 +429,24 @@ bool FProjectManager::SaveCurrentProjectToDisk(FText& OutFailReason)
 	return false;
 }
 
+bool FProjectManager::IsEnterpriseProject()
+{
+	bool bIsEnterprise = false;
+	if (CurrentProject.IsValid())
+	{
+		bIsEnterprise = CurrentProject->bIsEnterpriseProject;
+	}
+
+	return bIsEnterprise;
+}
+
+void FProjectManager::SetIsEnterpriseProject(bool bValue)
+{
+	if (CurrentProject.IsValid())
+	{
+		CurrentProject->bIsEnterpriseProject = bValue;
+	}
+}
 
 IProjectManager& IProjectManager::Get()
 {

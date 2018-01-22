@@ -55,6 +55,12 @@ void SPluginTile::RecreateWidgets()
 
 	const FPluginDescriptor& PluginDescriptor = Plugin->GetDescriptor();
 
+	// Disable Enterprise plugins if project is not an Enterprise project
+	if (Plugin->GetType() == EPluginType::Enterprise && !IProjectManager::Get().IsEnterpriseProject())
+	{
+		SetEnabled(false);
+	}
+
 	// Plugin thumbnail image
 	FString Icon128FilePath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
 	if(!FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))

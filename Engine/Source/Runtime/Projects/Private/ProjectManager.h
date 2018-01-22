@@ -35,6 +35,8 @@ public:
 	virtual void UpdateAdditionalPluginDirectory(const FString& Dir, const bool bAddOrRemove) override;
 	virtual bool IsCurrentProjectDirty() const override;
 	virtual bool SaveCurrentProjectToDisk(FText& OutFailReason) override;
+	virtual bool IsEnterpriseProject() override;
+	virtual void SetIsEnterpriseProject(bool bValue) override;
 
 private:
 	static void QueryStatusForProjectImpl(const FProjectDescriptor& Project, const FString& FilePath, FProjectStatus& OutProjectStatus);

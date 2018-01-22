@@ -295,8 +295,8 @@ void FPluginManager::ReadAllPlugins(TMap<FString, TSharedRef<FPlugin>>& Plugins,
 			ReadPluginsInDirectory(Dir, EPluginType::External, Plugins);
 		}
 
-		// For enterprise projects, add plugins in EnterprisePluginsDir
-		if (Project->bIsEnterpriseProject)
+		// Add plugins from FPaths::EnterprisePluginsDir if it exists
+		if (FPaths::DirectoryExists(FPaths::EnterprisePluginsDir()))
 		{
 			ReadPluginsInDirectory(FPaths::EnterprisePluginsDir(), EPluginType::Enterprise, Plugins);
 		}
@@ -719,6 +719,12 @@ bool FPluginManager::ConfigureEnabledPlugin(const FPluginReferenceDescriptor& Fi
 				continue;
 			}
 #endif
+
+			// Skip loading Enterprise plugins when project is not an Enterprise project
+			if (Plugin.Type == EPluginType::Enterprise && !IProjectManager::Get().IsEnterpriseProject())
+			{
+				continue;
+			}
 
 #if !IS_MONOLITHIC
 			// Mount the binaries directory, and check the modules are valid
