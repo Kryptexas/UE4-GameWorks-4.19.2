@@ -9,7 +9,7 @@ public class FlexLibrary : ModuleRules
 	{
 		Type = ModuleType.External;
 
-        if (UEBuildConfiguration.bCompileNvFlexD3D == false && UEBuildConfiguration.bCompileNvFlexCUDA == false)
+        if (Target.bCompileNvFlexD3D == false && Target.bCompileNvFlexCUDA == false)
         {
             Definitions.Add("WITH_FLEX=0");
             return;
@@ -17,13 +17,13 @@ public class FlexLibrary : ModuleRules
 
         Definitions.Add("WITH_FLEX=1");
 
-        if(UEBuildConfiguration.bCompileNvFlexD3D)
+        if(Target.bCompileNvFlexD3D)
         {
             Definitions.Add("WITH_FLEX_DX=1");
             Definitions.Add("WITH_FLEX_CUDA=0");
         }
 
-        if (UEBuildConfiguration.bCompileNvFlexCUDA)
+        if (Target.bCompileNvFlexCUDA)
         {
             Definitions.Add("WITH_FLEX_CUDA=1");
             Definitions.Add("WITH_FLEX_DX=0");
@@ -41,9 +41,9 @@ public class FlexLibrary : ModuleRules
 		{
             PublicLibraryPaths.Add(BaseLibDir + "/win64");
 
-            if (UEBuildConfiguration.bCompileNvFlexCUDA)
+            if (Target.bCompileNvFlexCUDA)
             {
-                if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     PublicAdditionalLibraries.Add("NvFlexDebugCUDA_x64.lib");
                     PublicDelayLoadDLLs.Add("NvFlexDebugCUDA_x64.dll");
@@ -63,9 +63,9 @@ public class FlexLibrary : ModuleRules
                 }
             }
 
-            if (UEBuildConfiguration.bCompileNvFlexD3D)
+            if (Target.bCompileNvFlexD3D)
             {
-                if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     PublicAdditionalLibraries.Add("NvFlexDebugD3D_x64.lib");
                     PublicDelayLoadDLLs.Add("NvFlexDebugD3D_x64.dll");
@@ -83,7 +83,7 @@ public class FlexLibrary : ModuleRules
 
             string BinariesDir = BaseBinDir + "/Win64/";
 
-            if (UEBuildConfiguration.bCompileNvFlexCUDA)
+            if (Target.bCompileNvFlexCUDA)
             {
                 string[] RuntimeDependenciesX64 =
                 {
@@ -102,7 +102,7 @@ public class FlexLibrary : ModuleRules
                 }
             }
 
-            if (UEBuildConfiguration.bCompileNvFlexD3D)
+            if (Target.bCompileNvFlexD3D)
             {
                 string[] RuntimeDependenciesX64 =
                 {
@@ -124,9 +124,9 @@ public class FlexLibrary : ModuleRules
 		{
 			PublicLibraryPaths.Add(BaseLibDir + "/win32");
 
-            if (UEBuildConfiguration.bCompileNvFlexCUDA)
+            if (Target.bCompileNvFlexCUDA)
             {
-                if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     PublicAdditionalLibraries.Add("NvFlexDebugCUDA_x86.lib");
                     PublicDelayLoadDLLs.Add("NvFlexDebugCUDA_x86.dll");
@@ -146,9 +146,9 @@ public class FlexLibrary : ModuleRules
                 }
             }
 
-            if (UEBuildConfiguration.bCompileNvFlexD3D)
+            if (Target.bCompileNvFlexD3D)
             {
-                if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     PublicAdditionalLibraries.Add("NvFlexDebugD3D_x86.lib");
                     PublicDelayLoadDLLs.Add("NvFlexDebugD3D_x86.dll");
@@ -166,7 +166,7 @@ public class FlexLibrary : ModuleRules
 
             string BinariesDir = BaseBinDir + "/Win32/";
 
-            if (UEBuildConfiguration.bCompileNvFlexCUDA)
+            if (Target.bCompileNvFlexCUDA)
             {
 
                 string[] RuntimeDependenciesX86 =
@@ -187,7 +187,7 @@ public class FlexLibrary : ModuleRules
             }
 
 
-            if (UEBuildConfiguration.bCompileNvFlexD3D)
+            if (Target.bCompileNvFlexD3D)
             {
 
                 string[] RuntimeDependenciesX86 =
