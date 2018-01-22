@@ -236,7 +236,7 @@ bool FXGEControllerModule::IsSupported()
 
 		if (!bFound)
 		{
-			UE_LOG(LogXGEController, Warning, TEXT("Cannot use XGE Controller as Incredibuild is not installed on this machine."));
+			UE_LOG(LogXGEController, Log, TEXT("Cannot use XGE Controller as Incredibuild is not installed on this machine."));
 			XGEControllerVariables::Enabled = 0;
 		}
 		else
