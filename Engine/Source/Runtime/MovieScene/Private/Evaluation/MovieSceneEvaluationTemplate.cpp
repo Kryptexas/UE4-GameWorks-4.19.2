@@ -155,11 +155,7 @@ void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
 			}
 		}
 
-		// Add the track to the stale tracks map if necessary
-		if (bKeepStaleTracks)
-		{
-			StaleTracks.Add(TrackIdentifier, MoveTemp(*Track));
-		}
+		StaleTracks.Add(TrackIdentifier, MoveTemp(*Track));
 	}
 
 	Tracks.Remove(TrackIdentifier);

@@ -136,7 +136,6 @@ struct FMovieSceneEvaluationTemplate
 	 */
 	FMovieSceneEvaluationTemplate()
 	{
-		bKeepStaleTracks = 0;
 	}
 
 public:
@@ -152,7 +151,7 @@ public:
 			return Track;
 		}
 
-		return bKeepStaleTracks ? StaleTracks.Find(Identifier) : nullptr;
+		return StaleTracks.Find(Identifier);
 	}
 
 	/**
@@ -166,7 +165,7 @@ public:
 			return Track;
 		}
 
-		return bKeepStaleTracks ? StaleTracks.Find(Identifier) : nullptr;
+		return StaleTracks.Find(Identifier);
 	}
 
 	/**
@@ -190,7 +189,7 @@ public:
 	 */
 	bool IsTrackStale(FMovieSceneTrackIdentifier Identifier) const
 	{
-		return bKeepStaleTracks ? StaleTracks.Contains(Identifier) : false;
+		return StaleTracks.Contains(Identifier);
 	}
 
 	/**
@@ -277,7 +276,7 @@ private:
 	UPROPERTY()
 	TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack> Tracks;
 
-	/** Transient map of stale tracks. Only populated during regeneration where bKeepStaleTracks is true */
+	/** Transient map of stale tracks. */
 	TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack> StaleTracks;
 
 public:
@@ -304,10 +303,5 @@ private:
 	UPROPERTY()
 	FMovieSceneSubSectionFieldData SubSectionFieldData;
 
-public:
-
-	/** Primarily used in editor to keep stale tracks around during template regeneration to ensure we can call OnEndEvaluation on them. */
-	UPROPERTY()
-	uint32 bKeepStaleTracks : 1;
 };
 template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTemplate> : public TStructOpsTypeTraitsBase2<FMovieSceneEvaluationTemplate> { enum { WithPostSerialize = true }; };
