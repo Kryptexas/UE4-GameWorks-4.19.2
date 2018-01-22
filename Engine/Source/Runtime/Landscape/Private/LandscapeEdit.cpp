@@ -3688,9 +3688,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		ChangeTessellationComponentScreenSizeFalloff(TessellationComponentScreenSizeFalloff);
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, LODDistributionSetting)
-		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, LOD0DistributionSetting)
-		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, IncludeTessellationInShadowLOD)
-		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, RestrictTessellationToShadowCascade))
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, LOD0DistributionSetting))
 	{		
 		MarkComponentsRenderStateDirty();
 	}
@@ -3857,8 +3855,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		ComponentScreenSizeToUseSubSections = FMath::Clamp<float>(ComponentScreenSizeToUseSubSections, 0.01f, 1.0f);
 		bPropagateToProxies = true;
 	}
-	else if (PropertyName == FName(TEXT("UseTessellationComponentScreenSizeFalloff"))
-			|| PropertyName == FName(TEXT("IncludeTessellationInShadowLOD")))
+	else if (PropertyName == FName(TEXT("UseTessellationComponentScreenSizeFalloff")))
 	{
 		bPropagateToProxies = true;
 	}
@@ -3867,11 +3864,6 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		TessellationComponentScreenSizeFalloff = FMath::Clamp<float>(TessellationComponentScreenSizeFalloff, 0.01f, 1.0f);
 		bPropagateToProxies = true;
 	}
-	else if (PropertyName == FName(TEXT("RestrictTessellationToShadowCascade")))
-	{
-		FMath::Max<float>(RestrictTessellationToShadowCascade, 10.0f);
-		bPropagateToProxies = true;
-	}		
 	else if (PropertyName == FName(TEXT("LODDistributionSetting")))
 	{
 		LODDistributionSetting = FMath::Clamp<float>(LODDistributionSetting, 1.0f, 10.0f);

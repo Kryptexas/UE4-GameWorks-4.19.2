@@ -1229,11 +1229,15 @@ void FProjectedShadowInfo::GatherDynamicMeshElementsArray(
 		{
 			Renderer.MeshCollector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
 
-			if (ViewRelevance.bUseCustomViewData)
+			if (ViewRelevance.bUseCustomViewData && DependentView != nullptr)
 			{
-				if (FoundView->GetCustomData(PrimitiveSceneInfo->GetIndex()) == nullptr)
+				if (DependentView->GetCustomData(PrimitiveSceneInfo->GetIndex()) == nullptr)
 				{
-					FoundView->SetCustomData(PrimitiveSceneInfo, PrimitiveSceneInfo->Proxy->InitViewCustomData(*FoundView, FoundView->LODDistanceFactor, FoundView->GetCustomDataGlobalMemStack()));
+					void* CustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(*DependentView, DependentView->LODDistanceFactor, DependentView->GetCustomDataGlobalMemStack());
+					DependentView->SetCustomData(PrimitiveSceneInfo, CustomData);
+
+					// This is required as GetDynamicMeshElements will received ReusedViewsArray which contains only FoundView
+					FoundView->SetCustomData(PrimitiveSceneInfo, CustomData);
 				}
 			}
 

@@ -742,8 +742,6 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	ComponentScreenSizeToUseSubSections = 0.65f;
 	UseTessellationComponentScreenSizeFalloff = true;
 	TessellationComponentScreenSizeFalloff = 0.75f;
-	IncludeTessellationInShadowLOD = false;
-	RestrictTessellationToShadowCascade = 0;
 	LOD0DistributionSetting = 1.75f;
 	LODDistributionSetting = 2.0f;
 	bCastStaticShadow = true;
@@ -1679,8 +1677,6 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		ComponentScreenSizeToUseSubSections = Landscape->ComponentScreenSizeToUseSubSections;
 		UseTessellationComponentScreenSizeFalloff = Landscape->UseTessellationComponentScreenSizeFalloff;
 		TessellationComponentScreenSizeFalloff = Landscape->TessellationComponentScreenSizeFalloff;
-		IncludeTessellationInShadowLOD = Landscape->IncludeTessellationInShadowLOD;
-		RestrictTessellationToShadowCascade = Landscape->RestrictTessellationToShadowCascade;
 		LODDistributionSetting = Landscape->LODDistributionSetting;
 		LOD0DistributionSetting = Landscape->LOD0DistributionSetting;
 		NegativeZBoundsExtension = Landscape->NegativeZBoundsExtension;
@@ -1746,18 +1742,6 @@ void ALandscapeProxy::ConditionalAssignCommonProperties(ALandscape* Landscape)
 		bUpdated = true;
 	}
 	
-	if (IncludeTessellationInShadowLOD != Landscape->IncludeTessellationInShadowLOD)
-	{
-		IncludeTessellationInShadowLOD = Landscape->IncludeTessellationInShadowLOD;
-		bUpdated = true;
-	}
-
-	if (RestrictTessellationToShadowCascade != Landscape->RestrictTessellationToShadowCascade)
-	{
-		RestrictTessellationToShadowCascade = Landscape->RestrictTessellationToShadowCascade;
-		bUpdated = true;
-	}	
-
 	if (LODDistributionSetting != Landscape->LODDistributionSetting)
 	{
 		LODDistributionSetting = Landscape->LODDistributionSetting;

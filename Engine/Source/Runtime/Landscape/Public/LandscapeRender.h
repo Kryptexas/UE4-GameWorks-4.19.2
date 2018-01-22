@@ -519,8 +519,6 @@ protected:
 	bool						TessellationEnabledOnDefaultMaterial;	// Used to know if we have tessellation enabled on the material
 	bool						UseTessellationComponentScreenSizeFalloff;	// Tell if we should apply a Tessellation falloff
 	float						TessellationComponentScreenSizeFalloff;	// Min Component screen size before we start applying the tessellation falloff
-	bool						IncludeTessellationInShadowLOD;			// Tell if we should include the tessellation material into the whole scene shadow generation
-	int32						RestrictTessellationToShadowCascade;	// when IncludeTessellationInShadowLOD is true it will tell us on which shadow cascade we restrict the application
 	TArray<FVector>				SubSectionScreenSizeTestingPosition;	// Precomputed sub section testing position for screen size calculation
 
 	/** 

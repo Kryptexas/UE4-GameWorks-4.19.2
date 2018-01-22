@@ -383,14 +383,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Tessellation, meta=(editcondition= UseTessellationComponentScreenSizeFalloff, ClampMin = "0.01", ClampMax = "1.0", UIMin = "0.01", UIMax = "1.0", DisplayName = "Tessellation Component Screen Size Falloff"))
 	float TessellationComponentScreenSizeFalloff;
 
-	/** Tell if we should include tessellation into the whole scene cascade shadow LOD. */
-	UPROPERTY(EditAnywhere, Category = Tessellation, meta = (DisplayName = "Include Tessellation In Shadow LOD"))
-	bool IncludeTessellationInShadowLOD;
-
-	/** Tell if we want to restrict the tessellation to whole scene shadow lod on cascade specified or lower. -1 == do not restrict tessellation to the specified shadow cascade. */
-	UPROPERTY(EditAnywhere, Category = Tessellation, meta = (DisplayName = "Restrict Tessellation to Shadow Cascade", ClampMin = "-1", ClampMax = "10", UIMin = "-1", UIMax = "10"))
-	int32 RestrictTessellationToShadowCascade;
-
 #if WITH_EDITORONLY_DATA
 	/** LOD level to use when exporting the landscape to obj or FBX */
 	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)

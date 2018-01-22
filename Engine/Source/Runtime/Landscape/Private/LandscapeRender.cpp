@@ -576,8 +576,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, TessellationEnabledOnDefaultMaterial(false)
 	, UseTessellationComponentScreenSizeFalloff(InComponent->GetLandscapeProxy()->UseTessellationComponentScreenSizeFalloff)
 	, TessellationComponentScreenSizeFalloff(InComponent->GetLandscapeProxy()->TessellationComponentScreenSizeFalloff)
-	, IncludeTessellationInShadowLOD(InComponent->GetLandscapeProxy()->IncludeTessellationInShadowLOD)
-	, RestrictTessellationToShadowCascade(InComponent->GetLandscapeProxy()->RestrictTessellationToShadowCascade)
 	, NumSubsections(InComponent->NumSubsections)
 	, SubsectionSizeQuads(InComponent->SubsectionSizeQuads)
 	, SubsectionSizeVerts(InComponent->SubsectionSizeQuads + 1)
@@ -2047,7 +2045,9 @@ FLODMask FLandscapeComponentSceneProxy::GetCustomLOD(const FSceneView& View, flo
 
 		if (TessellationEnabledOnDefaultMaterial)
 		{
-			LODToRender.SetLOD(OutScreenSizeSquared >= TessellationComponentSquaredScreenSize * InViewLODScale ? 0 : 1);
+			const int8 TessellatedMeshBatchLODIndex = 0;
+			const int8 NonTessellatedMeshBatchLODIndex = 1;
+			LODToRender.SetLOD(OutScreenSizeSquared >= TessellationComponentSquaredScreenSize * InViewLODScale ? TessellatedMeshBatchLODIndex : NonTessellatedMeshBatchLODIndex);
 		}
 		else //only 1 LOD mesh batch exist so assume it
 		{
@@ -2084,23 +2084,32 @@ FLODMask FLandscapeComponentSceneProxy::GetCustomWholeSceneShadowLOD(const FScen
 	{
 		if (TessellationEnabledOnDefaultMaterial)
 		{
-			LODToRender.SetLOD(3); // No Tess by default
+			const int8 ShadowTessellatedMeshBatchLODIndex = 2;
+			const int8 ShadowNonTessellatedMeshBatchLODIndex = 3;
 
-			if (IncludeTessellationInShadowLOD)
+			bool UseTessellationMeshBatch = true;
+
+			const FSceneView& LODView = GetLODView(InView);
+			const FViewCustomDataLOD* PrimitiveCustomData = (const FViewCustomDataLOD*)LODView.GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
+
+			if (PrimitiveCustomData == nullptr)
 			{
-				const FSceneView& LODView = GetLODView(InView);
-				const FViewCustomDataLOD* PrimitiveCustomData = (const FViewCustomDataLOD*)LODView.GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
-				const float ScreenSizeSquared = PrimitiveCustomData != nullptr ? PrimitiveCustomData->ComponentScreenSize : GetComponentScreenSize(&LODView, LandscapeComponent->Bounds.Origin, ComponentMaxExtend, LandscapeComponent->Bounds.SphereRadius);
+				UseTessellationMeshBatch = GetComponentScreenSize(&LODView, LandscapeComponent->Bounds.Origin, ComponentMaxExtend, LandscapeComponent->Bounds.SphereRadius) >= TessellationComponentSquaredScreenSize * InViewLODScale;
+			}
+			else
+			{
+				UseTessellationMeshBatch = PrimitiveCustomData->ComponentScreenSize >= TessellationComponentSquaredScreenSize * InViewLODScale;
+			}
 
-				if (ScreenSizeSquared >= TessellationComponentSquaredScreenSize * InViewLODScale)
+			if (UseTessellationMeshBatch)
+			{
+				if (!CanUseMeshBatchForShadowCascade(ShadowTessellatedMeshBatchLODIndex, InShadowMapTextureResolution, InShadowMapCascadeSize))
 				{
-					if ((RestrictTessellationToShadowCascade == INDEX_NONE || InShadowCascadeId <= RestrictTessellationToShadowCascade) && CanUseMeshBatchForShadowCascade(LODToRender.DitheredLODIndices[0], InShadowMapTextureResolution, InShadowMapCascadeSize))
-					{
-						INC_DWORD_STAT(STAT_LandscapeTessellatedShadowCascade);
-						LODToRender.SetLOD(2);
-					}
+					UseTessellationMeshBatch = false;
 				}
 			}
+
+			LODToRender.SetLOD(UseTessellationMeshBatch ? ShadowTessellatedMeshBatchLODIndex : ShadowNonTessellatedMeshBatchLODIndex);
 		}
 		else //only 1 LOD mesh batch exist so assume it
 		{
