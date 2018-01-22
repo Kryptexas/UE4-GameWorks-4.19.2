@@ -121,9 +121,31 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 		MeshDesc.triangles.data = Tris.GetData();
 		MeshDesc.triangles.count = Tris.Num();
 		MeshDesc.triangles.stride = Tris.GetTypeSize();
-		MeshDesc.invMasses.data = InvMasses.GetData();
-		MeshDesc.invMasses.count = InvMasses.Num();
-		MeshDesc.invMasses.stride = InvMasses.GetTypeSize();
+
+		// Only set up inverse masses here if we aren't completely skinned, otherwise we will fail
+		// constraint creation
+		bool bHasValidMasses = false;
+		for(const float& InvMass : InvMasses)
+		{
+			if(InvMass > 0.0f)
+			{
+				bHasValidMasses = true;
+				break;
+			}
+		}
+
+		if(bHasValidMasses)
+		{
+			MeshDesc.invMasses.data = InvMasses.GetData();
+			MeshDesc.invMasses.count = InvMasses.Num();
+			MeshDesc.invMasses.stride = InvMasses.GetTypeSize();
+		}
+		else
+		{
+			MeshDesc.invMasses.data = nullptr;
+			MeshDesc.invMasses.count = 0;
+			MeshDesc.invMasses.stride = 0;
+		}
 
 		// NvCloth works better with quad meshes, so we need to build one from our triangle data
 		FClothingSystemRuntimeModule& ClothingModule = FModuleManager::Get().LoadModuleChecked<FClothingSystemRuntimeModule>("ClothingSystemRuntime");
