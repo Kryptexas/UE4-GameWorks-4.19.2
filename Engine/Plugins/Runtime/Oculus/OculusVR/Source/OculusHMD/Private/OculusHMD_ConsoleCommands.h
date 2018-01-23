@@ -24,7 +24,6 @@ private:
 	FAutoConsoleCommand UpdateOnRenderThreadCommand;
 	FAutoConsoleCommand PixelDensityMinCommand;
 	FAutoConsoleCommand PixelDensityMaxCommand;
-	FAutoConsoleCommand PixelDensityAdaptiveCommand;
 	FAutoConsoleCommand HQBufferCommand;
 	FAutoConsoleCommand HQDistortionCommand;
 	FAutoConsoleCommand ShowGlobalMenuCommand;

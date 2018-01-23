@@ -27,7 +27,9 @@ public:
 	FVector PlayerLocation;			// (CalculateStereoViewOffset)
 	float NearClippingPlane;		// (GetStereoProjectionMatrix)
 
-	ETiledMultiResLevel MultiResLevel; //OnStartGameFrame
+	ETiledMultiResLevel MultiResLevel; // OnStartGameFrame
+
+	FIntRect FinalViewRect[3]; // SetFinalViewRect
 
 	union
 	{
@@ -37,6 +39,8 @@ public:
 			uint64			bSplashIsShown : 1;
 			/** True, if spectator screen is active */
 			uint64			bSpectatorScreenActive : 1;
+			/** True if the frame uses dynamic resolution */
+			uint64			bPixelDensityAdaptive : 1;
 		};
 		uint64 Raw;
 	} Flags;

@@ -27,10 +27,6 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		*NSLOCTEXT("OculusRift", "CCommandText_PixelDensityMax",
 			"Oculus Rift specific extension.\nMaximum pixel density when adaptive pixel density is enabled").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::PixelDensityMaxCommandHandler))
-	, PixelDensityAdaptiveCommand(TEXT("vr.oculus.PixelDensity.adaptive"),
-		*NSLOCTEXT("OculusRift", "CCommandText_PixelDensityAdaptive",
-			"Oculus Rift specific extension.\nEnable or disable adaptive pixel density.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::PixelDensityAdaptiveCommandHandler))
 	, HQBufferCommand(TEXT("vr.oculus.bHQBuffer"),
 		*NSLOCTEXT("OculusRift", "CCommandText_HQBuffer",
 			"Oculus Rift specific extension.\nEnable or disable using floating point texture format for the eye layer.").ToString(),

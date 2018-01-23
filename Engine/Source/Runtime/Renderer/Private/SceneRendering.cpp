@@ -1917,6 +1917,11 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 		check(View.VerifyMembersChecks());
 
 		OutputViewSizes.Add(ViewSize);
+
+		if (GEngine && GEngine->StereoRenderingDevice.IsValid())
+		{
+			GEngine->StereoRenderingDevice->SetFinalViewRect(View.StereoPass, View.ViewRect);
+		}
 	}
 
 	#if !UE_BUILD_SHIPPING

@@ -27,6 +27,8 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Misc/EngineVersion.h"
 #include "ClearQuad.h"
+#include "DynamicResolutionState.h"
+#include "DynamicResolutionProxy.h"
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
@@ -55,13 +57,10 @@ namespace
 class FOculusScreenPercentageDriver : public ISceneViewFamilyScreenPercentage
 {
 public:
-	FOculusScreenPercentageDriver(OculusHMD::FSettingsPtr InSettings, const FSceneViewFamily& InViewFamily)
+	FOculusScreenPercentageDriver(const float InResolutionFraction, const FSceneViewFamily& InViewFamily)
 		: ViewFamily(InViewFamily)
+		, ResolutionFraction(InResolutionFraction)
 	{
-		// Clone settings to avoid thread racing between game thread and rendering thread.
-		Settings = InSettings->Clone();
-
-		check(Settings->bPixelDensityAdaptive);
 		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
 	}
 
@@ -69,8 +68,7 @@ private:
 	// View family to take care of.
 	const FSceneViewFamily& ViewFamily;
 
-	// Copy of the settings to avoid thread racing between game and rendering thread.
-	OculusHMD::FSettingsPtr Settings;
+	const float ResolutionFraction;
 
 	// Implements ISceneViewFamilyScreenPercentage.
 
@@ -78,13 +76,13 @@ private:
 	{
 		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
 
-		// Returns 1.0 because return EyeMaxRenderViewport in FHMDOculus::AdjustViewRect().
+		// See EyeMaxRenderViewport in FHMDOculus::AdjustViewRect().
 		return 1.0f;
 	}
 
 	virtual ISceneViewFamilyScreenPercentage* Fork_GameThread(const class FSceneViewFamily& ForkedViewFamily) const override
 	{
-		return new FOculusScreenPercentageDriver(Settings, ForkedViewFamily);
+		return new FOculusScreenPercentageDriver(ResolutionFraction, ForkedViewFamily);
 	}
 
 	virtual void ComputePrimaryResolutionFractions_RenderThread(TArray<FSceneViewScreenPercentageConfig>& OutViewScreenPercentageConfigs) const override
@@ -92,18 +90,58 @@ private:
 		check(IsInRenderingThread());
 		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
 
-		for (int32 i = 0; i < OutViewScreenPercentageConfigs.Num(); i++)
+		for (int32 ConfigIter = 0; ConfigIter < OutViewScreenPercentageConfigs.Num(); ++ConfigIter)
 		{
-			const FSceneView* View = ViewFamily.Views[i];
-			check(View->UnconstrainedViewRect == View->UnscaledViewRect);
+			OutViewScreenPercentageConfigs[ConfigIter].PrimaryResolutionFraction = ResolutionFraction;
+		}
+	}
+};
 
-			const int32 ViewIndex = OculusHMD::ViewIndexFromStereoPass(View->StereoPass);
+class FOculusDynamicResolutionState : public IDynamicResolutionState
+{
+public:
+	FOculusDynamicResolutionState(const OculusHMD::FSettingsPtr InSettings)
+		: Settings(InSettings)
+		, ResolutionFraction(-1.0f)
+	{
+		check(Settings.IsValid());
+	}
+
+	virtual void ResetHistory() override { /* Empty */ };
+
+	virtual bool IsSupported() const override
+	{
+		return true;
+	}
+
+	virtual void SetEnabled(bool bEnable) override
+	{
+		check(IsInGameThread());
+		Settings->bPixelDensityAdaptive = bEnable;
+	}
+
+	virtual bool IsEnabled() const override
+	{
+		check(IsInGameThread() && Settings.IsValid());
+		return Settings->bPixelDensityAdaptive;
+	}
+
+	virtual void SetupMainViewFamily(class FSceneViewFamily& ViewFamily) override
+	{
+		check(IsInGameThread());
+		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
+		
+		if (ViewFamily.Views.Num() > 0 && IsEnabled())
+		{
+			// We can assume both eyes have the same fraction
+			const FSceneView& View = *ViewFamily.Views[0];
+			check(View.UnconstrainedViewRect == View.UnscaledViewRect);
 
 			// Compute desired resolution fraction.
-			float ResolutionFraction = FMath::Max(
-				float(Settings->EyeRenderViewport[ViewIndex].Width()) / float(Settings->EyeMaxRenderViewport[ViewIndex].Width()),
-				float(Settings->EyeRenderViewport[ViewIndex].Height()) / float(Settings->EyeMaxRenderViewport[ViewIndex].Height()));
-				
+			ResolutionFraction = FMath::Max(
+				float(Settings->EyeRenderViewport[0].Width()) / float(Settings->EyeMaxRenderViewport[0].Width()),
+				float(Settings->EyeRenderViewport[0].Height()) / float(Settings->EyeMaxRenderViewport[0].Height()));
+
 			// Clamp resolution fraction to what the renderer can do.
 			ResolutionFraction = FMath::Clamp(
 				ResolutionFraction,
@@ -111,17 +149,35 @@ private:
 				FSceneViewScreenPercentageConfig::kMaxResolutionFraction);
 
 			// Temporal upsample has a smaller resolution fraction range.
-			if (View->AntiAliasingMethod == AAM_TemporalAA)
+			if (View.AntiAliasingMethod == AAM_TemporalAA)
 			{
 				ResolutionFraction = FMath::Clamp(
-					ResolutionFraction, 
+					ResolutionFraction,
 					FSceneViewScreenPercentageConfig::kMinTAAUpsampleResolutionFraction,
 					FSceneViewScreenPercentageConfig::kMaxTAAUpsampleResolutionFraction);
 			}
 
-			OutViewScreenPercentageConfigs[i].PrimaryResolutionFraction = ResolutionFraction;
+			ViewFamily.SetScreenPercentageInterface(new FOculusScreenPercentageDriver(ResolutionFraction, ViewFamily));
 		}
 	}
+
+	virtual float GetResolutionFractionApproximation() const override
+	{
+		return ResolutionFraction;
+	}
+
+	virtual float GetResolutionFractionUpperBound() const override
+	{
+		return 1.0f;
+	}
+
+private:
+
+	// Oculus drives resolution fraction externally
+	virtual void ProcessEvent(EDynamicResolutionStateEvent Event) override { /* Empty */ };
+
+	const OculusHMD::FSettingsPtr Settings;
+	float ResolutionFraction;
 };
 
 } // namespace
@@ -1089,7 +1145,7 @@ namespace OculusHMD
 			const int32 ViewIndex = ViewIndexFromStereoPass(StereoPass);
 			if (Settings->bPixelDensityAdaptive)
 			{
-				// When doing Oculus' dynamic resolution, we returns Settings->EyeMaxRenderViewport so that there
+				// When doing Oculus dynamic resolution, we return Settings->EyeMaxRenderViewport so that there
 				// is room for the views to not overlap in the view family's render target in case of highest screen
 				// percentage with EPrimaryScreenPercentageMethod::RawOutput in the view family's render target.
 				X = Settings->EyeMaxRenderViewport[ViewIndex].Min.X;
@@ -1115,6 +1171,22 @@ namespace OculusHMD
 		}
 	}
 
+	void FOculusHMD::SetFinalViewRect(const enum EStereoscopicPass StereoPass, const FIntRect& FinalViewRect)
+	{
+		CheckInRenderThread();
+
+		const int32 ViewIndex = ViewIndexFromStereoPass(StereoPass);
+
+		ExecuteOnRHIThread_DoNotWait([this, ViewIndex, FinalViewRect]()
+		{
+			CheckInRHIThread();
+
+			if (Frame_RHIThread.IsValid())
+			{
+				Frame_RHIThread->FinalViewRect[ViewIndex] = FinalViewRect;
+			}
+		});
+	}
 
 	void FOculusHMD::CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
 	{
@@ -1689,18 +1761,7 @@ namespace OculusHMD
 	{
 		CheckInGameThread();
 
-		InViewFamily.EngineShowFlags.ScreenPercentage = !Settings->bPixelDensityAdaptive;
-
-		// TODO: This is still a work in progress
-		// When doing Oculus' dynamic resolution, we provide a screen percentage handler to plumb down
-		// Settings->EyeMaxRenderViewport through GetPrimaryResolutionFractionUpperBound(), and AdjustViewRect()
-		// returns Settings->EyeMaxRenderViewport so that there is room for views with EPrimaryScreenPercentageMethod::RawOutput.
-		/*
-		if (Settings->bPixelDensityAdaptive)
-		{
-			InViewFamily.SetScreenPercentageInterface(new FOculusScreenPercentageDriver(Settings, InViewFamily));
-		}
-		*/
+		InViewFamily.EngineShowFlags.ScreenPercentage = true;
 
 		if (Settings->Flags.bPauseRendering)
 		{
@@ -2398,11 +2459,15 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		CheckInGameThread();
 
 		// Update PixelDensity
-		float AdaptiveGpuPerformanceScale;
+		float PixelDensity = Settings->PixelDensity;
+
+		float AdaptiveGpuPerformanceScale = 1.0f;
 		if (Settings->bPixelDensityAdaptive && OVRP_SUCCESS(ovrp_GetAdaptiveGpuPerformanceScale2(&AdaptiveGpuPerformanceScale)))
 		{
-			Settings->UpdatePixelDensity(Settings->PixelDensity * FMath::Sqrt(AdaptiveGpuPerformanceScale));
+			PixelDensity *= FMath::Sqrt(AdaptiveGpuPerformanceScale);
 		}
+
+		PixelDensity = FMath::Clamp(PixelDensity, Settings->PixelDensityMin, Settings->PixelDensityMax);
 
 		// Due to hijacking the depth target directly from the scene context, we can't support depth compositing if it's being scaled by screen percentage since it wont match our color render target dimensions.
 		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
@@ -2455,7 +2520,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			&EyeLayerDesc)))
 		{
 			// Update viewports
-			float ViewportScale = Settings->bPixelDensityAdaptive ? Settings->PixelDensity / Settings->PixelDensityMax : 1.0f;
+			const float ViewportScale = Settings->bPixelDensityAdaptive ? PixelDensity / Settings->PixelDensityMax : 1.0f;
 			ovrpSizei rtSize = EyeLayerDesc.TextureSize;
 			ovrpSizei vpSizeMax = EyeLayerDesc.MaxViewportSize;
 			ovrpRecti vpRect[3];
@@ -2496,6 +2561,12 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			if (!EyeLayer->CanReuseResources(EyeLayer_RenderThread.Get()))
 			{
 				bNeedReAllocateViewportRenderTarget = true;
+			}
+
+			// Update screen percentage
+			if (!FMath::IsNearlyEqual(Settings->PixelDensity, PixelDensity))
+			{
+				Settings->PixelDensity = PixelDensity;
 			}
 		}
 	}
@@ -3039,6 +3110,11 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 				{
 					GEngine->SetMaxFPS(10);
 				}
+
+				// Hook up dynamic res
+#if !PLATFORM_ANDROID
+				GEngine->ChangeDynamicResolutionStateAtNextFrame(MakeShareable(new FOculusDynamicResolutionState(Settings)));
+#endif
 			}
 			else
 			{
@@ -3051,6 +3127,11 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 				FVector2D size = Window->GetSizeInScreen();
 				SceneVP->SetViewportSize(size.X, size.Y);
 				Window->SetViewportSizeDrivenByWindow(true);
+
+				// Restore default dynamic res
+#if !PLATFORM_ANDROID
+				GEngine->ChangeDynamicResolutionStateAtNextFrame(FDynamicResolutionHeuristicProxy::CreateDefaultState());
+#endif
 			}
 		}
 
@@ -3091,6 +3172,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		Result->MonoCullingDistance = CachedMonoCullingDistance;
 		Result->NearClippingPlane = GNearClippingPlane;
 		Result->MultiResLevel = Settings->MultiResLevel;
+		Result->Flags.bPixelDensityAdaptive = Settings->bPixelDensityAdaptive;
 		return Result;
 	}
 
@@ -3351,14 +3433,6 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			Settings->UpdatePixelDensity(Settings->PixelDensity);
 		}
 		Ar.Logf(TEXT("vr.oculus.PixelDensity.max = \"%1.2f\""), Settings->PixelDensityMax);
-	}
-
-
-	void FOculusHMD::PixelDensityAdaptiveCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
-	{
-		CheckInGameThread();
-
-		BOOLEAN_COMMAND_HANDLER_BODY(TEXT("vr.oculus.PixelDensity.adaptive"), Settings->bPixelDensityAdaptive);
 	}
 
 

@@ -497,6 +497,12 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 		OvrpLayerSubmit.EyeFov.DepthFar = 0;
 		OvrpLayerSubmit.EyeFov.DepthNear = Frame->NearClippingPlane / 100.f; //physical scale is 100UU/meter
 		OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_ReverseZ;
+
+		if (Frame->Flags.bPixelDensityAdaptive)
+		{
+			OvrpLayerSubmit.ViewportRect[0] = ToOvrpRecti(Frame->FinalViewRect[0]);
+			OvrpLayerSubmit.ViewportRect[1] = ToOvrpRecti(Frame->FinalViewRect[1]);
+		}
 	}
 
 	return &OvrpLayerSubmit.Base;
