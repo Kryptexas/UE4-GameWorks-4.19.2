@@ -39,6 +39,7 @@
 	<Property Name="ProjectsToBuildDDC">
 		Templates/FP_FirstPersonBP/FP_FirstPersonBP.uproject
 		Templates/TP_FlyingBP/TP_FlyingBP.uproject
+		Templates/TP_HandheldARBP/TP_HandheldARBP.uproject
 		Templates/TP_RollingBP/TP_RollingBP.uproject
 		Templates/TP_SideScrollerBP/TP_SideScrollerBP.uproject
 		Templates/TP_ThirdPersonBP/TP_ThirdPersonBP.uproject
