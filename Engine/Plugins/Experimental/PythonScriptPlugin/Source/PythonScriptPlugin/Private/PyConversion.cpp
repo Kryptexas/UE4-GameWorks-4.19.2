@@ -591,6 +591,24 @@ bool NativizeProperty_Direct(PyObject* PyObj, const UProperty* Prop, void* Value
 		PYCONVERSION_PROPERTY_RETURN(EnumInternalProp && NativizeProperty_Direct(PyObj, EnumInternalProp, ValueAddr, InChangeOwner, SetErrorState));
 	}
 
+	if (auto* CastProp = Cast<UClassProperty>(Prop))
+	{
+		UClass* NewValue = nullptr;
+		const bool bResult = NativizeClass(PyObj, NewValue, CastProp->MetaClass, SetErrorState);
+		if (bResult)
+		{
+			UObject* OldValue = CastProp->GetObjectPropertyValue(ValueAddr);
+			if (OldValue != NewValue)
+			{
+				EmitPropertyChangeNotifications(InChangeOwner, [&]()
+				{
+					CastProp->SetObjectPropertyValue(ValueAddr, NewValue);
+				});
+			}
+		}
+		PYCONVERSION_PROPERTY_RETURN(bResult);
+	}
+
 	if (auto* CastProp = Cast<UObjectPropertyBase>(Prop))
 	{
 		UObject* NewValue = nullptr;
@@ -774,6 +792,12 @@ bool PythonizeProperty_Direct(const UProperty* Prop, const void* ValueAddr, PyOb
 	{
 		UNumericProperty* EnumInternalProp = CastProp->GetUnderlyingProperty();
 		PYCONVERSION_PROPERTY_RETURN(EnumInternalProp && PythonizeProperty_Direct(EnumInternalProp, ValueAddr, OutPyObj, ConversionMethod, OwnerPyObj, SetErrorState));
+	}
+
+	if (auto* CastProp = Cast<UClassProperty>(Prop))
+	{
+		UClass* Value = Cast<UClass>(CastProp->GetObjectPropertyValue(ValueAddr));
+		PYCONVERSION_PROPERTY_RETURN(PythonizeClass(Value, OutPyObj, SetErrorState));
 	}
 
 	if (auto* CastProp = Cast<UObjectPropertyBase>(Prop))
