@@ -1441,7 +1441,7 @@ uint32 UAssetRegistryImpl::GetAllocatedSize(bool bLogDetailed) const
 		UE_LOG(LogAssetRegistry, Log, TEXT("AssetRegistry Search Size: %dk"), SearchSize / 1024);
 	}
 
-	return StaticSize + StaticSize + SearchSize;
+	return StateSize + StaticSize + SearchSize;
 }
 
 void UAssetRegistryImpl::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &AssetDataList) const
