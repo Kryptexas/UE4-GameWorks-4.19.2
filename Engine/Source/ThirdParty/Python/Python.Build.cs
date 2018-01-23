@@ -145,8 +145,10 @@ public class Python : ModuleRules
 			string EngineRelativePythonRoot = PythonRoot;
 			if (EngineRelativePythonRoot.StartsWith(EngineDir))
 			{
+				// Strip the Engine directory and then combine the path with the placeholder to ensure the path is delimited correctly
 				EngineRelativePythonRoot = EngineRelativePythonRoot.Remove(0, EngineDir.Length);
-				RuntimeDependencies.Add(Path.Combine("$(EngineDir)", EngineRelativePythonRoot, "...")); // Stage the Python SDK for use at runtime
+				EngineRelativePythonRoot = Path.Combine("$(EngineDir)", EngineRelativePythonRoot);
+				RuntimeDependencies.Add(Path.Combine(EngineRelativePythonRoot, "...")); // Stage the Python SDK for use at runtime
 			}
 
 			PublicDefinitions.Add("WITH_PYTHON=1");
