@@ -23,7 +23,7 @@ void UGoogleARCorePointCloudRendererComponent::DrawPointCloud()
 	{
 		UGoogleARCorePointCloud* LatestPointCloud = nullptr;
 		EGoogleARCoreFunctionStatus Status = UGoogleARCoreFrameFunctionLibrary::GetLatestPointCloud(LatestPointCloud);
-		if (Status == EGoogleARCoreFunctionStatus::Success)
+		if (Status == EGoogleARCoreFunctionStatus::Success && LatestPointCloud != nullptr && LatestPointCloud->GetPointNum() > 0)
 		{
 			for (int i = 0; i < LatestPointCloud->GetPointNum(); i++)
 			{
