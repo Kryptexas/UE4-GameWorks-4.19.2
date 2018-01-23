@@ -10,6 +10,9 @@ public class Python : ModuleRules
 	{
 		Type = ModuleType.External;
 
+		var EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
+		var PythonTPSDir = Path.Combine(EngineDir, "Source", "ThirdParty", "Python");
+
 		string PythonRoot = null;
 		string PythonIncludePath = null;
 		string PythonLibPath = null;
@@ -31,6 +34,7 @@ public class Python : ModuleRules
 			{
 				KnownPaths.AddRange(
 					new string[] {
+						Path.Combine(PythonTPSDir, Target.Platform == UnrealTargetPlatform.Win32 ? "Win32" : "Win64"),
 						//"C:/Program Files/Python36",
 						"C:/Python27",
 					}
@@ -122,8 +126,7 @@ public class Python : ModuleRules
 			// todo: We probably need to do this for all platforms, but right now it's only an issue on Windows
 			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				string PythonBinary = Path.Combine(PythonRoot, "python");
-				string Result = InvokePython(PythonBinary, "-c \"import struct; print(struct.calcsize('P'))\"");
+				string Result = InvokePython(PythonRoot, "-c \"import struct; print(struct.calcsize('P'))\"");
 				Result = Result != null ? Result.Replace("\r", "").Replace("\n", "") : null;
 				if (Result == null || Result != ExpectedPointerSizeResult)
 				{
@@ -138,8 +141,16 @@ public class Python : ModuleRules
 		}
 		else
 		{
+			// If the Python install we're using is within the Engine directory, make the path relative so that it's portable
+			string EngineRelativePythonRoot = PythonRoot;
+			if (EngineRelativePythonRoot.StartsWith(EngineDir))
+			{
+				EngineRelativePythonRoot = EngineRelativePythonRoot.Remove(0, EngineDir.Length);
+				RuntimeDependencies.Add(Path.Combine("$(EngineDir)", EngineRelativePythonRoot, "...")); // Stage the Python SDK for use at runtime
+			}
+
 			PublicDefinitions.Add("WITH_PYTHON=1");
-			PublicDefinitions.Add(string.Format("UE_PYTHON_DIR=\"{0}\"", PythonRoot.Replace('\\', '/')));
+			PublicDefinitions.Add(string.Format("UE_PYTHON_DIR=\"{0}\"", EngineRelativePythonRoot.Replace('\\', '/')));
 
 			// Some versions of Python need this define set when building on MSVC
 			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
@@ -161,10 +172,11 @@ public class Python : ModuleRules
 		}
 	}
 
-	private string InvokePython(string InPythonBinary, string InPythonArgs)
+	private string InvokePython(string InPythonRoot, string InPythonArgs)
 	{
 		ProcessStartInfo ProcStartInfo = new ProcessStartInfo();
-		ProcStartInfo.FileName = InPythonBinary;
+		ProcStartInfo.FileName = "python";
+		ProcStartInfo.WorkingDirectory = InPythonRoot;
 		ProcStartInfo.Arguments = InPythonArgs;
 		ProcStartInfo.UseShellExecute = false;
 		ProcStartInfo.RedirectStandardOutput = true;

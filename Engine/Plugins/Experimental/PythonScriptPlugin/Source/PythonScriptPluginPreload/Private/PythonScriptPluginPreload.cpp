@@ -40,9 +40,14 @@ private:
 #if PLATFORM_WINDOWS
 		// Load the DLLs
 		{
-			const FString PythonDir = UTF8_TO_TCHAR(UE_PYTHON_DIR);
-			const FString PythonDllWildcard = FString::Printf(TEXT("python%d*.dll"), PY_MAJOR_VERSION);
+			// Build the full Python directory (UE_PYTHON_DIR may be relative to UE4 engine directory for portability)
+			FString PythonDir = UTF8_TO_TCHAR(UE_PYTHON_DIR);
+			if (FPaths::IsRelative(PythonDir))
+			{
+				PythonDir = FPaths::EngineDir() / PythonDir;
+			}
 
+			const FString PythonDllWildcard = FString::Printf(TEXT("python%d*.dll"), PY_MAJOR_VERSION);
 			auto FindPythonDLLs = [&PythonDllWildcard](const FString& InPath)
 			{
 				TArray<FString> PythonDLLNames;
