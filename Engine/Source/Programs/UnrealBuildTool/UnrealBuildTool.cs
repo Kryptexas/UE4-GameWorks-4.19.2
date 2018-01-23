@@ -1183,7 +1183,7 @@ namespace UnrealBuildTool
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
-			Thread CPPIncludesThread = null;
+			CppIncludeBackgroundThread CppIncludeThread = null;
 
 			List<UEBuildTarget> Targets = null;
 			Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders = new Dictionary<UEBuildTarget, CPPHeaders>();
@@ -1676,8 +1676,7 @@ namespace UnrealBuildTool
 							// our best case UBT iteration times for this task which can easily be performed asynchronously
 							if (BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0)
 							{
-								CPPIncludesThread = CreateThreadForCachingCPPIncludes(TargetToOutdatedPrerequisitesMap, TargetToHeaders);
-								CPPIncludesThread.Start();
+								CppIncludeThread = new CppIncludeBackgroundThread(TargetToOutdatedPrerequisitesMap, TargetToHeaders);
 							}
 
 							// If we're not touching any shared files (ie. anything under Engine), allow the build ids to be recycled between applications.
@@ -1770,9 +1769,9 @@ namespace UnrealBuildTool
 			}
 
 			// Wait until our CPPIncludes dependency scanner thread has finished
-			if (CPPIncludesThread != null)
+			if (CppIncludeThread != null)
 			{
-				CPPIncludesThread.Join();
+				CppIncludeThread.Join();
 			}
 
 			// Save the include dependency cache.
@@ -1928,16 +1927,32 @@ namespace UnrealBuildTool
 			return TargetSettings;
 		}
 
-
 		/// <summary>
-		/// Returns a Thread object that can be kicked off to update C++ include dependency cache
+		/// Helper class to update the C++ dependency cache on a background thread. Captures exceptions and re-throws on the main thread when joined.
 		/// </summary>
-		/// <param name="TargetToOutdatedPrerequisitesMap">Maps each target to a list of outdated C++ files that need indirect dependencies cached</param>
-		/// <param name="TargetToHeaders">Map of target to cached header information</param>
-		/// <returns>The thread object</returns>
-		private static Thread CreateThreadForCachingCPPIncludes(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+		class CppIncludeBackgroundThread
 		{
-			return new Thread(new ThreadStart(() =>
+			Thread BackgroundThread;
+			Exception CaughtException;
+
+			public CppIncludeBackgroundThread(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+			{
+				BackgroundThread = new Thread(() => Run(TargetToOutdatedPrerequisitesMap, TargetToHeaders));
+				BackgroundThread.Start();
+			}
+
+			public void Join()
+			{
+				BackgroundThread.Join();
+				if(CaughtException != null)
+				{
+					throw CaughtException;
+				}
+			}
+
+			private void Run(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+			{
+				try
 				{
 					// @todo ubtmake: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
 					// is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
@@ -1954,8 +1969,14 @@ namespace UnrealBuildTool
 							Headers.FindAndCacheAllIncludedFiles(PrerequisiteItem, PrerequisiteItem.CachedIncludePaths, bOnlyCachedDependencies: false);
 						}
 					}
-				}));
+				}
+				catch(Exception Ex)
+				{
+					CaughtException = Ex;
+				}
+			}
 		}
+
 
 		/// <summary>
 		/// Saves a UBTMakefile to disk
