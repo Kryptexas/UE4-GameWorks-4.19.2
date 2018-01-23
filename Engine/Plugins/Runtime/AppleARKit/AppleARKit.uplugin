@@ -29,10 +29,6 @@
         {
             "Name": "LiveLink",
             "Enabled": true
-        },
-        {
-            "Name": "OnlineSubsystem",
-            "Enabled": true
         }
     ]
 }

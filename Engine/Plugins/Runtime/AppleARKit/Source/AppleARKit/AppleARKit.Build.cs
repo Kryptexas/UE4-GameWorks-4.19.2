@@ -49,7 +49,7 @@ public class AppleARKit : ModuleRules
                 "ProceduralMeshComponent",
                 "LiveLink",
                 "LiveLinkInterface",
-                "OnlineSubsystem",
+//                "OnlineSubsystem",
                 "Sockets"
 				// ... add private dependencies that you statically link with here ...
 			}

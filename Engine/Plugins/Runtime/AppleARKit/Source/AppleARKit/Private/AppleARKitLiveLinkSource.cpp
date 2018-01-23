@@ -13,7 +13,6 @@
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 #include "Sockets.h"
-#include "NboSerializer.h"
 
 #include "AppleARKitSettings.h"
 #include "ARTrackable.h"
