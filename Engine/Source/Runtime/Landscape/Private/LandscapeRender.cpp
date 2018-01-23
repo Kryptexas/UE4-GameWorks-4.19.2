@@ -3375,29 +3375,31 @@ public:
 		{
 			// Always check against FLocalVertexFactory in editor builds as it is required to render thumbnails
 			// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
-			static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
-			if (VertexFactoryType->GetFName() == LocalVertexFactory)
+			if (bIsLayerThumbnail)
 			{
-				if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
+				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
+				if (VertexFactoryType->GetFName() == LocalVertexFactory)
 				{
-					return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
-				}
-				else
-				{
-					if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
+					if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
 					{
-						UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
-						return false;
+						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 					else
 					{
-						UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
-						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+						if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
+						{
+							UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
+							return false;
+						}
+						else
+						{
+							UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
+							return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+						}
 					}
 				}
 			}
-
-			if (!bIsLayerThumbnail)
+			else
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
