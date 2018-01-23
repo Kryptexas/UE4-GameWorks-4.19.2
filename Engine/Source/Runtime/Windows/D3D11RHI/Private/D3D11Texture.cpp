@@ -772,7 +772,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 				// Create a read-only access views for the texture.
 				// Read-only DSVs are not supported in Feature Level 10 so 
 				// a dummy DSV is created in order reduce logic complexity at a higher-level.
-				if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0 || Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_1)
+				if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 				{
 					DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D11_DSV_READ_ONLY_DEPTH : 0;
 					if(HasStencilBits(DSVDesc.Format))
@@ -1861,7 +1861,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateTextureFromResource(b
 			// Create a read-only access views for the texture.
 			// Read-only DSVs are not supported in Feature Level 10 so 
 			// a dummy DSV is created in order reduce logic complexity at a higher-level.
-			if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0 || Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_1)
+			if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 			{
 				DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D11_DSV_READ_ONLY_DEPTH : 0;
 				if(HasStencilBits(DSVDesc.Format))

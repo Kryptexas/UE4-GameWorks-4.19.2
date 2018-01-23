@@ -96,41 +96,18 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI, EPixelFormat Pixe
 
 	// create the render target view
 	TRefCountPtr<ID3D11RenderTargetView> BackBufferRenderTargetView;
-	TRefCountPtr<ID3D11RenderTargetView> BackBufferRenderTargetViewRight; // right eye RTV
-	
-	const bool bIsQuadBufferStereo = FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo"));
-	// dx11.1 active stereoscopy initialization
-	if (bIsQuadBufferStereo)
-	{
-		// left
-		CD3D11_RENDER_TARGET_VIEW_DESC RTVDescCD3D11_left(D3D11_RTV_DIMENSION_TEXTURE2DARRAY, DXGI_FORMAT_R10G10B10A2_UNORM, 0, 0, 1);
-		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateRenderTargetView(BackBufferResource, &RTVDescCD3D11_left, BackBufferRenderTargetView.GetInitReference()), D3DRHI->GetDevice());
-		
-		// right
-		CD3D11_RENDER_TARGET_VIEW_DESC renderTargetViewRightDesc_right(D3D11_RTV_DIMENSION_TEXTURE2DARRAY, DXGI_FORMAT_R10G10B10A2_UNORM, 0, 1, 1);
-		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateRenderTargetView(BackBufferResource, &renderTargetViewRightDesc_right, BackBufferRenderTargetViewRight.GetInitReference()), D3DRHI->GetDevice());
-	}
-	else
-	{
-		D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
-		RTVDesc.Format = DXGI_FORMAT_UNKNOWN;
-		RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-		RTVDesc.Texture2D.MipSlice = 0;
-		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateRenderTargetView(BackBufferResource, &RTVDesc, BackBufferRenderTargetView.GetInitReference()), D3DRHI->GetDevice());
-	}
+	D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
+	RTVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RTVDesc.Texture2D.MipSlice = 0;
+	VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateRenderTargetView(BackBufferResource,&RTVDesc,BackBufferRenderTargetView.GetInitReference()), D3DRHI->GetDevice());
 
 	D3D11_TEXTURE2D_DESC TextureDesc;
 	BackBufferResource->GetDesc(&TextureDesc);
 
 	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
 	RenderTargetViews.Add(BackBufferRenderTargetView);
-
-	// add right eye render target view
-	if (bIsQuadBufferStereo)
-	{
-		RenderTargetViews.Add(BackBufferRenderTargetViewRight);
-	}
-
+	
 	// create a shader resource view to allow using the backbuffer as a texture
 	TRefCountPtr<ID3D11ShaderResourceView> BackBufferShaderResourceView;
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;

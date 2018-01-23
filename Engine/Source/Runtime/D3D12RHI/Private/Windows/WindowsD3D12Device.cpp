@@ -126,15 +126,6 @@ static D3D_FEATURE_LEVEL GetAllowedD3DFeatureLevel()
 	{
 		AllowedFeatureLevel = D3D_FEATURE_LEVEL_10_0;
 	}
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo")))
-	{
-		if (AllowedFeatureLevel == D3D_FEATURE_LEVEL_10_0)
-		{
-			UE_LOG(LogD3D12RHI, Warning, TEXT("D3D Feature Level overriden from 10.0 to 11.1 due to quad_buffer_stereo"));
-		}
-		AllowedFeatureLevel = D3D_FEATURE_LEVEL_11_1;
-	}
 	return AllowedFeatureLevel;
 }
 
