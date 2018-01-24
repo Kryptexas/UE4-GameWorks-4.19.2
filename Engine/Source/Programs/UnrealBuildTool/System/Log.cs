@@ -272,7 +272,13 @@ namespace UnrealBuildTool
 
 			if (Lines.Length > 1)
 			{
-				string Padding = new string(' ', SeverityPrefix.Length);
+				int PaddingLength = 0;
+				while(PaddingLength < Lines[0].Length && Char.IsWhiteSpace(Lines[0][PaddingLength]))
+				{
+					PaddingLength++;
+				}
+
+				string Padding = new string(' ', SeverityPrefix.Length) + Lines[0].Substring(0, PaddingLength);
 				for (int Idx = 1; Idx < Lines.Length; Idx++)
 				{
 					FormattedLines.Add(String.Format("{0}{1}{2}{3}{4}", TimePrefix, SourcePrefix, Indent, Padding, Lines[Idx].TrimEnd('\r')));
