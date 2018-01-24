@@ -131,7 +131,7 @@ namespace Audio
 			, SpatializationPluginSettings(nullptr)
 			, OcclusionPluginSettings(nullptr)
 			, ReverbPluginSettings(nullptr)
-			, AudioComponentID(INDEX_NONE)
+			, AudioComponentID(0)
 			, bPlayEffectChainTails(false)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
@@ -458,7 +458,7 @@ namespace Audio
 			int32 NumPostEffectChannels;
 			int32 NumInputFrames;
 
-			// ID for associated Audio Component if there is one, INDEX_NONE otherwise
+			// ID for associated Audio Component if there is one, 0 otherwise
 			uint64 AudioComponentID;
 		};
 

@@ -1290,6 +1290,7 @@ namespace Audio
 			AudioPluginInputData.AudioBuffer = &SourceInfo.SourceBuffer;
 			AudioPluginInputData.SpatializationParams = SourceSpatParams;
 			AudioPluginInputData.NumChannels = SourceInfo.NumInputChannels;
+			AudioPluginInputData.AudioComponentId = SourceInfo.AudioComponentID;
 			SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
 			SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
 
