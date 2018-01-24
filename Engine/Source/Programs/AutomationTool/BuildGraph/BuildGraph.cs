@@ -133,6 +133,7 @@ namespace AutomationTool
 				DefaultProperties["EngineMajorVersion"] = Version.MajorVersion.ToString();
 				DefaultProperties["EngineMinorVersion"] = Version.MinorVersion.ToString();
 				DefaultProperties["EnginePatchVersion"] = Version.PatchVersion.ToString();
+				DefaultProperties["EngineCompatibleChange"] = Version.CompatibleChangelist.ToString();
 			}
 
 			// Add any additional custom arguments from the command line (of the form -Set:X=Y)
