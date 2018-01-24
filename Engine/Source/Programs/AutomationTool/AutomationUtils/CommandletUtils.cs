@@ -170,7 +170,7 @@ namespace AutomationTool
             {
                 throw new AutomationException("GenerateDistillFileSets should have a full path and file for {0}.", ManifestFile);
             }
-            CreateDirectory_NoExceptions(Dir);
+            CreateDirectory(Dir);
             if (FileExists_NoExceptions(ManifestFile))
             {
                 DeleteFile(ManifestFile);

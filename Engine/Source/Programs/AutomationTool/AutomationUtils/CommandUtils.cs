@@ -636,49 +636,29 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Creates a directory(or directories).
-		/// If the creation of the directory fails, this function throws an Exception.
+		/// Creates a directory. Throws an exception on failure.
 		/// </summary>
-        /// <param name="Directories">Directories</param>
+        /// <param name="DirectoryName">Name of the directory to create</param>
         public static void CreateDirectory(string DirectoryName)
 		{
-			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
+			string NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			try
 			{
-				throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
+				Directory.CreateDirectory(DirectoryName);
+			}
+			catch (Exception Ex)
+			{
+				throw new AutomationException(Ex, "Failed to create directory '{0}'", NormalizedDirectory);
 			}
 		}
 
-        /// <summary>
-        /// Creates a directory(or directories).
-        /// If the creation of the directory fails, this function throws an Exception.
-        /// </summary>
-        /// <param name="bQuiet">When true, logging is suppressed.</param>
-        /// <param name="Directories">Directories</param>
-        public static void CreateDirectory(bool bQuiet, string DirectoryName)
-        {
-            var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-            if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
-            {
-                throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
-            }
-        }
-
 		/// <summary>
-		/// Creates a directory (or directories).
-		/// If the creation of the directory fails, this function prints a warning.
+		/// Creates a directory. Throws an exception on failure.
 		/// </summary>
-        /// <param name="Directories">Directories</param>
-        public static bool CreateDirectory_NoExceptions(string DirectoryName)
+        /// <param name="Location">Name of the directory to create</param>
+        public static void CreateDirectory(DirectoryReference Location)
 		{
-			bool Result = true;
-			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
-			{
-				LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
-				Result = false;
-			}
-			return Result;
+			CreateDirectory(Location.FullName);
 		}
 
 		/// <summary>

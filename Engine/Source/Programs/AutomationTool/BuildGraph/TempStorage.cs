@@ -1106,15 +1106,15 @@ namespace AutomationTool
 			DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
 
 			DirectoryReference LocalDir = DirectoryReference.Combine(RootDir, "Engine", "Saved", "TestTempStorage-Local");
-			CommandUtils.CreateDirectory_NoExceptions(LocalDir.FullName);
+			CommandUtils.CreateDirectory(LocalDir);
 			CommandUtils.DeleteDirectoryContents(LocalDir.FullName);
 
 			DirectoryReference SharedDir = DirectoryReference.Combine(RootDir, "Engine", "Saved", "TestTempStorage-Shared");
-			CommandUtils.CreateDirectory_NoExceptions(SharedDir.FullName);
+			CommandUtils.CreateDirectory(SharedDir);
 			CommandUtils.DeleteDirectoryContents(SharedDir.FullName);
 
 			DirectoryReference WorkingDir = DirectoryReference.Combine(RootDir, "Engine", "Saved", "TestTempStorage-Working");
-			CommandUtils.CreateDirectory_NoExceptions(WorkingDir.FullName);
+			CommandUtils.CreateDirectory(WorkingDir);
 			CommandUtils.DeleteDirectoryContents(WorkingDir.FullName);
 
 			// Create the temp storage object
