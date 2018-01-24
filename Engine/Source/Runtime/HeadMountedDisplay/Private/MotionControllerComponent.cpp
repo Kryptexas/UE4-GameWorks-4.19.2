@@ -389,7 +389,7 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 
 			if (NewDisplayComponent == nullptr)
 			{
-				UE_CLOG(!DisplayComponent, LogMotionControllerComponent, Warning, TEXT("Failed to create a display component for the MotionController - no render model found for this device type."));
+				UE_CLOG(!DisplayComponent, LogMotionControllerComponent, Warning, TEXT("Failed to create a display component for the MotionController - no XR system (if there were any) had a model for the specified source ('%s')"), *MotionSource.ToString());
 			}
 			else if (NewDisplayComponent != DisplayComponent)
 			{
@@ -412,10 +412,10 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 				{
 					DisplayComponent->SetMaterial(MatIndex, DisplayMeshMaterialOverrides[MatIndex]);
 				}
-			}
 
-			DisplayComponent->SetHiddenInGame(bHiddenInGame);
-			DisplayComponent->SetVisibility(bVisible);
+				DisplayComponent->SetHiddenInGame(bHiddenInGame);
+				DisplayComponent->SetVisibility(bVisible);
+			}
 		}
 		else if (DisplayComponent)
 		{
