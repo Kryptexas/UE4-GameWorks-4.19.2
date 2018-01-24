@@ -181,35 +181,7 @@ void UHeadMountedDisplayFunctionLibrary::SetClippingPlanes(float Near, float Far
 	}
 }
 
-/** 
- * Sets screen percentage to be used in VR mode.
- *
- * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
- */
-void UHeadMountedDisplayFunctionLibrary::SetScreenPercentage(float ScreenPercentage)
-{
-	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	static float SavedValue = 0.f; // TODO: Add a way to ask HMD devices for the "ideal" screen percentage value and use that when resetting
-	if (ScreenPercentage > 0.f)
-	{
-		if (SavedValue <= 0.f)
-		{
-			SavedValue = ScreenPercentageCVar->GetFloat();
-		}
-		ScreenPercentageCVar->Set(ScreenPercentage);
-	}
-	else if (SavedValue > 0.f)
-	{
-		ScreenPercentageCVar->Set(SavedValue);
-		SavedValue = 0.f;
-	}
-}
-
-/** 
- * Returns screen percentage to be used in VR mode.
- *
- * @return (float)	The screen percentage to be used in VR mode.
- */
+/** DEPRECATED - Use GetPixelDensity */
 float UHeadMountedDisplayFunctionLibrary::GetScreenPercentage()
 {
 	static const auto ScreenPercentageTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));

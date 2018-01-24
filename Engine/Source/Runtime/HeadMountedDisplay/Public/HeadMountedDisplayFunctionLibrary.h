@@ -144,19 +144,9 @@ class HEADMOUNTEDDISPLAY_API UHeadMountedDisplayFunctionLibrary : public UBluepr
 	UFUNCTION(BlueprintCallable, Category="Input|HeadMountedDisplay")
 	static void SetClippingPlanes(float Near, float Far);
 
-	/** 
-	 * Sets screen percentage to be used in VR mode.
-	 *
-	 * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
-	 */
-	static void SetScreenPercentage(float ScreenPercentage = 0.0f);
-
-	/** 
-	 * Returns screen percentage to be used in VR mode.
-	 *
-	 * @return (float)	The screen percentage to be used in VR mode.
-	 */
-	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
+	/** DEPRECATED - Use GetPixelDensity */
+	DEPRECATED(4.19, "Use GetPixelDensity instead")
+	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay", meta = (DeprecatedFunction, DeprecationMessage = "Use GetPixelDensity instead"))
 	static float GetScreenPercentage();
 
 	/** 

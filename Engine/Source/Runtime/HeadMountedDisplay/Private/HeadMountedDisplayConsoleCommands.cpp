@@ -500,10 +500,6 @@ static bool CompatExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			AliasedCommand = TEXT("vr.bEnableHMD False");
 		}
-		if (FParse::Command(&Cmd, TEXT("SP")) || FParse::Command(&Cmd, TEXT("SCREENPERCENTAGE")))
-		{
-			AliasedCommand = FString::Printf(TEXT("r.ScreenPercentage %s"), Cmd);
-		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("STEREO")))
 	{
