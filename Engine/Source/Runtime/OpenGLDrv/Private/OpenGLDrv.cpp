@@ -432,12 +432,15 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	else
 	{
 		// clamp things to the levels that the other path is going, but allow additional units for tessellation
-		MaxTextureImageUnits = MaxTextureImageUnits > 16 ? 16 : MaxTextureImageUnits;
-		MaxVertexTextureImageUnits = MaxVertexTextureImageUnits > 8 ? 8 : MaxVertexTextureImageUnits;
-		MaxGeometryTextureImageUnits = MaxGeometryTextureImageUnits > 8 ? 8 : MaxGeometryTextureImageUnits;
-		MaxHullTextureImageUnits = MaxHullTextureImageUnits > 8 ? 8 : MaxHullTextureImageUnits;
-		MaxDomainTextureImageUnits = MaxDomainTextureImageUnits > 8 ? 8 : MaxDomainTextureImageUnits;
-		MaxCombinedTextureImageUnits = MaxCombinedTextureImageUnits > 48 ? 48 : MaxCombinedTextureImageUnits;
+		if (IsMobilePlatform(GMaxRHIShaderPlatform))
+		{
+			MaxTextureImageUnits = MaxTextureImageUnits > 16 ? 16 : MaxTextureImageUnits;
+			MaxVertexTextureImageUnits = MaxVertexTextureImageUnits > 8 ? 8 : MaxVertexTextureImageUnits;
+			MaxGeometryTextureImageUnits = MaxGeometryTextureImageUnits > 8 ? 8 : MaxGeometryTextureImageUnits;
+			MaxHullTextureImageUnits = MaxHullTextureImageUnits > 8 ? 8 : MaxHullTextureImageUnits;
+			MaxDomainTextureImageUnits = MaxDomainTextureImageUnits > 8 ? 8 : MaxDomainTextureImageUnits;
+			MaxCombinedTextureImageUnits = MaxCombinedTextureImageUnits > 48 ? 48 : MaxCombinedTextureImageUnits;
+		}
 	}
 
 	// Check for support for advanced texture compression (desktop and mobile)

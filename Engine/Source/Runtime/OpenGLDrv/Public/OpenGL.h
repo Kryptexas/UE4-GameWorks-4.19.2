@@ -184,6 +184,8 @@ public:
 	static FORCEINLINE GLint GetMaxComputeTextureImageUnits()	{ return 0; }
 	static FORCEINLINE GLint GetMaxCombinedTextureImageUnits()	{ check(MaxCombinedTextureImageUnits != -1); return MaxCombinedTextureImageUnits; }
 
+
+	// Indices per unit are set in this order [Pixel, Vertex, Geometry, Hull, Domain]
 	static FORCEINLINE GLint GetFirstPixelTextureUnit()			{ return 0; }
 	static FORCEINLINE GLint GetFirstVertexTextureUnit()		{ return GetFirstPixelTextureUnit() + GetMaxTextureImageUnits(); }
 	static FORCEINLINE GLint GetFirstGeometryTextureUnit()		{ return GetFirstVertexTextureUnit() + GetMaxVertexTextureImageUnits(); }
