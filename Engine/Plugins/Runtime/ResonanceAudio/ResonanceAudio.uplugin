@@ -10,7 +10,7 @@
   "DocsURL": "https://developers.google.com/resonance-audio/develop/unreal/getting-started",
   "MarketplaceURL": "",
   "SupportURL": "https://developers.google.com/resonance-audio/community/connect",
-  "EnabledByDefault": true,
+  "EnabledByDefault": false,
   "CanContainContent": true,
   "IsBetaVersion": true,
   "Installed": false,
