@@ -12,6 +12,7 @@
 class USCS_Node;
 class UUserDefinedEnum;
 class UUserDefinedStruct;
+struct FDefaultSubobjectData;
 struct FNonativeComponentData;
 enum class ENativizedTermUsage : uint8;
 struct FEmitterLocalContext;
@@ -345,6 +346,9 @@ struct FEmitDefaultValueHelper
 	// returns empty string if cannot handle
 	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize, bool bForceSubobjectOfClass = false);
 
+	// Creates or accesses an instanced subobject and returns its native local name. Also emits code to initialize the instance, unless the 'SubobjectData' param is not NULL (in which case it will be deferred to the caller).
+	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object, bool bCreateInstance = true, bool bSkipEditorOnlyCheck = false, FDefaultSubobjectData* SubobjectData = nullptr);
+
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
@@ -360,8 +364,6 @@ private:
 	static FString HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties
 		, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponentsToInit
 		, bool bBlockRecursion);
-
-	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object, bool bCreateInstance = true, bool bSkipEditorOnlyCheck = false);
 };
 
 struct FBackendHelperUMG

@@ -122,8 +122,8 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 		const bool bUseZConstructorInGeneratedCode = false;
 		UField* AsField = Cast<UField>(Object);
 		UBlueprintGeneratedClass* ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
-		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
-		if (bWillBeConvetedAsBPGC)
+		const bool bWillBeConvertedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
+		if (bWillBeConvertedAsBPGC)
 		{
 			if (ObjAsBPGC != CurrentlyConvertedStruct)
 			{
