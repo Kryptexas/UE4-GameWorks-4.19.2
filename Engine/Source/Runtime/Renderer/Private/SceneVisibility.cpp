@@ -3111,6 +3111,12 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 			// Possible stencil dither optimization approach
 			View.bAllowStencilDither = bDitheredLODTransitionsUseStencil;
 
+			// Set the pre-exposure before initializing the constant buffers.
+			if (View.ViewState)
+			{
+				View.ViewState->UpdatePreExposure(View);
+			}
+
 			// Initialize the view's RHI resources.
 			View.InitRHIResources();
 		}

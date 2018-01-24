@@ -9,6 +9,8 @@
 #include "Random.ush"
 #include "EyeAdaptationCommon.ush"
 
+// 1 / LastFrame.PreExposure
+float OneOverHistoryPreExposure;
 
 //------------------------------------------------------- COMPILER CONFIG
 
@@ -1551,7 +1553,7 @@ float4 SampleHistory(in float2 HistoryScreenPosition)
 	#endif
 	
 	#if USE_PREEXPOSURE
-		RawHistoryColor.rgb *= View.LastOneOverPreExposure;
+		RawHistoryColor.rgb *= OneOverHistoryPreExposure;
 	#endif
 
 	return TransformSceneColor(RawHistoryColor);
