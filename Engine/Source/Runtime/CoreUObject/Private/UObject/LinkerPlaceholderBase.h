@@ -89,6 +89,17 @@ public:
 	 */
 	virtual int32 ResolveAllPlaceholderReferences(UObject* ReplacementObj);
 
+	/* 
+	 * Sets up the provided placeholder as a subobject of this placeholder.
+	 */
+	void SetupPlaceholderSubobject(ULinkerPlaceholderExportObject* PlaceholderSubobject);
+
+	/** Returns true if this is a deferred subobject (implying the owner will resolve it) */
+	bool IsDeferredSubobject() const {return OwningPlaceholder != nullptr;}
+
+	/** Returns the list of subobjects that are waiting for this placeholder */
+	TArray<ULinkerPlaceholderExportObject*>& GetSubobjectPlaceholders() { return PlaceholderSubobjects; }
+
 	/**
 	 * Checks to see if 1) this placeholder has had 
 	 * ResolveAllPlaceholderReferences() called on it, and 2) it doesn't have 
@@ -210,6 +221,10 @@ private:
 	/** Tracks container objects that have property values set to reference this placeholder (references that need to be replaced later) */
 	TMap< TWeakObjectPtr<UObject>, FReferencingPropertySet > ReferencingContainers;
 	TMap< void*, FReferencingPropertySet > ReferencingRawContainers;
+
+	/** Data used to keep track of linker placeholders that are waiting for their outer placeholder to be resolved */
+	TArray<ULinkerPlaceholderExportObject*> PlaceholderSubobjects;
+	ULinkerPlaceholderExportObject* OwningPlaceholder;
 };
 
 /*******************************************************************************

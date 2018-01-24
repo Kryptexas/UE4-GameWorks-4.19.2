@@ -1443,6 +1443,8 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 
 				ArchetypeReferencers.Add(NewArchetype);
 
+				FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(Archetype, NewArchetype);
+
 				Archetype->RemoveFromRoot();
 				Archetype->MarkPendingKill();
 			}

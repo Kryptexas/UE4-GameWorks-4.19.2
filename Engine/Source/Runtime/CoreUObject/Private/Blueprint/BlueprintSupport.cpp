@@ -902,7 +902,7 @@ private:
 	int32        TrackedExport;
 };
 
-bool FLinkerLoad::DeferExportCreation(const int32 Index)
+bool FLinkerLoad::DeferExportCreation(const int32 Index, UObject* Outer)
 {
 	FObjectExport& Export = ExportMap[Index];
 
@@ -914,10 +914,31 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index)
 
 	if ((Export.Object != nullptr))
 	{
+		// @cr: should we return true if the object was already a placeholder?
 		return false;
 	}
-
+	
 	UClass* LoadClass = GetExportLoadClass(Index);
+	if(ULinkerPlaceholderExportObject* OuterPlaceholder = Cast<ULinkerPlaceholderExportObject>(Outer))
+	{
+		// we deferred the outer, so its constructor has not had a chance
+		// to create and initialize native subobjects. We must defer this subobject:
+		FString ClassName = LoadClass->GetName();
+		FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-INST_of_%s"), *ClassName));
+		UClass*   PlaceholderType  = ULinkerPlaceholderExportObject::StaticClass();
+		PlaceholderName = MakeUniqueObjectName(Outer, PlaceholderType, PlaceholderName);
+
+		ULinkerPlaceholderExportObject* Placeholder = NewObject<ULinkerPlaceholderExportObject>(Outer, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
+		Placeholder->PackageIndex = FPackageIndex::FromExport(Index);
+		
+		Export.Object = Placeholder;
+
+		// the subobject placeholder must be resolved after its outer has been resolved:
+		OuterPlaceholder->SetupPlaceholderSubobject(Placeholder);
+
+		return true;
+	}
+
 	if (LoadClass == nullptr || LoadClass->HasAnyClassFlags(CLASS_Native))
 	{
 		return false;
@@ -1708,6 +1729,11 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 					continue;
 				}
 
+				if(PlaceholderExport->IsDeferredSubobject())
+				{
+					continue;
+				}
+
 				UClass* ExportClass = GetExportLoadClass(ExportIndex);
 				// export class could be null... we create these placeholder 
 				// exports for objects that are instances of an external 
@@ -1744,6 +1770,9 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 				//       part of the LoadAllObjects() pass (not for any specific 
 				//       container object).
 				PlaceholderExport->ResolveAllPlaceholderReferences(ExportObj);
+
+				ResolvedDeferredSubobjects(PlaceholderExport);
+
 				PlaceholderExport->MarkPendingKill();
 
 				// if we hadn't used a ULinkerPlaceholderExportObject in place of 
@@ -1838,6 +1867,33 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		DEFERRED_DEPENDENCY_CHECK(BlueprintCDO->HasAnyFlags(RF_LoadCompleted));
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
+void FLinkerLoad::ResolvedDeferredSubobjects(ULinkerPlaceholderExportObject* OwningPlaceholder)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	ensure(OwningPlaceholder->IsMarkedResolved());
+	for(ULinkerPlaceholderExportObject* PlaceholderSubobject : OwningPlaceholder->GetSubobjectPlaceholders() )
+	{
+		int32 ExportIndex = PlaceholderSubobject->PackageIndex.ToExport();
+		FObjectExport& Export = ExportMap[ExportIndex];
+
+		Export.Object = nullptr;
+
+		UObject* ReplacementObject = CreateExport(ExportIndex);
+		PlaceholderSubobject->ResolveAllPlaceholderReferences(ReplacementObject);
+		PlaceholderSubobject->MarkPendingKill();
+
+		// recurse:
+		ResolvedDeferredSubobjects(PlaceholderSubobject);
+
+		// serialize:
+		if (ReplacementObject != nullptr)
+		{
+			Preload(ReplacementObject);
+		}
+	}
+#endif//USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
 void FLinkerLoad::ForceBlueprintFinalization()

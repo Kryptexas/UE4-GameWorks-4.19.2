@@ -1,6 +1,8 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/LinkerPlaceholderBase.h"
+
+#include "UObject/LinkerPlaceholderExportObject.h"
 #include "UObject/UnrealType.h"
 #include "Blueprint/BlueprintSupport.h"
 
@@ -434,6 +436,13 @@ int32 FLinkerPlaceholderBase::ResolveAllPlaceholderReferences(UObject* Replaceme
 
 	MarkAsResolved();
 	return ReplacementCount;
+}
+
+//------------------------------------------------------------------------------
+void FLinkerPlaceholderBase::SetupPlaceholderSubobject(ULinkerPlaceholderExportObject* PlaceholderSubobject)
+{
+	PlaceholderSubobjects.Add(PlaceholderSubobject);
+	PlaceholderSubobject->OwningPlaceholder = CastChecked<ULinkerPlaceholderExportObject>( this->GetPlaceholderAsUObject() );
 }
 
 //------------------------------------------------------------------------------
