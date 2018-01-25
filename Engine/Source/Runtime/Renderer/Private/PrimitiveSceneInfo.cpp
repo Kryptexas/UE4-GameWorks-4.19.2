@@ -699,7 +699,7 @@ const FMeshBatch* FPrimitiveSceneInfo::GetMeshBatch(int8 InLODIndex) const
 {
 	if (StaticMeshes.IsValidIndex(InLODIndex))
 	{
-		return (const FMeshBatch*)&StaticMeshes[InLODIndex];
+		return &StaticMeshes[InLODIndex];
 	}
 
 	return nullptr;

@@ -767,7 +767,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			if (bDoInitViewAftersPrepass)
 			{
 				InitViewsPossiblyAfterPrepass(RHICmdList, ILCTaskData, SortEvents, UpdateViewCustomDataEvents);
-				UpdateViewCustomData(UpdateViewCustomDataEvents);
+				PostInitViewCustomData(UpdateViewCustomDataEvents);
 
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_FGlobalDynamicVertexBuffer_Commit);

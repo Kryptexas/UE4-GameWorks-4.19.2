@@ -1520,9 +1520,10 @@ FSceneRenderTargetItem* FViewInfo::GetTonemappingLUTRenderTarget(FRHICommandList
 
 void FViewInfo::SetCustomData(const FPrimitiveSceneInfo* InPrimitiveSceneInfo, void* InCustomData)
 {
-	if (InCustomData != nullptr)
+	check(InPrimitiveSceneInfo != nullptr);
+
+	if (InCustomData != nullptr && PrimitivesCustomData[InPrimitiveSceneInfo->GetIndex()] != InCustomData)
 	{
-		check(InPrimitiveSceneInfo != nullptr);
 		check(PrimitivesCustomData.IsValidIndex(InPrimitiveSceneInfo->GetIndex()));
 		PrimitivesCustomData[InPrimitiveSceneInfo->GetIndex()] = InCustomData;
 

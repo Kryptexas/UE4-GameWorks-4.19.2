@@ -1713,7 +1713,7 @@ protected:
 	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 
 	/** Will update the view custom data. */
-	void UpdateViewCustomData();
+	void PostInitViewCustomData();
 	
 private:
 

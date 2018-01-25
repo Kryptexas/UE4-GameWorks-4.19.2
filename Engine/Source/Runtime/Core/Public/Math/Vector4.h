@@ -260,6 +260,14 @@ public:
 	float& Component(int32 Index);
 
 	/**
+	* Gets a specific component of the vector.
+	*
+	* @param Index The index of the component.
+	* @return Reference to the component.
+	*/
+	const float& Component(int32 Index) const;
+
+	/**
 	 * Error tolerant comparison.
 	 *
 	 * @param V Vector to compare against.
@@ -578,6 +586,10 @@ FORCEINLINE float& FVector4::Component(int32 Index)
 	return (&X)[Index];
 }
 
+FORCEINLINE const float& FVector4::Component(int32 Index) const
+{
+	return (&X)[Index];
+}
 
 FORCEINLINE bool FVector4::operator==(const FVector4& V) const
 {

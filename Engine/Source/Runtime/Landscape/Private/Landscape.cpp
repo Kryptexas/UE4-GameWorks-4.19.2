@@ -61,7 +61,7 @@ DEFINE_STAT(STAT_LandscapeDynamicDrawTime);
 DEFINE_STAT(STAT_LandscapeStaticDrawLODTime);
 DEFINE_STAT(STAT_LandscapeVFDrawTimeVS);
 DEFINE_STAT(STAT_LandscapeInitViewCustomData);
-DEFINE_STAT(STAT_LandscapeUpdateViewCustomData);
+DEFINE_STAT(STAT_LandscapePostInitViewCustomData);
 DEFINE_STAT(STAT_LandscapeComputeCustomMeshBatchLOD);
 DEFINE_STAT(STAT_LandscapeComputeCustomShadowMeshBatchLOD);
 DEFINE_STAT(STAT_LandscapeVFDrawTimePS);

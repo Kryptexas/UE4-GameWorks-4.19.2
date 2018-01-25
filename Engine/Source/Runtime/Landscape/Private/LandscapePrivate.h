@@ -16,7 +16,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Draw LOD Time"), STAT_LandscapeStaticDraw
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Render SetMesh Draw Time VS"), STAT_LandscapeVFDrawTimeVS, STATGROUP_Landscape, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Render SetMesh Draw Time PS"), STAT_LandscapeVFDrawTimePS, STATGROUP_Landscape, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Init View Custom Data"), STAT_LandscapeInitViewCustomData, STATGROUP_Landscape, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update View Custom Data"), STAT_LandscapeUpdateViewCustomData, STATGROUP_Landscape, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PostInit View Custom Data"), STAT_LandscapePostInitViewCustomData, STATGROUP_Landscape, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Compute Custom Mesh Batch LOD"), STAT_LandscapeComputeCustomMeshBatchLOD, STATGROUP_Landscape, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Compute Custom Shadow Mesh Batch LOD"), STAT_LandscapeComputeCustomShadowMeshBatchLOD, STATGROUP_Landscape, );
 

@@ -397,7 +397,7 @@ private:
 	void SetupVolumetricFog();
 
 	/** Will update the view specific custom data. */
-	void UpdateViewCustomData(FGraphEventArray& OutUpdateEvents);
+	void PostInitViewCustomData(FGraphEventArray& OutUpdateEvents);
 
 	void RenderLocalLightsForVolumetricFog(
 		FRHICommandListImmediate& RHICmdList,

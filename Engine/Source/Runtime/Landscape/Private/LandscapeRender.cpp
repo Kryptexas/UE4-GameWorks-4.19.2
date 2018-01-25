@@ -1744,7 +1744,7 @@ void* FLandscapeComponentSceneProxy::InitViewCustomData(const FSceneView& InView
 {
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeInitViewCustomData);
 
-	// NOTE: we can't access other proxy here as this can be run in parallel we need to wait for the UpdateViewCustomData which is run in synchronous	
+	// NOTE: we can't access other proxy here as this can be run in parallel we need to wait for the PostInitViewCustomData which is run in synchronous	
 
 	PrimitiveCustomDataIndex = GetPrimitiveSceneInfo()->GetIndex();
 	const FSceneView& View = GetLODView(InView);
@@ -1974,9 +1974,9 @@ void FLandscapeComponentSceneProxy::ComputeStaticBatchIndexToRender(FViewCustomD
 	check(SubSectionLODData.StaticBatchElementIndexToRender != INDEX_NONE);	
 }
 
-void FLandscapeComponentSceneProxy::UpdateViewCustomData(const FSceneView& InView, void* InViewCustomData)
+void FLandscapeComponentSceneProxy::PostInitViewCustomData(const FSceneView& InView, void* InViewCustomData)
 {
-	SCOPE_CYCLE_COUNTER(STAT_LandscapeUpdateViewCustomData);
+	SCOPE_CYCLE_COUNTER(STAT_LandscapePostInitViewCustomData);
 
 	FViewCustomDataLOD* CurrentLODData = (FViewCustomDataLOD*)InViewCustomData;
 	check(CurrentLODData != nullptr);

@@ -657,7 +657,7 @@ public:
 	 * @param InView - Current View
  	 * @param InViewCustomData - Custom data to update
 	 */	
-	ENGINE_API virtual void UpdateViewCustomData(const FSceneView& InView, void* InViewCustomData) { }
+	ENGINE_API virtual void PostInitViewCustomData(const FSceneView& InView, void* InViewCustomData) { }
 
 	/** Tell us if we should rely on the default LOD computing rules or not.*/
 	ENGINE_API virtual bool IsUsingCustomLODRules() const { return false; }
