@@ -776,7 +776,7 @@ namespace UnrealBuildTool
 			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
 			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(Target.Platform)).ReadProjectSettings(Target.ProjectFile);
 			if (ProjectSettings.bNotificationsEnabled)
 			{
 				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=1");
