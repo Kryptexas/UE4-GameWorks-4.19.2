@@ -61,7 +61,7 @@ public:
 			return false;
 		}
 
-		const TArray<FMeshBoneInfo> & RefBoneInfo = SkeletalMesh->RefSkeleton.GetRefBoneInfo();
+		const TArray<FMeshBoneInfo> & RefBoneInfo = SkeletalMesh->RefSkeleton.GetRawRefBoneInfo();
 		TArray<FBoneIndexType> BoneIndicesToRemove;
 
 		// originally this code was accumulating from LOD 0->DesiredLOd, but that should be done outside of tool if they want to
@@ -92,7 +92,7 @@ public:
 			{
 				if (BonesToRemoveSetting[Index] != NAME_None)
 				{
-					int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BonesToRemoveSetting[Index]);
+					int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BonesToRemoveSetting[Index]);
 
 					// we don't allow root to be removed
 					if (BoneIndex > 0)
@@ -261,7 +261,7 @@ public:
 
 		// Retrieve all bone names in skeleton
 		TArray<FName> BoneNames;
-		const int32 NumBones = SkeletalMesh->RefSkeleton.GetNum();
+		const int32 NumBones = SkeletalMesh->RefSkeleton.GetRawBoneNum();
 		for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 		{
 			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
