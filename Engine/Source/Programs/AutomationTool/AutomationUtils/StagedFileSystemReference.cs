@@ -34,13 +34,13 @@ public abstract class StagedFileSystemReference
 		// Make sure it's not an absolute path
 		if (Name.Length >= 2 && (Name[1] == ':' || Name[0] == '/'))
 		{
-			throw new ArgumentException(String.Format("Attempt to construct staged filesystem reference from absolute path ({0}). Staged paths are always relative to the staging root."), InName);
+			throw new ArgumentException(String.Format("Attempt to construct staged filesystem reference from absolute path ({0}). Staged paths are always relative to the staging root.", InName));
 		}
 
 		// Make sure it doesn't end in a directory separator
 		if(Name.Length > 0 && Name[Name.Length - 1] == '/')
 		{
-			throw new ArgumentException(String.Format("Staged filesystem references cannot end with path separators ({0})."), InName);
+			throw new ArgumentException(String.Format("Staged filesystem references cannot end with path separators ({0}).", InName));
 		}
 
 		// Remove any relative paths
@@ -85,7 +85,7 @@ public abstract class StagedFileSystemReference
 				// Make sure it's not right at the start
 				if(FragmentIdx == 0)
 				{
-					throw new ArgumentException("Staged filesystem reference cannot reference outside the staging root ({0})", InName);
+					throw new ArgumentException(String.Format("Staged filesystem reference cannot reference outside the staging root ({0})", InName));
 				}
 
 				// Get the start of the last fragment

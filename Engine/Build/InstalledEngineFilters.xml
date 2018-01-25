@@ -269,6 +269,8 @@
 
 	<!-- Win64 -->
 	<Property Name="CopyWin64Filter">
+		<!-- App local dependencies -->
+		Engine/Binaries/ThirdParty/AppLocalDependencies/...
 	</Property>
 	<Property Name="CopyWin64Exceptions">
 	</Property>
