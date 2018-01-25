@@ -404,8 +404,8 @@ public:
 		if (bManuallyClampUV)
 		{
 			FVector2D MaxSampleBufferUVValue(
-				(View.ViewRect.Width() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) * DownsampledBufferSize.X,
-				(View.ViewRect.Height() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) * DownsampledBufferSize.Y);
+				(View.ViewRect.Width() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) / DownsampledBufferSize.X,
+				(View.ViewRect.Height() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) / DownsampledBufferSize.Y);
 			SetShaderValue(RHICmdList, ShaderRHI, MaxSampleBufferUV, MaxSampleBufferUVValue);
 		}
 	}

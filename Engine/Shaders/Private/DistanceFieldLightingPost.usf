@@ -288,13 +288,7 @@ void FilterHistoryPS(
 
 				#if MANUALLY_CLAMP_UV
 					// Distance field AO was computed at 0,0 regardless of viewrect min.
-					{
-						SampleBufferUV.x = min(SampleBufferUV.x, MaxSampleBufferUV);
-					}
-
-					{
-						SampleBufferUV.y = min(SampleBufferUV.y, MaxSampleBufferUV);
-					}
+					SampleBufferUV = min(SampleBufferUV, MaxSampleBufferUV);
 				#endif
 
 				float4 TextureValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, SampleBufferUV, 0);

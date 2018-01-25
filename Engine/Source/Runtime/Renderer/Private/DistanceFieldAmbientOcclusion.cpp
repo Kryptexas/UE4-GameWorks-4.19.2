@@ -400,7 +400,12 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 	}
 	else
 	{
-		SetRenderTarget(RHICmdList, DistanceFieldNormal.TargetableTexture, NULL, true);
+		SetRenderTarget(RHICmdList,
+			DistanceFieldNormal.TargetableTexture,
+			NULL,
+			ESimpleRenderTargetMode::EClearColorExistingDepth,
+			FExclusiveDepthStencil::DepthNop_StencilNop,
+			true);
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
