@@ -36,7 +36,7 @@ const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE4
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
 FCustomVersionRegistration GRegisterShaderCacheGameVersion(FShaderCacheCustomVersion::GameKey, (int32)FEngineVersion::Current().GetChangelist(), TEXT("ShaderCacheGameVersion"));
 
-#define SHADER_CACHE_ENABLED (!WITH_EDITOR && PLATFORM_MAC)
+#define SHADER_CACHE_ENABLED (0)
 
 static const ECompressionFlags ShaderCacheCompressionFlag = ECompressionFlags::COMPRESS_ZLIB;
 
