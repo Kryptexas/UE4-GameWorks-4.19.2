@@ -132,7 +132,7 @@ void FLocalVertexFactory::AddVertexPositionElements(FDataType& InData, FVertexDe
 
 void FLocalVertexFactory::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& Elements)
 {
-	if(Data.PositionComponent.VertexBuffer != NULL)
+	if(InData.PositionComponent.VertexBuffer != NULL)
 	{
 		Elements.Add(AccessStreamComponent(InData.PositionComponent,0));
 	}
@@ -171,31 +171,23 @@ void FLocalVertexFactory::AddVertexElements(FDataType& InData, FVertexDeclaratio
 				));
 		}
 
-		for (int32 CoordinateIndex = Data.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
+		for (int32 CoordinateIndex = InData.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
-				Data.TextureCoordinates[Data.TextureCoordinates.Num() - 1],
+				InData.TextureCoordinates[InData.TextureCoordinates.Num() - 1],
 				BaseTexCoordAttribute + CoordinateIndex
 				));
 		}
 	}
 
-	if(Data.LightMapCoordinateComponent.VertexBuffer)
+	if(InData.LightMapCoordinateComponent.VertexBuffer)
 	{
-		Elements.Add(AccessStreamComponent(Data.LightMapCoordinateComponent,15));
+		Elements.Add(AccessStreamComponent(InData.LightMapCoordinateComponent,15));
 	}
-	else if(Data.TextureCoordinates.Num())
+	else if(InData.TextureCoordinates.Num())
 	{
-		Elements.Add(AccessStreamComponent(Data.TextureCoordinates[0],15));
+		Elements.Add(AccessStreamComponent(InData.TextureCoordinates[0],15));
 	}
-
-	/*
-	check(Streams.Num() > 0);
-
-	InitDeclaration(Elements);
-
-	check(IsValidRef(GetDeclaration()));
-	*/
 }
 
 FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
