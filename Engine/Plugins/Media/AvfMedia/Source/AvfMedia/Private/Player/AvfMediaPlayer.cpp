@@ -459,16 +459,18 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions* /*Options*/)
 
 	MediaPlayer.rate = 0.0;
 	CurrentTime = FTimespan::Zero();
-		
-    if (!ResumeHandle.IsValid())
+
+	if (!ResumeHandle.IsValid())
     {
         FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationHasEnteredForeground);
+		FCoreDelegates::ApplicationHasReactivatedDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationActivate);
         ResumeHandle.Reset();
     }
     
     if (!PauseHandle.IsValid())
     {
         FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationWillEnterBackground);
+		FCoreDelegates::ApplicationWillDeactivateDelegate.AddRaw(this, &FAvfMediaPlayer::HandleApplicationDeactivate);
         PauseHandle.Reset();
     }
     
@@ -678,4 +680,22 @@ void FAvfMediaPlayer::HandleApplicationWillEnterBackground()
     {
         [MediaPlayer pause];
     }
+}
+
+void FAvfMediaPlayer::HandleApplicationActivate()
+{
+	// check the state to ensure we are still playing
+	if ((CurrentState == EMediaState::Playing) && MediaPlayer != nil)
+	{
+		[MediaPlayer play];
+	}
+}
+
+void FAvfMediaPlayer::HandleApplicationDeactivate()
+{
+	// check the state to ensure we are still playing
+	if ((CurrentState == EMediaState::Playing) && MediaPlayer != nil)
+	{
+		[MediaPlayer pause];
+	}
 }

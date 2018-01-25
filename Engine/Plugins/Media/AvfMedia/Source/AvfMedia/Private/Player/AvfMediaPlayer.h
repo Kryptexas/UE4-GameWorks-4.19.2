@@ -90,7 +90,13 @@ private:
     
     /** Callback for when the applicaiton is being paused in the background */
     void HandleApplicationWillEnterBackground();
-    
+
+	/** Callback for when the application is moved from the inactive to active state */
+	void HandleApplicationActivate();
+
+	/** Callback for when the application is moved from the active to inactive state */
+	void HandleApplicationDeactivate();
+
 	/** The current playback rate. */
 	float CurrentRate;
 
