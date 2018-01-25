@@ -914,11 +914,16 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index, UObject* Outer)
 
 	if ((Export.Object != nullptr))
 	{
-		// @cr: should we return true if the object was already a placeholder?
 		return false;
 	}
 	
 	UClass* LoadClass = GetExportLoadClass(Index);
+	
+	if (LoadClass == nullptr)
+	{
+		return false;
+	}
+
 	if(ULinkerPlaceholderExportObject* OuterPlaceholder = Cast<ULinkerPlaceholderExportObject>(Outer))
 	{
 		// we deferred the outer, so its constructor has not had a chance
@@ -938,8 +943,8 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index, UObject* Outer)
 
 		return true;
 	}
-
-	if (LoadClass == nullptr || LoadClass->HasAnyClassFlags(CLASS_Native))
+	
+	if (LoadClass->HasAnyClassFlags(CLASS_Native))
 	{
 		return false;
 	}
