@@ -21,8 +21,8 @@ public class ResonanceAudioApi : ModuleRules
 			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "ResonanceAudio_APL.xml"));
 
-            PublicLibraryPaths.Add(LibraryPath + "lib/android_arm/");
-            PublicLibraryPaths.Add(LibraryPath + "lib/android_arm64/");
+            PublicLibraryPaths.Add(LibraryPath + "lib/android/armv7/");
+            PublicLibraryPaths.Add(LibraryPath + "lib/android/arm64/");
 
             PublicAdditionalLibraries.Add("vraudio");
         }
