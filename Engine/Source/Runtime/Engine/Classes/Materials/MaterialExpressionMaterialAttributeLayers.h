@@ -45,19 +45,19 @@ class UMaterialExpressionMaterialAttributeLayers : public UMaterialExpression
 
 #if WITH_EDITOR
 
-	const TArray<UMaterialFunctionInterface*>& GetFilterLayers() const
-	{
-		return ParamLayers ? ParamLayers->FilterLayers : DefaultLayers.FilterLayers;
-	}
-
-	const TArray<UMaterialFunctionInterface*>& GetFilterBlends() const
-	{
-		return ParamLayers ? ParamLayers->FilterBlends : DefaultLayers.FilterBlends;
-	}
-
 	const TArray<FText>& GetLayerNames() const
 	{
 		return ParamLayers ? ParamLayers->LayerNames : DefaultLayers.LayerNames;
+	}
+
+	const TArray<bool>& GetShouldFilterLayers() const
+	{
+		return ParamLayers ? ParamLayers->RestrictToLayerRelatives : DefaultLayers.RestrictToLayerRelatives;
+	}
+
+	const TArray<bool>& GetShouldFilterBlends() const
+	{
+		return ParamLayers ? ParamLayers->RestrictToBlendRelatives : DefaultLayers.RestrictToBlendRelatives;
 	}
 #endif
 

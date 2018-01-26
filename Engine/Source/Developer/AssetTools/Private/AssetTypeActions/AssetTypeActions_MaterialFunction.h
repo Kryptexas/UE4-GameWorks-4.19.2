@@ -30,6 +30,8 @@ protected:
 
 	/** Handler for when FindMaterials is selected */
 	void ExecuteFindMaterials(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects);
+	virtual FText GetInstanceText() const { return NSLOCTEXT("AssetTypeActions", "Material_NewMFI", "Create Function Instance"); }
+
 };
 
 class FAssetTypeActions_MaterialFunctionLayer : public FAssetTypeActions_MaterialFunction
@@ -44,6 +46,7 @@ public:
 
 private:
 	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
+	virtual FText GetInstanceText() const override{ return NSLOCTEXT("AssetTypeActions", "Material_NewMLI", "Create Layer Instance"); }
 };
 
 
@@ -59,4 +62,5 @@ public:
 
 private:
 	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
+	virtual FText GetInstanceText() const override { return NSLOCTEXT("AssetTypeActions", "Material_NewMBI", "Create Blend Instance"); }
 };

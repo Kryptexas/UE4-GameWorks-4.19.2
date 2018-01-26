@@ -508,7 +508,6 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 					{
 						TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(Layer);
 						FunctionStack.Push(NewFunctionState.Get());
-
 						GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(Layer->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 
 						check(FunctionStack.Top()->ExpressionStack.Num() == 0);

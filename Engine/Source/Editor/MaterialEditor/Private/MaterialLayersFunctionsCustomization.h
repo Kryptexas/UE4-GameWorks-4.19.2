@@ -25,7 +25,7 @@ public:
 	/** Removes a layer and any corresponding blend from the FMaterialLayerFunctions */
 	void RemoveLayer(int32 Index);
 
-	void RefreshOnAssetChange(const struct FAssetData& InAssetData, int32 Index, EMaterialParameterAssociation MaterialType, const bool bIsFilterField);
+	void RefreshOnAssetChange(const struct FAssetData& InAssetData, int32 Index, EMaterialParameterAssociation MaterialType);
 	/** Getter for the FMaterialLayersFunctions for this customization */
 	FMaterialLayersFunctions* GetMaterialLayersFunctions() const
 	{
@@ -83,9 +83,7 @@ private:
 	TArray<class IDetailGroup*> DetailGroups;
 
 public:
-	FString GetFilterPath(FMaterialParameterInfo InInfo) const;
-
-	FString GetInstancePath(FMaterialParameterInfo InInfo) const;
+	FString GetLayerAssetPath(FMaterialParameterInfo InInfo) const;
 };
 
 class FMaterialLayerFunctionElement : public IDetailCustomNodeBuilder, public TSharedFromThis< FMaterialLayerFunctionElement >
@@ -94,11 +92,9 @@ public:
 
 	FMaterialLayerFunctionElement(FMaterialLayersFunctionsCustomization* InCustomization, TWeakPtr<IPropertyHandle> InPropertyHandle, EMaterialLayerRowType InRowType);
 	/** Callback when user click the reset button of the material row property */
-	static void ResetFilterToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType);
-	static void ResetInstanceToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType, bool bTriggeredByFilter = false);
+	static void ResetLayerAssetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType);
 
-	static bool CanResetFilterToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType);
-	static bool CanResetInstanceToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType);
+	static bool CanResetLayerAssetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType);
 
 	
 	/** Getter for the index of this row */

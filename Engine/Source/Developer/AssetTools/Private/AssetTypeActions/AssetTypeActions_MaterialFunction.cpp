@@ -32,7 +32,7 @@ void FAssetTypeActions_MaterialFunction::GetActions( const TArray<UObject*>& InO
 	if (MaterialEditorModule.MaterialLayersEnabled())
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Material_NewMFI", "Create Function Instance"),
+			GetInstanceText(),
 			LOCTEXT("Material_NewMFITooltip", "Creates a parameterized function using this function as a base."),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.MaterialInstanceActor"),
 			FUIAction(

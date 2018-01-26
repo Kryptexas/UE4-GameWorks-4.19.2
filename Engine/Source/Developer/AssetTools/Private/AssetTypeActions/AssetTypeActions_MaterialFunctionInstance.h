@@ -33,6 +33,9 @@ public:
 	virtual FColor GetTypeColor() const override { return FColor(0, 175, 175); }
 	virtual UClass* GetSupportedClass() const override;
 	virtual bool CanFilter() override;
+private:
+	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
+	virtual FText GetInstanceText() const override { return NSLOCTEXT("AssetTypeActions", "Material_NewMLI", "Create Layer Instance"); }
 };
 
 class FAssetTypeActions_MaterialFunctionLayerBlendInstance : public FAssetTypeActions_MaterialFunctionInstance
@@ -43,4 +46,9 @@ public:
 	virtual FColor GetTypeColor() const override { return FColor(0, 175, 175); }
 	virtual UClass* GetSupportedClass() const override;
 	virtual bool CanFilter() override;
+
+private:
+	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
+	virtual FText GetInstanceText() const override { return NSLOCTEXT("AssetTypeActions", "Material_NewMBI", "Create Blend Instance"); }
+
 };

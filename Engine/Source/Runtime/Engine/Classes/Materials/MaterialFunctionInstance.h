@@ -20,6 +20,7 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 	{
 		Parent = NewParent;
 		MaterialFunctionUsage = NewParent->GetMaterialFunctionUsage();
+		Base = GetBaseFunction();
 	}
 
 	virtual EMaterialFunctionUsage GetMaterialFunctionUsage() override
@@ -31,6 +32,10 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 	/** Parent function. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialFunctionInstance, AssetRegistrySearchable)
 	UMaterialFunctionInterface* Parent;
+
+	/** Base function. */
+	UPROPERTY(AssetRegistrySearchable)
+	UMaterialFunctionInterface* Base;
 
 	/** Scalar parameters. */
 	UPROPERTY(EditAnywhere, Category=MaterialFunctionInstance)
@@ -85,13 +90,13 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 
 	virtual UMaterialFunctionInterface* GetBaseFunction() override
 	{
-		UMaterialFunctionInterface* Base = nullptr;
+		UMaterialFunctionInterface* BasePtr = nullptr;
 		UMaterialFunctionInterface* BaseParent = Parent;
 
 		while (true)
 		{
-			Base = BaseParent;
-			if (UMaterialFunctionInstance* BaseInstance = Cast<UMaterialFunctionInstance>(Base))
+			BasePtr = BaseParent;
+			if (UMaterialFunctionInstance* BaseInstance = Cast<UMaterialFunctionInstance>(BasePtr))
 			{
 				BaseParent = BaseInstance->Parent;
 			}
@@ -101,18 +106,18 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 			}
 		}
 
-		return Base;
+		return BasePtr;
 	}
 
 	virtual const UMaterialFunctionInterface* GetBaseFunction() const override
 	{
-		UMaterialFunctionInterface* Base = nullptr;
+		UMaterialFunctionInterface* BasePtr = nullptr;
 		UMaterialFunctionInterface* BaseParent = Parent;
 
 		while (true)
 		{
-			Base = BaseParent;
-			if (UMaterialFunctionInstance* BaseInstance = Cast<UMaterialFunctionInstance>(Base))
+			BasePtr = BaseParent;
+			if (UMaterialFunctionInstance* BaseInstance = Cast<UMaterialFunctionInstance>(BasePtr))
 			{
 				BaseParent = BaseInstance->Parent;
 			}
@@ -122,7 +127,7 @@ class UMaterialFunctionInstance : public UMaterialFunctionInterface
 			}
 		}
 
-		return Base;
+		return BasePtr;
 	}
 
 	virtual const TArray<UMaterialExpression*>* GetFunctionExpressions() const override
