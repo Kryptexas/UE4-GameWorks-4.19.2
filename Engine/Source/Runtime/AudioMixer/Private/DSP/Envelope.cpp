@@ -257,8 +257,8 @@ namespace Audio
 		CurrentBiasedOutput -= SustainGain;
 		CurrentBiasedOutput *= BiasDepth;
 
-		const float OutputEnvValue = bInvert ? 1.0f - CurrentEnvelopeValue : CurrentEnvelopeValue;
-		CurrentEnvelopeValue *= Depth;
+		float OutputEnvValue = bInvert ? 1.0f - CurrentEnvelopeValue : CurrentEnvelopeValue;
+		OutputEnvValue *= Depth;
 
 		if (BiasedOutput)
 		{
@@ -267,11 +267,11 @@ namespace Audio
 
 		if (ModMatrix)
 		{
-			ModMatrix->SetSourceValue(VoiceId, EnvSource, CurrentEnvelopeValue);
+			ModMatrix->SetSourceValue(VoiceId, EnvSource, OutputEnvValue);
 			ModMatrix->SetSourceValue(VoiceId, BiasedEnvSource, CurrentBiasedOutput);
 		}
 
-		return CurrentEnvelopeValue;
+		return OutputEnvValue;
 	}
 
 	void FEnvelope::SetAttackTime(const float InAttackTimeMsec)
