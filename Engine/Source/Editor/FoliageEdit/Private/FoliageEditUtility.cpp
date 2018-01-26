@@ -97,6 +97,11 @@ void FFoliageEditUtility::ReplaceFoliageTypeObject(UWorld* InWorld, UFoliageType
 				// Old component needs to go
 				if (OldMeshInfo->Component != nullptr)
 				{
+					if (OldMeshInfo->Component->GetStaticMesh() != nullptr)
+					{
+						OldMeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(&(*OldMeshInfo));
+					}
+
 					OldMeshInfo->Component->ClearInstances();
 					OldMeshInfo->Component->SetFlags(RF_Transactional);
 					OldMeshInfo->Component->Modify();
