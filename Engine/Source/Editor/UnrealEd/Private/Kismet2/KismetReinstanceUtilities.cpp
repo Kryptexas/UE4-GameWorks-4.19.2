@@ -1663,6 +1663,8 @@ static void ReplaceObjectHelper(UObject*& OldObject, UClass* OldClass, UObject*&
 		if (USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(AnimTree->GetOuter()))
 		{
 			SkelComponent->InitAnim(true);
+			// compile change ignores motion vector, so ignore this. 
+			SkelComponent->ClearMotionVector();
 		}
 	}
 

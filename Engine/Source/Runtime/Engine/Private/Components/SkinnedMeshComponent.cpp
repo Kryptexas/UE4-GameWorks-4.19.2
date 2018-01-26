@@ -612,15 +612,18 @@ void USkinnedMeshComponent::ClearMotionVector()
 {
 	const int32 UseLOD = PredictedLODLevel;
 
-	// rendering bone velocity is updated by revision number
-	// if you have situation where you want to clear the bone velocity (that causes temporal AA or motion blur)
-	// use this function to clear it
-	// this function updates renderer twice using increasing of revision number, so that renderer updates previous/new transform correctly
-	++CurrentBoneTransformRevisionNumber;
-	MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
+	if (MeshObject)
+	{
+		// rendering bone velocity is updated by revision number
+		// if you have situation where you want to clear the bone velocity (that causes temporal AA or motion blur)
+		// use this function to clear it
+		// this function updates renderer twice using increasing of revision number, so that renderer updates previous/new transform correctly
+		++CurrentBoneTransformRevisionNumber;
+		MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
 
- 	++CurrentBoneTransformRevisionNumber;
- 	MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
+		++CurrentBoneTransformRevisionNumber;
+		MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
+	}
 }
 
 #if WITH_EDITOR
