@@ -130,7 +130,7 @@ struct FMovieSceneEvaluationState
 	 * @param InSequenceID		The sequence ID to assign to
 	 * @param InSequence		The sequence to assign
 	 */
-	void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player);
+	MOVIESCENE_API void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player);
 
 	/**
 	 * Attempt to locate a sequence from its ID

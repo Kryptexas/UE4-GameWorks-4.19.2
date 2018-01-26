@@ -571,6 +571,11 @@ void FSequencer::FocusSequenceInstance(UMovieSceneSubSection& InSubSection)
 	ResetPerMovieSceneData();
 	SequencerWidget->UpdateBreadcrumbs();
 
+	if (!State.FindSequence(SequenceID))
+	{
+		State.AssignSequence(SequenceID, *GetFocusedMovieSceneSequence(), *this);
+	}
+
 	OnActivateSequenceEvent.Broadcast(ActiveTemplateIDs.Top());
 
 	bNeedsEvaluate = true;
