@@ -59,6 +59,11 @@ void UBlueprintGeneratedClass::PostLoad()
 {
 	Super::PostLoad();
 
+	if(GetAuthoritativeClass()!= this)
+	{
+		return;
+	}
+
 	UObject* ClassCDO = ClassDefaultObject;
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
