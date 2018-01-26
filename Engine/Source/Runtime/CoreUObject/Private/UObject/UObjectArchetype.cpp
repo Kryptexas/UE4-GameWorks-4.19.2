@@ -93,6 +93,12 @@ UObject* GetArchetypeFromRequiredInfoImpl(UClass* Class, UObject* Outer, FName N
 
 UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags)
 {
-	return GetArchetypeFromRequiredInfoImpl(Class, Outer, Name, ObjectFlags, Class->GetAuthoritativeClass() == Class);
+	bool bUseUpToDateClass = false;
+#if WITH_EDITOR
+	// While compiling we just want to use whatever is in the object hierarchy,
+	// as some instances within the hierarchy may also be compiling:
+	bUseUpToDateClass = Class->GetAuthoritativeClass() == Class && !GCompilingBlueprint;
+#endif
+	return GetArchetypeFromRequiredInfoImpl(Class, Outer, Name, ObjectFlags, bUseUpToDateClass);
 }
 
