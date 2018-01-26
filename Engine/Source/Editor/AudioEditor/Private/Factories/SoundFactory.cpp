@@ -364,36 +364,12 @@ UObject* USoundFactory::FactoryCreateBinary
 
 				// Flag that this is an ambisonics file
 				Sound->bIsAmbisonics = true;
-
-				// Change the channel order of AmbiX files so that it matches FuMa order
-				// FuMa order is WXYZ, AmbiX order is WYZX
-
-				int32 ChannelOrder[] = { 0, 1, 2, 3 };
-
-				if (bIsAmbiX)
-				{
-					ChannelOrder[0] = 0;
-					ChannelOrder[1] = 3;
-					ChannelOrder[2] = 1;
-					ChannelOrder[3] = 2;
-				}
-
-				for (int32 Chan = 0; Chan < 4; ++Chan)
-				{
-					int32 Index = ChannelOrder[Chan];
-					const int32 ChannelSize = RawChannelWaveData[Index].Num();
-					FMemory::Memcpy(LockedData + RawDataOffset, RawChannelWaveData[Index].GetData(), ChannelSize);
-					RawDataOffset += ChannelSize;
-				}
 			}
-			else
+			for (int32 Chan = 0; Chan < ChannelCount; ++Chan)
 			{
-				for (int32 Chan = 0; Chan < ChannelCount; ++Chan)
-				{
-					const int32 ChannelSize = RawChannelWaveData[Chan].Num();
-					FMemory::Memcpy(LockedData + RawDataOffset, RawChannelWaveData[Chan].GetData(), ChannelSize);
-					RawDataOffset += ChannelSize;
-				}
+				const int32 ChannelSize = RawChannelWaveData[Chan].Num();
+				FMemory::Memcpy(LockedData + RawDataOffset, RawChannelWaveData[Chan].GetData(), ChannelSize);
+				RawDataOffset += ChannelSize;
 			}
 
 			Sound->RawData.Unlock();

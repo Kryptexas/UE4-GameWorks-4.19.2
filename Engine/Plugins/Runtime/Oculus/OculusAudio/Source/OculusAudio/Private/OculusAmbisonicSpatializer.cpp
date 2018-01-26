@@ -172,7 +172,7 @@ UAmbisonicsSubmixSettingsBase* FOculusAmbisonicsMixer::GetDefaultSettings()
 	if (DefaultSettingsPtr == nullptr)
 	{
 		DefaultSettingsPtr = NewObject<UOculusAmbisonicsSettings>();
-		DefaultSettingsPtr->ChannelOrder = EAmbisonicFormat::FuMa;
+		DefaultSettingsPtr->ChannelOrder = EAmbisonicFormat::AmbiX;
 		DefaultSettingsPtr->SpatializationMode = EAmbisonicMode::SphericalHarmonics;
 		DefaultSettingsPtr->AddToRoot();
 	}
