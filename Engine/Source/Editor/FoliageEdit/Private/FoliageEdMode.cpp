@@ -3455,6 +3455,11 @@ void FEdModeFoliage::ForceRealTimeViewports(const bool bEnable, const bool bStor
 
 bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
 {
+	if (!IsEditingEnabled())
+	{
+		return false;
+	}
+
 	if (UISettings.GetSelectToolSelected())
 	{
 		if (HitProxy && HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
