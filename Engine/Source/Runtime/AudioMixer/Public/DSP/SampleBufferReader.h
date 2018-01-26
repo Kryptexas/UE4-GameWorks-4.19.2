@@ -83,17 +83,17 @@ namespace Audio
 
 		int32 CurrentFrameIndex;
 		int32 NextFrameIndex;
-		float AlphaLerp;
+		double AlphaLerp;
 
-		float CurrentBufferFrameIndexInterpolated;
+		double CurrentBufferFrameIndexInterpolated;
 
 		float PlaybackProgress;
 
-		float ScrubAnchorFrame;
-		float ScrubMinFrame;
-		float ScrubMaxFrame;
+		double ScrubAnchorFrame;
+		double ScrubMinFrame;
+		double ScrubMaxFrame;
 
-		float ScrubWidthFrames;
+		double ScrubWidthFrames;
 		bool bIsScrubMode;
 		bool bIsFinished;
 	};

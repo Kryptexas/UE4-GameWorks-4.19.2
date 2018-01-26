@@ -18,12 +18,12 @@ namespace Audio
 		, CurrentFrameIndex(0)
 		, NextFrameIndex(0)
 		, AlphaLerp(0.0f)
-		, CurrentBufferFrameIndexInterpolated(0.0f)
+		, CurrentBufferFrameIndexInterpolated(0.0)
 		, PlaybackProgress(0.0f)
-		, ScrubAnchorFrame(0.0f)
-		, ScrubMinFrame(0.0f)
-		, ScrubMaxFrame(0.0f)
-		, ScrubWidthFrames(0.0f)
+		, ScrubAnchorFrame(0.0)
+		, ScrubMinFrame(0.0)
+		, ScrubMaxFrame(0.0)
+		, ScrubWidthFrames(0.0)
 		, bIsScrubMode(false)
 		, bIsFinished(false)
 	{
@@ -53,14 +53,14 @@ namespace Audio
 		BasePitch = 1.0f;
 
 		bIsFinished = false;
-		CurrentBufferFrameIndexInterpolated = 0.0f;
-		ScrubAnchorFrame = 0.0f;
-		ScrubMinFrame = 0.0f;
-		ScrubMaxFrame = 0.0f;
+		CurrentBufferFrameIndexInterpolated = 0.0;
+		ScrubAnchorFrame = 0.0;
+		ScrubMinFrame = 0.0;
+		ScrubMaxFrame = 0.0;
 
 		// Default the scrub width to 0.1 seconds
 		bIsScrubMode = false;
-		ScrubWidthFrames = 0.1f * DeviceSampleRate;
+		ScrubWidthFrames = 0.1 * DeviceSampleRate;
 		PlaybackProgress = 0.0f;
 	}
 
@@ -96,34 +96,34 @@ namespace Audio
 		{	
 			if (InSeekType == ESeekType::FromBeginning)
 			{
-				CurrentBufferFrameIndexInterpolated = InNumFrames;
+				CurrentBufferFrameIndexInterpolated = (double)InNumFrames;
 			}
 			else if (InSeekType == ESeekType::FromEnd)
 			{
-				CurrentBufferFrameIndexInterpolated = (float)BufferNumFrames - InNumFrames;
+				CurrentBufferFrameIndexInterpolated = (double)(BufferNumFrames - InNumFrames);
 			}
 			else
 			{
-				CurrentBufferFrameIndexInterpolated += (float) InNumFrames;
+				CurrentBufferFrameIndexInterpolated += (double) InNumFrames;
 			}
 
 			if (bWrap)
 			{
-				while (CurrentBufferFrameIndexInterpolated > (float)BufferNumFrames)
+				while (CurrentBufferFrameIndexInterpolated > (double)BufferNumFrames)
 				{
-					CurrentBufferFrameIndexInterpolated -= (float)BufferNumFrames;
+					CurrentBufferFrameIndexInterpolated -= (double)BufferNumFrames;
 				}
 
-				while (CurrentBufferFrameIndexInterpolated < 0.0f)
+				while (CurrentBufferFrameIndexInterpolated < 0.0)
 				{
-					CurrentBufferFrameIndexInterpolated += (float)BufferNumFrames;
+					CurrentBufferFrameIndexInterpolated += (double)BufferNumFrames;
 				}
 
-				check(CurrentBufferFrameIndexInterpolated >= 0.0f && CurrentBufferFrameIndexInterpolated < (float)BufferNumFrames);
+				check(CurrentBufferFrameIndexInterpolated >= 0.0 && CurrentBufferFrameIndexInterpolated < (double)BufferNumFrames);
 			}
 			else
 			{
-				CurrentBufferFrameIndexInterpolated = FMath::Clamp(CurrentBufferFrameIndexInterpolated, 0.0f, (float)BufferNumFrames);
+				CurrentBufferFrameIndexInterpolated = FMath::Clamp(CurrentBufferFrameIndexInterpolated, 0.0, (double)BufferNumFrames);
 			}
 		}
 
@@ -141,8 +141,8 @@ namespace Audio
 
 	void FSampleBufferReader::SetScrubTimeWidth(const float InScrubTimeWidthSec)
 	{
-		ScrubWidthFrames = DeviceSampleRate * FMath::Max(InScrubTimeWidthSec, 0.001f);
-		ScrubWidthFrames = FMath::Min((float)(BufferNumFrames - 1), ScrubWidthFrames);
+		ScrubWidthFrames = (double)(DeviceSampleRate * FMath::Max(InScrubTimeWidthSec, 0.001f));
+		ScrubWidthFrames = FMath::Min((double)(BufferNumFrames - 1), ScrubWidthFrames);
 
 		UpdateScrubMinAndMax();
 	}
@@ -166,17 +166,17 @@ namespace Audio
 	{
 		if (BufferNumFrames > 0)
 		{
-			ScrubMinFrame = ScrubAnchorFrame - 0.5f * ScrubWidthFrames;
-			ScrubMaxFrame = ScrubAnchorFrame + 0.5f * ScrubWidthFrames;
+			ScrubMinFrame = ScrubAnchorFrame - 0.5 * ScrubWidthFrames;
+			ScrubMaxFrame = ScrubAnchorFrame + 0.5 * ScrubWidthFrames;
 
-			while (ScrubMinFrame < 0.0f)
+			while (ScrubMinFrame < 0.0)
 			{
-				ScrubMinFrame += (float)BufferNumFrames;
+				ScrubMinFrame += (double)BufferNumFrames;
 			}
 
-			while (ScrubMaxFrame > (float)BufferNumFrames)
+			while (ScrubMaxFrame > (double)BufferNumFrames)
 			{
-				ScrubMaxFrame -= (float)BufferNumFrames;
+				ScrubMaxFrame -= (double)BufferNumFrames;
 			}
 		}
 	}
@@ -233,7 +233,7 @@ namespace Audio
 			{
 				CurrentFrameIndex = FMath::FloorToInt(CurrentBufferFrameIndexInterpolated);
 				NextFrameIndex = CurrentFrameIndex + 1;
-				AlphaLerp = CurrentBufferFrameIndexInterpolated - (float)CurrentFrameIndex;
+				AlphaLerp = CurrentBufferFrameIndexInterpolated - (double)CurrentFrameIndex;
 
 				// Check for boundary condition
 				if (NextFrameIndex >= BufferNumFrames)
@@ -252,7 +252,7 @@ namespace Audio
 			{
 				CurrentFrameIndex = FMath::CeilToInt(CurrentBufferFrameIndexInterpolated);
 				NextFrameIndex = CurrentFrameIndex - 1;
-				AlphaLerp = (float)CurrentFrameIndex - CurrentBufferFrameIndexInterpolated;
+				AlphaLerp = (double)CurrentFrameIndex - CurrentBufferFrameIndexInterpolated;
 
 				if (NextFrameIndex < 0)
 				{
@@ -305,19 +305,19 @@ namespace Audio
 				CurrentBufferFrameIndexInterpolated += CurrentPitch;
 
 				// Perform wrapping... if we're not finished but these hit, that means we're wrapping.
-				if (CurrentBufferFrameIndexInterpolated >= (float)BufferNumFrames)
+				if (CurrentBufferFrameIndexInterpolated >= (double)BufferNumFrames)
 				{
-					CurrentBufferFrameIndexInterpolated -= (float)BufferNumFrames;
+					CurrentBufferFrameIndexInterpolated -= (double)BufferNumFrames;
 				}
-				else if (CurrentBufferFrameIndexInterpolated < 0.0f)
+				else if (CurrentBufferFrameIndexInterpolated < 0.0)
 				{
-					CurrentBufferFrameIndexInterpolated += (float)BufferNumFrames;
+					CurrentBufferFrameIndexInterpolated += (double)BufferNumFrames;
 				}
 			}
 		}
 
 		// Update the current playback time
-		PlaybackProgress = CurrentBufferFrameIndexInterpolated / BufferSampleRate;
+		PlaybackProgress = (float)(CurrentBufferFrameIndexInterpolated / BufferSampleRate);
 
 #endif
 		return bIsFinished;
