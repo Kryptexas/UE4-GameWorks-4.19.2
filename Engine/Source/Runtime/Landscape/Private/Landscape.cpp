@@ -482,7 +482,7 @@ FString ULandscapeComponent::GetLayerAllocationKey(UMaterialInterface* Landscape
 void ULandscapeComponent::GetLayerDebugColorKey(int32& R, int32& G, int32& B) const
 {
 	ULandscapeInfo* Info = GetLandscapeInfo();
-	if (ensure(Info))
+	if (Info != nullptr)
 	{
 		R = INDEX_NONE, G = INDEX_NONE, B = INDEX_NONE;
 
