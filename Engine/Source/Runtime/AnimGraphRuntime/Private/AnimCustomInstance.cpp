@@ -44,6 +44,12 @@ void UAnimCustomInstance::UnbindFromSkeletalMeshComponent(USkeletalMeshComponent
 		InSkeletalMeshComponent->RefreshSlaveComponents();
 		InSkeletalMeshComponent->UpdateComponentToWorld();
 	}
+
+	// if not game world, don't clean this up
+	if (InSkeletalMeshComponent->GetWorld()->IsGameWorld() == false)
+	{
+		InSkeletalMeshComponent->ClearMotionVector();
+	}
 }
 
 bool UAnimCustomInstance::ShouldUseSequenceInstancePlayer(const USkeletalMeshComponent* SkeletalMeshComponent)

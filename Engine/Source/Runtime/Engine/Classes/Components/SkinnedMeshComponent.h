@@ -209,6 +209,9 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	{ 
 		return (MasterPoseComponent.IsValid()? MasterPoseComponent->CurrentBoneTransformRevisionNumber : CurrentBoneTransformRevisionNumber);  
 	}
+
+	/* this update renderer with new revision number twice so to clear bone velocity for motion blur or temporal AA */
+	void ClearMotionVector();
 	
 private:
 	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
