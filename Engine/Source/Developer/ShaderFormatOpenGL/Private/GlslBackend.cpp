@@ -1665,7 +1665,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			{
 				if (src == NULL)
 				{
-					ralloc_asprintf_append( buffer, "imageLoad( " );
+					ralloc_asprintf_append(buffer, "imageLoad( ");
 					deref->image->accept(this);
 					ralloc_asprintf_append(buffer, ", ");
 					deref->image_index->accept(this);
@@ -1673,13 +1673,41 @@ class ir_gen_glsl_visitor : public ir_visitor
 				}
 				else
 				{
-					ralloc_asprintf_append( buffer, "imageStore( " );
+					ralloc_asprintf_append(buffer, "imageStore( ");
 					deref->image->accept(this);
 					ralloc_asprintf_append(buffer, ", ");
 					deref->image_index->accept(this);
 					ralloc_asprintf_append(buffer, ", ");
-					src->accept(this);
-					ralloc_asprintf_append(buffer, ".%s)", expand[src_elements-1]);
+
+					if (/*src->as_constant() && */src_elements == 1)
+					{
+						// Add cast if missing and avoid swizzle
+						if (deref->image->type->inner_type)
+						{
+							switch (deref->image->type->inner_type->base_type)
+							{
+								case GLSL_TYPE_INT:
+									ralloc_asprintf_append(buffer, "ivec4(");
+									break;
+								case GLSL_TYPE_UINT:
+									ralloc_asprintf_append(buffer, "uvec4(");
+									break;
+								case GLSL_TYPE_FLOAT:
+									ralloc_asprintf_append(buffer, "vec4(");
+									break;
+								default:
+									break;
+							}
+						}
+
+						src->accept(this);
+						ralloc_asprintf_append(buffer, "))");
+					}
+					else
+					{
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ".%s)", expand[src_elements-1]);
+					}
 				}
 			}
 		}
