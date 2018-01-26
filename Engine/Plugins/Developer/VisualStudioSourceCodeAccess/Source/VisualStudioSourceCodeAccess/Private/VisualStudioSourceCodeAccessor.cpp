@@ -12,6 +12,9 @@
 #include "Misc/UProjectInfo.h"
 #include "Misc/App.h"
 #include "HAL/PlatformTime.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+//#include "GameProjectGenerationModule.h"
 
 #if WITH_EDITOR
 #include "Developer/HotReload/Public/IHotReload.h"
@@ -893,7 +896,7 @@ bool FVisualStudioSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& Abs
 		TArray<FileOpenRequest> Requests;
 		for ( const FString& FullPath : AbsoluteSourcePaths )
 		{
-			Requests.Add(FileOpenRequest(FullPath, 0, 0));
+			Requests.Add(FileOpenRequest(FullPath, 1, 1));
 		}
 
 		return OpenVisualStudioFilesInternal(Requests);
@@ -1285,8 +1288,17 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 			}
 			else
 			{
-				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
-				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+				const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+
+				if (CurrentProject == nullptr || CurrentProject->Modules.Num() == 0)
+				{
+					CachedSolutionPath = TEXT("");
+				}
+				else
+				{
+					FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+					CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+				}
 			}
 		}
 	}

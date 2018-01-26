@@ -13,6 +13,8 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"SourceCodeAccess",
 					"DesktopPlatform",
+					"Projects",
+					//"GameProjectGeneration",
 				}
 			);
 
