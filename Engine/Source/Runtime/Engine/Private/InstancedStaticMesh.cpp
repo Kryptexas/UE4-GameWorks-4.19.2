@@ -1543,10 +1543,21 @@ int32 UInstancedStaticMeshComponent::AddInstanceInternal(int32 InstanceIndex, FI
 	if (!InstanceReorderTable.Contains(InstanceIndex))
 	{
 		InstanceReorderTable.Add(InstanceIndex);
+
+		if (PerInstanceRenderData.IsValid())
+		{
+			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount, true, true);
+		}
 	}
 	else
 	{
+		// During reorder, we have to update the new instance with RandomStream update then update all reorded instance without this setting
 		InstanceReorderTable.Insert(InstanceIndex, InstanceIndex);
+
+		if (PerInstanceRenderData.IsValid())
+		{
+			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount, true, true);
+		}
 
 		for (int32 i = InstanceIndex + 1; i < InstanceReorderTable.Num(); ++i)
 		{
@@ -1554,11 +1565,11 @@ int32 UInstancedStaticMeshComponent::AddInstanceInternal(int32 InstanceIndex, FI
 		}
 
 		UpdateInstanceCount = InstanceReorderTable.Num() - InstanceIndex;
-	}
 
-	if (PerInstanceRenderData.IsValid())
-	{
-		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount, true, true);
+		if (PerInstanceRenderData.IsValid())
+		{
+			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount, true, false);
+		}
 	}
 
 	PartialNavigationUpdate(InstanceIndex);
