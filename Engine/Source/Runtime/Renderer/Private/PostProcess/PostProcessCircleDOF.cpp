@@ -931,8 +931,9 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 		FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::ENoAction);
 		FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
 		Context.RHICmdList.SetRenderTargetsAndClear(Info);
-		Context.SetViewportAndCallRHI(View.ViewRect);
 	}
+
+	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
 	check(CVar);
