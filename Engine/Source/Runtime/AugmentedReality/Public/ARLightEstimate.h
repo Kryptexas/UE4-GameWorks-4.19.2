@@ -5,7 +5,7 @@
 #include "ARLightEstimate.generated.h"
 
 
-UCLASS(BlueprintType, Category="AR AugmentedReality|Light Estimation")
+UCLASS(BlueprintType, Experimental, Category="AR AugmentedReality|Light Estimation")
 class UARLightEstimate : public UObject
 {
 	GENERATED_BODY()

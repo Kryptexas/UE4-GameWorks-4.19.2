@@ -12,24 +12,6 @@
 
 
 
-//UCLASS()
-//class AUGMENTEDREALITY_API UARPinEventHandlers : public UBlueprintAsyncActionBase
-//{
-//	GENERATED_BODY()
-//
-//public:
-//	UFUNCTION(BlueprintCallable, Category="AR AugmentedReality|Pin", meta=(BlueprintInternalUseOnly="true"))
-//	static UARPinEventHandlers* HandleARPinEvents( UARPin* Pin );
-//
-//public:
-//	UPROPERTY(BlueprintAssignable)
-//	FOnARTrackingStateChanged OnARTrackingStateChanged;
-//
-//	UPROPERTY(BlueprintAssignable)
-//	FOnARTransformUpdated OnARTransformUpdated;
-//};
-
-
 UCLASS(meta=(ScriptName="ARLibrary"))
 class AUGMENTEDREALITY_API UARBlueprintLibrary : public UBlueprintFunctionLibrary
 {

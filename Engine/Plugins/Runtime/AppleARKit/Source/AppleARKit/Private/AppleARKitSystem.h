@@ -78,7 +78,8 @@ private:
 	bool Pause();
 	void OrientationChanged(const int32 NewOrientation);
 	void UpdatePoses();
-	
+	void UpdateFrame();
+
 public:
 	// Session delegate callbacks
 	void SessionDidUpdateFrame_DelegateThread( TSharedPtr< FAppleARKitFrame, ESPMode::ThreadSafe > Frame );

@@ -68,7 +68,7 @@ namespace
 	{
 		if (!SessionPtr.IsValid())
 		{
-			UE_LOG(LogGoogleARCoreAPI, Error, TEXT("Invalid %s: This may caused by ARCore session got recreated due to FATAL error."), *TypeName);
+			UE_LOG(LogGoogleARCoreAPI, Error, TEXT("Invalid %s: It's ARSession is no longer valid. This could because the session is stopped or there is fatal error in the session."), *TypeName);
 			return false;
 		}
 #if PLATFORM_ANDROID
@@ -132,10 +132,6 @@ FGoogleARCoreSession::FGoogleARCoreSession()
 FGoogleARCoreSession::~FGoogleARCoreSession()
 {
 	delete LatestFrame;
-	if (UObjectManager->IsValidLowLevel())
-	{
-		UObjectManager->RemoveFromRoot();
-	}
 
 #if PLATFORM_ANDROID
 	ArSession_destroy(SessionHandle);
@@ -193,6 +189,7 @@ EGoogleARCoreAPIStatus FGoogleARCoreSession::ConfigSession(const UARSessionConfi
 {
 	SessionConfig = &Config;
 	EGoogleARCoreAPIStatus ConfigStatus = EGoogleARCoreAPIStatus::AR_SUCCESS;
+
 #if PLATFORM_ANDROID
 	if (SessionHandle == nullptr)
 	{
@@ -243,7 +240,6 @@ EGoogleARCoreAPIStatus FGoogleARCoreSession::Update(float WorldToMeterScale)
 	{
 		return EGoogleARCoreAPIStatus::AR_ERROR_FATAL;
 	}
-
 	UpdateStatus = ToARCoreAPIStatus(ArSession_update(SessionHandle, LatestFrame->FrameHandle));
 #endif
 
@@ -313,7 +309,10 @@ EGoogleARCoreAPIStatus FGoogleARCoreSession::CreateARAnchor(const FTransform& Tr
 	}
 	else
 	{
+		ensure(TrackedGeometry->GetNativeResource() != nullptr);
 		ArTrackable* TrackableHandle = reinterpret_cast<FGoogleARCoreTrackableResource*>(TrackedGeometry->GetNativeResource())->GetNativeHandle();
+		
+		ensure(TrackableHandle != nullptr);
 		AnchorCreateStatus = ToARCoreAPIStatus(ArTrackable_acquireNewAnchor(SessionHandle, TrackableHandle, PoseHandle, &NewAnchorHandle));
 	}
 	ArPose_destroy(PoseHandle);
@@ -365,6 +364,11 @@ void FGoogleARCoreSession::AddReferencedObjects(FReferenceCollector& Collector)
 	if (SessionConfig)
 	{
 		Collector.AddReferencedObject(SessionConfig);
+	}
+
+	if (UObjectManager)
+	{
+		Collector.AddReferencedObject(UObjectManager);
 	}
 }
 
@@ -451,7 +455,7 @@ void FGoogleARCoreFrame::Update(float WorldToMeterScale)
 	{
 		ArTrackable* TrackableHandle = nullptr;
 		ArTrackableList_acquireItem(Session->GetHandle(), TrackableListHandle, i, &TrackableHandle);
-		// Note that we only update trackables that is converted to Unreal type, this make sure we only updated
+		// Note that we only update trackables that is converted to Unreal type, this makes sure we only updated
 		// the trackable that user has reference to, which avoid holding reference for all trackable so that ARCore may
 		// have a chance to free it.
 		if (Session->GetUObjectManager()->TrackableHandleMap.Contains(TrackableHandle))
@@ -493,7 +497,11 @@ void FGoogleARCoreFrame::Update(float WorldToMeterScale)
 			continue;
 		}
 		UARPin* AnchorObject = Session->GetUObjectManager()->HandleToAnchorMap[AnchorHandle];
-		AnchorObject->OnTrackingStateChanged(ToARTrackingState(AnchorTrackingState));
+		if (AnchorObject->GetTrackingState() != EARTrackingState::StoppedTracking)
+		{
+			AnchorObject->OnTrackingStateChanged(ToARTrackingState(AnchorTrackingState));
+		}
+
 		if (AnchorObject->GetTrackingState() == EARTrackingState::Tracking)
 		{
 			ArAnchor_getPose(SessionHandle, AnchorHandle, SketchPoseHandle);
@@ -528,7 +536,7 @@ void FGoogleARCoreFrame::GetUpdatedAnchors(TArray<UARPin*>& OutUpdatedAnchors) c
 	OutUpdatedAnchors = UpdatedAnchors;
 }
 
-void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EARLineTraceChannels RequestedTraceChannels, TArray<FARTraceResult>& OutHitResults) const
+void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel RequestedTraceChannels, TArray<FARTraceResult>& OutHitResults) const
 {
 #if PLATFORM_ANDROID
 	if (SessionHandle == nullptr)
@@ -547,8 +555,7 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EARLineTra
 	ArFrame_hitTest(SessionHandle, FrameHandle, ScreenPosition.X, ScreenPosition.Y, HitResultList);
 
 	ArHitResultList_getSize(SessionHandle, HitResultList, &HitResultCount);
-
-	// HitResultHandle will be freed when the struct got destroyed. 
+ 
 	ArHitResult_create(SessionHandle, &HitResultHandle);
 	for(int32_t i = 0; i < HitResultCount; i++) 
 	{
@@ -560,47 +567,52 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EARLineTra
 
 		ArHitResult_getHitPose(SessionHandle, HitResultHandle, HitResultPoseHandle);
 		FTransform HitTransform = ARCorePoseToUnrealTransform(HitResultPoseHandle, SessionHandle, Session->GetWorldToMeterScale());
+		// Apply the alignment transform to the hit test result.
+		HitTransform *= Session->GetARSystem()->GetAlignmentTransform();
 		
 		ArTrackable* TrackableHandle = nullptr;
 		ArHitResult_acquireTrackable(SessionHandle, HitResultHandle, &TrackableHandle);
 
+		ensure(TrackableHandle != nullptr);
+
 		ArTrackableType TrackableType = ArTrackableType::AR_TRACKABLE_NOT_VALID;
 		ArTrackable_getType(SessionHandle, TrackableHandle, &TrackableType);
-		EARLineTraceChannels TraceResultChannel = EARLineTraceChannels::None;
 
-		UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
-		
 		// Filter the HitResult based on the requested trace channel.
-		if (TrackableType == AR_TRACKABLE_POINT && !!(RequestedTraceChannels & EARLineTraceChannels::FeaturePoint))
+		if (TrackableType == AR_TRACKABLE_POINT && !!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePoint))
 		{
+			UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 			FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
 			OutHitResults.Add(UEHitResult);
 		}
 		else if (TrackableType == AR_TRACKABLE_PLANE)
 		{
 			ArPlane* PlaneHandle = reinterpret_cast<ArPlane*>(TrackableHandle);
-			if (!!(RequestedTraceChannels & EARLineTraceChannels::PlaneUsingBoundaryPolygon))
+			if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::PlaneUsingBoundaryPolygon))
 			{
 				int32 PointInsidePolygon = 0;
 				ArPlane_isPoseInPolygon(SessionHandle, PlaneHandle, HitResultPoseHandle, &PointInsidePolygon);
 				if (PointInsidePolygon)
 				{
+					UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 					FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::PlaneUsingBoundaryPolygon, HitTransform, TrackedGeometry);
 					OutHitResults.Add(UEHitResult);
 				}
 			}
-			else if (!!(RequestedTraceChannels & EARLineTraceChannels::PlaneUsingExtent))
+			else if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::PlaneUsingExtent))
 			{
 				int32 PointInsideExtents = 0;
 				ArPlane_isPoseInExtents(SessionHandle, PlaneHandle, HitResultPoseHandle, &PointInsideExtents);
 				if (PointInsideExtents)
 				{
+					UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 					FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::PlaneUsingExtent, HitTransform, TrackedGeometry);
 					OutHitResults.Add(UEHitResult);
 				}
 			}
-			else if (!!(RequestedTraceChannels & EARLineTraceChannels::GroundPlane))
+			else if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::InfinitePlane))
 			{
+				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::GroundPlane, HitTransform, TrackedGeometry);
 				OutHitResults.Add(UEHitResult);
 			}
@@ -768,10 +780,20 @@ EARTrackingState FGoogleARCoreTrackableResource::GetTrackingState()
 	return TrackingState;
 }
 
-
 void FGoogleARCoreTrackableResource::UpdateGeometryData()
 {
 	TrackedGeometry->UpdateTrackingState(GetTrackingState());
+}
+
+void FGoogleARCoreTrackableResource::ResetNativeHandle(ArTrackable* InTrackableHandle)
+{
+	if (TrackableHandle != nullptr)
+	{
+		ArTrackable_release(TrackableHandle);
+	}
+	TrackableHandle = InTrackableHandle;
+
+	UpdateGeometryData();
 }
 
 void FGoogleARCoreTrackedPlaneResource::UpdateGeometryData()
@@ -780,7 +802,7 @@ void FGoogleARCoreTrackedPlaneResource::UpdateGeometryData()
 
 	UARPlaneGeometry* PlaneGeometry = CastChecked<UARPlaneGeometry>(TrackedGeometry);
 
-	if (!CheckIsSessionValid("ARCorePlane", Session))
+	if (!CheckIsSessionValid("ARCorePlane", Session) || TrackedGeometry->GetTrackingState() == EARTrackingState::StoppedTracking)
 	{
 		return;
 	}
@@ -809,17 +831,21 @@ void FGoogleARCoreTrackedPlaneResource::UpdateGeometryData()
 	// Update Boundary Polygon
 	int PolygonSize = 0;
 	ArPlane_getPolygonSize(SessionPtr->GetHandle(), GetPlaneHandle(), &PolygonSize);
+
 	TArray<FVector> BoundaryPolygon;
 	BoundaryPolygon.Empty(PolygonSize / 2);
 
-	TArray<float> PolygonPointsXZ;
-	PolygonPointsXZ.SetNumUninitialized(PolygonSize);
-	ArPlane_getPolygon(SessionPtr->GetHandle(), GetPlaneHandle(), PolygonPointsXZ.GetData());
-
-	for (int i = 0; i < PolygonSize / 2; i++)
+	if (PolygonSize != 0)
 	{
-		FVector PointInLocalSpace(-PolygonPointsXZ[2 * i + 1] * SessionPtr->GetWorldToMeterScale(), PolygonPointsXZ[2 * i] * SessionPtr->GetWorldToMeterScale(), 0.0f);
-		BoundaryPolygon.Add(PointInLocalSpace);
+		TArray<float> PolygonPointsXZ;
+		PolygonPointsXZ.SetNumUninitialized(PolygonSize);
+		ArPlane_getPolygon(SessionPtr->GetHandle(), GetPlaneHandle(), PolygonPointsXZ.GetData());
+
+		for (int i = 0; i < PolygonSize / 2; i++)
+		{
+			FVector PointInLocalSpace(-PolygonPointsXZ[2 * i + 1] * SessionPtr->GetWorldToMeterScale(), PolygonPointsXZ[2 * i] * SessionPtr->GetWorldToMeterScale(), 0.0f);
+			BoundaryPolygon.Add(PointInLocalSpace);
+		}
 	}
 
 	ArPlane* SubsumedByPlaneHandle = nullptr;
@@ -840,7 +866,7 @@ void FGoogleARCoreTrackedPointResource::UpdateGeometryData()
 
 	UARTrackedPoint* TrackedPoint = CastChecked<UARTrackedPoint>(TrackedGeometry);
 
-	if (!CheckIsSessionValid("ARCoreTrackablePoint", Session))
+	if (!CheckIsSessionValid("ARCoreTrackablePoint", Session) || TrackedGeometry->GetTrackingState() == EARTrackingState::StoppedTracking)
 	{
 		return;
 	}
@@ -860,83 +886,6 @@ void FGoogleARCoreTrackedPointResource::UpdateGeometryData()
 	TrackedPoint->UpdateTrackedGeometry(SessionPtr->GetARSystem(), FrameNum, static_cast<double>(TimeStamp), PointPose, SessionPtr->GetARSystem()->GetAlignmentTransform());
 }
 #endif
-
-/****************************************/
-/*       UGoogleARCoreTrackable         */
-/****************************************/
-
-/****************************************/
-/*     UGoogleARCoreTrackablePoint      */
-/****************************************/
-
-/****************************************/
-/*           UGoogleARCorePlane         */
-/****************************************/
-//bool UGoogleARCorePlane::IsPointInExtents(FVector Point) const
-//{
-//	if (CheckIsSessionValid("ARCorePlane", Session))
-//	{
-//#if PLATFORM_ANDROID
-//		ArPose* ARPoseHandle = nullptr;
-//		FTransform PointTransform(FQuat::Identity, Point);
-//		UnrealTransformToARCorePose(PointTransform, Session.Pin()->GetHandle(), &ARPoseHandle, Session.Pin()->GetWorldToMeterScale());
-//
-//		int32_t PointInExtents = 0;
-//		ArPlane_isPoseInExtents(Session.Pin()->GetHandle(), reinterpret_cast<ArPlane*>(TrackableHandle), ARPoseHandle, &PointInExtents);
-//		ArPose_destroy(ARPoseHandle);
-//
-//		return PointInExtents;
-//#endif
-//	}
-//	return false;
-//}
-//
-//bool UGoogleARCorePlane::IsPointInPolygon(FVector Point) const
-//{
-//	if (CheckIsSessionValid("ARCorePlane", Session))
-//	{
-//#if PLATFORM_ANDROID
-//		ArPose* ARPoseHandle = nullptr;
-//		FTransform PointTransform(FQuat::Identity, Point);
-//		UnrealTransformToARCorePose(PointTransform, Session.Pin()->GetHandle(), &ARPoseHandle, Session.Pin()->GetWorldToMeterScale());
-//
-//		int32_t PointInPolygon = 0;
-//		ArPlane_isPoseInPolygon(Session.Pin()->GetHandle(), reinterpret_cast<ArPlane*>(TrackableHandle), ARPoseHandle, &PointInPolygon);
-//		ArPose_destroy(ARPoseHandle);
-//
-//		return PointInPolygon;
-//#endif
-//	}
-//	return false;
-//}
-//
-//void UGoogleARCorePlane::DebugDraw(UWorld* World, const FLinearColor& OutlineColor, float OutlineThickness, float PersistForSeconds /*= 0.0f*/) const
-//{
-//	static TArray<int> PlaneIndices = { 0,1,2,0,2,3 };
-//
-//	FTransform PlaneLocalToWorld = GetLocalToWorldTransform();
-//	FVector BoundingBoxLocation = PlaneLocalToWorld.GetLocation();
-//	FVector BoundingBoxExtent = GetExtent();
-//
-//	TArray<FVector> PlaneVertices;
-//	PlaneVertices.Add(PlaneLocalToWorld.TransformPosition(FVector(-BoundingBoxExtent.X / 2.0f, -BoundingBoxExtent.Y / 2.0f, 0)));
-//	PlaneVertices.Add(PlaneLocalToWorld.TransformPosition(FVector(-BoundingBoxExtent.X / 2.0f, BoundingBoxExtent.Y / 2.0f, 0)));
-//	PlaneVertices.Add(PlaneLocalToWorld.TransformPosition(FVector(BoundingBoxExtent.X / 2.0f, BoundingBoxExtent.Y / 2.0f, 0)));
-//	PlaneVertices.Add(PlaneLocalToWorld.TransformPosition(FVector(BoundingBoxExtent.X / 2.0f, -BoundingBoxExtent.Y / 2.0f, 0)));
-//	
-//	// draw plane quad
-//	DrawDebugMesh(World, PlaneVertices, PlaneIndices, FColor::Green);
-//
-//	// draw polygon boundary.
-//	TArray<FVector> BoundaryPolygonData;
-//	GetBoundaryPolygonInLocalSpace(BoundaryPolygonData);
-//	for (int i = 0; i < BoundaryPolygonData.Num(); i++)
-//	{
-//		FVector Start = PlaneLocalToWorld.TransformPosition(BoundaryPolygonData[i]);
-//		FVector End = PlaneLocalToWorld.TransformPosition(BoundaryPolygonData[(i + 1) % BoundaryPolygonData.Num()]);
-//		DrawDebugLine(World, Start, End, OutlineColor.ToFColor(false), false, -1.f, 0, OutlineThickness);
-//	}
-//}
 
 /****************************************/
 /*       UGoogleARCorePointCloud        */
@@ -1014,3 +963,33 @@ void UGoogleARCorePointCloud::ReleasePointCloud()
 	ArPointCloud_release(PointCloudHandle);
 #endif
 }
+
+#if PLATFORM_ANDROID
+void UGoogleARCoreUObjectManager::DumpTrackableHandleMap(const ArSession* SessionHandle)
+{
+	for (auto KeyValuePair : TrackableHandleMap)
+	{
+		ArTrackable* TrackableHandle = KeyValuePair.Key;
+		TWeakObjectPtr<UARTrackedGeometry> TrackedGeometry = KeyValuePair.Value;
+
+		ArTrackableType TrackableType = ArTrackableType::AR_TRACKABLE_NOT_VALID;
+		ArTrackable_getType(SessionHandle, TrackableHandle, &TrackableType);
+		ArTrackingState ARTrackingState = ArTrackingState::AR_TRACKING_STATE_STOPPED;
+		ArTrackable_getTrackingState(SessionHandle, TrackableHandle, &ARTrackingState);
+
+		UE_LOG(LogGoogleARCoreAPI, Log, TEXT("TrackableHandle - address: %p, type: 0x%x, tracking state: %d"),
+			TrackableHandle, (int)TrackableType, (int)ARTrackingState);
+		if (TrackedGeometry.IsValid())
+		{
+			UARTrackedGeometry* TrackedGeometryObj = TrackedGeometry.Get();
+			FGoogleARCoreTrackableResource* NativeResource = reinterpret_cast<FGoogleARCoreTrackableResource*>(TrackedGeometryObj->GetNativeResource());
+			UE_LOG(LogGoogleARCoreAPI, Log, TEXT("TrackedGeometry - NativeResource:%p, type: %s, tracking state: %d"),
+				NativeResource->GetNativeHandle(), *TrackedGeometryObj->GetClass()->GetFName().ToString(), (int)TrackedGeometryObj->GetTrackingState());
+		}
+		else
+		{
+			UE_LOG(LogGoogleARCoreAPI, Log, TEXT("TrackedGeometry - InValid or Pending Kill."))
+		}
+	}
+}
+#endif

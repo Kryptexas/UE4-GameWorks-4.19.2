@@ -32,12 +32,11 @@ public:
 	// Start ARSession with custom session config.
 	void StartARCoreSessionRequest(UARSessionConfig* SessionConfig);
 
-	// Get the current session configuration ARCore is running with. Return false if the session isn't running.
-	UARSessionConfig* GetCurrentSessionConfig();
-
 	bool GetStartSessionRequestFinished();
 	
-	void StopARCoreSession();
+	void PauseARCoreSession();
+
+	void ResetARCoreSession();
 	
 	void AllocatePassthroughCameraTexture_RenderThread();
 	FTextureRHIRef GetPassthroughCameraTexture();
@@ -56,7 +55,7 @@ public:
 	EGoogleARCoreFunctionStatus GetLatestCameraMetadata(const ACameraMetadata*& OutCameraMetadata) const;
 #endif
 	// Hit test
-	void ARLineTrace(const FVector2D& ScreenPosition, EARLineTraceChannels TraceChannels, TArray<FARTraceResult>& OutHitResults);
+	void ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel TraceChannels, TArray<FARTraceResult>& OutHitResults);
 
 	// Anchor, Planes
 	EGoogleARCoreFunctionStatus CreateARPin(const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry, USceneComponent* ComponentToPin, const FName DebugName, UARPin*& OutARAnchorObject);
@@ -114,7 +113,7 @@ private:
 
 	void CheckAndRequrestPermission(const UARSessionConfig& ConfigurationData);
 
-	void StartSession(UARSessionConfig* ConfigurationData);
+	void StartSession();
 
 	friend class FGoogleARCoreAndroidHelper;
 	friend class FGoogleARCoreBaseModule;

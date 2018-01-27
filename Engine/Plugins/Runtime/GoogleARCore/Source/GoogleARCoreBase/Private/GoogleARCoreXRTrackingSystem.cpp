@@ -87,6 +87,7 @@ bool FGoogleARCoreXRTrackingSystem::OnStartGameFrame(FWorldContext& WorldContext
 		if (ARCoreDeviceInstance->GetTrackingState() == EGoogleARCoreTrackingState::Tracking)
 		{
 			CurrentPose = ARCoreDeviceInstance->GetLatestPose();
+			CurrentPose *= GetAlignmentTransform();
 			bHasValidPose = true;
 			CachedTrackingToWorld = ComputeTrackingToWorldTransform(WorldContext);
 		}
@@ -108,7 +109,9 @@ bool FGoogleARCoreXRTrackingSystem::OnStartGameFrame(FWorldContext& WorldContext
 		FGoogleARCoreLightEstimate ARCoreLightEstimate = FGoogleARCoreDevice::GetInstance()->GetLatestLightEstimate();
 		if (ARCoreLightEstimate.bIsValid)
 		{
-			LightEstimate->SetLightEstimate(ARCoreLightEstimate.PixelIntensity, LightEstimate->GetAmbientColorTemperatureKelvin());
+			// Try to convert ARCore average pixel intensity to lumen and set the color tempature to pure white.
+			float LightLumen = ARCoreLightEstimate.PixelIntensity / 0.18f * 1000;
+			LightEstimate->SetLightEstimate(LightLumen, 6500);
 		}
 		else
 		{
@@ -168,26 +171,18 @@ EARTrackingQuality FGoogleARCoreXRTrackingSystem::OnGetTrackingQuality() const
 
 void FGoogleARCoreXRTrackingSystem::OnStartARSession(UARSessionConfig* SessionConfig)
 {
-	const EARSessionType SessionType = SessionConfig->GetSessionType();
-	if (SessionType == EARSessionType::World)
-	{
-		UE_LOG(LogGoogleARCoreTrackingSystem, Warning, TEXT("StartARCoreSessionRequest"));
-		FGoogleARCoreDevice::GetInstance()->StartARCoreSessionRequest(SessionConfig);
-	}
-	else
-	{
-		UE_LOG(LogGoogleARCoreTrackingSystem, Warning, TEXT("Start AR failed: Unsupported AR tracking type %d"), static_cast<int>(SessionType));
-	}
+	FGoogleARCoreDevice::GetInstance()->StartARCoreSessionRequest(SessionConfig);
 }
 
 void FGoogleARCoreXRTrackingSystem::OnPauseARSession()
 {
-	ensureAlwaysMsgf(false, TEXT("FGoogleARCoreXRTrackingSystem::OnPauseARSession() is unimplemented."));
+	FGoogleARCoreDevice::GetInstance()->PauseARCoreSession();
 }
 
 void FGoogleARCoreXRTrackingSystem::OnStopARSession()
 {
-	FGoogleARCoreDevice::GetInstance()->StopARCoreSession();
+	FGoogleARCoreDevice::GetInstance()->PauseARCoreSession();
+	FGoogleARCoreDevice::GetInstance()->ResetARCoreSession();
 }
 
 FARSessionStatus FGoogleARCoreXRTrackingSystem::OnGetARSessionStatus() const
@@ -197,13 +192,41 @@ FARSessionStatus FGoogleARCoreXRTrackingSystem::OnGetARSessionStatus() const
 
 void FGoogleARCoreXRTrackingSystem::OnSetAlignmentTransform(const FTransform& InAlignmentTransform)
 {
-	ensureMsgf(false, TEXT("FGoogleARCoreXRTrackingSystem::OnSetAlignmentTransform is unimplemented!"));
+	const FTransform& NewAlignmentTransform = InAlignmentTransform;
+
+	TArray<UARTrackedGeometry*> AllTrackedGeometries = GetAllTrackedGeometries();
+	for (UARTrackedGeometry* TrackedGeometry : AllTrackedGeometries)
+	{
+		TrackedGeometry->UpdateAlignmentTransform(NewAlignmentTransform);
+	}
+
+	// TODO: update alignment on all ARPins.
+
+	SetAlignmentTransform_Internal(InAlignmentTransform);
 }
 
 TArray<FARTraceResult> FGoogleARCoreXRTrackingSystem::OnLineTraceTrackedObjects(const FVector2D ScreenCoord, EARLineTraceChannels TraceChannels)
 {
+	EGoogleARCoreLineTraceChannel ARCoreTraceChannels = EGoogleARCoreLineTraceChannel::None;
+	if (!!(TraceChannels & EARLineTraceChannels::FeaturePoint))
+	{
+		ARCoreTraceChannels = ARCoreTraceChannels | EGoogleARCoreLineTraceChannel::FeaturePoint;
+	}
+	if (!!(TraceChannels & EARLineTraceChannels::GroundPlane))
+	{
+		ARCoreTraceChannels = ARCoreTraceChannels | EGoogleARCoreLineTraceChannel::InfinitePlane;
+	}
+	if (!!(TraceChannels & EARLineTraceChannels::PlaneUsingBoundaryPolygon))
+	{
+		ARCoreTraceChannels = ARCoreTraceChannels | EGoogleARCoreLineTraceChannel::PlaneUsingBoundaryPolygon;
+	}
+	if (!!(TraceChannels & EARLineTraceChannels::PlaneUsingExtent))
+	{
+		ARCoreTraceChannels = ARCoreTraceChannels | EGoogleARCoreLineTraceChannel::PlaneUsingExtent;
+	}
+
 	TArray<FARTraceResult> OutHitResults;
-	FGoogleARCoreDevice::GetInstance()->ARLineTrace(ScreenCoord, TraceChannels, OutHitResults);
+	FGoogleARCoreDevice::GetInstance()->ARLineTrace(ScreenCoord, ARCoreTraceChannels, OutHitResults);
 	return OutHitResults;
 }
 

@@ -38,7 +38,7 @@ namespace
 		case EGoogleARCoreAPIStatus::AR_UNAVAILABLE_SDK_TOO_OLD:
 			return EGoogleARCoreSupportStatus::ARCoreSDKTooOld;
 		default:
-			UE_LOG(LogGoogleARCoreAPI, Error, TEXT("Unknown conversion from EGoogleARCoreAPIStatus %d to EGoogleARCoreSupportStatus."), static_cast<int>(Status));
+			ensureMsgf(false, TEXT("Unknown conversion from EGoogleARCoreAPIStatus %d to EGoogleARCoreSupportStatus."), static_cast<int>(Status));
 			return EGoogleARCoreSupportStatus::Unknown;
 		}
 	}
@@ -58,7 +58,7 @@ namespace
 		case EGoogleARCoreAPIStatus::AR_ERROR_NOT_YET_AVAILABLE:
 			return EGoogleARCoreFunctionStatus::NotAvailable;
 		default:
-			UE_LOG(LogGoogleARCoreAPI, Error, TEXT("Unknown conversion from EGoogleARCoreAPIStatus %d to EGoogleARCoreFunctionStatus."), static_cast<int>(Status));
+			ensureMsgf(false, TEXT("Unknown conversion from EGoogleARCoreAPIStatus %d to EGoogleARCoreFunctionStatus."), static_cast<int>(Status));
 			return EGoogleARCoreFunctionStatus::Unknown;
 		}
 	}
@@ -125,19 +125,6 @@ EARSessionStatus FGoogleARCoreDevice::GetSessionStatus()
 	return CurrentSessionStatus;
 }
 
-UARSessionConfig* FGoogleARCoreDevice::GetCurrentSessionConfig()
-{
-	if (GetIsARCoreSessionRunning() && ARSystem.IsValid())
-	{
-		// Return the last known config if the session is running.
-		return &ARSystem->AccessSessionConfig();
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
 float FGoogleARCoreDevice::GetWorldToMetersScale()
 {
 	return WorldToMeterScale;
@@ -163,7 +150,7 @@ void FGoogleARCoreDevice::StartARCoreSessionRequest(UARSessionConfig* SessionCon
 			return;
 		}
 
-		StopARCoreSession();
+		PauseARCoreSession();
 	}
 
 	if (bStartSessionRequested)
@@ -178,9 +165,8 @@ void FGoogleARCoreDevice::StartARCoreSessionRequest(UARSessionConfig* SessionCon
 	// Try recreating the ARCoreSession to fix the fatal error.
 	if (CurrentSessionStatus == EARSessionStatus::FatalError)
 	{
-		UE_LOG(LogGoogleARCore, Warning, TEXT("Recreating ARCore session due to fatal error detected."));
-		ARCoreSession = FGoogleARCoreSession::CreateARCoreSession();
-		CurrentSessionStatus = EARSessionStatus::NotStarted;
+		UE_LOG(LogGoogleARCore, Warning, TEXT("Reset ARCore session due to fatal error detected."));
+		ResetARCoreSession();
 	}
 }
 
@@ -241,7 +227,6 @@ void FGoogleARCoreDevice::OnWorldTickStart(ELevelTick TickType, float DeltaTime)
 			ViewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
 		}
 		ARCoreSession->SetDisplayGeometry(FGoogleARCoreAndroidHelper::GetDisplayRotation(), ViewportSize.X, ViewportSize.Y);
-
 		EGoogleARCoreAPIStatus Status = ARCoreSession->Update(WorldToMeterScale);
 		if (Status == EGoogleARCoreAPIStatus::AR_ERROR_FATAL)
 		{
@@ -317,18 +302,23 @@ void FGoogleARCoreDevice::HandleRuntimePermissionsGranted(const TArray<FString>&
 
 void FGoogleARCoreDevice::StartSessionWithRequestedConfig()
 {
-	StartSession(NewObject<UARSessionConfig>());
+	StartSession();
 	bStartSessionRequested = false;
 	bStartSessionQueued = false;
 }
 
-void FGoogleARCoreDevice::StartSession(UARSessionConfig* ConfigurationData)
+void FGoogleARCoreDevice::StartSession()
 {
+	UARSessionConfig* RequestedConfig = AccessSessionConfig();
 
-	check(ConfigurationData != nullptr);
+	if (RequestedConfig->GetSessionType() != EARSessionType::World)
+	{
+		UE_LOG(LogGoogleARCore, Warning, TEXT("Start AR failed: Unsupported AR tracking type %d for GoogleARCore"), static_cast<int>(RequestedConfig->GetSessionType()));
+		CurrentSessionStatus = EARSessionStatus::UnsupportedConfiguration;
+		return;
+	}
 
-
-	EGoogleARCoreAPIStatus Status = ARCoreSession->ConfigSession(*ConfigurationData);
+	EGoogleARCoreAPIStatus Status = ARCoreSession->ConfigSession(*RequestedConfig);
 
 	if (Status != EGoogleARCoreAPIStatus::AR_SUCCESS)
 	{
@@ -336,7 +326,6 @@ void FGoogleARCoreDevice::StartSession(UARSessionConfig* ConfigurationData)
 		CurrentSessionStatus = EARSessionStatus::UnsupportedConfiguration;
 		return;
 	}
-
 
 	check(PassthroughCameraTextureId != -1);
 	ARCoreSession->SetCameraTextureId(PassthroughCameraTextureId);
@@ -352,21 +341,19 @@ void FGoogleARCoreDevice::StartSession(UARSessionConfig* ConfigurationData)
 		return;
 	}
 
-	
 	if (GEngine->XRSystem.IsValid())
 	{
 		FGoogleARCoreXRTrackingSystem* ARCoreTrackingSystem = static_cast<FGoogleARCoreXRTrackingSystem*>(GEngine->XRSystem.Get());
 		if (ARCoreTrackingSystem)
 		{
-			const bool bMatchFOV = ConfigurationData->ShouldRenderCameraOverlay();
-			ARCoreTrackingSystem->ConfigARCoreXRCamera(bMatchFOV, ConfigurationData->ShouldRenderCameraOverlay());
+			const bool bMatchFOV = RequestedConfig->ShouldRenderCameraOverlay();
+			ARCoreTrackingSystem->ConfigARCoreXRCamera(bMatchFOV, RequestedConfig->ShouldRenderCameraOverlay());
 		}
 		else
 		{
 			UE_LOG(LogGoogleARCore, Error, TEXT("ERROR: GoogleARCoreXRTrackingSystem is not available."));
 		}
 	}
-
 
 	bIsARCoreSessionRunning = true;
 	CurrentSessionStatus = EARSessionStatus::Running;
@@ -385,7 +372,7 @@ TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> FGoogleARCoreDevice::GetARSystem(
 	return ARSystem;
 }
 
-void FGoogleARCoreDevice::StopARCoreSession()
+void FGoogleARCoreDevice::PauseARCoreSession()
 {
 	UE_LOG(LogGoogleARCore, Log, TEXT("Stopping ARCore session."));
 	if (!bIsARCoreSessionRunning)
@@ -404,6 +391,14 @@ void FGoogleARCoreDevice::StopARCoreSession()
 	bIsARCoreSessionRunning = false;
 	CurrentSessionStatus = EARSessionStatus::NotStarted;
 	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore session stopped"));
+}
+
+void FGoogleARCoreDevice::ResetARCoreSession()
+{
+	// Recreate the ARCore Session to reset it.
+	ARCoreSession = FGoogleARCoreSession::CreateARCoreSession();
+	ARCoreSession->SetARSystem(ARSystem.ToSharedRef());
+	CurrentSessionStatus = EARSessionStatus::NotStarted;
 }
 
 void FGoogleARCoreDevice::AllocatePassthroughCameraTexture_RenderThread()
@@ -484,7 +479,7 @@ FGoogleARCoreLightEstimate FGoogleARCoreDevice::GetLatestLightEstimate() const
 	return ARCoreSession->GetLatestFrame()->GetLightEstimate();
 }
 
-void FGoogleARCoreDevice::ARLineTrace(const FVector2D& ScreenPosition, EARLineTraceChannels TraceChannels, TArray<FARTraceResult>& OutHitResults)
+void FGoogleARCoreDevice::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel TraceChannels, TArray<FARTraceResult>& OutHitResults)
 {
 	OutHitResults.Empty();
 	ARCoreSession->GetLatestFrame()->ARLineTrace(ScreenPosition, TraceChannels, OutHitResults);
@@ -532,7 +527,7 @@ void FGoogleARCoreDevice::OnApplicationPause()
 	bShouldSessionRestart = bIsARCoreSessionRunning;
 	if (bIsARCoreSessionRunning)
 	{
-		StopARCoreSession();
+		PauseARCoreSession();
 	}
 }
 
@@ -543,7 +538,7 @@ void FGoogleARCoreDevice::OnApplicationResume()
 	if (bShouldSessionRestart)
 	{
 		bShouldSessionRestart = false;
-		StartSession(AccessSessionConfig());
+		StartSession();
 	}
 }
 

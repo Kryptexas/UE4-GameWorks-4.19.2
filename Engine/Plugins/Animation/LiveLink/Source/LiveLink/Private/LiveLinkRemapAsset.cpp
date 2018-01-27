@@ -37,11 +37,13 @@ void ULiveLinkRemapAsset::BuildPoseForSubject(float DeltaTime, const FLiveLinkSu
 {
 	const TArray<FName>& SourceBoneNames = InFrame.RefSkeleton.GetBoneNames();
 
+#if 0 // This assumption is not valid. There are curve only animations
 	if ((SourceBoneNames.Num() == 0) || (InFrame.Transforms.Num() == 0) || (SourceBoneNames.Num() != InFrame.Transforms.Num()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), SourceBoneNames.Num(), InFrame.Transforms.Num());
 		return;
 	}
+#endif
 
 	TArray<FName, TMemStackAllocator<>> TransformedBoneNames;
 	TransformedBoneNames.Reserve(SourceBoneNames.Num());

@@ -45,7 +45,8 @@ private:
 	{
 		// @todo arkit : is it safe not to lock here? Theoretically this should only be called on the game thread.
 		ensure(IsInGameThread());
-		if (ARKitSystem.GameThreadFrame.IsValid())
+		const bool bShouldOverrideFOV = ARKitSystem.GetSessionConfig().ShouldRenderCameraOverlay();
+		if (bShouldOverrideFOV && ARKitSystem.GameThreadFrame.IsValid())
 		{
 			if (ARKitSystem.DeviceOrientation == EScreenOrientation::Portrait || ARKitSystem.DeviceOrientation == EScreenOrientation::PortraitUpsideDown)
 			{
@@ -441,23 +442,30 @@ FRotator DeriveTrackingToWorldRotation( EScreenOrientation::Type DeviceOrientati
 	return DeviceRot;
 }
 
+void FAppleARKitSystem::UpdateFrame()
+{
+	FScopeLock ScopeLock( &FrameLock );
+	// This might get called multiple times per frame so only update if delegate version is newer
+	if (!GameThreadFrame.IsValid() || !LastReceivedFrame.IsValid() ||
+		GameThreadFrame->Timestamp < LastReceivedFrame->Timestamp)
+	{
+		GameThreadFrame = LastReceivedFrame;
+		if (GameThreadFrame.IsValid())
+		{
+			// Used to mark the time at which tracked geometry was updated
+			GameThreadFrameNumber++;
+			GameThreadTimestamp = GameThreadFrame->Timestamp;
+		}
+	}
+}
+
 void FAppleARKitSystem::UpdatePoses()
 {
 	if (DeviceOrientation == EScreenOrientation::Unknown)
 	{
 		SetDeviceOrientation( static_cast<EScreenOrientation::Type>(FPlatformMisc::GetDeviceOrientation()) );
 	}
-	
-	{
-		FScopeLock ScopeLock( &FrameLock );
-		GameThreadFrame = LastReceivedFrame;
-        if (GameThreadFrame.IsValid())
-        {
-            // Used to mark the time at which tracked geometry was updated
-            GameThreadFrameNumber++;
-            GameThreadTimestamp = GameThreadFrame->Timestamp;
-        }
-	}
+	UpdateFrame();
 }
 
 
@@ -579,15 +587,10 @@ void FAppleARKitSystem::OnSetAlignmentTransform(const FTransform& InAlignmentTra
 {
 	const FTransform& NewAlignmentTransform = InAlignmentTransform;
 	
-	TArray<UARTrackedGeometry*> AllTrackedGeometries = GetAllTrackedGeometries();
-	for (UARTrackedGeometry* TrackedGeometry : AllTrackedGeometries)
+	for (auto GeoIt=GeometriesToPins.CreateIterator(); GeoIt; ++GeoIt)
 	{
-		TrackedGeometry->UpdateAlignmentTransform(NewAlignmentTransform);
-		UARPin** PinSearchResult = GeometriesToPins.Find(TrackedGeometry);
-		if (PinSearchResult != nullptr)
-		{
-			(*PinSearchResult)->OnTransformUpdated(GetAlignmentTransform(), NewAlignmentTransform);
-		}
+		GeoIt.Key()->UpdateAlignmentTransform(NewAlignmentTransform);
+		GeoIt.Value()->UpdateAlignmentTransform(NewAlignmentTransform);
 	}
 	
 	SetAlignmentTransform_Internal(InAlignmentTransform);
@@ -750,17 +753,22 @@ UARPin* FAppleARKitSystem::OnPinComponent( USceneComponent* ComponentToPin, cons
 {
 	if ( ensureMsgf(ComponentToPin != nullptr, TEXT("Cannot pin component.")) )
 	{
+		if (UARPin** FindResult = ComponentsToPins.Find(ComponentToPin))
+		{
+			UE_LOG(LogAppleARKit, Warning, TEXT("Component %s is already pinned. Unpin it first."), *ComponentToPin->GetReadableName());
+			OnRemovePin(*FindResult);
+		}
+
 		// PinToWorld * TrackingToWorld(-1) = PinToWorld * WorldToTracking
 		// The Worlds cancel out, and we get PinToTracking
 		// But we must translate this into Unreal's transform API
 		const FTransform PinToTrackingTransform = PinToWorldTransform.GetRelativeTransform(GetTrackingToWorldTransform());
-		// ORI SUGGESTED : const FTransform PinToTrackingTransform = GetTrackingToWorldTransform().GetRelativeTransformReverse(PinToWorldTransform);
 
 		// If the user did not provide a TrackedGeometry, create the simplest TrackedGeometry for this pin.
 		UARTrackedGeometry* GeometryToPinTo = TrackedGeometry;
 		if (GeometryToPinTo == nullptr)
 		{
-			GeometryToPinTo = NewObject<UARTrackedGeometry>();
+			GeometryToPinTo = NewObject<UARTrackedPoint>();
 			GeometryToPinTo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, PinToTrackingTransform, GetAlignmentTransform());
 		}
 		
@@ -1150,6 +1158,12 @@ void FAppleARKitSystem::SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor
 
 void FAppleARKitSystem::SessionDidAddAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData )
 {
+	// In case we have camera tracking turned off, we still need to update the frame
+	if (!GetSessionConfig().ShouldEnableCameraTracking())
+	{
+		UpdateFrame();
+	}
+
 	UARTrackedGeometry* NewGeometry = nullptr;
 	switch (AnchorData->AnchorType)
 	{
@@ -1190,6 +1204,12 @@ void FAppleARKitSystem::SessionDidAddAnchors_Internal( TSharedRef<FAppleARKitAnc
 
 void FAppleARKitSystem::SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData )
 {
+	// In case we have camera tracking turned off, we still need to update the frame
+	if (!GetSessionConfig().ShouldEnableCameraTracking())
+	{
+		UpdateFrame();
+	}
+
 	UARTrackedGeometry** GeometrySearchResult = TrackedGeometries.Find(AnchorData->AnchorGUID);
 	if (ensure(GeometrySearchResult != nullptr))
 	{
@@ -1250,6 +1270,12 @@ void FAppleARKitSystem::SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKit
 
 void FAppleARKitSystem::SessionDidRemoveAnchors_Internal( FGuid AnchorGuid )
 {
+	// In case we have camera tracking turned off, we still need to update the frame
+	if (!GetSessionConfig().ShouldEnableCameraTracking())
+	{
+		UpdateFrame();
+	}
+
 	// Notify pin that it is being orphaned
 	{
 		UARTrackedGeometry* TrackedGeometryBeingRemoved = TrackedGeometries.FindChecked(AnchorGuid);

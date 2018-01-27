@@ -104,6 +104,8 @@ public:
 	TMap<ArTrackable*, TWeakObjectPtr<UARTrackedGeometry>> TrackableHandleMap;
 
 	template< class T > T* GetTrackableFromHandle(ArTrackable* TrackableHandle, FGoogleARCoreSession* Session);
+
+	void DumpTrackableHandleMap(const ArSession* SessionHandle);
 #endif
 };
 
@@ -181,7 +183,7 @@ public:
 	void GetUpdatedAnchors(TArray<UARPin*>& OutUpdatedAnchors) const;
 	template< class T > void GetUpdatedTrackables(TArray<T*>& OutARCoreTrackableList) const;
 	
-	void ARLineTrace(const FVector2D& ScreenPosition, EARLineTraceChannels RequestedTraceChannels, TArray<FARTraceResult>& OutHitResults) const;
+	void ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel RequestedTraceChannels, TArray<FARTraceResult>& OutHitResults) const;
 
 
 	bool IsDisplayRotationChanged() const;
@@ -225,6 +227,7 @@ public:
 	{
 #if PLATFORM_ANDROID
 		ArTrackable_release(TrackableHandle);
+		TrackableHandle = nullptr;
 #endif
 	}
 
@@ -235,11 +238,13 @@ public:
 		, TrackableHandle(InTrackableHandle)
 		, TrackedGeometry(InTrackedGeometry)
 	{
+		ensure(TrackableHandle != nullptr);
 	}
 
 	virtual ~FGoogleARCoreTrackableResource()
 	{
 		ArTrackable_release(TrackableHandle);
+		TrackableHandle = nullptr;	
 	}
 
 	EARTrackingState GetTrackingState();
@@ -248,6 +253,8 @@ public:
 
 	TWeakPtr<FGoogleARCoreSession> GetSession() { return Session; }
 	ArTrackable* GetNativeHandle() { return TrackableHandle; }
+	
+	void ResetNativeHandle(ArTrackable* InTrackableHandle);
 
 protected:
 	TWeakPtr<FGoogleARCoreSession> Session;
@@ -263,6 +270,7 @@ public:
 	FGoogleARCoreTrackedPlaneResource(TSharedPtr<FGoogleARCoreSession> InSession, ArTrackable* InTrackableHandle, UARTrackedGeometry* InTrackedGeometry)
 		: FGoogleARCoreTrackableResource(InSession, InTrackableHandle, InTrackedGeometry)
 	{
+		ensure(TrackableHandle != nullptr);
 	}
 
 	void UpdateGeometryData() override;
@@ -278,6 +286,7 @@ public:
 	FGoogleARCoreTrackedPointResource(TSharedPtr<FGoogleARCoreSession> InSession, ArTrackable* InTrackableHandle, UARTrackedGeometry* InTrackedGeometry)
 		: FGoogleARCoreTrackableResource(InSession, InTrackableHandle, InTrackedGeometry)
 	{
+		ensure(TrackableHandle != nullptr);
 	}
 
 	void UpdateGeometryData() override;
@@ -321,16 +330,26 @@ T* UGoogleARCoreUObjectManager::GetTrackableFromHandle(ArTrackable* TrackableHan
 		
 		// Update the tracked geometry data using the native resource
 		TrackableResource->UpdateGeometryData();
+		ensure(TrackableResource->GetTrackingState() != EARTrackingState::StoppedTracking);
 
 		TrackableHandleMap.Add(TrackableHandle, TWeakObjectPtr<UARTrackedGeometry>(NewTrackableObject));
 	}
 	else
 	{
-		// If we are not create new trackable object, release the trackable handle.
-		ArTrackable_release(TrackableHandle);
+		// Work around an issue in ARCore that trackable may become tracking again from stopped tracking.
+		if (TrackableHandleMap[TrackableHandle]->GetTrackingState() == EARTrackingState::StoppedTracking)
+		{
+			FGoogleARCoreTrackableResource* TrackableResource = reinterpret_cast<FGoogleARCoreTrackableResource*>(TrackableHandleMap[TrackableHandle]->GetNativeResource());
+			TrackableResource->ResetNativeHandle(TrackableHandle);
+		}
+		else
+		{
+			// If we are not create new trackable object, release the trackable handle.
+			ArTrackable_release(TrackableHandle);
+		}
 	}
 
-	T* Result = dynamic_cast<T*>(TrackableHandleMap[TrackableHandle].Get());
+	T* Result = Cast<T>(TrackableHandleMap[TrackableHandle].Get());
 	checkf(Result, TEXT("UGoogleARCoreUObjectManager failed to get a valid trackable %p from the map."), TrackableHandle);
 	return Result;
 }

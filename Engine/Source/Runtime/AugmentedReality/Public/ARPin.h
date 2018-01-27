@@ -8,7 +8,7 @@
 class FARSystemBase;
 class USceneComponent;
 
-UCLASS(BlueprintType, Category="AR AugmentedReality")
+UCLASS(BlueprintType, Experimental, Category="AR AugmentedReality")
 class AUGMENTEDREALITY_API UARPin : public UObject
 {
 	GENERATED_BODY()
@@ -68,6 +68,9 @@ public:
 	/** Notify this UARPin that the transform of the TrackedGeometry has changed */
 	void OnTransformUpdated(const FTransform& TrackedGeometry_OldLocalToTrackingTransform, const FTransform& TrackedGeometry_NewLocalToTrackingTransform);
 	
+	/** Notify the UARPin that the AlignmentTransform has changing. */
+	void UpdateAlignmentTransform( const FTransform NewAlignmentTransform );
+	
 	
 protected:
 	TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> GetARSystem() const;
@@ -83,6 +86,9 @@ private:
 	
 	UPROPERTY()
 	FTransform LocalToTrackingTransform;
+	
+	UPROPERTY()
+	FTransform LocalToAlignedTrackingTransform;
 
 	UPROPERTY()
 	EARTrackingState TrackingState;

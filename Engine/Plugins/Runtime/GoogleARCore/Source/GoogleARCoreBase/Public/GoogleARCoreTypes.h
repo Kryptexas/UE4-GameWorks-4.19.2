@@ -90,62 +90,6 @@ enum class EGoogleARCoreTrackingState : uint8
 };
 
 /**
- * @ingroup GoogleARCoreBase
- * Describes what type of light estimation will be performed in ARCore session.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCoreLightEstimationMode : uint8
-{
-	/** Light estimation disabled. */
-	None = 0,
-	/** Enable light estimation for ambient intensity. */
-	AmbientIntensity = 1,
-};
-
-/**
- * @ingroup GoogleARCoreBase
- * Describes what type of plane detection will be performed in ARCore session.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCorePlaneDetectionMode : uint8
-{
-	/** Disable plane detection. */
-	None = 0,
-	/** Track for horizontal plane. */
-	HorizontalPlane = 1,
-};
-
-/**
- * @ingroup GoogleARCoreBase
- * Describes how the frame will be updated in ARCore session.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCoreFrameUpdateMode : uint8
-{
-	/** Unreal tick will be synced with the camera image update rate. */
-	SyncTickWithCameraImage = 0,
-	/** Unreal tick will not related to the camera image update rate. */
-	SyncTickWithoutCameraImage = 1,
-};
-
-/**
- * @ingroup GoogleARCoreBase
- * Describes which channel ARLineTrace will be performed on.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCoreLineTraceChannel : uint8
-{
-	/** Trace against feature point cloud. */
-	FeaturePoint = 0,
-	/** Trace against the infinite plane. */
-	InfinitePlane = 1,
-	/** Trace against the plane using its extent. */
-	PlaneUsingExtent = 2,
-	/** Trace against the plane using its boundary polygon. */
-	PlaneUsingBoundaryPolygon = 3
-};
-
-/**
  * A struct describes the ARCore light estimation.
  */
 USTRUCT(BlueprintType)
@@ -161,6 +105,25 @@ struct FGoogleARCoreLightEstimate
 	UPROPERTY(BlueprintReadOnly, Category = "GoogleARCore|LightEstimate")
 	float PixelIntensity;
 };
+
+/**
+ * @ingroup GoogleARCoreBase
+ * Describes which channel ARLineTrace will be performed on.
+ */
+UENUM(BlueprintType, Category = "GoogleARCore|TraceChannel", meta = (Bitflags))
+enum class EGoogleARCoreLineTraceChannel : uint8
+{
+	None = 0,
+	/** Trace against feature point cloud. */
+	FeaturePoint = 1,
+	/** Trace against the infinite plane. */
+	InfinitePlane = 2,
+	/** Trace against the plane using its extent. */
+	PlaneUsingExtent = 4,
+	/** Trace against the plane using its boundary polygon. */
+	PlaneUsingBoundaryPolygon = 8
+};
+ENUM_CLASS_FLAGS(EGoogleARCoreLineTraceChannel);
 
 class FGoogleARCoreSession;
 /**
@@ -206,51 +169,4 @@ private:
 #if PLATFORM_ANDROID
 	ArPointCloud* PointCloudHandle;
 #endif
-};
-
-/**
-* A UObject that describes a fixed location and orientation in the real world.
-* To stay at a fixed location in physical space, the numerical description of this position will update
-* as ARCore's understanding of the space improves. Use GetLatestPose() to get the latest updated numerical
-* location of this anchor.
-*/
-UCLASS(BlueprintType)
-class GOOGLEARCOREBASE_API UGoogleARCoreAnchor : public UObject
-{
-	GENERATED_BODY()
-
-	friend class FGoogleARCoreSession;
-	friend class FGoogleARCoreFrame;
-public:
-
-	/**
-	* Returns the current state of the pose of this anchor object. If this
-	* state is anything but <code>Tracking</code> the
-	* pose may be dramatically incorrect.
-	*/
-	UFUNCTION(BlueprintPure, Category = "GoogleARAnchor")
-	EGoogleARCoreTrackingState GetTrackingState()
-	{
-		return TrackingState;
-	};
-
-	/**
-	* Returns the pose of the anchor in Unreal world space. This pose
-	* should only be considered valid if GetTrackingState() returns
-	* <code>Tracking</code>.
-	*/
-	UFUNCTION(BlueprintPure, Category = "GoogleARAnchor")
-	FTransform GetLatestPose()
-	{
-		return Pose;
-	};
-
-private:
-#if PLATFORM_ANDROID
-	ArAnchor* AnchorHandle;
-#endif
-	/** The anchor's latest pose in Unreal world space. */
-	FTransform Pose;
-	/** The anchor's current tracking state. */
-	EGoogleARCoreTrackingState TrackingState;
 };
