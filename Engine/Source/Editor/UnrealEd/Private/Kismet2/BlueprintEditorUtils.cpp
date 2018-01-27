@@ -1760,7 +1760,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 	// Only recompile after duplication if this isn't PIE
 	if (!bDuplicateForPIE)
 	{
-		check(Blueprint->GeneratedClass != nullptr);
+		if(Blueprint->GeneratedClass != nullptr)
 		{
 			// Grab the old CDO, which contains the class defaults
 			UClass* OldBPGCAsClass = Blueprint->GeneratedClass;
