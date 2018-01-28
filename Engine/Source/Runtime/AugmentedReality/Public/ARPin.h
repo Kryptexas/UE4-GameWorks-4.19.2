@@ -69,7 +69,7 @@ public:
 	void OnTransformUpdated(const FTransform& TrackedGeometry_OldLocalToTrackingTransform, const FTransform& TrackedGeometry_NewLocalToTrackingTransform);
 	
 	/** Notify the UARPin that the AlignmentTransform has changing. */
-	void UpdateAlignmentTransform( const FTransform NewAlignmentTransform );
+	void UpdateAlignmentTransform( const FTransform& NewAlignmentTransform );
 	
 	
 protected:

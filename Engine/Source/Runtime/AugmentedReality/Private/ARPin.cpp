@@ -103,7 +103,7 @@ void UARPin::OnTransformUpdated(const FTransform& NewLocalToTrackingTransform)
 	OnARTransformUpdated.Broadcast(LocalToNewLocal);
 }
 
-void UARPin::UpdateAlignmentTransform( const FTransform NewAlignmentTransform )
+void UARPin::UpdateAlignmentTransform( const FTransform& NewAlignmentTransform )
 {
 	const FTransform OldLocalToAlignedTracking = LocalToAlignedTrackingTransform;
 	
