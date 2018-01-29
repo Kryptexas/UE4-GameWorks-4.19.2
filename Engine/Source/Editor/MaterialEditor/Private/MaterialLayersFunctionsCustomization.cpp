@@ -54,18 +54,21 @@ FMaterialLayersFunctionsCustomization::FMaterialLayersFunctionsCustomization(con
 
 #ifdef WITH_EDITOR
 	//Fixup for adding new bool arrays to the class
-	if (MaterialLayersFunctions->Layers.Num() != MaterialLayersFunctions->RestrictToLayerRelatives.Num())
+	if (MaterialLayersFunctions)
 	{
-		for (int32 LayerIt = 0; LayerIt < MaterialLayersFunctions->Layers.Num() - MaterialLayersFunctions->RestrictToLayerRelatives.Num(); LayerIt++)
+		if (MaterialLayersFunctions->Layers.Num() != MaterialLayersFunctions->RestrictToLayerRelatives.Num())
 		{
-			MaterialLayersFunctions->RestrictToLayerRelatives.Add(false);
+			for (int32 LayerIt = 0; LayerIt < MaterialLayersFunctions->Layers.Num() - MaterialLayersFunctions->RestrictToLayerRelatives.Num(); LayerIt++)
+			{
+				MaterialLayersFunctions->RestrictToLayerRelatives.Add(false);
+			}
 		}
-	}
-	if (MaterialLayersFunctions->Blends.Num() != MaterialLayersFunctions->RestrictToBlendRelatives.Num())
-	{
-		for (int32 BlendIt = 0; BlendIt < MaterialLayersFunctions->Blends.Num() - MaterialLayersFunctions->RestrictToBlendRelatives.Num(); BlendIt++)
+		if (MaterialLayersFunctions->Blends.Num() != MaterialLayersFunctions->RestrictToBlendRelatives.Num())
 		{
-			MaterialLayersFunctions->RestrictToBlendRelatives.Add(false);
+			for (int32 BlendIt = 0; BlendIt < MaterialLayersFunctions->Blends.Num() - MaterialLayersFunctions->RestrictToBlendRelatives.Num(); BlendIt++)
+			{
+				MaterialLayersFunctions->RestrictToBlendRelatives.Add(false);
+			}
 		}
 	}
 #endif

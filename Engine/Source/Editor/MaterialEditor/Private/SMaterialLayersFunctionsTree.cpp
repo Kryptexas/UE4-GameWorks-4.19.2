@@ -636,18 +636,21 @@ void SMaterialLayersFunctionsInstanceTree::Construct(const FArguments& InArgs)
 
 #ifdef WITH_EDITOR
 	//Fixup for adding new bool arrays to the class
-	if (FunctionInstance->Layers.Num() != FunctionInstance->RestrictToLayerRelatives.Num())
+	if (FunctionInstance)
 	{
-		for (int32 LayerIt = 0; LayerIt < FunctionInstance->Layers.Num() - FunctionInstance->RestrictToLayerRelatives.Num(); LayerIt++)
+		if (FunctionInstance->Layers.Num() != FunctionInstance->RestrictToLayerRelatives.Num())
 		{
-			FunctionInstance->RestrictToLayerRelatives.Add(false);
+			for (int32 LayerIt = 0; LayerIt < FunctionInstance->Layers.Num() - FunctionInstance->RestrictToLayerRelatives.Num(); LayerIt++)
+			{
+				FunctionInstance->RestrictToLayerRelatives.Add(false);
+			}
 		}
-	}
-	if (FunctionInstance->Blends.Num() != FunctionInstance->RestrictToBlendRelatives.Num())
-	{
-		for (int32 BlendIt = 0; BlendIt < FunctionInstance->Blends.Num() - FunctionInstance->RestrictToBlendRelatives.Num(); BlendIt++)
+		if (FunctionInstance->Blends.Num() != FunctionInstance->RestrictToBlendRelatives.Num())
 		{
-			FunctionInstance->RestrictToBlendRelatives.Add(false);
+			for (int32 BlendIt = 0; BlendIt < FunctionInstance->Blends.Num() - FunctionInstance->RestrictToBlendRelatives.Num(); BlendIt++)
+			{
+				FunctionInstance->RestrictToBlendRelatives.Add(false);
+			}
 		}
 	}
 #endif
