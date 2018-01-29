@@ -40,7 +40,10 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	// Get the root directories which contain plugins
 	TArray<FString> WatchDirectoryNames;
 	WatchDirectoryNames.Add(FPaths::EnginePluginsDir());
-	WatchDirectoryNames.Add(FPaths::EnterprisePluginsDir());
+	if (FPaths::DirectoryExists(FPaths::EnterprisePluginsDir()))
+	{
+		WatchDirectoryNames.Add(FPaths::EnterprisePluginsDir());
+	}
 	if(FApp::HasProjectName())
 	{
 		WatchDirectoryNames.Add(FPaths::ProjectPluginsDir());
