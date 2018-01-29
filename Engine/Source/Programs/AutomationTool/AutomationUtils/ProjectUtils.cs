@@ -508,7 +508,7 @@ namespace AutomationTool
 			foreach (Type TargetType in AllCompiledTypes)
 			{
 				// Find TargetRules but skip all "UE4Editor", "UE4Game" targets.
-				if (typeof(TargetRules).IsAssignableFrom(TargetType))
+				if (typeof(TargetRules).IsAssignableFrom(TargetType) && !TargetType.IsAbstract)
 				{
 					string TargetName = GetTargetName(TargetType);
 
