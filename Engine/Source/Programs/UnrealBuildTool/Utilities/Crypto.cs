@@ -139,8 +139,8 @@ namespace UnrealBuildTool
 				Ini.GetBool(SectionName, "bEnablePakSigning", out Settings.bEnablePakSigning);
 				Ini.GetBool(SectionName, "bEncryptPakIniFiles", out Settings.bEnablePakIniEncryption);
 				Ini.GetBool(SectionName, "bEncryptPakIndex", out Settings.bEnablePakIndexEncryption);
-				Ini.GetBool(SectionName, "bEncryptUAssets", out Settings.bEnablePakUAssetEncryption);
-				Ini.GetBool(SectionName, "bEncryptFullAsset", out Settings.bEnablePakFullAssetEncryption);
+				Ini.GetBool(SectionName, "bEncryptUAssetFiles", out Settings.bEnablePakUAssetEncryption);
+				Ini.GetBool(SectionName, "bEncryptAllAssetFiles", out Settings.bEnablePakFullAssetEncryption);
 
 				// Parse encryption key
 				string EncryptionKeyString;
