@@ -35,6 +35,7 @@ class FFontEditorViewportClient : public FCommonViewportClient
 public:
 	/** Constructor */
 	FFontEditorViewportClient(TWeakPtr<SFontEditorViewport> InFontEditorViewport);
+	~FFontEditorViewportClient();
 
 	/** FLevelEditorViewportClient interface */
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
@@ -102,6 +103,14 @@ FFontEditorViewportClient::FFontEditorViewportClient(TWeakPtr<SFontEditorViewpor
 	bDrawFontMetrics = false;
 
 	FSlateApplication::Get().OnWindowDPIScaleChanged().AddRaw(this, &FFontEditorViewportClient::HandleWindowDPIScaleChanged);
+}
+
+FFontEditorViewportClient::~FFontEditorViewportClient()
+{
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().OnWindowDPIScaleChanged().RemoveAll(this);
+	}
 }
 
 void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
