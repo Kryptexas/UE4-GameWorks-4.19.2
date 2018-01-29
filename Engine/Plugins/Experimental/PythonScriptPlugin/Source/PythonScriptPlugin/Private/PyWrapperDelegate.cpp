@@ -60,6 +60,8 @@ bool PythonArgsToDelegate(PyObject* InArgs, const UFunction* InDelegateSignature
 
 	if (Obj)
 	{
+		check(PyObj);
+
 		// Is the function name we've been given a Python alias? If so, we need to resolve that now
 		FuncName = FPyWrapperObjectMetaData::ResolveFunctionName(Py_TYPE(PyObj), FuncName);
 		const UFunction* Func = Obj->FindFunction(FuncName);

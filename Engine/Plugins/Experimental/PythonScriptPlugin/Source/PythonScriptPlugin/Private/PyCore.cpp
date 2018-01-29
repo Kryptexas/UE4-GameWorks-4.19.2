@@ -33,7 +33,7 @@ namespace PyCoreUtil
 bool ConvertOptionalString(PyObject* InObj, FString& OutString, const TCHAR* InErrorCtxt, const TCHAR* InErrorMsg)
 {
 	OutString.Reset();
-	if (InObj != Py_None)
+	if (InObj && InObj != Py_None)
 	{
 		if (!PyConversion::Nativize(InObj, OutString))
 		{
@@ -46,7 +46,7 @@ bool ConvertOptionalString(PyObject* InObj, FString& OutString, const TCHAR* InE
 
 bool ConvertOptionalFunctionFlag(PyObject* InObj, EPyUFunctionDefFlags& OutFlags, const EPyUFunctionDefFlags InTrueFlagBit, const EPyUFunctionDefFlags InFalseFlagBit, const TCHAR* InErrorCtxt, const TCHAR* InErrorMsg)
 {
-	if (InObj != Py_None)
+	if (InObj && InObj != Py_None)
 	{
 		bool bFlagValue = false;
 		if (!PyConversion::Nativize(InObj, bFlagValue))
@@ -742,6 +742,7 @@ PyObject* GenerateClass(PyObject* InSelf, PyObject* InArgs)
 	{
 		return nullptr;
 	}
+	check(PyObj);
 
 	if (!PyType_Check(PyObj))
 	{
@@ -773,6 +774,7 @@ PyObject* GenerateStruct(PyObject* InSelf, PyObject* InArgs)
 	{
 		return nullptr;
 	}
+	check(PyObj);
 
 	if (!PyType_Check(PyObj))
 	{
@@ -804,6 +806,7 @@ PyObject* GenerateEnum(PyObject* InSelf, PyObject* InArgs)
 	{
 		return nullptr;
 	}
+	check(PyObj);
 
 	if (!PyType_Check(PyObj))
 	{

@@ -690,7 +690,7 @@ int SetUEPropValue(const UStruct* InStruct, void* InStructData, PyObject* InValu
 {
 	if (!InValue)
 	{
-		SetPythonError(PyExc_TypeError, InErrorCtxt, *FString::Printf(TEXT("Cannot delete attribute '%s' from '%s'"), UTF8_TO_TCHAR(InAttributeName), *InStruct->GetName()));
+		SetPythonError(PyExc_TypeError, InErrorCtxt, *FString::Printf(TEXT("Cannot delete attribute '%s' from '%s'"), UTF8_TO_TCHAR(InAttributeName), (InStruct ? *InStruct->GetName() : TEXT(""))));
 		return -1;
 	}
 

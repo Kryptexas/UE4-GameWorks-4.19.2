@@ -430,7 +430,7 @@ FString PythonizeName(const FString& InName, const EPythonizeNameCase InNameCase
 		const int32 OrigPythonizedNameLen = PythonizedName.Len();
 
 		// Append an underscore if this was a break between two parts of the identifier, *and* the previous character isn't already an underscore
-		if (OrigPythonizedNameLen > 0 != 0 && PythonizedName[OrigPythonizedNameLen - 1] != TEXT('_'))
+		if (OrigPythonizedNameLen > 0 && PythonizedName[OrigPythonizedNameLen - 1] != TEXT('_'))
 		{
 			PythonizedName += TEXT('_');
 		}

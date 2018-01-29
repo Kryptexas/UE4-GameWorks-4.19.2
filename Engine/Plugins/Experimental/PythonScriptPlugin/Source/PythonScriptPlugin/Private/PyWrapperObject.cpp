@@ -268,7 +268,7 @@ PyObject* FPyWrapperObject::CallFunction_Impl(UClass* InClass, UObject* InObj, P
 				UProperty* ArgProp = FuncParams.GetStruct()->FindPropertyByName(ParamDef.ParamPropName);
 				if (!ArgProp)
 				{
-					PyUtil::SetPythonError(PyExc_Exception, InErrorCtxt, *FString::Printf(TEXT("Failed to find property '%s' for parameter '%s' when calling function '%s' on '%s'"), *ArgProp->GetName(), UTF8_TO_TCHAR(ParamDef.ParamName.GetData()), *Func->GetName(), *InObj->GetName()));
+					PyUtil::SetPythonError(PyExc_Exception, InErrorCtxt, *FString::Printf(TEXT("Failed to find property '%s' for parameter '%s' when calling function '%s' on '%s'"), *ParamDef.ParamPropName.ToString(), UTF8_TO_TCHAR(ParamDef.ParamName.GetData()), *Func->GetName(), *InObj->GetName()));
 					return nullptr;
 				}
 
@@ -1618,11 +1618,11 @@ DEFINE_FUNCTION(UPythonGeneratedClass::CallPythonFunction)
 			if (ReturnProp)
 			{
 				ReturnProp->CopyCompleteValue(RESULT_PARAM, ReturnProp->ContainerPtrToValuePtr<void>(Stack.Locals));
-			}
-
-			for (FOutParmRec* OutParamRec = Stack.OutParms; OutParamRec; OutParamRec = OutParamRec->NextOutParm)
-			{
-				ReturnProp->CopyCompleteValue(OutParamRec->PropAddr, OutParamRec->Property->ContainerPtrToValuePtr<void>(Stack.Locals));
+				
+				for (FOutParmRec* OutParamRec = Stack.OutParms; OutParamRec; OutParamRec = OutParamRec->NextOutParm)
+				{
+					ReturnProp->CopyCompleteValue(OutParamRec->PropAddr, OutParamRec->Property->ContainerPtrToValuePtr<void>(Stack.Locals));
+				}
 			}
 		}
 

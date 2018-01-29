@@ -329,6 +329,7 @@ PyTypeObject InitializePyWrapperTextType()
 			{
 				return nullptr;
 			}
+			check(PyObj);
 
 			FText NumberText;
 
