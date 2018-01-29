@@ -33,7 +33,7 @@ void GetMorphBuffer(uint VertexIndex, out float3 DeltaPosition, out half3 DeltaT
 	// see CPU code: "check(MorphStride == sizeof(float) * 6);"
 	// in floats
 	// 3 + 3 floats because of the format defined in InitMorphVertexFactoryComponents / FMorphGPUSkinVertex
-	uint Offset = MorphBufferOffset + VertexIndex * (3 + 3);
+	uint Offset = VertexIndex * (3 + 3);
 
 	DeltaPosition = float3(
 		MorphBuffer[Offset + 0],
@@ -147,7 +147,7 @@ Buffer<uint> InputWeightStream;
 // see r.SkinCache.Debug, default is 1.0f
 float SkinCacheDebug;
 
-FVertexUnpacked UnpackedVertex(uint VertexIndex, uint WeightOffset )
+FVertexUnpacked UnpackedVertex(uint MorphIndex, uint ClothIndex, uint VertexIndex, uint WeightOffset )
 {
 	FVertexUnpacked Unpacked;
 
@@ -179,10 +179,10 @@ FVertexUnpacked UnpackedVertex(uint VertexIndex, uint WeightOffset )
 	Unpacked.BlendWeights2.w = float(BlendWeights >> 24 & 0xff) / 255.0f;
 #endif
 #if GPUSKIN_MORPH_BLEND
-	GetMorphBuffer(VertexIndex, Unpacked.DeltaPosition, Unpacked.DeltaTangentZ);
+	GetMorphBuffer(MorphIndex, Unpacked.DeltaPosition, Unpacked.DeltaTangentZ);
 #endif
 #if GPUSKIN_APEX_CLOTH
-    GetClothBuffer(VertexIndex, Unpacked.PositionBaryCoordsAndDist, Unpacked.NormalBaryCoordsAndDist, Unpacked.TangentBaryCoordsAndDist, Unpacked.SourceMeshVertIndices);
+    GetClothBuffer(ClothIndex, Unpacked.PositionBaryCoordsAndDist, Unpacked.NormalBaryCoordsAndDist, Unpacked.TangentBaryCoordsAndDist, Unpacked.SourceMeshVertIndices);
 #endif
 	return Unpacked;
 }
@@ -215,7 +215,11 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 	// Find offset for skin weight buffer
 	uint WeightOffset = InputWeightStart + (VertexIndex * (InputWeightStride/4));
 
-	FVertexUnpacked	Unpacked = UnpackedVertex(InputOffset, WeightOffset);
+#if GPUSKIN_MORPH_BLEND
+	FVertexUnpacked	Unpacked = UnpackedVertex(MorphBufferOffset + VertexIndex, VertexIndex, InputOffset, WeightOffset);
+#else
+	FVertexUnpacked	Unpacked = UnpackedVertex(VertexIndex, VertexIndex, InputOffset, WeightOffset);
+#endif
 
 	// Perform the skinning
 	FVertexFactoryIntermediates	Intermediates = (FVertexFactoryIntermediates)0;

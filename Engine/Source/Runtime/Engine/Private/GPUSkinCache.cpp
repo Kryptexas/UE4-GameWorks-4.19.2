@@ -312,7 +312,7 @@ public:
 			// see GPU code "check(MorphStride == sizeof(float) * 6);"
 			check(MorphStride == sizeof(float) * 6);
 
-			Data.MorphBufferOffset = (MorphStride * Section->BaseVertexIndex) / sizeof(float);
+			Data.MorphBufferOffset = Section->BaseVertexIndex;
 		}
 
 		//INC_DWORD_STAT(STAT_GPUSkinCache_TotalNumChunks);
@@ -1060,7 +1060,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		// see GPU code "check(MorphStride == sizeof(float) * 6);"
 		check(MorphStride == sizeof(float) * 6);
 
-		InOutEntry->DispatchData[Section].MorphBufferOffset = (MorphStride * BatchElement.BaseVertexIndex) / sizeof(float);
+		InOutEntry->DispatchData[Section].MorphBufferOffset = BatchElement.BaseVertexIndex;
 
 		// weight buffer
 		FSkinWeightVertexBuffer* WeightBuffer = Skin->GetSkinWeightVertexBuffer(LODIndex);
