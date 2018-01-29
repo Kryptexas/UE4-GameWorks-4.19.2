@@ -577,6 +577,12 @@ function taskProgress(taskId, progress) {
 }
 
 function showErrorDialog(errorText) {
+	if ( errorText.indexOf('SyntaxError: ') != -1 ) { // this may be due to caching issue -- otherwise, compile time would have caught this
+		errorText = "NOTE: attempting to flush cache and force reload...<br>Please standby...";
+		setTimeout(function() {
+			location.reload(true);
+		}, 2000); // 2 seconds
+	}
 	console.error('error: ' + errorText);
 	var existingErrorDialog = document.getElementById('errorDialog');
 	if (existingErrorDialog) {
