@@ -1437,6 +1437,17 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 					{
 						UObject** NewSubobject = NewNameMap.Find(OldSubobject.Key);
 						OldArchetypeToNewArchetype.Add(OldSubobject.Value, NewSubobject ? *NewSubobject : nullptr );
+						if(NewSubobject)
+						{
+							FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldSubobject.Value, *NewSubobject);
+						}
+						else
+						{
+							// an object was not recreated, this can be because we are running without GEditor (-game or -server) and
+							// the old subobject was an editor only subobject (CreateEditorOnlyDefaultSubobject):
+							OldSubobject.Value->RemoveFromRoot();
+							OldSubobject.Value->MarkPendingKill();
+						}
 					}
 					
 				}
