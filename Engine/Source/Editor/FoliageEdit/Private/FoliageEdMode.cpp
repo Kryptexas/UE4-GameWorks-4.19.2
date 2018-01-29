@@ -314,6 +314,11 @@ void FEdModeFoliage::AddReferencedObjects(FReferenceCollector& Collector)
 	FEdMode::AddReferencedObjects(Collector);
 
 	Collector.AddReferencedObject(SphereBrushComponent);
+
+	for (FFoliageMeshUIInfoPtr MeshUIInfo : FoliageMeshList)
+	{
+		Collector.AddReferencedObject(MeshUIInfo->Settings);
+	}
 }
 
 /** FEdMode: Called when the mode is entered */
@@ -323,6 +328,8 @@ void FEdModeFoliage::Enter()
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddRaw(this, &FEdModeFoliage::OnObjectsReplaced);
+	FEditorDelegates::EndPIE.AddRaw(this, &FEdModeFoliage::OnEndPIE);
+
 
 	// Clear any selection in case the instanced foliage actor is selected
 	GEditor->SelectNone(true, true);
@@ -505,6 +512,8 @@ void FEdModeFoliage::Exit()
 		}
 	}
 
+	FEditorDelegates::EndPIE.RemoveAll(this);
+
 	FoliageMeshList.Empty();
 
 	// Call base Exit method to ensure proper cleanup
@@ -529,6 +538,14 @@ EFoliageEditingState FEdModeFoliage::GetEditingState() const
 	}
 
 	return EFoliageEditingState::Enabled;
+}
+
+void FEdModeFoliage::OnEndPIE(const bool bIsSimulating)
+{
+	if (bIsSimulating)
+	{
+		PopulateFoliageMeshList();
+	}
 }
 
 void FEdModeFoliage::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
@@ -2842,7 +2859,7 @@ void FEdModeFoliage::PopulateFoliageMeshList()
 	FoliageMeshList.Empty();
 
 	// Collect set of all available foliage types
-	UWorld* World = GetWorld();
+	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	const int32 NumLevels = World->GetNumLevels();
 

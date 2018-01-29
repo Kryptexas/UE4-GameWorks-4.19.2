@@ -471,6 +471,9 @@ public:
 	/** Called on VR hovering */
 	void OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
+	/** Called as PIE ends */
+	void OnEndPIE(const bool bIsSimulating);
+
 	/** Return the current foliage editing state */
 	EFoliageEditingState GetEditingState() const;
 
