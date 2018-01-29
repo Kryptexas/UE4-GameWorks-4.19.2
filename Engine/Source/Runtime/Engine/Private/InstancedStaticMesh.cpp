@@ -266,6 +266,10 @@ void FStaticMeshInstanceBuffer::InitRHI()
 
 void FStaticMeshInstanceBuffer::ReleaseRHI()
 {
+	InstanceOriginSRV.SafeRelease();
+	InstanceTransformSRV.SafeRelease();
+	InstanceLightmapSRV.SafeRelease();
+
 	InstanceOriginBuffer.ReleaseRHI();
 	InstanceTransformBuffer.ReleaseRHI();
 	InstanceLightmapBuffer.ReleaseRHI();

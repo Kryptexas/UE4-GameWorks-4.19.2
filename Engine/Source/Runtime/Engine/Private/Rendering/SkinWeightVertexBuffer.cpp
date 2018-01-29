@@ -144,9 +144,9 @@ void FSkinWeightVertexBuffer::InitRHI()
 
 void FSkinWeightVertexBuffer::ReleaseRHI()
 {
-	FVertexBuffer::ReleaseRHI();
-
 	SRVValue.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
 }
 
 

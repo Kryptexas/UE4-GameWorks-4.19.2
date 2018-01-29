@@ -365,6 +365,13 @@ void FColorVertexBuffer::InitRHI()
 	}
 }
 
+void FColorVertexBuffer::ReleaseRHI()
+{
+	ColorComponentsSRV.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
+}
+
 void FColorVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 {
 	// Clear any old VertexData before allocating.

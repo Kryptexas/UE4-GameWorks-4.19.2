@@ -132,6 +132,7 @@ public:
 
 	// FRenderResource interface.
 	ENGINE_API virtual void InitRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("ColorOnly Mesh Vertices"); }
 
 	ENGINE_API void BindColorVertexBuffer(const class FVertexFactory* VertexFactory, struct FStaticMeshDataType& StaticMeshData) const;

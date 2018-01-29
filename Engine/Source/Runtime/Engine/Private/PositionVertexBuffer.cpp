@@ -167,6 +167,13 @@ void FPositionVertexBuffer::InitRHI()
 	}
 }
 
+void FPositionVertexBuffer::ReleaseRHI()
+{
+	PositionComponentSRV.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
+}
+
 void FPositionVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 {
 	// Clear any old VertexData before allocating.

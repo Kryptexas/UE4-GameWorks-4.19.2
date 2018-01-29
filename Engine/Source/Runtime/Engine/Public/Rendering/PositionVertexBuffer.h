@@ -90,6 +90,7 @@ public:
 
 	// FRenderResource interface.
 	ENGINE_API virtual void InitRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("PositionOnly Static-mesh vertices"); }
 
 	ENGINE_API void BindPositionVertexBuffer(const class FVertexFactory* VertexFactory, struct FStaticMeshDataType& Data) const;

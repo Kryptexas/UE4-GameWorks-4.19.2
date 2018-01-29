@@ -245,6 +245,9 @@ void FStaticMeshVertexBuffer::InitRHI()
 
 void FStaticMeshVertexBuffer::ReleaseRHI()
 {
+	TangentsSRV.SafeRelease();
+	TextureCoordinatesSRV.SafeRelease();
+
 	TangentsVertexBuffer.ReleaseRHI();
 	TexCoordVertexBuffer.ReleaseRHI();
 }
