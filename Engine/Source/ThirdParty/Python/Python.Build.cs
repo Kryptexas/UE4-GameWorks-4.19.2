@@ -177,7 +177,7 @@ public class Python : ModuleRules
 	private string InvokePython(string InPythonRoot, string InPythonArgs)
 	{
 		ProcessStartInfo ProcStartInfo = new ProcessStartInfo();
-		ProcStartInfo.FileName = "python";
+		ProcStartInfo.FileName = Path.Combine(InPythonRoot, "python");
 		ProcStartInfo.WorkingDirectory = InPythonRoot;
 		ProcStartInfo.Arguments = InPythonArgs;
 		ProcStartInfo.UseShellExecute = false;
