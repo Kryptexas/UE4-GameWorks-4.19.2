@@ -1513,8 +1513,11 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCame
 	NumUVChannels.Empty(ArraySize);
 	NumUVChannels.AddZeroed(ArraySize);
 
-	// Always default the LOD to 0 when setting the mesh.
-	UpdateLODStats(0);
+	int32 NumLODs = StaticMesh->GetNumLODs();
+	for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+	{
+		UpdateLODStats(LODIndex);
+	}
 
 	// Set the details view.
 	StaticMeshDetailsView->SetObject(StaticMesh);
