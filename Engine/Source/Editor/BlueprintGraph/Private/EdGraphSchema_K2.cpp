@@ -4337,6 +4337,13 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		{
 			return IsIndexWildcardCompatible(Output);
 		}
+		else if(Output.IsMap())
+		{
+			return 
+				Input.PinValueType.TerminalCategory == PC_Wildcard ||
+				Output.PinValueType.TerminalCategory == PC_Wildcard ||
+				Input.PinValueType == Output.PinValueType;
+		}
 
 		return true;
 	}

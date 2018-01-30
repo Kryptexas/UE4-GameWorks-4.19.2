@@ -196,7 +196,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		{
 			if (Pin == OutputPin)
 			{
-				if (NumKeyPinsWithLinks == 0 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumKeyPinsWithLinks == 0 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					FEdGraphTerminalType TerminalType = MoveTemp(OutputPin->PinType.PinValueType);
 					OutputPin->PinType = Pin->LinkedTo[0]->PinType;
@@ -204,7 +204,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 					OutputPin->PinType.ContainerType = ContainerType;
 					bNotifyGraphChanged = true;
 				}
-				if (ContainerType == EPinContainerType::Map && NumValuePinsWithLinks == 0 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinValueType.TerminalCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (ContainerType == EPinContainerType::Map && NumValuePinsWithLinks == 0 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinValueType.TerminalCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					OutputPin->PinType.PinValueType = Pin->LinkedTo[0]->PinType.PinValueType;
 					bNotifyGraphChanged = true;
@@ -213,7 +213,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			else if (ValuePins.Contains(Pin))
 			{
 				// Just made a connection to a value pin, was it the first?
-				if (NumValuePinsWithLinks == 1 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumValuePinsWithLinks == 1 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					// Update the types on all the pins
 					OutputPin->PinType.PinValueType = FEdGraphTerminalType::FromPinType(Pin->LinkedTo[0]->PinType);
@@ -223,7 +223,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			else 
 			{
 				// Just made a connection to a key pin, was it the first?
-				if (NumKeyPinsWithLinks == 1 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumKeyPinsWithLinks == 1 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					FEdGraphTerminalType TerminalType = MoveTemp(OutputPin->PinType.PinValueType);
 					OutputPin->PinType = Pin->LinkedTo[0]->PinType;
