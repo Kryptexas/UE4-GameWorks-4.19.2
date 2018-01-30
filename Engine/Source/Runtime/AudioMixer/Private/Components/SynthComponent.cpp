@@ -18,7 +18,8 @@ void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChann
 	NumSamplesToGeneratePerCallback = InCallbackSize;
 	// Turn off async generation in old audio engine on mac.
 #if PLATFORM_MAC
-	if (!InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled())
+	const FAudioDevice* AudioDevice = InSynthComponent->GetAudioDevice();
+	if (AudioDevice && !AudioDevice->IsAudioMixerEnabled())
 	{
 		bCanProcessAsync = false;
 	}
