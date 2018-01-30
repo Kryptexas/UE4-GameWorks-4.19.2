@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.cpp: Rendering thread implementation.
@@ -1068,7 +1068,6 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			bool bRenderThreadEnsured = FDebug::IsEnsuring();
 
 			static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
-			static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
 
 			do
 			{
@@ -1096,33 +1095,19 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 
 				// track whether the thread ensured, if so don't do timeout checks
-				bRenderThreadEnsured = FDebug::IsEnsuring() || bRenderThreadEnsured;
+				bRenderThreadEnsured |= FDebug::IsEnsuring();
 
 #if !WITH_EDITOR
+#if !PLATFORM_IOS // @todo MetalMRT: Timeout isn't long enough...
 				// editor threads can block for quite a while... 
 				if (!bDone && !bRenderThreadEnsured && !FPlatformMisc::IsDebuggerPresent())
-				{				
-					if (bGPUDebugging && FPlatformTime::Seconds() > 2.0f)
-					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
-					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
+				{
 					if (bOverdue && !bDisabled)
 					{
-
-						UE_CLOG(!IsGpuAlive, LogRendererCore, Fatal, TEXT("CheckGpuHeartbeat returned false after %.02f secs of waiting for the GPU"), FPlatformTime::Seconds() - StartTime);
-					}
-		
-#if !PLATFORM_IOS // @todo MetalMRT: Timeout isn't long enough...
-					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
-					{
-						IsGpuAlive = true;
-						if (GDynamicRHI)
-						{
-							IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
-						}
 						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
 					}
-#endif
 				}
+#endif
 #endif
 			}
 			while (!bDone);
