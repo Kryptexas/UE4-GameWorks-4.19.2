@@ -77,6 +77,11 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 	{
 		if (PlatformInfo.IsVanilla() && (PlatformInfo.PlatformType == PlatformInfo::EPlatformType::Game) && (PlatformInfo.PlatformInfoName != TEXT("AllDesktop")))
 		{
+			if (PlatformInfo.PlatformInfoName == TEXT("TVOS"))
+			{
+				continue; // tvOS is just iOS for now
+			}
+
 			AvailablePlatforms.Add(&PlatformInfo);
 		}
 	}
