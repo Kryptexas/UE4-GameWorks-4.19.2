@@ -89,7 +89,7 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 
 	void QueueForCompilation(const FBPCompileRequest& CompileJob);
 	void CompileSynchronouslyImpl(const FBPCompileRequest& Request);
-	void FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled);
+	void FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled, TArray<UBlueprint*>* BlueprintsCompiledOrSkeletonCompiled);
 	void FlushReinstancingQueueImpl();
 	bool HasBlueprintsToCompile() const;
 	bool IsGeneratedClassLayoutReady() const;
@@ -196,7 +196,8 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 	// did this after GC and we want to match the old behavior:
 	const bool bSuppressBroadcastCompiled = true;
 	TArray<UBlueprint*> CompiledBlueprints;
-	FlushCompilationQueueImpl(nullptr, bSuppressBroadcastCompiled, &CompiledBlueprints);
+	TArray<UBlueprint*> SkeletonCompiledBlueprints;
+	FlushCompilationQueueImpl(nullptr, bSuppressBroadcastCompiled, &CompiledBlueprints, &SkeletonCompiledBlueprints);
 	FlushReinstancingQueueImpl();
 	
 	if (FBlueprintEditorUtils::IsLevelScriptBlueprint(Request.BPToCompile))
@@ -224,9 +225,14 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	}
 	
+	for(UBlueprint* BP : SkeletonCompiledBlueprints)
+	{
+		BP->BroadcastChanged();
+	}
+
 	if (!bBatchCompile)
 	{
-		for(UBlueprint* BP : CompiledBlueprints)
+		for(UBlueprint* BP : SkeletonCompiledBlueprints)
 		{
 			BP->BroadcastCompiled();
 		}
@@ -327,7 +333,7 @@ struct FReinstancingJob
 	TSharedPtr<FKismetCompilerContext> Compiler;
 };
 	
-void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled)
+void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled, TArray<UBlueprint*>* BlueprintsCompiledOrSkeletonCompiled)
 {
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	ensure(bGeneratedClassLayoutReady);
@@ -575,6 +581,11 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		
 				if(CompilerData.ShouldRegenerateSkeleton())
 				{
+					if(BlueprintsCompiledOrSkeletonCompiled)
+					{
+						BlueprintsCompiledOrSkeletonCompiled->Add(BP);
+					}
+
 					BP->SkeletonGeneratedClass = FastGenerateSkeletonClass(BP, *(CompilerData.Compiler) );
 					UBlueprintGeneratedClass* AuthoritativeClass = Cast<UBlueprintGeneratedClass>(BP->GeneratedClass);
 					if(AuthoritativeClass && bSkipUnneededDependencyCompilation)
@@ -956,18 +967,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 				TArray<UBlueprint*> DependentBPs;
 				FBlueprintEditorUtils::GetDependentBlueprints(BP, DependentBPs);
-
-				// refresh each dependent blueprint
-				for (UBlueprint* Dependent : DependentBPs)
-				{
-					if(!BP->bIsRegeneratingOnLoad)
-					{
-						// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
-						TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
-						// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
-						Dependent->BroadcastChanged();
-					}
-				}
 				
 				UBlueprint::ValidateGeneratedClass(BP->GeneratedClass);
 			}
@@ -2125,7 +2124,7 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 {
 	if(BPCMImpl)
 	{
-		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false, nullptr);
+		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false, nullptr, nullptr);
 
 		// We can't support save on compile or keeping old CDOs from GCing when reinstancing is deferred:
 		BPCMImpl->CompiledBlueprintsToSave.Empty();
@@ -2137,7 +2136,7 @@ void FBlueprintCompilationManager::FlushCompilationQueueAndReinstance()
 {
 	if(BPCMImpl)
 	{
-		BPCMImpl->FlushCompilationQueueImpl(nullptr, false, nullptr);
+		BPCMImpl->FlushCompilationQueueImpl(nullptr, false, nullptr, nullptr);
 		BPCMImpl->FlushReinstancingQueueImpl();
 
 		BPCMImpl->OldCDOs.Empty();
