@@ -105,6 +105,7 @@ private:
 	FDelegateHandle ReinstanceTickerHandle;
 
 	PyUtil::FPyApiBuffer PyProgramName;
+	PyUtil::FPyApiBuffer PyHomePath;
 	TArray<PyUtil::FPyApiBuffer> PyCommandLineArgs;
 	TArray<PyUtil::FPyApiChar*> PyCommandLineArgPtrs;
 	FPyObjectPtr PyGlobalDict;

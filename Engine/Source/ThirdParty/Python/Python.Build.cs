@@ -147,8 +147,8 @@ public class Python : ModuleRules
 			{
 				// Strip the Engine directory and then combine the path with the placeholder to ensure the path is delimited correctly
 				EngineRelativePythonRoot = EngineRelativePythonRoot.Remove(0, EngineDir.Length);
-				EngineRelativePythonRoot = Path.Combine("$(EngineDir)", EngineRelativePythonRoot);
-				RuntimeDependencies.Add(Path.Combine(EngineRelativePythonRoot, "...")); // Stage the Python SDK for use at runtime
+				RuntimeDependencies.Add(Path.Combine("$(EngineDir)", EngineRelativePythonRoot, "...")); // Stage the Python SDK for use at runtime
+				EngineRelativePythonRoot = Path.Combine("{ENGINE_DIR}", EngineRelativePythonRoot); // Can't use $(EngineDir) as the placeholder here as UBT is eating it
 			}
 
 			PublicDefinitions.Add("WITH_PYTHON=1");

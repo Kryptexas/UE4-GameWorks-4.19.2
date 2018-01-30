@@ -42,7 +42,7 @@ private:
 		{
 			// Build the full Python directory (UE_PYTHON_DIR may be relative to UE4 engine directory for portability)
 			FString PythonDir = UTF8_TO_TCHAR(UE_PYTHON_DIR);
-			PythonDir.ReplaceInline(TEXT("$(EngineDir)"), *FPaths::EngineDir(), ESearchCase::CaseSensitive);
+			PythonDir.ReplaceInline(TEXT("{ENGINE_DIR}"), *FPaths::EngineDir(), ESearchCase::CaseSensitive);
 			FPaths::NormalizeDirectoryName(PythonDir);
 			FPaths::RemoveDuplicateSlashes(PythonDir);
 

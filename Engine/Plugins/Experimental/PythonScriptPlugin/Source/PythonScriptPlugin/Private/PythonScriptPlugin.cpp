@@ -373,6 +373,16 @@ void FPythonScriptPlugin::InitializePython()
 		PyProgramName = PyUtil::TCHARToPyApiBuffer(*ProgramName);
 	}
 
+	// Set-up the correct home path
+	{
+		// Build the full Python directory (UE_PYTHON_DIR may be relative to UE4 engine directory for portability)
+		FString PythonDir = UTF8_TO_TCHAR(UE_PYTHON_DIR);
+		PythonDir.ReplaceInline(TEXT("{ENGINE_DIR}"), *FPaths::EngineDir(), ESearchCase::CaseSensitive);
+		FPaths::NormalizeDirectoryName(PythonDir);
+		FPaths::RemoveDuplicateSlashes(PythonDir);
+		PyHomePath = PyUtil::TCHARToPyApiBuffer(*PythonDir);
+	}
+
 	// Set-up the correct command line
 	{
 		PyCommandLineArgs.Add(PyUtil::TCHARToPyApiBuffer(TEXT(""))); // Script name; always empty
@@ -397,6 +407,7 @@ void FPythonScriptPlugin::InitializePython()
 		Py_SetStandardStreamEncoding("utf-8", nullptr);
 #endif	// PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 4
 		Py_SetProgramName(PyProgramName.GetData());
+		Py_SetPythonHome(PyHomePath.GetData());
 		Py_Initialize();
 
 		PySys_SetArgv(PyCommandLineArgPtrs.Num(), PyCommandLineArgPtrs.GetData());
