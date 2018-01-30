@@ -145,10 +145,13 @@ bool FMaterialPropertyHelpers::FilterLayerAssets(const struct FAssetData& InAsse
 		case EMaterialParameterAssociation::LayerParameter:
 		{
 			CompareString = "MaterialLayer";
-			RightPath = LayerFunction->Layers[Index]->GetBaseFunction()->GetFName().ToString();
-			if(RightPath.IsEmpty())
+			if (LayerFunction->Layers[Index] != nullptr)
 			{
-				RightPath = LayerFunction->Layers[Index]->GetFName().ToString();
+				RightPath = LayerFunction->Layers[Index]->GetBaseFunction()->GetFName().ToString();
+				if (RightPath.IsEmpty())
+				{
+					RightPath = LayerFunction->Layers[Index]->GetFName().ToString();
+				}
 			}
 			bShouldFilter = LayerFunction->RestrictToLayerRelatives[Index];
 			BaseClassName = UMaterialFunctionMaterialLayer::StaticClass()->GetFName();
@@ -158,10 +161,13 @@ bool FMaterialPropertyHelpers::FilterLayerAssets(const struct FAssetData& InAsse
 		case EMaterialParameterAssociation::BlendParameter:
 		{
 			CompareString = "MaterialLayerBlend";
-			RightPath = LayerFunction->Blends[Index]->GetBaseFunction()->GetFName().ToString();
-			if (RightPath.IsEmpty())
+			if (LayerFunction->Blends[Index] != nullptr)
 			{
-				RightPath = LayerFunction->Blends[Index]->GetFName().ToString();
+				RightPath = LayerFunction->Blends[Index]->GetBaseFunction()->GetFName().ToString();
+				if (RightPath.IsEmpty())
+				{
+					RightPath = LayerFunction->Blends[Index]->GetFName().ToString();
+				}
 			}
 			bShouldFilter = LayerFunction->RestrictToBlendRelatives[Index];
 			BaseClassName = UMaterialFunctionMaterialLayerBlend::StaticClass()->GetFName();
