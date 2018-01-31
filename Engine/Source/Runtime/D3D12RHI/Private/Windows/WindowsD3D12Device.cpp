@@ -72,6 +72,8 @@ namespace RHIConsoleVariables
 }
 using namespace D3D12RHI;
 
+static bool bIsQuadBufferStereoEnabled = false;
+
 /** This function is used as a SEH filter to catch only delay load exceptions. */
 static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 {
@@ -125,6 +127,15 @@ static D3D_FEATURE_LEVEL GetAllowedD3DFeatureLevel()
 		RHIConsoleVariables::FeatureSetLimit == 10)
 	{
 		AllowedFeatureLevel = D3D_FEATURE_LEVEL_10_0;
+	}
+
+	if (bIsQuadBufferStereoEnabled)
+	{
+		if (AllowedFeatureLevel == D3D_FEATURE_LEVEL_10_0)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("D3D Feature Level overriden from 10.0 to 11.1 due to quad_buffer_stereo"));
+		}
+		AllowedFeatureLevel = D3D_FEATURE_LEVEL_11_1;
 	}
 	return AllowedFeatureLevel;
 }

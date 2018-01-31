@@ -566,6 +566,9 @@ public:
 		return GPUProfilingData.CheckGpuHeartbeat();
 	}
 
+	bool IsQuadBufferStereoEnabled();
+	void DisableQuadBufferStereo();
+
 private:
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 

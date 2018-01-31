@@ -17,6 +17,8 @@
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
+#include "dxgi1_3.h"
+
 #if NV_AFTERMATH
 // Disabled by default since introduces stalls between render and driver threads
 int32 GDX11NVAfterMathEnabled = 0;
@@ -153,6 +155,10 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 #endif
 }
 
+static bool bIsQuadBufferStereoEnabled = false;
+typedef HRESULT(WINAPI *FCreateDXGIFactory2)(UINT, REFIID, void **);
+static FCreateDXGIFactory2 CreateDXGIFactory2FnPtr;
+
 /**
  * Since CreateDXGIFactory1 is a delay loaded import from the D3D11 DLL, if the user
  * doesn't have VistaSP2/DX10, calling CreateDXGIFactory1 will throw an exception.
@@ -163,7 +169,34 @@ static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 #if !defined(D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR) || !D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
 	__try
 	{
-		CreateDXGIFactory1(__uuidof(IDXGIFactory1),(void**)DXGIFactory1);
+		if (FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo")))
+		{
+			// CreateDXGIFactory2 is only available on Win8.1+, find it if it exists
+			HMODULE DxgiDLL = LoadLibraryA("dxgi.dll");
+#pragma warning(push)
+#pragma warning(disable: 4191) // disable the "unsafe conversion from 'FARPROC' to 'blah'" warning
+			CreateDXGIFactory2FnPtr = (FCreateDXGIFactory2)(GetProcAddress(DxgiDLL, "CreateDXGIFactory2"));
+#pragma warning(pop)
+			FreeLibrary(DxgiDLL);
+			if (CreateDXGIFactory2FnPtr)
+			{
+				bIsQuadBufferStereoEnabled = true;
+			}
+			else
+			{
+				UE_LOG(LogD3D11RHI, Warning, TEXT("Win8.1 or above ir required for quad_buffer_stereo support."));
+			}
+		}
+
+		// IDXGIFactory2 required for dx11.1 active stereo (dxgi1.2)
+		if (bIsQuadBufferStereoEnabled)
+		{
+			CreateDXGIFactory2FnPtr(0, __uuidof(IDXGIFactory2), (void**)DXGIFactory1);
+		}
+		else
+		{
+			CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)DXGIFactory1);
+		}
 	}
 	__except(IsDelayLoadException(GetExceptionInformation()))
 	{
@@ -190,6 +223,15 @@ static D3D_FEATURE_LEVEL GetAllowedD3DFeatureLevel()
 	{
 		AllowedFeatureLevel = D3D_FEATURE_LEVEL_10_0;
 	}
+
+	if (bIsQuadBufferStereoEnabled)
+	{
+		if (AllowedFeatureLevel == D3D_FEATURE_LEVEL_10_0)
+		{
+			UE_LOG(LogD3D11RHI, Warning, TEXT("D3D Feature Level overriden from 10.0 to 11.1 due to quad_buffer_stereo"));
+		}
+		AllowedFeatureLevel = D3D_FEATURE_LEVEL_11_1;
+	}
 	return AllowedFeatureLevel;
 }
 
@@ -211,6 +253,7 @@ static bool SafeTestD3D11CreateDevice(IDXGIAdapter* Adapter,D3D_FEATURE_LEVEL Ma
 
 	D3D_FEATURE_LEVEL RequestedFeatureLevels[] =
 	{
+		D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0,
 		D3D_FEATURE_LEVEL_10_0
 	};
@@ -618,6 +661,7 @@ const TCHAR* GetFeatureLevelString(D3D_FEATURE_LEVEL FeatureLevel)
 		case D3D_FEATURE_LEVEL_10_0:	return TEXT("10_0");
 		case D3D_FEATURE_LEVEL_10_1:	return TEXT("10_1");
 		case D3D_FEATURE_LEVEL_11_0:	return TEXT("11_0");
+		case D3D_FEATURE_LEVEL_11_1:	return TEXT("11_1");
 	}
 	return TEXT("X_X");
 }
@@ -825,6 +869,16 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 void FD3D11DynamicRHI::Init()
 {
 	InitD3DDevice();
+}
+
+bool FD3D11DynamicRHI::IsQuadBufferStereoEnabled()
+{
+	return bIsQuadBufferStereoEnabled;
+}
+
+void FD3D11DynamicRHI::DisableQuadBufferStereo()
+{
+	bIsQuadBufferStereoEnabled = false;
 }
 
 void FD3D11DynamicRHI::FlushPendingLogs()
