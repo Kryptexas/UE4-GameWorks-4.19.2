@@ -1335,7 +1335,7 @@ namespace UnrealBuildTool
 			if(Rules.LinkType != TargetLinkType.Monolithic)
 			{
 				UnrealTargetConfiguration VersionConfig = Configuration;
-				if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment && ProjectFile != null)
+				if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment)
 				{
 					VersionConfig = UnrealTargetConfiguration.Development;
 				}
