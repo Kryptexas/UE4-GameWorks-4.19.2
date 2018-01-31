@@ -22,7 +22,7 @@ class FCascadeEmitterCanvasClient : public FEditorViewportClient
 {
 public:
 	/** Constructor */
-	FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport);
+	FCascadeEmitterCanvasClient(TSharedPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport);
 	~FCascadeEmitterCanvasClient();
 
 	/** FViewportClient interface */

@@ -1522,6 +1522,11 @@ void FCascade::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(CopyModule);
 	Collector.AddReferencedObject(CopyEmitter);
 	Collector.AddReferencedObject(CurveToReplace);
+
+	for (auto& Pair : EmitterToThumbnailMap)
+	{
+		Collector.AddReferencedObject(Pair.Value.Texture);
+	}
 }
 
 void FCascade::Tick(float DeltaTime)
@@ -5063,7 +5068,9 @@ void FCascade::OnDuplicateEmitter(bool bIsShared)
 void FCascade::OnDeleteEmitter()
 {
 	if (!SelectedEmitter)
+	{
 		return;
+	}
 
 	check(ParticleSystem->Emitters.Contains(SelectedEmitter));
 
@@ -5145,6 +5152,8 @@ void FCascade::OnDeleteEmitter()
 	ParticleSystem->Emitters.Remove(SelectedEmitter);
 
 	ParticleSystem->PostEditChange();
+
+	EmitterToThumbnailMap.Remove(SelectedEmitter);
 
 	SetSelectedEmitter(NULL);
 

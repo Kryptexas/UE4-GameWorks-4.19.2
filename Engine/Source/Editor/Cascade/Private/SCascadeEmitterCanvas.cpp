@@ -60,7 +60,7 @@ void SCascadeEmitterCanvas::Construct(const FArguments& InArgs)
 		]
 	];
 	
-	ViewportClient = MakeShareable(new FCascadeEmitterCanvasClient(CascadePtr, SharedThis(this)));
+	ViewportClient = MakeShareable(new FCascadeEmitterCanvasClient(CascadePtr.Pin(), SharedThis(this)));
 
 	ViewportClient->bSetListenerPosition = false;
 

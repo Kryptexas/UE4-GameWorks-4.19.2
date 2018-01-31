@@ -32,9 +32,10 @@
 #include "CanvasTypes.h"
 #include "Engine/Font.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 
-FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
+FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TSharedPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
 	: FEditorViewportClient(nullptr)
 	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
@@ -1129,9 +1130,40 @@ void FCascadeEmitterCanvasClient::DrawHeaderBlock(int32 Index, int32 XPos, UPart
 					// If there is an object configured to handle it, draw the thumbnail
 					if (RenderInfo != NULL && RenderInfo->Renderer != NULL)
 					{
+						FParticleEmitterThumbnail& Thumbnail = CascadePtr.Pin()->GetEmitterToThumbnailMap().FindOrAdd(Emitter);
+
 						float DPIScale = Canvas->GetDPIScale();
 						int32 ScaledSize = FMath::RoundToInt(ThumbSize*DPIScale);
-						RenderInfo->Renderer->Draw(MaterialInterface, FMath::RoundToInt(ThumbPos.X*DPIScale), FMath::RoundToInt(ThumbPos.Y*DPIScale), ScaledSize, ScaledSize, InViewport, Canvas);
+
+						// Thumbnail size
+						FIntPoint ThumbnailSize(ScaledSize, ScaledSize);
+
+						const bool bNeedsResize = !Thumbnail.Texture || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize;
+
+						if (bNeedsResize)
+						{
+							if (!Thumbnail.Texture)
+							{
+								static const FName CascadeEmitterThumbnailName(TEXT("CascadeEmitterThumbnail"));
+								Thumbnail.Texture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UTextureRenderTarget2D::StaticClass(), CascadeEmitterThumbnailName));
+							}
+
+							Thumbnail.Texture->InitCustomFormat(ScaledSize, ScaledSize, EPixelFormat::PF_B8G8R8A8, true);
+
+						}
+
+						// Always redraw for now to match legacy behavior.  Could cache for more efficiency. 
+						const bool bNeedsRerender = true;// bNeedsResize || Thumbnail.Material != MaterialInterface;
+
+						if (bNeedsRerender)
+						{
+							Thumbnail.Material = MaterialInterface;
+							// Re-render
+							FCanvas ThumbnailCanvas(Thumbnail.Texture->GameThread_GetRenderTargetResource(), nullptr, GetWorld(), GetWorld()->FeatureLevel, FCanvas::CDM_DeferDrawing, ShouldDPIScaleSceneCanvas() ? GetDPIScale() : 1.0f);
+							RenderInfo->Renderer->Draw(MaterialInterface, 0, 0, ScaledSize, ScaledSize, Thumbnail.Texture->GameThread_GetRenderTargetResource(), &ThumbnailCanvas);
+						}
+
+						Canvas->DrawTile(ThumbPos.X - Origin2D.X, ThumbPos.Y - Origin2D.Y, ThumbSize, ThumbSize, 0.f, 0.f, 1.f, 1.f, FLinearColor::White, Thumbnail.Texture->GameThread_GetRenderTargetResource(), false);
 					}
 				}
 				else

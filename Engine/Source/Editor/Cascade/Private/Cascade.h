@@ -33,6 +33,19 @@ struct FCurveEdEntry;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCascade, Log, All);
 
+struct FParticleEmitterThumbnail
+{
+	FParticleEmitterThumbnail()
+		: Material(nullptr)
+		, Texture(nullptr)
+	{}
+
+	TWeakObjectPtr<UMaterialInterface> Material;
+	/** Texture holding the material thumbnail for canvas.  Note it is the only thing we hold onto */
+	UTextureRenderTarget2D* Texture;
+};
+
+typedef TMap<TWeakObjectPtr<UParticleEmitter>, FParticleEmitterThumbnail> FParticleEmitterThumbnailMap;
 
 /*-----------------------------------------------------------------------------
    FCascade
@@ -212,6 +225,9 @@ public:
 	static bool ConvertAllModulesToSeeded(UParticleSystem* ParticleSystem);
 
 	static void OnComponentActivationChange(UParticleSystemComponent* PSC, bool bActivated);
+
+	FParticleEmitterThumbnailMap& GetEmitterToThumbnailMap() { return EmitterToThumbnailMap; }
+
 private:
 	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
@@ -477,4 +493,7 @@ private:
 
 	/** The geometry properties window, if it exists */
 	TWeakPtr<SWindow> GeometryPropertiesWindow;
+
+	/** Maps particle emitters to rendered thumbnails for the emitter UI */
+	FParticleEmitterThumbnailMap EmitterToThumbnailMap;
 };
