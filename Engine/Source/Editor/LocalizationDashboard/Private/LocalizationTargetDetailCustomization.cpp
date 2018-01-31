@@ -1242,9 +1242,9 @@ void FLocalizationTargetDetailCustomization::OnNewSupportedCultureSelected(FCult
 		SupportedCulturesStatisticsPropertyHandle->AsArray()->GetNumElements(NewElementIndex);
 
 		// Add element, set info for later initialization.
-		SupportedCulturesStatisticsPropertyHandle->AsArray()->AddItem();
 		SelectedNewCulture = SelectedCulture;
 		NewEntryIndexToBeInitialized = NewElementIndex;
+		SupportedCulturesStatisticsPropertyHandle->AsArray()->AddItem();
 
 		if (NativeCultureIndexPropertyHandle.IsValid() && NativeCultureIndexPropertyHandle->IsValidHandle())
 		{
