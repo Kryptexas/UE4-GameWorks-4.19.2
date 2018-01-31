@@ -18,6 +18,8 @@ IF EXIST %python_dest_name% (
 ECHO Copying Python: %python_src_dir%
 XCOPY /s /i /q "%python_src_dir%" "%python_dest_name%"
 XCOPY /s /i /q "NoRedist\%python_dest_name%\Microsoft.VC90.CRT" "%python_dest_name%"
+XCOPY /q "NoRedist\TPS\PythonWinBin.tps" "%python_dest_name%"
+XCOPY /q "NoRedist\TPS\VisualStudio2008.tps" "%python_dest_name%"
 XCOPY /q "%WINDIR%\System32\python27.dll" "%python_dest_name%"
 RMDIR "%python_dest_name%\Doc" /s /q
 DEL "%python_dest_name%\w9xpopen.exe"
