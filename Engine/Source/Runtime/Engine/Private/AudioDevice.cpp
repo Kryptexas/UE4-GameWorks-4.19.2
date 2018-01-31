@@ -229,7 +229,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		Effects = CreateEffectsManager();
 	}
 
-	
+	// Cache any plugin settings objects we have loaded
+	UpdateAudioPluginSettingsObjectCache();
 
 	//Get the requested spatialization plugin and set it up.
 	IAudioSpatializationFactory* SpatializationPluginFactory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
@@ -429,6 +430,28 @@ void FAudioDevice::CountBytes(FArchive& Ar)
 	SoundMixModifiers.CountBytes(Ar);
 }
 
+void FAudioDevice::UpdateAudioPluginSettingsObjectCache()
+{
+	PluginSettingsObjects.Reset();
+
+	// Make sure we don't GC 3rd party plugin settings since these live on FSoundAttenuationSettings, which may not live in UObject graph due to overrides.
+	// There shouldn't be many of objects these (on the order of 10s not 100s) so if we find any loaded, don't let GC get them.
+	for (TObjectIterator<USpatializationPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+
+	for (TObjectIterator<UOcclusionPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+
+	for (TObjectIterator<UReverbPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+}
+
 void FAudioDevice::AddReferencedObjects(FReferenceCollector& Collector)
 {	
 	Collector.AddReferencedObject(DefaultBaseSoundMix);
@@ -448,6 +471,12 @@ void FAudioDevice::AddReferencedObjects(FReferenceCollector& Collector)
 	for (FActiveSound* ActiveSound : ActiveSounds)
 	{
 		ActiveSound->AddReferencedObjects(Collector);
+	}
+	
+	// Loop through the cached plugin settings objects and add to the collector
+	for (UObject* PluginSettingsObject : PluginSettingsObjects)
+	{
+		Collector.AddReferencedObject(PluginSettingsObject);
 	}
 }
 
@@ -3162,6 +3191,8 @@ void FAudioDevice::Update(bool bGameTicking)
 
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AudioUpdateTime"), STAT_AudioUpdateTime, STATGROUP_AudioThreadCommands);
 	FScopeCycleCounter AudioUpdateTimeCounter(GET_STATID(STAT_AudioUpdateTime));
+
+	UpdateAudioPluginSettingsObjectCache();
 
 	// Updates the audio device delta time
 	UpdateDeviceDeltaTime();

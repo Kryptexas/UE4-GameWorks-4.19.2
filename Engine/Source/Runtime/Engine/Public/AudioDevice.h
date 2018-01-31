@@ -489,6 +489,8 @@ private:
 	void GetSoundClassInfo(TMap<FName, FAudioClassInfo>& AudioClassInfos);
 #endif
 
+	void UpdateAudioPluginSettingsObjectCache();
+
 public:
 
 	/**
@@ -1482,6 +1484,9 @@ private:
 
 	/** Map of sound mix sound class overrides. Will override any sound class effects for any sound mixes */
 	TMap<USoundMix*, FSoundMixClassOverrideMap> SoundMixClassEffectOverrides;
+
+	/** Cached array of plugin settings objects currently loaded. This is stored so we can add it in AddReferencedObjects. */
+	TArray<UObject*> PluginSettingsObjects;
 
 protected:
 	/** Interface to audio effects processing */
