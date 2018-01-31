@@ -109,6 +109,8 @@ void FWmfMediaTracks::ClearFlags()
 
 TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 {
+	FScopeLock Lock(&CriticalSection);
+
 	// validate streams
 	if (MediaSource == NULL)
 	{
