@@ -465,9 +465,14 @@ void FAppEventManager::PauseAudio()
 			AudioDevice->SuspendContext();
 		}
 		else
-	{
-		GEngine->GetMainAudioDevice()->Suspend(false);
-	}
+		{
+			GEngine->GetMainAudioDevice()->Suspend(false);
+
+			// make sure the audio thread runs the pause request
+			FAudioCommandFence Fence;
+			Fence.BeginFence();
+			Fence.Wait();
+		}
 	}
 }
 
@@ -486,9 +491,9 @@ void FAppEventManager::ResumeAudio()
 			AudioDevice->ResumeContext();
 		}
 		else
-	{
-		GEngine->GetMainAudioDevice()->Suspend(true);
-	}
+		{
+			GEngine->GetMainAudioDevice()->Suspend(true);
+		}
 	}
 }
 
