@@ -41,10 +41,14 @@ void FAppEventManager::Tick()
 		switch (Event.State)
 		{
 		case APP_EVENT_STATE_WINDOW_CREATED:
-			bCreateWindow = true;
-			PendingWindow = (ANativeWindow*)Event.Data;
+			// if we have a "destroy window" event pending, the data has been invalidated
+			if (!bDestroyWindowPending)
+			{
+				bCreateWindow = true;
+				PendingWindow = (ANativeWindow*)Event.Data;
 
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_CREATED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_CREATED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
+			}
 			break;
 		
 		case APP_EVENT_STATE_WINDOW_RESIZED:
@@ -60,25 +64,32 @@ void FAppEventManager::Tick()
 			bSaveState = true; //todo android: handle save state.
 			break;
 		case APP_EVENT_STATE_WINDOW_DESTROYED:
-			if (bIsDaydreamApp)
+			// only if precedeed by a a successfull "create window" event 
+			if (bHaveWindow)
 			{
-				bCreateWindow = false;
-			}
-			else
-			{
+				if (bIsDaydreamApp)
+				{
+					bCreateWindow = false;
+				}
+				else
+				{
 				if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected())
 				{
 					// delay the destruction until after the renderer teardown on Gear VR
 					bDestroyWindow = true;
 				}
-				else
-				{
-					FAndroidAppEntry::DestroyWindow();
-					FAndroidWindow::SetHardwareWindow(NULL);
+					else
+					{
+						FAndroidAppEntry::DestroyWindow();
+						FAndroidWindow::SetHardwareWindow(NULL);
+					}
 				}
 			}
 
 			bHaveWindow = false;
+
+			// allow further "create window" events to be processed 
+			bDestroyWindowPending = false;
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_DESTROYED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
 			break;
 		case APP_EVENT_STATE_ON_START:
@@ -233,6 +244,7 @@ FAppEventManager::FAppEventManager():
 	,bHaveWindow(false)
 	,bHaveGame(false)
 	,bRunning(false)
+	,bDestroyWindowPending(false)
 {
 	pthread_mutex_init(&MainMutex, NULL);
 	pthread_mutex_init(&QueueMutex, NULL);
@@ -332,6 +344,15 @@ void FAppEventManager::HandleWindowClosed()
 		check(rc == 0);
 	}
 
+	// a "destroy window" event appears on the game preInit routine
+	//     before creating a valid Android window
+	// - override the "create window" data
+	if (!GEngine || !GEngine->IsInitialized())
+	{
+		FirstInitialized = false;
+		FAndroidWindow::SetHardwareWindow(NULL);
+		bDestroyWindowPending = true;
+	}
 	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
 }
 

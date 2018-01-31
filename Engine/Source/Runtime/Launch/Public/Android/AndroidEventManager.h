@@ -94,4 +94,7 @@ private:
 	bool bHaveWindow;
 	bool bHaveGame;
 	bool bRunning;
+
+	// mark the "destroy window" event to prevent "create window" with invalid data on the same frame
+	bool bDestroyWindowPending;
 };
