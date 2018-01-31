@@ -232,6 +232,23 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 
 		BeginUpdateResourceRHI(&MeshLOD.PositionVertexBuffer);
 		BeginUpdateResourceRHI(&MeshLOD.StaticMeshVertexBuffer);
+
+		const FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD* MeshLODptr = &MeshLOD;
+		FLocalVertexFactory* VertexFactoryPtr = &MeshLOD.VertexFactory;
+		ENQUEUE_RENDER_COMMAND(UpdateSkeletalMeshCPUSkinVertexFactory)(
+			[VertexFactoryPtr, MeshLODptr](FRHICommandListImmediate& RHICmdList)
+		{
+			FLocalVertexFactory::FDataType Data;
+
+			MeshLODptr->PositionVertexBuffer.BindPositionVertexBuffer(VertexFactoryPtr, Data);
+			MeshLODptr->StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactoryPtr, Data);
+			MeshLODptr->StaticMeshVertexBuffer.BindTexCoordVertexBuffer(VertexFactoryPtr, Data, 0);
+			MeshLODptr->StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactoryPtr, Data, 0);
+			MeshLODptr->MeshObjectColorBuffer->BindColorVertexBuffer(VertexFactoryPtr, Data);
+
+			VertexFactoryPtr->SetData(Data);
+			VertexFactoryPtr->InitResource();
+		});
 	}
 }
 

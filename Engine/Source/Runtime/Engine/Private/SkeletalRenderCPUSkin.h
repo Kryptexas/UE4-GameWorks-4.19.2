@@ -158,7 +158,7 @@ private:
 		// index into FSkeletalMeshRenderData::LODRenderData[]
 		int32 LODIndex;
 
-		FLocalVertexFactory					VertexFactory;
+		mutable FLocalVertexFactory	VertexFactory;
 
 		/** The buffer containing vertex data. */
 		mutable FStaticMeshVertexBuffer StaticMeshVertexBuffer;
