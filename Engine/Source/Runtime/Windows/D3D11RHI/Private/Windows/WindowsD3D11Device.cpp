@@ -157,7 +157,7 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 
 static bool bIsQuadBufferStereoEnabled = false;
 typedef HRESULT(WINAPI *FCreateDXGIFactory2)(UINT, REFIID, void **);
-static FCreateDXGIFactory2 CreateDXGIFactory2FnPtr;
+static FCreateDXGIFactory2 CreateDXGIFactory2FnPtr = nullptr;
 
 /**
  * Since CreateDXGIFactory1 is a delay loaded import from the D3D11 DLL, if the user
@@ -173,11 +173,14 @@ static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 		{
 			// CreateDXGIFactory2 is only available on Win8.1+, find it if it exists
 			HMODULE DxgiDLL = LoadLibraryA("dxgi.dll");
+			if (DxgiDLL)
+			{
 #pragma warning(push)
 #pragma warning(disable: 4191) // disable the "unsafe conversion from 'FARPROC' to 'blah'" warning
-			CreateDXGIFactory2FnPtr = (FCreateDXGIFactory2)(GetProcAddress(DxgiDLL, "CreateDXGIFactory2"));
+				CreateDXGIFactory2FnPtr = (FCreateDXGIFactory2)(GetProcAddress(DxgiDLL, "CreateDXGIFactory2"));
 #pragma warning(pop)
-			FreeLibrary(DxgiDLL);
+				FreeLibrary(DxgiDLL);
+			}
 			if (CreateDXGIFactory2FnPtr)
 			{
 				bIsQuadBufferStereoEnabled = true;
@@ -189,7 +192,7 @@ static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 		}
 
 		// IDXGIFactory2 required for dx11.1 active stereo (dxgi1.2)
-		if (bIsQuadBufferStereoEnabled)
+		if (bIsQuadBufferStereoEnabled && CreateDXGIFactory2FnPtr)
 		{
 			CreateDXGIFactory2FnPtr(0, __uuidof(IDXGIFactory2), (void**)DXGIFactory1);
 		}
