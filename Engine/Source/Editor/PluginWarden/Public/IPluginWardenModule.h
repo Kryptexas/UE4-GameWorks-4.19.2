@@ -37,6 +37,19 @@ public:
 	}
 
 	/**
+	 * This enum efines how Unauthorized items are handled
+	 */
+	enum class EUnauthorizedErrorHandling
+	{
+		/** Handle error silently, no popups */
+		Silent,
+		/** Show the default or overriden message in a popup */
+		ShowMessage,
+		/** Show the default or overriden message in a popup, and ask user if he wants to open the Marketplace */
+		ShowMessageOpenStore
+	};
+
+	/**
 	 * Ask the Unreal Engine Launcher if the user has authorization to use the given plug-in. The authorized 
 	 * callback will only be called if the user is authorized to use the plug-in.
 	 *
@@ -57,8 +70,8 @@ public:
 	 * @param PluginItemId The unique identifier of the item plug-in on the marketplace.
 	 * @param PluginOfferId The unique identifier of the offer for the plug-in on the marketplace.
 	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
-	 * @param bShowStoreOnUnauthorized Show the Store page if plugin is not authorized.
+	 * @param UnauthorizedErrorHandling How to handle the unauthorized error.
 	 * @param AuthorizedCallback This function will be called after the user has been given entitlement.
 	 */
-	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, const FText& UnauthorizedMessageOverride, bool bShowStoreOnUnauthorized, TFunction<void()> AuthorizedCallback) = 0;
+	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, const FText& UnauthorizedMessageOverride, EUnauthorizedErrorHandling UnauthorizedErrorHandling, TFunction<void()> AuthorizedCallback) = 0;
 };

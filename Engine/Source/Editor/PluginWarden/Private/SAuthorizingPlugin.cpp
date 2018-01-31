@@ -31,7 +31,7 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PluginItemId = InPluginItemId;
 	PluginOfferId = InPluginOfferId;
 	AuthorizedCallback = InAuthorizedCallback;
-	bShowStoreOnUnauthorized = true;
+	UnauthorizedErrorHandling = IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessageOpenStore;
 
 	InParentWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SAuthorizingPlugin::OnWindowClosed));
 	bUserInterrupted = true;
@@ -91,10 +91,10 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PortalUserLoginService = ServiceLocator->GetServiceRef<IPortalUserLogin>();
 }
 
-void SAuthorizingPlugin::SetUnauthorizedOverride(const FText & InUnauthorizedMessageOverride, bool bInShowStoreOnUnauthorized)
+void SAuthorizingPlugin::SetUnauthorizedOverride(const FText & InUnauthorizedMessageOverride, IPluginWardenModule::EUnauthorizedErrorHandling InUnauthorizedErrorHandling)
 {
 	UnauthorizedMessageOverride = InUnauthorizedMessageOverride;
-	bShowStoreOnUnauthorized = bInShowStoreOnUnauthorized;
+	UnauthorizedErrorHandling = InUnauthorizedErrorHandling;
 }
 
 FText SAuthorizingPlugin::GetWaitingText() const
@@ -389,17 +389,27 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 				{
 					FailureMessage = FText::Format(LOCTEXT("UnathorizedFailure", "It doesn't look like you've purchased {0}.\n\nWould you like to see the store page?"), PluginFriendlyName);
 				}
-				if (bShowStoreOnUnauthorized)
+
+				switch (UnauthorizedErrorHandling)
+				{
+				case IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessageOpenStore:
 				{
 					EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, FailureMessage);
-					if ( Response == EAppReturnType::Yes )
+					if (Response == EAppReturnType::Yes)
 					{
 						ShowStorePageForPlugin();
 					}
+					break;
 				}
-				else
+				case IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessage:
 				{
 					FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+					break;
+				}
+				case IPluginWardenModule::EUnauthorizedErrorHandling::Silent:
+				default:
+					// Do nothing
+					break;
 				}
 				break;
 			}

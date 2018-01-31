@@ -8,6 +8,7 @@
 #include "Widgets/SWindow.h"
 #include "Async/AsyncResult.h"
 #include "Account/IPortalUser.h"
+#include "IPluginWardenModule.h"
 
 class IPortalApplicationWindow;
 class IPortalUserLogin;
@@ -49,9 +50,9 @@ public:
 	 * Override the default message and behavior in the case where the plugin is unauthorized.
 	 *
 	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
-	 * @param bShowStoreOnUnauthorized Show the Store page if plugin is not authorized.
+	 * @param UnauthorizedErrorHandling How to handle the unauthorized error.
 	 */
-	void SetUnauthorizedOverride(const FText& InUnauthorizedMessageOverride, bool bInShowStoreOnUnauthorized);
+	void SetUnauthorizedOverride(const FText& InUnauthorizedMessageOverride, IPluginWardenModule::EUnauthorizedErrorHandling UnauthorizedErrorHandling);
 
 private:
 
@@ -83,8 +84,8 @@ private:
 	/** The optional error message to display in case plugin is unauthorized. If empty, will default to standard message. */
 	FText UnauthorizedMessageOverride;
 
-	/** Flag to enable showing the store page when plugin is not authorized */
-	bool bShowStoreOnUnauthorized;
+	/** Flag that sets the handling mechanism for when plugin is not authorized */
+	IPluginWardenModule::EUnauthorizedErrorHandling UnauthorizedErrorHandling;
 
 	/** Flag for tracking user interruption of the process, either with the cancel button or the close button. */
 	bool bUserInterrupted;
