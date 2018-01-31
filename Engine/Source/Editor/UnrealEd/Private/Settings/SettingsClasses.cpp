@@ -579,6 +579,15 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		FPaths::MakePathRelativeTo(Path, FPlatformProcess::BaseDir());
 		StagingDirectory.Path = Path;
 	}
+	else if (Name == FName(TEXT("ForDistribution")))
+	{
+		if (ForDistribution && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_Shipping && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_ShippingClient)
+		{
+			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
+			// force serialization for "Build COnfiguration"
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UProjectPackagingSettings, BuildConfiguration)), GetDefaultConfigFilename());
+		}
+	}
 	else if (Name == FName(TEXT("bGenerateChunks")))
 	{
 		if (bGenerateChunks)
