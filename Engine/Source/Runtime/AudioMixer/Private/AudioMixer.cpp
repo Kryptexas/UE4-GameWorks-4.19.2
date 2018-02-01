@@ -358,6 +358,7 @@ namespace Audio
 		CurrentBufferReadIndex = 0;
 		CurrentBufferWriteIndex = 1;
 
+		OutputBuffers.Reset();
 		OutputBuffers.AddDefaulted(NumOutputBuffers);
 		for (int32 Index = 0; Index < NumOutputBuffers; ++Index)
 		{
