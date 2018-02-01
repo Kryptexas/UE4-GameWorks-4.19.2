@@ -786,14 +786,23 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{
-			FMaterialUpdateContext Context;
+			if(bIsFunctionPreviewMaterial)
+			{
+				bIsFunctionInstanceDirty = true;
+				ApplySourceFunctionChanges();
+			}
+			else
+			{
+				FMaterialUpdateContext Context;
 
-			UpdateSourceInstanceParent();
+				UpdateSourceInstanceParent();
 
-			Context.AddMaterialInstance(SourceInstance);
+				Context.AddMaterialInstance(SourceInstance);
 
-			// Fully update static parameters before recreating render state for all components
-			SetSourceInstance(SourceInstance);
+				// Fully update static parameters before recreating render state for all components
+				SetSourceInstance(SourceInstance);
+			}
+		
 		}
 		else if (!bIsFunctionPreviewMaterial)
 		{

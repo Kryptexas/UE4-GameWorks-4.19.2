@@ -37,6 +37,9 @@ public:
 	static void OnValueCommitted(float NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle);
 
 private:
+	/** Returns the function parent path */
+	FString GetFunctionParentPath() const;
+
 	/** Builds the custom parameter groups category */
 	void CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, class IDetailCategoryBuilder& GroupsCategory);
 
@@ -54,8 +57,11 @@ private:
 	/** Returns true if the parameter should be displayed */
 	EVisibility ShouldShowExpression(class UDEditorParameterValue* Parameter) const;
 
-	/** Called when an asset is set as a parent */
+	/** Called to check if an asset can be set as a parent */
 	bool OnShouldSetAsset(const FAssetData& InAssetData) const;
+
+	/** Called when an asset is set as a parent */
+	void OnAssetChanged(const FAssetData& InAssetData, TSharedRef<IPropertyHandle> InHandle);
 
 	/** Returns true if the refraction options should be displayed */
 	EVisibility ShouldShowMaterialRefractionSettings() const;

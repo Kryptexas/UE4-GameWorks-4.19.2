@@ -116,6 +116,10 @@
 #include "MaterialLayersFunctionsCustomization.h"
 #include "MaterialEditor/MaterialEditorPreviewParameters.h"
 #include "SMaterialLayersFunctionsTree.h"
+#include "Materials/MaterialExpressionSetMaterialAttributes.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Materials/MaterialExpressionBlendMaterialAttributes.h"
+#include "Materials/MaterialExpressionMaterialLayerOutput.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -556,27 +560,66 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 			if (GraphEditor.IsValid())
 			{
 				check(!bMaterialDirty);
-				UMaterialExpression* Expression = CreateNewMaterialExpression(UMaterialExpressionFunctionOutput::StaticClass(), FVector2D(200, 300), false, true);
-				SetPreviewExpression(Expression);
-				// This shouldn't count as having dirtied the material, so reset the flag
-				bMaterialDirty = false;
-
+				FVector2D OutputPlacement = FVector2D(200, 300);
+				if (GetDefault<UEditorExperimentalSettings>()->bExampleLayersAndBlends)
+				{
+					switch (MaterialFunction->GetMaterialFunctionUsage())
+					{
+					case(EMaterialFunctionUsage::MaterialLayer):
+					{
+						OutputPlacement = FVector2D(300, 269);
+						break;
+					}
+					case(EMaterialFunctionUsage::MaterialLayerBlend):
+					{
+						OutputPlacement = FVector2D(275, 269);
+						break;
+					}
+					default:
+						break;
+					}
+				}
+				UMaterialExpression* Expression;
+				if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::Default)
+				{
+					Expression = CreateNewMaterialExpression(UMaterialExpressionFunctionOutput::StaticClass(), OutputPlacement, false, true);
+					SetPreviewExpression(Expression);
+					// This shouldn't count as having dirtied the material, so reset the flag
+					bMaterialDirty = false;
+				}
+				else
+				{
+					Expression = CreateNewMaterialExpression(UMaterialExpressionMaterialLayerOutput::StaticClass(), OutputPlacement, false, true);
+					SetPreviewExpression(Expression);
+					// This shouldn't count as having dirtied the material, so reset the flag
+					bMaterialDirty = false;
+				}
 				// We can check the usage here and add the appropriate inputs too (e.g. Layer==1MA, Blend==2MA)
 				if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
 				{
-					UMaterialExpression* Input = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 300), false, true);
+					UMaterialExpression* Input = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-350, 300), false, true);
 					if (Input)
 					{
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(Input);
 						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
-						BaseAttributesInput->InputName = TEXT("Base Attributes");
+						BaseAttributesInput->InputName = TEXT("Material Attributes");
 						BaseAttributesInput->bUsePreviewValueAsDefault = true;
+
+					}
+					if (GetDefault<UEditorExperimentalSettings>()->bExampleLayersAndBlends)
+					{
+						UMaterialExpression* SetMaterialAttributes = CreateNewMaterialExpression(UMaterialExpressionSetMaterialAttributes::StaticClass(), FVector2D(40, 300), false, true);
+						if (Input && SetMaterialAttributes)
+						{
+							UMaterialEditingLibrary::ConnectMaterialExpressions(Input, FString(), SetMaterialAttributes, FString());
+							UMaterialEditingLibrary::ConnectMaterialExpressions(SetMaterialAttributes, FString(), Expression, FString());
+						}
 					}
 				}
 				else if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
 				{
 					// "Top layer" should be below "bottom layer" on the graph, to align with B on blend nodes
-					UMaterialExpression* InputTop = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 400), false, true);
+					UMaterialExpression* InputTop = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-300, 400), false, true);
 					if (InputTop)
 					{
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputTop);
@@ -585,13 +628,23 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 						BaseAttributesInput->bUsePreviewValueAsDefault = true;
 					}
 
-					UMaterialExpression* InputBottom = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-200, 200), false, true);
+					UMaterialExpression* InputBottom = CreateNewMaterialExpression(UMaterialExpressionFunctionInput::StaticClass(), FVector2D(-300, 200), false, true);
 					if (InputBottom)
 					{
 						UMaterialExpressionFunctionInput* BaseAttributesInput = Cast<UMaterialExpressionFunctionInput>(InputBottom);
 						BaseAttributesInput->InputType = FunctionInput_MaterialAttributes;
 						BaseAttributesInput->InputName = TEXT("Bottom Layer");
 						BaseAttributesInput->bUsePreviewValueAsDefault = true;
+					}
+					if (GetDefault<UEditorExperimentalSettings>()->bExampleLayersAndBlends)
+					{
+						UMaterialExpression* BlendMaterialAttributes = CreateNewMaterialExpression(UMaterialExpressionBlendMaterialAttributes::StaticClass(), FVector2D(40, 300), false, true);
+						if (InputTop && InputBottom && BlendMaterialAttributes)
+						{
+							UMaterialEditingLibrary::ConnectMaterialExpressions(InputBottom, FString(), BlendMaterialAttributes, FString(TEXT("A")));
+							UMaterialEditingLibrary::ConnectMaterialExpressions(InputTop, FString(), BlendMaterialAttributes, FString(TEXT("B")));
+							UMaterialEditingLibrary::ConnectMaterialExpressions(BlendMaterialAttributes, FString(), Expression, FString());
+						}
 					}
 				}
 			}
@@ -1747,22 +1800,94 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 
 			if (MaterialFunction && ExpressionPreviewMaterial)
 			{
-				// Add a compile error message for functions missing an output
-				CompileErrors = ExpressionPreviewMaterial->GetMaterialResource(FeatureLevel)->GetCompileErrors();
+				bool bHasValidOutput = true;
+				int32 NumInputs = 0;
+				int32 NumOutputs = 0;
+				// For Material Layers
 
-				bool bFoundFunctionOutput = false;
-				for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ExpressionIndex++)
+				if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
 				{
-					if (Material->Expressions[ExpressionIndex]->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
+					// Material layers must have a single MA input and output only
+					for (UMaterialExpression* Expression : *MaterialFunction->GetFunctionExpressions())
 					{
-						bFoundFunctionOutput = true;
-						break;
+						if (UMaterialExpressionFunctionInput* InputExpression = Cast<UMaterialExpressionFunctionInput>(Expression))
+						{
+							++NumInputs;
+							if (NumInputs > 1 || !InputExpression->IsResultMaterialAttributes(0))
+							{
+								CompileErrors.Add(TEXT("Layer graphs only support a single material attributes input."));
+							}
+						}
+						else if (UMaterialExpressionFunctionOutput* OutputExpression = Cast<UMaterialExpressionFunctionOutput>(Expression))
+						{
+							++NumOutputs;
+							if (NumOutputs > 1 || !OutputExpression->IsResultMaterialAttributes(0))
+							{
+								CompileErrors.Add(TEXT("Layer graphs only support a single material attributes output."));
+							}
+						}
+						else if (UMaterialExpressionMaterialAttributeLayers* RecursiveLayer = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
+						{
+							CompileErrors.Add(TEXT("Layer graphs do not support layers within layers."));
+						}
+					}
+
+					if (NumInputs > 1 || NumOutputs < 1)
+					{
+						CompileErrors.Add(TEXT("Layer graphs require a single material attributes output and optionally, a single material attributes input."));
 					}
 				}
-
-				if (!bFoundFunctionOutput)
+				else if (MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
 				{
-					CompileErrors.Add(TEXT("Missing a function output"));
+					// Material layer blends can have two MA inputs and single MA output only
+					for (UMaterialExpression* Expression : *MaterialFunction->GetFunctionExpressions())
+					{
+						if (UMaterialExpressionFunctionInput* InputExpression = Cast<UMaterialExpressionFunctionInput>(Expression))
+						{
+							++NumInputs;
+							if (NumInputs > 2 || !InputExpression->IsResultMaterialAttributes(0))
+							{
+								CompileErrors.Add(TEXT("Layer blend graphs only support two material attributes inputs."));
+							}
+						}
+						else if (UMaterialExpressionFunctionOutput* OutputExpression = Cast<UMaterialExpressionFunctionOutput>(Expression))
+						{
+							++NumOutputs;
+							if (NumOutputs > 1 || !OutputExpression->IsResultMaterialAttributes(0))
+							{
+								CompileErrors.Add(TEXT("Layer blend graphs only support a single material attributes output."));
+							}
+						}
+						else if (UMaterialExpressionMaterialAttributeLayers* RecursiveLayer = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
+						{
+							CompileErrors.Add(TEXT("Layer blend graphs do not support layers within layers."));
+						}
+					}
+
+					if (NumOutputs < 1)
+					{
+						CompileErrors.Add(TEXT("Layer blend graphs can have up to two material attributes inputs and a single output."));
+					}
+				}
+				else
+				{
+					// Add a compile error message for functions missing an output
+					CompileErrors = ExpressionPreviewMaterial->GetMaterialResource(FeatureLevel)->GetCompileErrors();
+
+					bool bFoundFunctionOutput = false;
+					for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ExpressionIndex++)
+					{
+						if (Material->Expressions[ExpressionIndex]->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
+						{
+							bFoundFunctionOutput = true;
+							break;
+						}
+					}
+
+					if (!bFoundFunctionOutput)
+					{
+						CompileErrors.Add(TEXT("Missing a function output"));
+					}
 				}
 			}
 			else
@@ -3455,20 +3580,18 @@ void FMaterialEditor::DeleteNodes(const TArray<UEdGraphNode*>& NodesToDelete)
 bool FMaterialEditor::CanDeleteNodes() const
 {
 	const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+	bool bDeletableNodeExists = false;
 
-	if (SelectedNodes.Num() == 1)
+	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
 	{
-		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+		UEdGraphNode* GraphNode = Cast<UEdGraphNode>(*NodeIt);
+		if (GraphNode && GraphNode->CanUserDeleteNode())
 		{
-			if (Cast<UMaterialGraphNode_Root>(*NodeIt))
-			{
-				// Return false if only root node is selected, as it can't be deleted
-				return false;
-			}
+			bDeletableNodeExists = true;
 		}
 	}
 
-	return SelectedNodes.Num() > 0;
+	return SelectedNodes.Num() > 0 && bDeletableNodeExists;
 }
 
 void FMaterialEditor::DeleteSelectedDuplicatableNodes()
@@ -4288,7 +4411,7 @@ bool FMaterialEditor::CheckExpressionRemovalWarnings(const TArray<UEdGraphNode*>
 				FunctionWarningString += FunctionInput->InputName.ToString();
 			}
 
-			if (FunctionOutput)
+			if (FunctionOutput && MaterialFunction && MaterialFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::Default)
 			{
 				if (!bFirstExpression)
 				{

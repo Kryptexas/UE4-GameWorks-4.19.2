@@ -83,6 +83,7 @@ UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInit
 	ExecSequenceNodeTitleColor = FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
 	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
 	DefaultCommentNodeTitleColor = FLinearColor::White;
+	PreviewNodeTitleColor = FLinearColor(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 #if WITH_EDITOR

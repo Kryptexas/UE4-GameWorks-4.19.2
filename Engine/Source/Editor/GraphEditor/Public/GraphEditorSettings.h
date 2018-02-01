@@ -246,6 +246,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=NodeTitleColors)
 	FLinearColor DefaultCommentNodeTitleColor;
 
+	/** Preview node title color */
+	UPROPERTY(EditAnywhere, config, Category = NodeTitleColors)
+	FLinearColor PreviewNodeTitleColor;
+
 public:
 	/** The thickness of a data wire */
 	UPROPERTY(EditAnywhere, config, Category=Tracing)

@@ -135,10 +135,6 @@ class ENGINE_API UMaterialExpression : public UObject
 	UPROPERTY(EditAnywhere, Category=MaterialExpression, meta=(MultiLine=true))
 	FString Desc;
 
-	/** Color of the expression's border outline. */
-	UPROPERTY()
-	FColor BorderColor;
-
 	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
 	UPROPERTY()
 	uint32 bRealtimePreview:1;
@@ -248,6 +244,10 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual FExpressionInput* GetInput(int32 InputIndex);
 	virtual FName GetInputName(int32 InputIndex) const;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const;
+	virtual bool CanUserDeleteExpression() const
+	{
+		return true;
+	};
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);

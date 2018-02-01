@@ -202,7 +202,7 @@
 #include "Materials/MaterialExpressionClearCoatNormalCustomOutput.h"
 #include "Materials/MaterialExpressionAtmosphericLightVector.h"
 #include "Materials/MaterialExpressionAtmosphericLightColor.h"
-
+#include "Materials/MaterialExpressionMaterialLayerOutput.h"
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
 #if WITH_EDITOR
@@ -9726,7 +9726,7 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 	}
 	else if (GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
 	{
-		// Material layer blends must have a two MA inputs and single MA output only
+		// Material layer blends can have up to two MA inputs and single MA output only
 		for (UMaterialExpression* Expression : FunctionExpressions)
 		{
 			if (UMaterialExpressionFunctionInput* InputExpression = Cast<UMaterialExpressionFunctionInput>(Expression))
@@ -9754,9 +9754,9 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 			}
 		}
 
-		if (NumInputs < 2 || NumOutputs < 1)
+		if (NumOutputs < 1)
 		{
-			Compiler->Errorf(TEXT("Layer blend graphs require two material attributes inputs and a single output."));
+			Compiler->Errorf(TEXT("Layer blend graphs can have up to two material attributes inputs and a single output."));
 			bHasValidOutput = false;
 		}
 	}
@@ -10585,8 +10585,6 @@ UMaterialExpressionMaterialFunctionCall::UMaterialExpressionMaterialFunctionCall
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
 #endif
 
-	BorderColor = FColor(0, 116, 255);
-
 	// Function calls created without a function should be pinless by default
 	FunctionInputs.Empty();
 	FunctionOutputs.Empty();
@@ -11179,8 +11177,6 @@ UMaterialExpressionFunctionInput::UMaterialExpressionFunctionInput(const FObject
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
 #endif
 
-	BorderColor = FColor(185, 255, 172);
-
 }
 
 void UMaterialExpressionFunctionInput::PostLoad()
@@ -11479,9 +11475,6 @@ UMaterialExpressionFunctionOutput::UMaterialExpressionFunctionOutput(const FObje
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
 #endif
-
-	BorderColor = FColor(255, 155, 0);
-
 	bCollapsed = false;
 }
 
@@ -11626,6 +11619,16 @@ bool UMaterialExpressionFunctionOutput::IsResultMaterialAttributes(int32 OutputI
 	}
 }
 #endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionMaterialLayerOutput
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionMaterialLayerOutput::UMaterialExpressionMaterialLayerOutput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	OutputName = TEXT("Material Attributes");
+}
+
 
 //
 //	UMaterialExpressionCollectionParameter

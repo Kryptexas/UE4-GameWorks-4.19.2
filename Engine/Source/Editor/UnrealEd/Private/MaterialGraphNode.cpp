@@ -28,6 +28,7 @@
 #include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionViewProperty.h"
+#include "Materials/MaterialExpressionMaterialLayerOutput.h"
 
 #include "MaterialEditorUtilities.h"
 #include "MaterialEditorActions.h"
@@ -35,6 +36,7 @@
 #include "GraphEditorSettings.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "ScopedTransaction.h"
+
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -197,14 +199,14 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 {
 	UMaterial* Material = CastChecked<UMaterialGraph>(GetGraph())->Material;
-
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 	if (bIsPreviewExpression)
 	{
 		// If we are currently previewing a node, its border should be the preview color.
-		return FColor( 70, 100, 200 );
+		return Settings->PreviewNodeTitleColor;
 	}
 
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
+
 
 	if (UsesBoolColour(MaterialExpression))
 	{
@@ -235,7 +237,16 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 	{
 		return Settings->FunctionCallNodeTitleColor;
 	}
+	else if (MaterialExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+	{
+		return Settings->FunctionCallNodeTitleColor;
+	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
+	{
+		// Previously FColor(255, 155, 0);
+		return Settings->ResultNodeTitleColor;
+	}
+	else if (MaterialExpression->IsA(UMaterialExpressionMaterialLayerOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
 		return Settings->ResultNodeTitleColor;
@@ -833,6 +844,15 @@ FString UMaterialGraphNode::GetDocumentationExcerptName() const
 	// This is done so that the excerpt name in the doc file can be found by find-in-files when searching for the full class name.
 	UClass* MyClass = (MaterialExpression != NULL) ? MaterialExpression->GetClass() : this->GetClass();
 	return FString::Printf(TEXT("%s%s"), MyClass->GetPrefixCPP(), *MyClass->GetName());
+}
+
+bool UMaterialGraphNode::CanUserDeleteNode() const
+{
+	if (MaterialExpression != NULL)
+	{
+		return MaterialExpression->CanUserDeleteExpression();
+	}
+	return true;
 }
 
 

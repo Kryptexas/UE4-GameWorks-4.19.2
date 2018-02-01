@@ -76,6 +76,16 @@ void FMaterialInstanceParameterDetails::OnValueCommitted(float NewValue, ETextCo
 	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
 }
 
+FString FMaterialInstanceParameterDetails::GetFunctionParentPath() const
+{
+	FString PathString;
+	if (MaterialEditorInstance->SourceFunction)
+	{
+		PathString = MaterialEditorInstance->SourceFunction->Parent->GetPathName();
+	}
+	return PathString;
+}
+
 void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	// Create a new category for a custom layout for the MIC parameters at the very top
@@ -99,16 +109,18 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		}
 		if (bShowParent)
 		{
-			FString ParentFunctionPath = MaterialEditorInstance->SourceFunction->Parent->GetPathName();
 			TSharedRef<IPropertyHandle> ParentPropertyHandle = DetailLayout.GetProperty("Parent");
 			IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty(ParentPropertyHandle);
-			
 			ParentPropertyHandle->MarkResetToDefaultCustomized();
 
 			TSharedPtr<SWidget> NameWidget;
 			TSharedPtr<SWidget> ValueWidget;
 			FDetailWidgetRow Row;
+
 			ParentPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+			ParentPropertyHandle->ClearResetToDefaultCustomized();
+
 			const bool bShowChildren = true;
 			ParentPropertyRow.CustomWidget(bShowChildren)
 				.NameContent()
@@ -117,17 +129,18 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 				[
 					NameWidget.ToSharedRef()
 				]
-				.ValueContent()
+			.ValueContent()
 				.MinDesiredWidth(Row.ValueWidget.MinWidth)
 				.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
 				[
 					SNew(SObjectPropertyEntryBox)
-					.ObjectPath(ParentFunctionPath)
+					.ObjectPath(this, &FMaterialInstanceParameterDetails::GetFunctionParentPath)
+					.AllowedClass(UMaterialFunctionInterface::StaticClass())
 					.ThumbnailPool(DetailLayout.GetThumbnailPool())
-					.AllowClear(false)
-					.DisplayUseSelected(false)
-					.EnableContentPicker(false)
-					.DisplayCompactSize(true)
+					.AllowClear(true)
+					.OnObjectChanged(this, &FMaterialInstanceParameterDetails::OnAssetChanged, ParentPropertyHandle)
+					.OnShouldSetAsset(this, &FMaterialInstanceParameterDetails::OnShouldSetAsset)
+					.NewAssetFactories(TArray<UFactory*>())
 				];
 
 			ValueWidget.Reset();
@@ -525,7 +538,25 @@ bool FMaterialInstanceParameterDetails::OnShouldSetAsset(const FAssetData& Asset
 {
 	if (MaterialEditorInstance->bIsFunctionPreviewMaterial)
 	{
-		return false;
+		if (MaterialEditorInstance->SourceFunction->GetMaterialFunctionUsage() == EMaterialFunctionUsage::Default)
+		{
+			return false;
+		}
+		else
+		{
+			UMaterialFunctionInstance* FunctionInstance = Cast<UMaterialFunctionInstance>(AssetData.GetAsset());
+			if (FunctionInstance != nullptr)
+			{
+				bool bIsChild = FunctionInstance->IsDependent(MaterialEditorInstance->SourceFunction);
+				if (bIsChild)
+				{
+					FMessageDialog::Open(
+						EAppMsgType::Ok,
+						FText::Format(LOCTEXT("CannotSetExistingChildFunctionAsParent", "Cannot set {0} as a parent as it is already a child of this material function instance."), FText::FromName(AssetData.AssetName)));
+				}
+				return !bIsChild;
+			}
+		}
 	}
 
 	UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(AssetData.GetAsset());
@@ -543,6 +574,21 @@ bool FMaterialInstanceParameterDetails::OnShouldSetAsset(const FAssetData& Asset
 	}
 
 	return true;
+}
+
+void FMaterialInstanceParameterDetails::OnAssetChanged(const FAssetData & InAssetData, TSharedRef<IPropertyHandle> InHandle)
+{
+	if (MaterialEditorInstance->bIsFunctionPreviewMaterial &&
+		MaterialEditorInstance->SourceFunction->GetMaterialFunctionUsage() != EMaterialFunctionUsage::Default)
+	{
+		UMaterialFunctionInterface* NewParent = Cast<UMaterialFunctionInterface>(InAssetData.GetAsset());
+		if (NewParent != nullptr)
+		{
+			MaterialEditorInstance->SourceFunction->SetParent(NewParent);
+			FPropertyChangedEvent ParentChanged = FPropertyChangedEvent(InHandle->GetProperty());
+			MaterialEditorInstance->PostEditChangeProperty(ParentChanged);
+		}
+	}
 }
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings() const
