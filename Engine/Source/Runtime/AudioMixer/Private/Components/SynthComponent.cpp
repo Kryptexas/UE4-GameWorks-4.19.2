@@ -232,8 +232,8 @@ void USynthComponent::CreateAudioComponent()
 			AudioComponent->OnAudioSingleEnvelopeValueNative.AddUObject(this, &USynthComponent::OnAudioComponentEnvelopeValue);
 
 			// Set defaults to be the same as audio component defaults
-			EnvelopeFollowerAttackTime = AudioComponent->EnvelopeFollowerAttackTime;
-			EnvelopeFollowerReleaseTime = AudioComponent->EnvelopeFollowerReleaseTime;
+			AudioComponent->EnvelopeFollowerAttackTime = EnvelopeFollowerAttackTime;
+			AudioComponent->EnvelopeFollowerReleaseTime = EnvelopeFollowerReleaseTime;
 
 			Initialize();
 
