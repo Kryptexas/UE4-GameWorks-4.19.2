@@ -2234,12 +2234,7 @@ bool ContentBrowserUtils::IsFavoriteFolder(const FString& FolderPath)
 
 void ContentBrowserUtils::AddFavoriteFolder(const FString& FolderPath, bool bFlushConfig /*= true*/)
 {
-	FContentBrowserSingleton::Get().FavoriteFolderPaths.Add(FolderPath);
-
-	if (bFlushConfig)
-	{
-		GConfig->Flush(false, GEditorPerProjectIni);
-	}
+	FContentBrowserSingleton::Get().FavoriteFolderPaths.AddUnique(FolderPath);
 }
 
 void ContentBrowserUtils::RemoveFavoriteFolder(const FString& FolderPath, bool bFlushConfig /*= true*/)

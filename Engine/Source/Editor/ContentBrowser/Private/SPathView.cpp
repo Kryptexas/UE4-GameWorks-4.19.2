@@ -1915,7 +1915,6 @@ void SFavoritePathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray
 
 void SFavoritePathView::FixupFavoritesFromExternalChange(const TArray<FMovedContentFolder>& MovedFolders)
 {
-
 	for (FMovedContentFolder MovedFolder : MovedFolders)
 	{
 		if (EnumHasAnyFlags(MovedFolder.Flags, EMovedContentFolderFlags::Favorite))
@@ -1934,7 +1933,6 @@ void SFavoritePathView::FixupFavoritesFromExternalChange(const TArray<FMovedCont
 			}
 		}
 	}
-	GConfig->Flush(false, GEditorPerProjectIni);
 	Populate();
 }
 
