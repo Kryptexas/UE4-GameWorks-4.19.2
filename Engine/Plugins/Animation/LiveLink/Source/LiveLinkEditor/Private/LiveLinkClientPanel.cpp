@@ -547,18 +547,14 @@ void SLiveLinkClientPanel::RetrieveFactorySourcePanel(FMenuBuilder& MenuBuilder,
 FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory* FactoryCDO, bool bMakeSource)
 {
 	TSharedPtr<ILiveLinkSource> Source = FactoryCDO->OnSourceCreationPanelClosed(bMakeSource);
-	// If we want a source we should get one ... if we dont we shouldn't. Make sure source factory does the right thing in both cases
-	if (bMakeSource)
+	
+	if (Source.IsValid())
 	{
-		check(Source.IsValid());
 		Client->AddSource(Source);
 
 		RefreshSourceData(true);
 	}
-	else
-	{
-		check(!Source.IsValid());
-	}
+	
 	FSlateApplication::Get().DismissAllMenus();
 	return FReply::Handled();
 }
