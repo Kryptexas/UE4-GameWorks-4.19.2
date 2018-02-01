@@ -244,11 +244,12 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual FExpressionInput* GetInput(int32 InputIndex);
 	virtual FName GetInputName(int32 InputIndex) const;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const;
+#if WITH_EDITOR
 	virtual bool CanUserDeleteExpression() const
 	{
 		return true;
 	};
-#if WITH_EDITOR
+
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
 
