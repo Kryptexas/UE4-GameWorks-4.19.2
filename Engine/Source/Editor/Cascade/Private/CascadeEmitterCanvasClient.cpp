@@ -1138,7 +1138,7 @@ void FCascadeEmitterCanvasClient::DrawHeaderBlock(int32 Index, int32 XPos, UPart
 						// Thumbnail size
 						FIntPoint ThumbnailSize(ScaledSize, ScaledSize);
 
-						const bool bNeedsResize = !Thumbnail.Texture || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize;
+						const bool bNeedsResize = !Thumbnail.Texture || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize || Thumbnail.Texture->GetSurfaceHeight() != ScaledSize;
 
 						if (bNeedsResize)
 						{
