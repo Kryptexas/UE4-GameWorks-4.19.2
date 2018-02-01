@@ -477,7 +477,7 @@ public:
 			RightSideWidget = NodeWidgets.ValueWidget.ToSharedRef();
 
 			const int32 LayerStateIndex = StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter ? StackParameterData->ParameterInfo.Index + 1 : StackParameterData->ParameterInfo.Index;
-			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(InArgs._InTree->FunctionParameter) && InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex];
+			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex];
 			LeftSideWidget->SetEnabled(InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex]);
 			RightSideWidget->SetEnabled(bEnabled);
 		}
@@ -987,6 +987,7 @@ void SMaterialLayersFunctionsInstanceTree::ShowSubParameters(TSharedPtr<FStackSo
 					ParamChildProperty->ParameterHandle = ParamChildProperty->ParameterNode->CreatePropertyHandle();
 					ParamChildProperty->ParameterInfo.Index = Parameter->ParameterInfo.Index;
 					ParamChildProperty->ParameterInfo.Association = Parameter->ParameterInfo.Association;
+					ParamChildProperty->Parameter = ChildProperty->Parameter;
 					ChildProperty->Children.Add(ParamChildProperty);
 				}
 			}
