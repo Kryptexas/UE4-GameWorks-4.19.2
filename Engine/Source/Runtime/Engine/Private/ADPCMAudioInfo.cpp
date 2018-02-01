@@ -2,6 +2,7 @@
 
 
 #include "ADPCMAudioInfo.h"
+#include "CoreMinimal.h"
 #include "Interfaces/IAudioFormat.h"
 #include "Sound/SoundWave.h"
 #include "Audio.h"
@@ -57,7 +58,7 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 			// Figure out the block index that the seek takes us to
 			uint32 SeekedSamples = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
 
-			SeekedSamples = FMath::Clamp(SeekedSamples, 0, TotalSamplesPerChannel - 1);
+			SeekedSamples = FMath::Clamp<uint32>(SeekedSamples, 0, TotalSamplesPerChannel - 1);
 
 			// Compute the block index that we're seeked to
 			CurrentCompressedBlockIndex = SeekedSamples / SamplesPerBlock;
