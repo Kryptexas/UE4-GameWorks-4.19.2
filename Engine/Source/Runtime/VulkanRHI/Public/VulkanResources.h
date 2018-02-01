@@ -411,6 +411,11 @@ public:
 		FVulkanTextureBase* Base = static_cast<FVulkanTextureBase*>(this);
 		return Base;
 	}
+
+	virtual void* GetNativeResource() const
+	{
+		return (void*)Surface.Image;
+	}
 };
 
 class FVulkanBackBuffer : public FVulkanTexture2D
@@ -451,6 +456,11 @@ public:
 	{
 		return (FVulkanTextureBase*)this;
 	}
+
+	virtual void* GetNativeResource() const
+	{
+		return (void*)Surface.Image;
+	}
 };
 
 class FVulkanTexture3D : public FRHITexture3D, public FVulkanTextureBase
@@ -479,6 +489,11 @@ public:
 	{
 		return (FVulkanTextureBase*)this;
 	}
+
+	virtual void* GetNativeResource() const
+	{
+		return (void*)Surface.Image;
+	}
 };
 
 class FVulkanTextureCube : public FRHITextureCube, public FVulkanTextureBase
@@ -505,6 +520,11 @@ public:
 	virtual void* GetTextureBaseRHI() override final
 	{
 		return (FVulkanTextureBase*)this;
+	}
+
+	virtual void* GetNativeResource() const
+	{
+		return (void*)Surface.Image;
 	}
 };
 
@@ -535,6 +555,11 @@ public:
 	virtual void* GetTextureBaseRHI() override final
 	{
 		return GetReferencedTexture()->GetTextureBaseRHI();
+	}
+
+	virtual void* GetNativeResource() const
+	{
+		return (void*)Surface.Image;
 	}
 
 	void SetReferencedTexture(FRHITexture* InTexture);
