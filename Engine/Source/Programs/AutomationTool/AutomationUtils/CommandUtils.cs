@@ -2825,7 +2825,6 @@ namespace AutomationTool
 			List<string> FinalFiles = new List<string>();
 			foreach (string Filename in Files.Select(x => x.FullName))
 			{
-				// Make sure the file isn't read-only
 				FileInfo TargetFileInfo = new FileInfo(Filename);
 
 				// Executable extensions
@@ -2839,6 +2838,8 @@ namespace AutomationTool
 				{
 					if (TargetFileInfo.FullName.EndsWith(Ext, StringComparison.InvariantCultureIgnoreCase))
 					{
+						// force file writable
+						TargetFileInfo.IsReadOnly = false;
 						IsExecutable = true;
 						break;
 					}
