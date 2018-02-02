@@ -8359,10 +8359,7 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 
 	// If dynamic resolution is not supported but is enabled, display an error message so
 	// does not even stand a chance to go through platform certification.
-	//
-	// Test GEngine->GetDynamicResolutionState()->GetResolutionFractionApproximation() > 0 instead of GEngine->GetDynamicResolutionState()->IsEnabled()
-	// to have the error message displayed with r.Test.DynamicRes.EnableOverride
-	if (!GEngine->GetDynamicResolutionState()->IsSupported() && GEngine->GetDynamicResolutionState()->GetResolutionFractionApproximation() > 0)
+	if (!GEngine->GetDynamicResolutionState()->IsSupported() && GEngine->GetDynamicResolutionStatus() != EDynamicResolutionStatus::Disabled)
 	{
 		SmallTextItem.SetColor(FLinearColor::Red);
 		SmallTextItem.Text = LOCTEXT("UNSUPPORTEDDYNRES", "DYNAMIC RESOLUTION IS NOT SUPPORTED ON THIS PLATFORM");
@@ -9106,17 +9103,52 @@ void UEngine::PauseDynamicResolution()
 }
 
 #if !UE_SERVER
-void UEngine::EnableDynamicResolutionStateIfPossible()
+bool UEngine::ShouldEnableDynamicResolutionState() const
 {
+	// If dynamic resolution is paused, the state will have to be disabled in any cases.
+	if (bIsDynamicResolutionPaused)
+	{
+		return false;
+	}
+
 	int32 OperationMode = CVarDynamicResOperationMode.GetValueOnGameThread();
 	
 	// Whether dynamic resolution is allowed to be enabled.
 	bool bEnable = (OperationMode == 2) || (OperationMode == 1 && bDynamicResolutionEnableUserSetting);
 
-	// Enable dynamic resolution if allowed, not paused, and is not already enabled.
-	if (bEnable && !bIsDynamicResolutionPaused && !DynamicResolutionState->IsEnabled())
+	#if WITH_EDITOR
+	if (GIsEditor && bEnable)
 	{
-		DynamicResolutionState->SetEnabled(true);
+		int32 bPIEContextCount = 0;
+		for (auto It = WorldList.CreateConstIterator(); It; ++It)
+		{
+			const FWorldContext &Context = *It;
+			if (Context.OwningGameInstance &&
+				Context.World() &&
+				Context.WorldType == EWorldType::PIE &&
+				Context.GameViewport &&
+				!Context.GameViewport->IsSimulateInEditorViewport() &&
+				Context.World()->IsCameraMoveable())
+			{
+				bPIEContextCount++;
+			}
+		}
+
+		bEnable = (bPIEContextCount == 1);
+	}
+	#endif
+
+	// Enable dynamic resolution if allowed, not paused.
+	return bEnable;
+}
+
+void UEngine::UpdateDynamicResolutionStatus()
+{
+	bool bShouldEnabledDynamicResolutionState = ShouldEnableDynamicResolutionState();
+	bool bIsEnabled = DynamicResolutionState->IsEnabled();
+	if (bShouldEnabledDynamicResolutionState != bIsEnabled)
+	{
+		DynamicResolutionState->SetEnabled(bShouldEnabledDynamicResolutionState);
 	}
 }
 #endif
@@ -9162,7 +9194,7 @@ void UEngine::EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event)
 		}
 
 		// Enable dynamic resolution state if has been changed or if the settings changed.
-		EnableDynamicResolutionStateIfPossible();
+		UpdateDynamicResolutionStatus();
 
 		DynamicResolutionState->ProcessEvent(EDynamicResolutionStateEvent::BeginFrame);
 	}
