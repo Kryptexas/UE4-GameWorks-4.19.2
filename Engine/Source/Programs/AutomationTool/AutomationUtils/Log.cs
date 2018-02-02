@@ -34,6 +34,7 @@ namespace AutomationTool
                 bLogTimestamps: CommandUtils.ParseParam(CommandLine, "-Timestamps"),
 				InLogLevel: (UnrealBuildTool.LogEventType)Enum.Parse(typeof(UnrealBuildTool.LogEventType), CommandUtils.ParseParamValue(CommandLine, "-Verbose=", "Log")),
                 bLogSeverity: true,
+				bLogProgramNameWithSeverity: false,
                 bLogSources: true,
 				bLogSourcesToConsole: false,
                 bColorConsoleOutput: true,
