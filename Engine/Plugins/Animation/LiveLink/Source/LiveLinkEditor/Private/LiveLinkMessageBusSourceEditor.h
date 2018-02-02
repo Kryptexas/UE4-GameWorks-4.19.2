@@ -45,6 +45,8 @@ class SLiveLinkMessageBusSourceEditor : public SCompoundWidget
 
 	FProviderPollResultPtr GetSelectedSource() const { return SelectedResult; }
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+
 private:
 
 	void HandlePongMessage(const FLiveLinkPongMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
@@ -62,4 +64,7 @@ private:
 	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	FGuid CurrentPollRequest;
+
+	// Time since our UI was last ticked, allow us to refresh if we haven't been onscreen for a while
+	double LastTickTime;
 };

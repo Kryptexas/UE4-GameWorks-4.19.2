@@ -65,13 +65,10 @@ SLiveLinkMessageBusSourceEditor::~SLiveLinkMessageBusSourceEditor()
 
 void SLiveLinkMessageBusSourceEditor::Construct(const FArguments& Args)
 {
+	LastTickTime = 0.0;
+
 	MessageEndpoint =	FMessageEndpoint::Builder(TEXT("LiveLinkMessageBusSource"))
 						.Handling<FLiveLinkPongMessage>(this, &SLiveLinkMessageBusSourceEditor::HandlePongMessage);
-
-	CurrentPollRequest = FGuid::NewGuid();
-
-	//Simple each for connections till UI comes along
-	MessageEndpoint->Publish(new FLiveLinkPingMessage(CurrentPollRequest));
 
 	ChildSlot
 	[
@@ -96,6 +93,21 @@ void SLiveLinkMessageBusSourceEditor::Construct(const FArguments& Args)
 			)
 		]
 	];
+}
+
+void SLiveLinkMessageBusSourceEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	const double CurrentTickTime = FPlatformTime::Seconds();
+	if (CurrentTickTime - LastTickTime > 1.f)
+	{
+		PollData.Reset();
+		ListView->RequestListRefresh();
+
+		CurrentPollRequest = FGuid::NewGuid();
+
+		MessageEndpoint->Publish(new FLiveLinkPingMessage(CurrentPollRequest));
+	}
+	LastTickTime = CurrentTickTime;
 }
 
 TSharedRef<ITableRow> SLiveLinkMessageBusSourceEditor::MakeSourceListViewWidget(FProviderPollResultPtr PollResult, const TSharedRef<STableViewBase>& OwnerTable) const
