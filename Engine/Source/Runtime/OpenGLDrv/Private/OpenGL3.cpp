@@ -38,6 +38,15 @@ void FOpenGL3::ProcessQueryGLInt()
 	{
 		GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
 		GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
+		GET_GL_INT(GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS, 0, MaxHullTextureImageUnits);
+		GET_GL_INT(GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS, 0, MaxDomainTextureImageUnits);
+	}
+	else
+	{
+		MaxHullUniformComponents = 0;
+		MaxDomainUniformComponents = 0;
+		MaxHullTextureImageUnits = 0;
+		MaxDomainTextureImageUnits = 0;
 	}
 
 #if !defined(__GNUC__) && !defined(__clang__)
@@ -48,8 +57,6 @@ void FOpenGL3::ProcessQueryGLInt()
 	LOG_AND_GET_GL_QUERY_INT(GL_TIMESTAMP, 0, TimestampQueryBits);
 	
 #undef LOG_AND_GET_GL_QUERY_INT
-
-    MaxHullTextureImageUnits = 0;
 }
 
 void FOpenGL3::ProcessExtensions( const FString& ExtensionsString )
