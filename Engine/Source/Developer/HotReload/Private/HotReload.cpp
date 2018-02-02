@@ -1637,11 +1637,11 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 		{
 			if( !Module.ModuleFileSuffix.IsEmpty() )
 			{
-				ModuleArg += FString::Printf( TEXT( " -ModuleWithSuffix %s %s" ), *Module.ModuleName, *Module.ModuleFileSuffix );
+				ModuleArg += FString::Printf( TEXT( " -ModuleWithSuffix=%s,%s" ), *Module.ModuleName, *Module.ModuleFileSuffix );
 			}
 			else
 			{
-				ModuleArg += FString::Printf( TEXT( " -Module %s" ), *Module.ModuleName );
+				ModuleArg += FString::Printf( TEXT( " -Module=%s" ), *Module.ModuleName );
 			}
 			Ar.Logf( TEXT( "  %s" ), *Module.ModuleName );
 

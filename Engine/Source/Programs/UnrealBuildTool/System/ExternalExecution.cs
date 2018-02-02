@@ -1100,7 +1100,7 @@ namespace UnrealBuildTool
 						{
 							if (EnabledPlugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
 							{
-								UBTArguments.Append(" -PLUGIN \"" + EnabledPlugin.Info.File + "\"");
+								UBTArguments.Append(" -PLUGIN=\"" + EnabledPlugin.Info.File + "\"");
 							}
 						}						
 

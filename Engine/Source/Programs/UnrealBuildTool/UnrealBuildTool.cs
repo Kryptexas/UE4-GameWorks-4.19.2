@@ -780,7 +780,7 @@ namespace UnrealBuildTool
 						{
 							//ConfigName = Arg;
 						}
-						else if (LowercaseArg == "-modulewithsuffix")
+						else if (LowercaseArg.StartsWith("-modulewithsuffix="))
 						{
 							bSpecificModulesOnly = true;
 							continue;
