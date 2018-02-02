@@ -74,6 +74,8 @@ MCallbackIdArray myCallbackIds;
 
 MSpace::Space G_TransformSpace = MSpace::kTransform;
 
+bool bUEInitialized = false;
+
 // Execute the python command to refresh our UI
 void RefreshUI()
 {
@@ -426,17 +428,12 @@ public:
 			MFnCamera C(CameraPath);
 
 			MPoint EyeLocation = C.eyePoint(MSpace::kWorld);
-			MGlobal::displayInfo(MString("Test Eye: ") + EyeLocation.x + MString(",") + EyeLocation.y + MString(",") + EyeLocation.z);
-
-			MGlobal::displayInfo(MString("Test2: ") + C.horizontalFieldOfView() + MString(",") + C.verticalFieldOfView());
 
 			MMatrix CameraTransformMatrix;
 			SetMatrixRow(CameraTransformMatrix[0], C.rightDirection(MSpace::kWorld));
 			SetMatrixRow(CameraTransformMatrix[1], C.viewDirection(MSpace::kWorld));
 			SetMatrixRow(CameraTransformMatrix[2], C.upDirection(MSpace::kWorld));
 			SetMatrixRow(CameraTransformMatrix[3], EyeLocation);
-
-			OutputRotation(CameraTransformMatrix);
 
 			TArray<FTransform> CameraTransform = { BuildUETransformFromMayaTransform(CameraTransformMatrix) };
 			// Convert Maya Camera orientation to Unreal
@@ -477,9 +474,6 @@ public:
 				CurrentActiveCameraDag = CameraDag;
 			}
 		}
-
-
-		MGlobal::displayInfo(MString("Active View Camera: ") + CurrentActiveCameraDag.fullPathName());
 
 		StreamCamera(CurrentActiveCameraDag, StreamTime, FrameNumber);
 	}
@@ -924,6 +918,8 @@ void OnInterval(float elapsedTime, float lastTime, void* clientData)
 	RefreshViewportCallbacks();
 
 	OnConnectionStatusChanged();
+
+	FTicker::GetCoreTicker().Tick(elapsedTime);
 }
 
 /**
@@ -935,36 +931,33 @@ void OnInterval(float elapsedTime, float lastTime, void* clientData)
 */
 DLLEXPORT MStatus initializePlugin(MObject MayaPluginObject)
 {
-	MStringArray names;
-
-	MEventMessage::getEventNames(names);
-
-	for (uint i = 0; i < names.length(); ++i)
+	if(!bUEInitialized)
 	{
-		MGlobal::displayInfo(names[i]);
-	}
+		GEngineLoop.PreInit(TEXT("MayaLiveLinkPlugin -Messaging"));
+		ProcessNewlyLoadedUObjects();
+		// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
+		FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
-	GEngineLoop.PreInit(TEXT("MayaLiveLinkPlugin -Messaging"));
-	ProcessNewlyLoadedUObjects();
-	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
-	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
+		FModuleManager::Get().LoadModule(TEXT("UdpMessaging"));
+
+		GLog->TearDown(); //clean up existing output devices
+		GLog->AddOutputDevice(new FMayaOutputDevice()); //Add Maya output device
+
+		bUEInitialized = true; // Dont redo this part if someone unloads and reloads our plugin
+	}
 
 	// Tell Maya about our plugin
 	MFnPlugin MayaPlugin(
 		MayaPluginObject,
-		"MayaLiveLinkPlugin",	// @todo: Put the vendor name here.  It shows up in the "Info" dialog in Maya's Plugin Manager
-		"v1.0");			// @todo: Put version string for your plugin here
-
-	// ... do stuff here ...
-
-	FModuleManager::Get().LoadModule(TEXT("UdpMessaging"));
-	//FModuleManager::Get().LoadModule(TEXT("LiveLink"));
-
-	GLog->TearDown(); //clean up existing output devices
-	GLog->AddOutputDevice(new FMayaOutputDevice()); //Add Maya output device
+		"MayaLiveLinkPlugin",
+		"v1.0");
 
 	LiveLinkProvider = ILiveLinkProvider::CreateLiveLinkProvider(TEXT("Maya Live Link"));
 	ConnectionStatusChangedHandle = LiveLinkProvider->RegisterConnStatusChangedHandle(FLiveLinkProviderConnectionStatusChanged::FDelegate::CreateStatic(&OnConnectionStatusChanged));
+
+	// We do not tick the core engine but we need to tick the ticker to make sure the message bus endpoint in LiveLinkProvider is
+	// up to date
+	FTicker::GetCoreTicker().Tick(1.f);
 
 	LiveLinkStreamManager = MakeShareable(new FLiveLinkStreamedSubjectManager());
 
@@ -986,15 +979,13 @@ DLLEXPORT MStatus initializePlugin(MObject MayaPluginObject)
 	MCallbackId timerCallback = MTimerMessage::addTimerCallback(5.f, (MMessage::MElapsedTimeFunction)OnInterval);
 	myCallbackIds.append(timerCallback);
 
-	UE_LOG(LogBlankMayaPlugin, Display, TEXT("MayaLiveLinkPlugin initialized"));
-
 	MayaPlugin.registerCommand(LiveLinkSubjectsCommandName, LiveLinkSubjectsCommand::creator);
 	MayaPlugin.registerCommand(LiveLinkAddSubjectCommandName, LiveLinkAddSubjectCommand::creator);
 	MayaPlugin.registerCommand(LiveLinkRemoveSubjectCommandName, LiveLinkRemoveSubjectCommand::creator);
 	MayaPlugin.registerCommand(LiveLinkConnectionStatusCommandName, LiveLinkConnectionStatusCommand::creator);
 
 	// Print to Maya's output window, too!
-	MGlobal::displayInfo(MString("MayaLiveLinkPlugin initialized"));
+	UE_LOG(LogBlankMayaPlugin, Display, TEXT("MayaLiveLinkPlugin initialized"));
 
 	RefreshViewportCallbacks();
 
@@ -1033,6 +1024,9 @@ DLLEXPORT MStatus uninitializePlugin(MObject MayaPluginObject)
 		LiveLinkProvider->UnregisterConnStatusChangedHandle(ConnectionStatusChangedHandle);
 		ConnectionStatusChangedHandle.Reset();
 	}
+
+	FTicker::GetCoreTicker().Tick(1.f);
+
 	LiveLinkProvider = nullptr;
 
 	const MStatus MayaStatusResult = MS::kSuccess;

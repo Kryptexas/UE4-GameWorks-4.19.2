@@ -198,6 +198,14 @@ public:
 		}
 	}
 
+	virtual ~FLiveLinkProvider()
+	{
+		if (MessageEndpoint.IsValid())
+		{
+			FMessageEndpoint::SafeRelease(MessageEndpoint);
+		}
+	}
+
 	virtual void UpdateSubject(const FName& SubjectName, const TArray<FName>& BoneNames, const TArray<int32>& BoneParents)
 	{
 		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
@@ -248,10 +256,6 @@ public:
 	virtual void UnregisterConnStatusChangedHandle(FDelegateHandle Handle)
 	{
 		OnConnectionStatusChanged.Remove(Handle);
-	}
-
-	virtual ~FLiveLinkProvider()
-	{
 	}
 };
 
