@@ -246,6 +246,15 @@ void FLocalVertexFactory::InitRHI()
 	check(IsValidRef(GetDeclaration()));
 }
 
+void FLocalVertexFactory::ReleaseRHI()
+{
+	Data.PositionComponentSRV.SafeRelease();
+	Data.TangentsSRV.SafeRelease();
+	Data.TextureCoordinatesSRV.SafeRelease();
+	Data.ColorComponentsSRV.SafeRelease();
+	FVertexFactory::ReleaseRHI();
+}
+
 FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	if (ShaderFrequency == SF_Vertex)

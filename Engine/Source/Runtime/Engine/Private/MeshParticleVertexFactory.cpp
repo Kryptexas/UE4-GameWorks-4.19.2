@@ -106,6 +106,14 @@ private:
 	FShaderResourceParameter PrevTransformBuffer;
 };
 
+void FMeshParticleVertexFactory::ReleaseRHI()
+{
+	Data.PositionComponentSRV.SafeRelease();
+	Data.TangentsSRV.SafeRelease();
+	Data.TextureCoordinatesSRV.SafeRelease();
+	Data.ColorComponentsSRV.SafeRelease();
+	FParticleVertexFactoryBase::ReleaseRHI();
+}
 
 void FMeshParticleVertexFactory::InitRHI()
 {

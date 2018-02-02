@@ -59,6 +59,14 @@ private:
 
 };
 
+void FNiagaraMeshVertexFactory::ReleaseRHI()
+{
+	Data.PositionComponentSRV.SafeRelease();
+	Data.TangentsSRV.SafeRelease();
+	Data.TextureCoordinatesSRV.SafeRelease();
+	Data.ColorComponentsSRV.SafeRelease();
+	FNiagaraVertexFactoryBase::ReleaseRHI();
+}
 
 void FNiagaraMeshVertexFactory::InitRHI()
 {

@@ -431,6 +431,16 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& 
 	}
 }
 
+template <bool bExtraBoneInfluencesT>
+void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ReleaseRHI()
+{
+	Data.PositionComponentSRV.SafeRelease();
+	Data.TangentsSRV.SafeRelease();
+	Data.TextureCoordinatesSRV.SafeRelease();
+	Data.ColorComponentsSRV.SafeRelease();
+	FGPUBaseSkinVertexFactory::ReleaseRHI();
+}
+
 /**
 * Creates declarations for each of the vertex stream components and
 * initializes the device resource
@@ -742,6 +752,16 @@ void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::InitRHI()
 }
 
 template <bool bExtraBoneInfluencesT>
+void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ReleaseRHI()
+{
+	MorphData.PositionComponentSRV.SafeRelease();
+	MorphData.TangentsSRV.SafeRelease();
+	MorphData.TextureCoordinatesSRV.SafeRelease();
+	MorphData.ColorComponentsSRV.SafeRelease();
+	TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ReleaseRHI();
+}
+
+template <bool bExtraBoneInfluencesT>
 FVertexFactoryShaderParameters* TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	return ShaderFrequency == SF_Vertex ? new FGPUSkinVertexFactoryShaderParameters() : NULL;
@@ -1018,6 +1038,16 @@ void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::InitRHI()
 
 	// create the actual device decls
 	FVertexFactory::InitDeclaration(Elements);
+}
+
+template <bool bExtraBoneInfluencesT>
+void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ReleaseRHI()
+{
+	MeshMappingData.PositionComponentSRV.SafeRelease();
+	MeshMappingData.TangentsSRV.SafeRelease();
+	MeshMappingData.TextureCoordinatesSRV.SafeRelease();
+	MeshMappingData.ColorComponentsSRV.SafeRelease();
+	TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ReleaseRHI();
 }
 
 template <bool bExtraBoneInfluencesT>

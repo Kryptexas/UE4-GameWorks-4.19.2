@@ -435,6 +435,7 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
 	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
@@ -583,6 +584,7 @@ public:
 	* initializes the device resource
 	*/
 	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
@@ -891,6 +893,7 @@ public:
 	* initializes the device resource
 	*/
 	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
