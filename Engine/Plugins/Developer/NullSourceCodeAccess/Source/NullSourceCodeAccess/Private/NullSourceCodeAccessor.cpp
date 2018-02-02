@@ -2,6 +2,7 @@
 
 #include "NullSourceCodeAccessor.h"
 #include "Misc/Paths.h"
+#include "PlatformProcess.h"
 
 #define LOCTEXT_NAMESPACE "NullSourceCodeAccessor"
 bool FNullSourceCodeAccessor::CanAccessSourceCode() const
@@ -34,6 +35,9 @@ bool FNullSourceCodeAccessor::OpenSolution()
 
 bool FNullSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
 {
+	FString Path = FPaths::GetPath(InSolutionPath);
+	FPlatformProcess::ExploreFolder(*Path);
+
 	return true;
 }
 
