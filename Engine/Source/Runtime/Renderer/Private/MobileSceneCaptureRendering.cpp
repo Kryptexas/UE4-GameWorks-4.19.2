@@ -139,6 +139,7 @@ IMPLEMENT_MOBILE_SCENE_CAPTURECOPY(SCS_SceneColorHDR);
 IMPLEMENT_MOBILE_SCENE_CAPTURECOPY(SCS_SceneColorHDRNoAlpha);
 IMPLEMENT_MOBILE_SCENE_CAPTURECOPY(SCS_SceneColorSceneDepth);
 IMPLEMENT_MOBILE_SCENE_CAPTURECOPY(SCS_SceneDepth);
+IMPLEMENT_MOBILE_SCENE_CAPTURECOPY(SCS_DeviceDepth);
 IMPLEMENT_SHADER_TYPE(template<>, FMobileSceneCaptureCopyVS<false>, TEXT("/Engine/Private/MobileSceneCapture.usf"), TEXT("MainCopyVS"), SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<>, FMobileSceneCaptureCopyVS<true>, TEXT("/Engine/Private/MobileSceneCapture.usf"), TEXT("MainCopyVS"), SF_Vertex);
  
@@ -174,6 +175,8 @@ static FShader* SetCaptureToTargetShaders(FRHICommandListImmediate& RHICmdList, 
 			return SetCaptureToTargetShaders<bDemosaic, SCS_SceneColorSceneDepth>(RHICmdList, GraphicsPSOInit, View, SourceTexSize, SourceTextureRHI);
 		case SCS_SceneDepth:
 			return SetCaptureToTargetShaders<bDemosaic, SCS_SceneDepth>(RHICmdList, GraphicsPSOInit, View, SourceTexSize, SourceTextureRHI);
+		case SCS_DeviceDepth:
+			return SetCaptureToTargetShaders<bDemosaic, SCS_DeviceDepth>(RHICmdList, GraphicsPSOInit, View, SourceTexSize, SourceTextureRHI);
 		default:
 			checkNoEntry();
 			return nullptr;

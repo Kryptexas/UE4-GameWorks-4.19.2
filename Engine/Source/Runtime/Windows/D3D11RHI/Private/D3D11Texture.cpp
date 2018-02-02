@@ -14,6 +14,8 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#include "HAL/LowLevelMemTracker.h"
+
 int64 FD3D11GlobalStats::GDedicatedVideoMemory = 0;
 int64 FD3D11GlobalStats::GDedicatedSystemMemory = 0;
 int64 FD3D11GlobalStats::GSharedSystemMemory = 0;
@@ -125,6 +127,13 @@ void D3D11TextureAllocated( TD3D11Texture2D<BaseResourceType>& Texture )
 
 			Texture.SetMemorySize( TextureSize );
 			UpdateD3D11TextureStats(Desc.BindFlags, Desc.MiscFlags, TextureSize, false);
+
+#if PLATFORM_WINDOWS
+			// On Windows there is no way to hook into the low level d3d allocations and frees.
+			// This means that we must manually add the tracking here.
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, Texture.GetResource(), Texture.GetMemorySize(), ELLMTag::GraphicsPlatform));
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Texture.GetResource(), Texture.GetMemorySize(), ELLMTag::Textures));
+#endif
 		}
 	}
 }
@@ -153,6 +162,13 @@ void D3D11TextureDeleted( TD3D11Texture2D<BaseResourceType>& Texture )
 		}
 
 		UpdateD3D11TextureStats(Desc.BindFlags, Desc.MiscFlags, -TextureSize, false);
+
+#if PLATFORM_WINDOWS
+		// On Windows there is no way to hook into the low level d3d allocations and frees.
+		// This means that we must manually add the tracking here.
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Platform, Texture.GetResource()));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Texture.GetResource()));
+#endif
 	}
 }
 
@@ -176,6 +192,13 @@ void D3D11TextureAllocated( FD3D11Texture3D& Texture )
 		Texture.SetMemorySize( TextureSize );
 
 		UpdateD3D11TextureStats(Desc.BindFlags, Desc.MiscFlags, TextureSize, true);
+
+#if PLATFORM_WINDOWS
+		// On Windows there is no way to hook into the low level d3d allocations and frees.
+		// This means that we must manually add the tracking here.
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, Texture.GetResource(), Texture.GetMemorySize(), ELLMTag::GraphicsPlatform));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Texture.GetResource(), Texture.GetMemorySize(), ELLMTag::Textures));
+#endif
 	}
 }
 
@@ -192,6 +215,13 @@ void D3D11TextureDeleted( FD3D11Texture3D& Texture )
 		int64 TextureSize = CalcTextureSize3D( Desc.Width, Desc.Height, Desc.Depth, Texture.GetFormat(), Desc.MipLevels );
 
 		UpdateD3D11TextureStats(Desc.BindFlags, Desc.MiscFlags, -TextureSize, true);
+
+#if PLATFORM_WINDOWS
+		// On Windows there is no way to hook into the low level d3d allocations and frees.
+		// This means that we must manually add the tracking here.
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Platform, Texture.GetResource()));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Texture.GetResource()));
+#endif
 	}
 }
 
@@ -238,8 +268,8 @@ uint64 FD3D11DynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
 void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
 	OutStats.DedicatedVideoMemory = FD3D11GlobalStats::GDedicatedVideoMemory;
-	OutStats.DedicatedSystemMemory = FD3D11GlobalStats::GDedicatedSystemMemory;
-	OutStats.SharedSystemMemory = FD3D11GlobalStats::GSharedSystemMemory;
+    OutStats.DedicatedSystemMemory = FD3D11GlobalStats::GDedicatedSystemMemory;
+    OutStats.SharedSystemMemory = FD3D11GlobalStats::GSharedSystemMemory;
 	OutStats.TotalGraphicsMemory = FD3D11GlobalStats::GTotalGraphicsMemory ? FD3D11GlobalStats::GTotalGraphicsMemory : -1;
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
@@ -1566,12 +1596,12 @@ void FD3D11DynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Textur
 
 void FD3D11DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion2D& UpdateRegion,uint32 SourcePitch,const uint8* SourceData)
 {
-	FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
+    FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
 
-	D3D11_BOX DestBox =
+    D3D11_BOX DestBox =
 	{
 		UpdateRegion.DestX,                      UpdateRegion.DestY,                       0,
-		UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, 1
+        UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, 1
 	};
 
 	check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);

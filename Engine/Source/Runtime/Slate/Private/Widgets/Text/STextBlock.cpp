@@ -154,13 +154,10 @@ void STextBlock::SetHighlightText(TAttribute<FText> InText)
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockOnPaint);
-
-	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "STextBlock");
+	//SCOPED_NAMED_EVENT_TEXT("STextBlock", FColor::Orange);
 
 	// OnPaint will also update the text layout cache if required
 	LayerId = TextLayoutCache->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
-
-	//FPlatformMisc::EndNamedEvent();
 
 	return LayerId;
 }

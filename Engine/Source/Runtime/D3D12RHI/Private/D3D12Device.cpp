@@ -152,7 +152,7 @@ void FD3D12Device::SetupAfterDeviceCreation()
 
 	// This value can be tuned on a per app basis. I.e. most apps will never run into descriptor heap pressure so
 	// can make this global heap smaller
-	uint32 NumGlobalViewDesc = GLOBAL_VIEW_HEAP_SIZE;
+	uint32 NumGlobalViewDesc = GGlobalViewHeapSize;
 
 	const D3D12_RESOURCE_BINDING_TIER Tier = GetParentAdapter()->GetResourceBindingTier();
 	uint32 MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_1;

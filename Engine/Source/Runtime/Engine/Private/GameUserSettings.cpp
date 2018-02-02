@@ -192,9 +192,9 @@ bool UGameUserSettings::IsVSyncDirty() const
 bool UGameUserSettings::IsDynamicResolutionDirty() const
 {
 	bool bIsDirty = false;
-	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame && GEngine->GetDynamicResolutionState())
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 	{
-		bIsDirty = (bUseDynamicResolution != GEngine->GetDynamicResolutionState()->IsEnabled());
+		bIsDirty = (bUseDynamicResolution != GEngine->GetDynamicResolutionUserSetting());
 	}
 	return bIsDirty;
 }
@@ -394,9 +394,9 @@ void UGameUserSettings::ValidateSettings()
 			static const auto CVarVSync = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
 			SetVSyncEnabled(CVarVSync->GetValueOnGameThread() != 0 );
 
-			if (GEngine && GEngine->GetDynamicResolutionState())
+			if (GEngine)
 			{
-				SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionState()->IsEnabled());
+				SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionUserSetting());
 			}
 
 			IFileManager::Get().Delete( *GGameUserSettingsIni );
@@ -453,10 +453,7 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 		}
 	}
 
-	if (GEngine->GetDynamicResolutionState())
-	{
-		GEngine->GetDynamicResolutionState()->SetEnabled(IsDynamicResolutionEnabled());
-	}
+	GEngine->SetDynamicResolutionUserSetting(IsDynamicResolutionEnabled());
 
 	if (!IsRunningDedicatedServer())
 	{
@@ -669,14 +666,7 @@ void UGameUserSettings::ResetToCurrentSettings()
 		SetVSyncEnabled(CVarVSync->GetValueOnGameThread() != 0 );
 
 		// Set the current dynamic resolution state
-		if (GEngine && GEngine->GetDynamicResolutionState())
-		{
-			SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionState()->IsEnabled());
-		}
-		else
-		{
-			SetDynamicResolutionEnabled(false);
-		}
+		SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionUserSetting());
 
 		// Reset to confirmed settings
 		FullscreenMode = LastConfirmedFullscreenMode;

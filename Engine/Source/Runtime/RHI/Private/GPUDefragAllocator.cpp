@@ -357,7 +357,7 @@ void FGPUDefragAllocator::Free(void* Pointer)
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
 	if (Pointer)
 	{
-		FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Pointer, 0);
+		FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Pointer);
 	}
 #endif
 

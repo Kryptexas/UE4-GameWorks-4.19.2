@@ -71,7 +71,7 @@ FModuleManager& FModuleManager::Get()
 			//temp workaround for IPlatformFile being used for FPaths::DirectoryExists before main() sets up the commandline.
 #if PLATFORM_DESKTOP
 		// Ensure that dependency dlls can be found in restricted sub directories
-			const TCHAR* RestrictedFolderNames[] = { TEXT("NoRedist"), TEXT("NotForLicensees"), TEXT("CarefullyRedist") };
+			const TCHAR* RestrictedFolderNames[] = { TEXT("NoRedist"), TEXT("NotForLicensees"), TEXT("CarefullyRedist"), TEXT("Switch") };
 			FString ModuleDir = FPlatformProcess::GetModulesDirectory();
 			for (const TCHAR* RestrictedFolderName : RestrictedFolderNames)
 			{

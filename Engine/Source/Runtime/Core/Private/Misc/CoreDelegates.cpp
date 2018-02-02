@@ -63,6 +63,8 @@ FSimpleMulticastDelegate FCoreDelegates::OnPreExit;
 FSimpleMulticastDelegate FCoreDelegates::ColorPickerChanged;
 FSimpleMulticastDelegate FCoreDelegates::OnBeginFrame;
 FSimpleMulticastDelegate FCoreDelegates::OnEndFrame;
+FSimpleMulticastDelegate FCoreDelegates::OnBeginFrameRT;
+FSimpleMulticastDelegate FCoreDelegates::OnEndFrameRT;
 FCoreDelegates::FOnModalMessageBox FCoreDelegates::ModalErrorMessage;
 FCoreDelegates::FOnInviteAccepted FCoreDelegates::OnInviteAccepted;
 FCoreDelegates::FWorldOriginOffset FCoreDelegates::PreWorldOriginOffset;

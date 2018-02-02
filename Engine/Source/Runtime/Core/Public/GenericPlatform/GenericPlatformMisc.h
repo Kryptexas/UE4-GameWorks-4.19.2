@@ -1060,6 +1060,14 @@ public:
 	}
 
 #if !UE_BUILD_SHIPPING
+	/** 
+	 * Returns any platform specific warning messages we want printed on screen
+	 */
+	static bool GetPlatformScreenWarnings(TArray<FText>& PlatformScreenWarnings)
+	{
+		return false;
+	}
+
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */
 	static bool bShouldPromptForRemoteDebugging;

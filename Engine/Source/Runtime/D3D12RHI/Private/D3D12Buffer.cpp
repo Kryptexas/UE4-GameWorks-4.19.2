@@ -248,6 +248,7 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 				FRHICommandRenameUploadBuffer<BufferType>* Command = new (RHICmdList->AllocCommand<FRHICommandRenameUploadBuffer<BufferType>>()) FRHICommandRenameUploadBuffer<BufferType>(CurrentBuffer, Device);
 
 				Data = Adapter.GetUploadHeapAllocator().AllocUploadResource(Buffer->GetSize(), Buffer->BufferAlignment, Command->NewResource);
+				RHICmdList->RHIThreadFence(true);
 			}
 			else
 			{

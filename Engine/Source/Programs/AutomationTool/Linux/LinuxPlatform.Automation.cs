@@ -324,9 +324,7 @@ chmod +x {0}
 			return base.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);
 		}
 	}
-
-
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { };
 	}

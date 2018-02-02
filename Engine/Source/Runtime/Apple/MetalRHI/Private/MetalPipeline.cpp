@@ -844,7 +844,7 @@ static FMetalShaderPipeline* GetMTLRenderPipeline(bool const bSync, FMetalGraphi
 	if (Desc == nil)
 	{
 		// Now we are a writer as we want to create & add the new pipeline
-		Lock.RaiseLockToWrite();
+		Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 		
 		// Retest to ensure no-one beat us here!
 		Desc = Pipelines.FindRef(Key);

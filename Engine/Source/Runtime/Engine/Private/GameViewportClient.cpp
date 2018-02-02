@@ -57,6 +57,7 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "Framework/Application/HardwareCursor.h"
 #include "DynamicResolutionState.h"
+#include "CsvProfiler.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -1304,6 +1305,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	{
 		GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginDynamicResolutionRendering);
 		GEngine->GetDynamicResolutionState()->SetupMainViewFamily(ViewFamily);
+
+#if CSV_PROFILER
+		float ResolutionFraction = GEngine->GetDynamicResolutionState()->GetResolutionFractionApproximation();
+		if ( ResolutionFraction >= 0.0f )
+		{
+			CSV_CUSTOM_STAT_GLOBAL(DynamicResolutionFraction, ResolutionFraction, ECsvCustomStatOp::Set);
+		}
+#endif
 	}
 
 	// If a screen percentage interface was not set by dynamic resolution, then create one matching legacy behavior.

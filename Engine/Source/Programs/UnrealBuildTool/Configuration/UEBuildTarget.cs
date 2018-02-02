@@ -4043,7 +4043,7 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.bSupportEditAndContinue = Rules.bSupportEditAndContinue;
 			GlobalLinkEnvironment.bCreateMapFile = Rules.bCreateMapFile;
 			GlobalLinkEnvironment.bHasExports = Rules.bHasExports;
-			GlobalLinkEnvironment.bAllowALSR = (GlobalCompileEnvironment.Configuration != CppConfiguration.Shipping || Rules.bAllowASLRInShipping == false);
+			GlobalLinkEnvironment.bAllowASLR = (GlobalCompileEnvironment.Configuration == CppConfiguration.Shipping && Rules.bAllowASLRInShipping);
 			GlobalLinkEnvironment.bUsePDBFiles = Rules.bUsePDBFiles;
 			GlobalLinkEnvironment.BundleDirectory = BuildPlatform.GetBundleDirectory(Rules, OutputPaths);
 			GlobalLinkEnvironment.BundleVersion = Rules.BundleVersion;

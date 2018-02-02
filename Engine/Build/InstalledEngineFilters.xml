@@ -430,6 +430,7 @@
 	<Property Name="CopySwitchFilter">
 		<!-- Build Files -->
 		Engine/Build/Switch/...
+		Engine/Build/BatchFiles/Switch/AuthoringToolHelper.bat
 	</Property>
 	
 	<Property Name="CopySwitchExceptions">

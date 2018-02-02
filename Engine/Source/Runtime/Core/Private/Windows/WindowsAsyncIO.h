@@ -300,6 +300,7 @@ public:
 		FScopeLock Lock(&LiveRequestsCritical);
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
 #endif
+		CloseHandle(FileHandle);
 	}
 	void RemoveRequest(FWindowsReadRequest* Req)
 	{

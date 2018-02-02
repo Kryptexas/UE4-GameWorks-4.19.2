@@ -120,10 +120,10 @@ public:
 	virtual void SetThreadPriority( EThreadPriority NewPriority ) override
 	{
 		// Don't bother calling the OS if there is no need
-		ThreadPriority = NewPriority;
-		// Change the priority on the thread
-		::SetThreadPriority(Thread, TranslateThreadPriority(ThreadPriority));
-	}
+			ThreadPriority = NewPriority;
+			// Change the priority on the thread
+			::SetThreadPriority(Thread, TranslateThreadPriority(ThreadPriority));
+		}
 
 	virtual void Suspend( bool bShouldPause = true ) override
 	{
@@ -194,8 +194,10 @@ protected:
 
 		// Create the new thread
 		{
-			LLM_PLATFORM_SCOPE(ELLMTag::ThreadStack);
+			LLM_SCOPE(ELLMTag::ThreadStack);
+			LLM_PLATFORM_SCOPE(ELLMTag::ThreadStackPlatform);
 			// add in the thread size, since it's allocated in a black box we can't track
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, nullptr, InStackSize));
 			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, nullptr, InStackSize));
 
 			// Create the thread as suspended, so we can ensure ThreadId is initialized and the thread manager knows about the thread before it runs.

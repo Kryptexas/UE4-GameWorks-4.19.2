@@ -201,6 +201,9 @@ extern RHI_API bool GSupportsTimestampRenderQueries;
 /** true if RQT_AbsoluteTime is supported by RHICreateRenderQuery */
 extern RHI_API bool GRHISupportsGPUTimestampBubblesRemoval;
 
+/** true if RHIGetGPUFrameCycles removes CPu generated bubbles. */
+extern RHI_API bool GRHISupportsFrameCyclesBubblesRemoval;
+
 /** true if the GPU supports hidden surface removal in hardware. */
 extern RHI_API bool GHardwareHiddenSurfaceRemoval;
 

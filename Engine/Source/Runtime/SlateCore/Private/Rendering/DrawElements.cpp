@@ -647,11 +647,10 @@ void FSlateBatchData::CreateRenderBatches(FElementBatchMap& LayerToElementBatche
 	uint32 VertexOffset = 0;
 	uint32 IndexOffset = 0;
 
-	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "SlateRT::CreateRenderBatches");
-
-	Merge(LayerToElementBatches, VertexOffset, IndexOffset);
-
-	FPlatformMisc::EndNamedEvent();
+	{
+		SCOPED_NAMED_EVENT_TEXT("SlateRT::CreateRenderBatches", FColor::Magenta);
+		Merge(LayerToElementBatches, VertexOffset, IndexOffset);
+	}
 
 	// 
 	if ( RenderDataHandle.IsValid() )
@@ -901,7 +900,7 @@ int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementL
 	TSharedPtr<const SWidget> WidgetToPaint = WidgetToPaintPtr.Pin();
 	if ( WidgetToPaint.IsValid() )
 	{
-		//FPlatformMisc::BeginNamedEvent(FColor::Red, *FReflectionMetaData::GetWidgetDebugInfo(WidgetToPaint));
+		//SCOPED_NAMED_EVENT_TEXT(*FReflectionMetaData::GetWidgetDebugInfo(WidgetToPaint), FColor::Red);
 
 		// Have to run a slate pre-pass for all volatile elements, some widgets cache information like 
 		// the STextBlock.  This may be all kinds of terrible an idea to do during paint.
@@ -938,8 +937,6 @@ int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementL
 		{
 			OutDrawElements.GetClippingManager().PopClip();
 		}
-				
-		//FPlatformMisc::EndNamedEvent();
 
 		return NewLayer;
 	}
@@ -992,9 +989,11 @@ void FSlateWindowElementList::BeginLogicalLayer(const TSharedPtr<FSlateDrawLayer
 	// Don't attempt to begin logical layers inside a cached view of the data.
 	checkSlow(!IsCachedRenderDataInUse());
 
-	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "FindLayer");
-	TSharedPtr<FSlateDrawLayer> Layer = DrawLayers.FindRef(LayerHandle);
-	//FPlatformMisc::EndNamedEvent();
+	TSharedPtr<FSlateDrawLayer> Layer;
+	{
+		//SCOPED_NAMED_EVENT(FindLayer, FColor::Orange);
+		Layer = DrawLayers.FindRef(LayerHandle);
+	}
 
 	if ( !Layer.IsValid() )
 	{
@@ -1007,14 +1006,12 @@ void FSlateWindowElementList::BeginLogicalLayer(const TSharedPtr<FSlateDrawLayer
 			Layer = MakeShareable(new FSlateDrawLayer());
 		}
 
-		//FPlatformMisc::BeginNamedEvent(FColor::Orange, "AddLayer");
+		//SCOPED_NAMED_EVENT(AddLayer, FColor::Orange);
 		DrawLayers.Add(LayerHandle, Layer);
-		//FPlatformMisc::EndNamedEvent();
 	}
 
-	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "PushLayer");
+	//SCOPED_NAMED_EVENT(PushLayer, FColor::Orange);
 	DrawStack.Push(Layer.Get());
-	//FPlatformMisc::EndNamedEvent();
 }
 
 void FSlateWindowElementList::EndLogicalLayer()

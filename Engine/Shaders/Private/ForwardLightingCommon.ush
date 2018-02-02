@@ -158,8 +158,13 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 	
 	const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
 
+	
+	// Limit max to ForwardGlobalLightData.NumLocalLights.
+	// This prevents GPU hangs when the PS tries to read from uninitialized NumCulledLightsGrid buffer
+	const uint NumLocalLights = min( CulledLightsGrid.NumLocalLights, ForwardGlobalLightData.NumLocalLights);
+
 	LOOP
-	for (uint LocalLightListIndex = 0; LocalLightListIndex < CulledLightsGrid.NumLocalLights; LocalLightListIndex++)
+	for (uint LocalLightListIndex = 0; LocalLightListIndex < NumLocalLights; LocalLightListIndex++)
 	{
 		const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
 		 
@@ -226,8 +231,12 @@ float3 GetForwardDirectLightingForVertexLighting(uint GridIndex, float3 WorldPos
 	
 	const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
 
+	// Limit max to ForwardGlobalLightData.NumLocalLights.
+	// This prevents GPU hangs when the PS tries to read from uninitialized NumCulledLightsGrid buffer
+	const uint NumLocalLights = min( CulledLightsGrid.NumLocalLights, ForwardGlobalLightData.NumLocalLights);
+
 	LOOP
-	for (uint LocalLightListIndex = 0; LocalLightListIndex < CulledLightsGrid.NumLocalLights; LocalLightListIndex++)
+	for (uint LocalLightListIndex = 0; LocalLightListIndex < NumLocalLights; LocalLightListIndex++)
 	{
 		const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
 		 
@@ -283,13 +292,13 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if (EyeIndex == 0)
 	{
 		uint NumCulledEntryIndex = (ForwardGlobalLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE;
-		NumLocalReflectionCaptures = NumCulledLightsGrid[NumCulledEntryIndex + 0];
+		NumLocalReflectionCaptures = min(NumCulledLightsGrid[NumCulledEntryIndex + 0], ForwardGlobalLightData.NumReflectionCaptures);
 		DataStartIndex = NumCulledLightsGrid[NumCulledEntryIndex + 1];
 	}
 	else
 	{
 		uint NumCulledEntryIndex = (InstancedForwardGlobalLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE;
-		NumLocalReflectionCaptures = InstancedNumCulledLightsGrid[NumCulledEntryIndex + 0];
+		NumLocalReflectionCaptures = min(InstancedNumCulledLightsGrid[NumCulledEntryIndex + 0], InstancedForwardGlobalLightData.NumReflectionCaptures);
 		DataStartIndex = InstancedNumCulledLightsGrid[NumCulledEntryIndex + 1];
 	}
 #endif

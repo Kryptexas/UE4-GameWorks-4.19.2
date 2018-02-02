@@ -75,12 +75,12 @@ FCulledLightsGridData GetCulledLightsGrid(uint GridIndex, uint EyeIndex)
 	BRANCH
 	if (EyeIndex == 0)
 	{
-		Result.NumLocalLights = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
+		Result.NumLocalLights = min(NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], ForwardGlobalLightData.NumLocalLights);
 		Result.DataStartIndex = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
 	}
 	else
 	{
-		Result.NumLocalLights = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
+		Result.NumLocalLights = min(InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], InstancedForwardGlobalLightData.NumLocalLights);
 		Result.DataStartIndex = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
 	}
 

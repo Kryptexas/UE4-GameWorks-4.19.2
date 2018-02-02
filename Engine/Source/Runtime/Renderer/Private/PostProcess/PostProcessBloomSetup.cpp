@@ -232,7 +232,7 @@ void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Conte
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
 	uint32 ScaleFactor = FMath::DivideAndRoundUp(Context.ReferenceBufferSize.Y, SrcSize.Y);
 
-	FIntRect SrcRect = Context.SceneColorViewRect / ScaleFactor;
+	FIntRect SrcRect = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, ScaleFactor);
 	FIntRect DestRect = SrcRect;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBloomSetup, TEXT("PostProcessBloomSetup%s %dx%d"), bIsComputePass?TEXT("Compute"):TEXT(""), DestRect.Width(), DestRect.Height());

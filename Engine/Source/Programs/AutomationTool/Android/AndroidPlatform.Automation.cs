@@ -1604,7 +1604,7 @@ public class AndroidPlatform : Platform
         }
     */
 
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { };
 	}

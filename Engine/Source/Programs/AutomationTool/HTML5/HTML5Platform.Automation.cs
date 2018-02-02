@@ -587,7 +587,7 @@ public class HTML5Platform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { ".pdb" };
 	}

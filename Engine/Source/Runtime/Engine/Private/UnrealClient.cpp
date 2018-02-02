@@ -404,8 +404,10 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 	float RawResolutionFraction = -1.0f;
 	float RawMaxResolutionFraction = 1.0f;
-	if (const IDynamicResolutionState* DynResState = GEngine->GetDynamicResolutionState())
+	EDynamicResolutionStatus DynamicResolutionStatus = GEngine->GetDynamicResolutionStatus();
+	if (DynamicResolutionStatus == EDynamicResolutionStatus::Enabled)
 	{
+		const IDynamicResolutionState* DynResState = GEngine->GetDynamicResolutionState();
 		RawResolutionFraction = DynResState->GetResolutionFractionApproximation();
 		RawMaxResolutionFraction = DynResState->GetResolutionFractionUpperBound();
 	}
@@ -569,9 +571,11 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 		{
 			InCanvas->DrawShadowedString(X1, InY, TEXT("DynRes:"), Font, bShowUnitTimeGraph ? FColor(255, 160, 100) : FColor::White);
-			if (RawResolutionFraction < 0.0f)
+			if (DynamicResolutionStatus != EDynamicResolutionStatus::Enabled)
 			{
-				InCanvas->DrawShadowedString(X2, InY, TEXT("OFF"), Font, FColor(160, 160, 160));
+				InCanvas->DrawShadowedString(X2, InY,
+					DynamicResolutionStatus == EDynamicResolutionStatus::Paused ? TEXT("Paused") : TEXT("OFF"),
+					Font, FColor(160, 160, 160));
 			}
 			else
 			{

@@ -166,7 +166,7 @@ private:
 	FD3D12PipelineState* Add_NoLock(const GraphicsPipelineCreationArgs& Args);
 	FD3D12PipelineState* Add_NoLock(const ComputePipelineCreationArgs& Args);
 
-	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc, FRWScopeLock& ScopeLock);
+	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
 
 	void WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso);
 
@@ -204,6 +204,8 @@ private:
 	{
 		return bUseAPILibaries && bUseCachedBlobs && !UsePipelineLibrary();
 	}
+
+	FD3D12PipelineState* FindGraphicsInternal(FD3D12HighLevelGraphicsPipelineStateDesc* Desc, FRWScopeLockType LockType);
 
 public:
 	void RebuildFromDiskCache(ID3D12RootSignature* GraphicsRootSignature, ID3D12RootSignature* ComputeRootSignature);

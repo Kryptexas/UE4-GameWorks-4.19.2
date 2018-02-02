@@ -50,10 +50,7 @@ void FD3D12VertexBuffer::Rename(FD3D12ResourceLocation& NewResource)
 
 	if (DynamicSRV != nullptr)
 	{
-		// This will force a new descriptor to be created
-		CD3DX12_CPU_DESCRIPTOR_HANDLE Desc;
-		Desc.ptr = 0;
-		DynamicSRV->Rename(ResourceLocation, Desc, 0);
+		DynamicSRV->Rename(ResourceLocation);
 	}
 }
 

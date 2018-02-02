@@ -1131,9 +1131,22 @@ bool FParse::LineExtended(const TCHAR** Stream, FString& Result, int32& LinesCon
 	return **Stream!=0 || GotStream;
 }
 
-uint32 FParse::HexNumber (const TCHAR* HexString)
+uint32 FParse::HexNumber(const TCHAR* HexString)
 {
 	uint32 Ret = 0;
+
+	while (*HexString)
+	{
+		Ret *= 16;
+		Ret += FParse::HexDigit(*HexString++);
+	}
+
+	return Ret;
+}
+
+uint64 FParse::HexNumber64(const TCHAR* HexString)
+{
+	uint64 Ret = 0;
 
 	while (*HexString)
 	{

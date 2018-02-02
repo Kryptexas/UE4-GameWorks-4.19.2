@@ -99,7 +99,8 @@ struct CORE_API FParse
 	}
 
 	/** Parses a hexadecimal string value. */
-	static  uint32 HexNumber (const TCHAR* HexString);
+	static uint32 HexNumber(const TCHAR* HexString);
+	static uint64 HexNumber64(const TCHAR* HexString);
 
 	/** Parses a resolution in the form 1920x1080. */
 	static bool Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY );

@@ -156,7 +156,7 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	{
 		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize());
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), FPlatformMemory::GetBackMemoryPoolSize());
-		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool));
 	}
 
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
@@ -548,7 +548,7 @@ void FGenericPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 	// Generic method is empty. Implement at platform level.
 }
 
-bool FGenericPlatformMemory::IsDebugMemoryEnabled()
+bool FGenericPlatformMemory::IsExtraDevelopmentMemoryAvailable()
 {
 	return false;
 }

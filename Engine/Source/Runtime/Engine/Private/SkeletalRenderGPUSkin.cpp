@@ -870,9 +870,9 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 		for (FActiveMorphTarget& ActiveMorphTarget : DynamicData->ActiveMorphTargets)
 		{
 			if (ActiveMorphTarget.MorphTarget->MorphLODModels.IsValidIndex(LODIndex) && ActiveMorphTarget.MorphTarget->MorphLODModels[LODIndex].SectionIndices.Contains(ChunkIdx))
-			{
-				return LOD.GPUSkinVertexFactories.MorphVertexFactories[ChunkIdx].Get();
-			}
+	{
+		return LOD.GPUSkinVertexFactories.MorphVertexFactories[ChunkIdx].Get();
+	}
 		}
 	}
 

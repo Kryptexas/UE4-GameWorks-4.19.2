@@ -211,7 +211,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	RTVDesc.Texture2D.MipSlice = 0;
 
-	FD3D12RenderTargetView* BackBufferRenderTargetView = new FD3D12RenderTargetView(Parent, &RTVDesc, &NewTexture->ResourceLocation);
+	FD3D12RenderTargetView* BackBufferRenderTargetView = new FD3D12RenderTargetView(Parent, RTVDesc, NewTexture->ResourceLocation);
 	NewTexture->SetRenderTargetView(BackBufferRenderTargetView);
 
 	// create a shader resource view to allow using the backbuffer as a texture
@@ -222,7 +222,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;
 
-	FD3D12ShaderResourceView* WrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, &SRVDesc, &NewTexture->ResourceLocation);
+	FD3D12ShaderResourceView* WrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, SRVDesc, NewTexture->ResourceLocation);
 	NewTexture->SetShaderResourceView(WrappedShaderResourceView);
 
 	FD3D12TextureStats::D3D12TextureAllocated2D(*NewTexture);

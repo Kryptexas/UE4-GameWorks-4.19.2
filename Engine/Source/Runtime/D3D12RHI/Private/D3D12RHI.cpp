@@ -7,7 +7,6 @@
 #include "D3D12RHIPrivate.h"
 #include "RHIStaticStates.h"
 #include "OneColorShader.h"
-#include "D3D12LLM.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -44,8 +43,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	AmdAgsContext(nullptr),
 	FlipEvent(INVALID_HANDLE_VALUE)
 {
-	LLM(D3D12LLM::Initialise());
-
 	// The FD3D12DynamicRHI must be a singleton
 	check(SingleD3DRHI == nullptr);
 

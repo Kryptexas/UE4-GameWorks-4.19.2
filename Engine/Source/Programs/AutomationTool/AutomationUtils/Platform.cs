@@ -358,14 +358,14 @@ namespace AutomationTool
 		{
 			return LocalPath;
 		}
-		/// <summary>
-		/// Returns a list of the compiler produced debug file extensions
-		/// </summary>
-		/// <returns>a list of the compiler produced debug file extensions</returns>
-		public virtual List<string> GetDebugFileExtentions()
-		{
-			return new List<string>();
-		}
+        /// <summary>
+        /// Returns a list of the compiler produced debug file extensions
+        /// </summary>
+        /// <returns>a list of the compiler produced debug file extensions</returns>
+        public virtual List<string> GetDebugFileExtensions()
+        {
+            return new List<string>();
+        }
 
 		/// <summary>
 		/// Remaps movie directory for platforms that need a remap

@@ -56,7 +56,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 			}
 
 		{
-			LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
+			LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 			if(void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
 			{
 				return Ptr;
@@ -75,7 +75,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 		}
 	}
 
-	LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
+	LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 	return FPlatformMemory::BinnedAllocFromOS(Size);
 }
 

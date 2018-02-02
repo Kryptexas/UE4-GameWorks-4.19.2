@@ -2906,6 +2906,10 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 	{
 		// Regenerate the file.
 		bResult = LoadIniFileHierarchy(SourceIniHierarchy, DestConfigFile, bUseHierarchyCache);
+		if (DestConfigFile.SourceConfigFile)
+		{
+			delete DestConfigFile.SourceConfigFile;
+		}
 		DestConfigFile.SourceConfigFile = new FConfigFile( DestConfigFile );
 
 		// mark it as dirty (caller may want to save)
@@ -3255,14 +3259,19 @@ bool FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* 
 #endif
 		FString DestIniFilename = GetDestIniFilename(IniName, Platform, GeneratedConfigDir);
 
-		GetSourceIniHierarchyFilenames( IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false );
+		GetSourceIniHierarchyFilenames(IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false);
 
-		if ( bForceReload )
+		if (bForceReload)
 		{
-			ClearHierarchyCache( IniName );
+			ClearHierarchyCache(IniName);
 		}
 
-		// Keep a record of the original settings
+		// Keep a record of the original settings, delete
+		if (ConfigFile.SourceConfigFile)
+		{
+			delete ConfigFile.SourceConfigFile;
+		}
+
 		ConfigFile.SourceConfigFile = new FConfigFile();
 
 		// now generate and make sure it's up to date (using IniName as a Base for an ini filename)
@@ -3374,6 +3383,10 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 		ClearHierarchyCache(IniRootName);
 
 		// Get a collection of the source hierachy properties
+		if (SourceConfigFile)
+		{
+			delete SourceConfigFile;
+		}
 		SourceConfigFile = new FConfigFile();
 
 		// now when Write it called below, it will diff against SourceIniHierarchy

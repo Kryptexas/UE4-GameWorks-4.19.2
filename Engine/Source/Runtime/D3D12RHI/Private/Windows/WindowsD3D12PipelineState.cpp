@@ -166,13 +166,24 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 {
 	//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
 
-	FRWScopeLock Lock(CS, SLT_ReadOnly);
-
 #if UE_BUILD_DEBUG
 	++GraphicsCacheRequestCount;
 #endif
 
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
+
+	FD3D12PipelineState* PSO = FindGraphicsInternal(Desc, SLT_ReadOnly);
+	if (!PSO)
+	{
+		PSO = FindGraphicsInternal(Desc, SLT_Write);
+	}
+	return PSO;
+}
+
+
+FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsInternal(FD3D12HighLevelGraphicsPipelineStateDesc* Desc, FRWScopeLockType LockType )
+{
+	FRWScopeLock Lock(CS, LockType);
 
 	const uint64 BSSUniqueID = Desc->BoundShaderState ? Desc->BoundShaderState->UniqueID : 0;
 	TPair<FD3D12PipelineState*, uint64>* HighLevelCacheEntry = HighLevelGraphicsPipelineStateCache.Find(*Desc);
@@ -184,15 +195,21 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 		return HighLevelCacheEntry->Key;
 	}
 
+	if (LockType == SLT_ReadOnly)
+	{
+		// We only have read-only access, so we need to re-call the function to get write access
+		// Simply raising the lock to a write is not safe because previously read values might not be safe to read
+		return nullptr;
+	}
+
 	FD3D12LowLevelGraphicsPipelineStateDesc LowLevelDesc;
 	Desc->GetLowLevelDesc(LowLevelDesc);
 
 	//TODO: for now PSOs will be created on every node of the LDA chain
 	LowLevelDesc.Desc.NodeMask = GetParentAdapter()->ActiveGPUMask();
 
-	FD3D12PipelineState* const PSO = FindGraphicsLowLevel(&LowLevelDesc, Lock);
-	Lock.RaiseLockToWrite();
 
+	FD3D12PipelineState* const PSO = FindGraphicsLowLevel(&LowLevelDesc);
 	if (HighLevelCacheEntry)
 	{
 #if UE_BUILD_DEBUG
@@ -215,7 +232,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	return HighLevelCacheEntry->Key;
 }
 
-FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc, FRWScopeLock& ScopeLock)
+FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
 {
 	// Lock already taken by high level find
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
@@ -239,7 +256,6 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 		}
 	}
 
-	ScopeLock.RaiseLockToWrite();
 	return Add_NoLock(GraphicsPipelineCreationArgs(Desc, PipelineLibrary));
 }
 
@@ -264,7 +280,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 		}
 		else
 		{
-			Lock.RaiseLockToWrite();
+			Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 			check(false);
 			UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
 			for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
@@ -274,7 +290,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 		}
 	}
 
-	Lock.RaiseLockToWrite();
+	Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 	return Add_NoLock(ComputePipelineCreationArgs(Desc, PipelineLibrary));
 }
 

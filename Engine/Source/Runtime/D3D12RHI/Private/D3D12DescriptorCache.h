@@ -551,9 +551,11 @@ public:
 	// end Descriptor Slot Reservation stuff
 
 	// null views
-	TRefCountPtr<FD3D12ShaderResourceView> pNullSRV;
-	TRefCountPtr<FD3D12UnorderedAccessView> pNullUAV;
-	TRefCountPtr<FD3D12RenderTargetView> pNullRTV;
+
+	FD3D12DescriptorHandleSRV* pNullSRV;
+	FD3D12DescriptorHandleRTV* pNullRTV;
+	FD3D12DescriptorHandleUAV* pNullUAV;
+
 #if USE_STATIC_ROOT_SIGNATURE
 	FD3D12ConstantBufferView* pNullCBV;
 #endif

@@ -6,7 +6,7 @@ D3D12Resources.cpp: D3D RHI utility implementation.
 
 #include "D3D12RHIPrivate.h"
 #include "EngineModule.h"
-#include "D3D12LLM.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /////////////////////////////////////////////////////////////////////
 //	FD3D12 Deferred Deletion Queue
@@ -302,7 +302,6 @@ HRESULT FD3D12Adapter::CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& I
 		return E_POINTER;
 	}
 
-	LLM_PLATFORM_SCOPE_D3D12(ELLMTagD3D12::CommittedResources);
 	TRefCountPtr<ID3D12Resource> pResource;
 	FD3D12Heap* Heap = nullptr;
 	HRESULT hr;
@@ -314,12 +313,10 @@ HRESULT FD3D12Adapter::CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& I
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAG_NONE;
 
-#if PLATFORM_XBOXONE
-	if (InDesc.Flags & D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER)
+	if (InDesc.Flags & D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER) //-V616
 	{
-		HeapDesc.Flags |= D3D12RHI_HEAP_FLAG_ALLOW_INDIRECT_BUFFERS;
+		HeapDesc.Flags |= D3D12RHI_HEAP_FLAG_ALLOW_INDIRECT_BUFFERS; //-V616
 	}
-#endif
 	hr = RootDevice->CreateHeap(&HeapDesc, IID_PPV_ARGS(D3DHeap.GetInitReference()));
 	check(SUCCEEDED(hr));
 	if (SUCCEEDED(hr))

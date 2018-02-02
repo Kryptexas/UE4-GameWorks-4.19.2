@@ -466,9 +466,8 @@ public:
 	/**
 	* Returns true if debug memory has been assigned to the title for general use.
 	* Only applies to consoles with fixed memory and no paging.
-	* On XB1 set Debug Memory Mode to PIX_Title. On PS4 set Memory Budget Mode to LARGE.
 	*/
-	static bool IsDebugMemoryEnabled();
+	static bool IsExtraDevelopmentMemoryAvailable();
 
 	/**
 	* This function sets AllocFunction and FreeFunction and returns true, or just returns false.

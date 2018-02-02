@@ -15,6 +15,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogSceneUtils,All,All);
 // to the total GPU time, so we probably want this disabled
 #define GPU_STATS_CHILD_TIMES_INCLUDED 0
 
+CSV_DEFINE_CATEGORY_MODULE(ENGINE_API, GPU, true);
+
 static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
 	TEXT("r.GPUStatsEnabled"),
 	1,
@@ -448,8 +450,8 @@ public:
 
 			if (bCsvStatsEnabled)
 			{
-				ECsvCustomStatType CsvStatType = bIsNew ? ECsvCustomStatType::Set : ECsvCustomStatType::Accumulate;
-				FCsvProfiler::Get()->RecordCustomStat(Event->GetName(), ResultMS, CsvStatType);
+				ECsvCustomStatOp CsvStatOp = bIsNew ? ECsvCustomStatOp::Set : ECsvCustomStatOp::Accumulate;
+				FCsvProfiler::Get()->RecordCustomStat(Event->GetName(), CSV_CATEGORY_INDEX(GPU), ResultMS, CsvStatOp);
 			}
 			TotalMS += ResultMS;
 		}
@@ -461,7 +463,7 @@ public:
 #if CSV_PROFILER
 		if (bCsvStatsEnabled)
 		{
-			FCsvProfiler::Get()->RecordCustomStat(CSV_DECLARED_STAT_NAME(GPU_Total), TotalMS, ECsvCustomStatType::Set);
+			FCsvProfiler::Get()->RecordCustomStat(CSV_STAT_FNAME(Total), CSV_CATEGORY_INDEX(GPU), TotalMS, ECsvCustomStatOp::Set);
 		}
 #endif
 		return true;

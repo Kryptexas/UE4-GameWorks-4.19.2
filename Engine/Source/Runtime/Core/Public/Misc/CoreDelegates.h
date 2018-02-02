@@ -186,6 +186,12 @@ public:
 	// Called at the end of a frame
 	static FSimpleMulticastDelegate OnEndFrame;
 
+	// Called at the beginning of a frame on the renderthread
+	static FSimpleMulticastDelegate OnBeginFrameRT;
+
+	// Called at the end of a frame on the renderthread
+	static FSimpleMulticastDelegate OnEndFrameRT;
+
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */

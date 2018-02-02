@@ -94,7 +94,6 @@ static TAutoConsoleVariable<int32> CVarMaxSoftKernelSize(
 
 DECLARE_GPU_STAT_NAMED(ShadowProjection, TEXT("Shadow Projection"));
 
-
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
 uint32 GetShadowQuality()
 {

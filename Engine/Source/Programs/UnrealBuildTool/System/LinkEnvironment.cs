@@ -244,7 +244,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to allow the use of ASLR (address space layout randomization) if supported.
 		/// </summary>
-		public bool bAllowALSR;
+		public bool bAllowASLR;
 
 		/// <summary>
 		/// Whether PDB files should be used for Visual C++ builds.
@@ -352,7 +352,7 @@ namespace UnrealBuildTool
             PGODirectory = Other.PGODirectory;
             PGOFilenamePrefix = Other.PGOFilenamePrefix;
             bCreateMapFile = Other.bCreateMapFile;
-			bAllowALSR = Other.bAllowALSR;
+            bAllowASLR = Other.bAllowASLR;
 			bUsePDBFiles = Other.bUsePDBFiles;
 			bUseFastPDBLinking = Other.bUseFastPDBLinking;
 			bPrintTimingInfo = Other.bPrintTimingInfo;

@@ -1095,36 +1095,36 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 		FSceneRenderTargets::Get(RHICmdList).IsSeparateTranslucencyPass()
 		);
 
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask);
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask);
 
 		FInt32Range PassRange = View.TranslucentPrimSet.SortedPrimsNum.GetPassRange(TranslucencyPass);
-		int32 NumPrims = PassRange.Size<int32>();
-		int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
+				int32 NumPrims = PassRange.Size<int32>();
+				int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
 
-		int32 Start = PassRange.GetLowerBoundValue();
-		if (EffectiveThreads)
-		{
-			int32 NumPer = NumPrims / EffectiveThreads;
-			int32 Extra = NumPrims - NumPer * EffectiveThreads;
-
-			for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
-			{
-				int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
-				check(Last >= Start);
-
+				int32 Start = PassRange.GetLowerBoundValue();
+				if (EffectiveThreads)
 				{
-					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
+					int32 NumPer = NumPrims / EffectiveThreads;
+					int32 Extra = NumPrims - NumPer * EffectiveThreads;
+
+					for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+					{
+						int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+						check(Last >= Start);
+
+						{
+							FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 						.ConstructAndDispatchWhenReady(*this, *CmdList, View, ParallelCommandListSet.DrawRenderState, TranslucencyPass, Start, Last);
 
-					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
+							ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
+						}
+						Start = Last + 1;
+					}
 				}
-				Start = Last + 1;
 			}
-		}
-	}
 
 	if (IsMainTranslucencyPass(TranslucencyPass))
 	{
@@ -1151,9 +1151,9 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
 			if (LightPropagationVolume)
-			{
+		{
 				LightPropagationVolume->Visualise(RHICmdList, View);
-			}
+		}
 		}
 	}
 }
@@ -1184,7 +1184,7 @@ void FDeferredShadingSceneRenderer::SetupDownsampledTranslucencyViewUniformBuffe
 
 				View.DownsampledTranslucencyViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(DownsampledTranslucencyParameters, UniformBuffer_SingleFrame);
 			}
-		}
+}
 
 void FDeferredShadingSceneRenderer::ConditionalResolveSceneColorForTranslucentMaterials(FRHICommandListImmediate& RHICmdList)
 {
@@ -1203,7 +1203,7 @@ void FDeferredShadingSceneRenderer::ConditionalResolveSceneColorForTranslucentMa
 			FTranslucencyDrawingPolicyFactory::CopySceneColor(RHICmdList, View);
 		}
 	}
-				}
+}
 				
 void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList, ETranslucencyPass::Type TranslucencyPass)
 {
@@ -1295,7 +1295,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			else
 			{
 				RenderViewTranslucency(RHICmdList, View, DrawRenderState, TranslucencyPass);
-}
+			}
 
 			// SceneContext.FinishRenderingTranslucency(RHICmdList, View);
 		}
@@ -1381,7 +1381,7 @@ public:
 };
 
 class FTranslucencySimpleUpsamplingPS : public FTranslucencyUpsamplingPS
-					{
+{
 protected:
 	DECLARE_SHADER_TYPE(FTranslucencySimpleUpsamplingPS, Global);
 	FTranslucencySimpleUpsamplingPS() : FTranslucencyUpsamplingPS(false) {}
@@ -1403,13 +1403,13 @@ public:
 IMPLEMENT_SHADER_TYPE(,FTranslucencyNearestDepthNeighborUpsamplingPS,TEXT("/Engine/Private/TranslucencyUpsampling.usf"),TEXT("NearestDepthNeighborUpsamplingPS"),SF_Pixel);
 
 bool UseNearestDepthNeighborUpsampleForSeparateTranslucency(const FSceneRenderTargets& SceneContext)
-					{
+{
 	FIntPoint OutScaledSize;
 	float OutScale;
 	SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
 
 	return 	CVarSeparateTranslucencyUpsampleMode.GetValueOnRenderThread() != 0 && FMath::Abs(OutScale - .5f) < .001f;
-					}
+}
 
 void FTranslucencyDrawingPolicyFactory::UpsampleTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bOverwrite)
 {

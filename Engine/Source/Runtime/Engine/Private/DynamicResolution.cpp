@@ -38,8 +38,8 @@ static TAutoConsoleVariable<float> CVarFrameTimeBudget(
 
 
 
-static TAutoConsoleVariable<float> CVarTargetedGPUHeadRoom(
-	TEXT("r.DynamicRes.TargetedGPUHeadRoom"),
+static TAutoConsoleVariable<float> CVarTargetedGPUHeadRoomPercentage(
+	TEXT("r.DynamicRes.TargetedGPUHeadRoomPercentage"),
 	10.0f,
 	TEXT("Targeted GPU headroom (in percent from r.DynamicRes.FrameTimeBudget)."),
 	ECVF_RenderThreadSafe | ECVF_Default);
@@ -106,17 +106,6 @@ static TAutoConsoleVariable<float> CVarCPUBoundScreenPercentage(
 	100,
 	TEXT("Screen percentage to converge to when CPU bound. This can be used when GPU and CPU share same memory."),
 	ECVF_RenderThreadSafe | ECVF_Default);
-
-#if !UE_BUILD_SHIPPING
-
-static TAutoConsoleVariable<int32> CVarEnableOverride(
-	TEXT("r.Test.DynamicRes.EnableOverride"),
-	0,
-	TEXT("Force enabling dynamic resolution.\n")
-	TEXT(" 0: no override; 1: force disable; 2: force enable."),
-	ECVF_Default);
-
-#endif
 
 
 FDynamicResolutionHeuristicProxy::FDynamicResolutionHeuristicProxy()
@@ -210,7 +199,7 @@ void FDynamicResolutionHeuristicProxy::RefreshCurentFrameResolutionFraction_Rend
 	const float FrameTimeBudgetMs = CVarFrameTimeBudget.GetValueOnRenderThread();
 
 	// Targeted GPU time, lower than budget to diggest noise.
-	const float TargetedGPUBusyTimeMs = FrameTimeBudgetMs * (1.0f - CVarTargetedGPUHeadRoom.GetValueOnRenderThread() / 100.0f);
+	const float TargetedGPUBusyTimeMs = FrameTimeBudgetMs * (1.0f - CVarTargetedGPUHeadRoomPercentage.GetValueOnRenderThread() / 100.0f);
 
 	// Resolution fraction to downscale to when CPU bound.
 	const float CPUBoundResolutionFraction = CVarCPUBoundScreenPercentage.GetValueOnRenderThread() / 100.0f;
@@ -326,8 +315,9 @@ void FDynamicResolutionHeuristicProxy::RefreshCurentFrameResolutionFraction_Rend
 
 			float SuggestedResolutionFraction = 1.0f;
 
-			// If not CPU bound or have reliable GPU times, find a new resolution fraction.
-			if (!bIsCPUBound && !bMayHaveGPUBubbles)
+			// If have reliable GPU times, or guess there is not GPU bubbles -> estimate the suggested resolution fraction that could have been used.
+			if (!FrameEntry.bGPUTimingsHaveCPUBubbles ||
+				(FrameEntry.bGPUTimingsHaveCPUBubbles && !bIsCPUBound && !bMayHaveGPUBubbles))
 			{
 				// This assumes GPU busy time is directly proportional to ResolutionFraction^2, but in practice
 				// this is more A * ResolutionFraction^2 + B with B >= 0 non constant unknown cost such as unscaled
@@ -582,7 +572,7 @@ public:
 			Heuristic.CommitPreviousFrameGPUTimings_RenderThread(HistoryEntryId,
 				/* TotalFrameGPUBusyTimeMs = */ PrevFrameGPUTimeMs,
 				/* DynamicResolutionGPUBusyTimeMs = */ PrevFrameGPUTimeMs,
-				/* bGPUTimingsHaveCPUBubbles = */ true);
+				/* bGPUTimingsHaveCPUBubbles = */ GRHISupportsFrameCyclesBubblesRemoval);
 
 			Heuristic.RefreshCurentFrameResolutionFraction_RenderThread();
 
@@ -822,24 +812,6 @@ public:
 	virtual void SetEnabled(bool bEnable) override
 	{
 		check(IsInGameThread());
-
-		// Emit a warning every time dynamic resolution is enabled on platforms that do not officially support it.
-		{
-			static bool bHasWarned = false;
-			if (bEnable && !bIsEnabled && !IsSupported() && !bHasWarned)
-			{
-				bHasWarned = true;
-				UE_LOG(LogEngine, Warning, TEXT(
-					"Dynamic resolution is not officially supported on this platform. Using dynamic resolution on "
-					"unsupported platform is extremely dangerous for gameplay experience, since it may have a bug "
-					"dropping resolution or frame rate more than it should."));
-			}
-			else if (!bEnable)
-			{
-				bHasWarned = false;
-			}
-		}
-
 		bIsEnabled = bEnable;
 	}
 
@@ -852,11 +824,7 @@ public:
 	virtual float GetResolutionFractionApproximation() const override
 	{
 		check(IsInGameThread());
-		if (IsEnabledInternal())
-		{
-			return Proxy->Heuristic.GetResolutionFractionApproximation_GameThread();
-		}
-		return -1.0f;
+		return Proxy->Heuristic.GetResolutionFractionApproximation_GameThread();
 	}
 
 	virtual float GetResolutionFractionUpperBound() const override
@@ -873,14 +841,6 @@ public:
 		{
 			check(bRecordThisFrame == false);
 			bRecordThisFrame = bIsEnabled;
-
-#if !UE_BUILD_SHIPPING
-			switch (CVarEnableOverride.GetValueOnGameThread())
-			{
-			case 1: bRecordThisFrame = false; break;
-			case 2: bRecordThisFrame = true; break;
-			}
-#endif
 		}
 
 		// Early return if not recording this frame.
@@ -923,7 +883,7 @@ public:
 	{
 		check(IsInGameThread());
 
-		if (IsEnabledInternal())
+		if (bIsEnabled)
 		{
 			ViewFamily.SetScreenPercentageInterface(new FDefaultDynamicResolutionDriver(&Proxy->Heuristic, ViewFamily));
 		}
@@ -938,19 +898,6 @@ private:
 
 	// Whether dynamic resolution is recording this frame.
 	bool bRecordThisFrame;
-
-
-	FORCEINLINE bool IsEnabledInternal() const
-	{
-		#if !UE_BUILD_SHIPPING
-		{
-			int32 EnableOverride = CVarEnableOverride.GetValueOnGameThread();
-			return (bIsEnabled || EnableOverride == 2) && EnableOverride != 1;
-		}
-		#endif
-
-		return bIsEnabled;
-	}
 };
 
 

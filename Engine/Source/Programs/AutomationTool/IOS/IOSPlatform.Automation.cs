@@ -1343,8 +1343,7 @@ public class IOSPlatform : Platform
 	{
 		return new StagedFileReference("cookeddata/" + Dest.Name);
 	}
-	
-    public override List<string> GetDebugFileExtentions()
+    public override List<string> GetDebugFileExtensions()
     {
         return new List<string> { ".dsym", ".udebugsymbols" };
     }

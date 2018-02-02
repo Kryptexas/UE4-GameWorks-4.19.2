@@ -636,10 +636,13 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	#if !UE_SERVER
 	{
+		bIsDynamicResolutionPaused = false;
+		bDynamicResolutionEnableUserSetting = false;
 		LastDynamicResolutionEvent = EDynamicResolutionStateEvent::EndFrame;
+
 		if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 		{
-			NextDynamicResolutionState = FDynamicResolutionHeuristicProxy::CreateDefaultState();
+			DynamicResolutionState = NextDynamicResolutionState = FDynamicResolutionHeuristicProxy::CreateDefaultState();
 		}
 	}
 	#endif

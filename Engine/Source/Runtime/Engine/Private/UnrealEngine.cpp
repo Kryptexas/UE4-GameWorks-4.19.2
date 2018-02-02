@@ -316,6 +316,15 @@ static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	ECVF_Cheat);
 #endif // !UE_BUILD_SHIPPING
 
+static TAutoConsoleVariable<int> CVarDynamicResOperationMode(
+	TEXT("r.DynamicRes.OperationMode"),
+	0,
+	TEXT("Select the operation mode for dynamic resolution.\n")
+	TEXT(" 0: Disabled (default);\n")
+	TEXT(" 1: Enable according to the game user settings;\n")
+	TEXT(" 2: Enable regardless of the game user settings."),
+	ECVF_RenderThreadSafe | ECVF_Default);
+
 // Should we show errors and warnings (when DurationOfErrorsAndWarningsOnHUD is greater than zero), or only errors?
 int32 GSupressWarningsInOnScreenDisplay = 0;
 static FAutoConsoleVariableRef GSupressWarningsInOnScreenDisplayCVar(
@@ -8702,7 +8711,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
-			if (FLowLevelMemTracker::Get().IsEnabled() && !FPlatformMemory::IsDebugMemoryEnabled())
+			if (FLowLevelMemTracker::Get().IsEnabled() && !FPlatformMemory::IsExtraDevelopmentMemoryAvailable())
 			{
 				SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNINGLLM", "LLM enabled without Debug Memory enabled!");
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
@@ -8725,15 +8734,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		}
 #endif
 
-		// Only output disable message if there actually were any
-		if (MessageY != MessageStartY)
-		{
-			SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
-			SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
-			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
-			MessageY += 16;
-		}
-
 #if !(UE_BUILD_TEST)
 		if (GEngine->bEnableOnScreenDebugMessagesDisplay && GEngine->bEnableOnScreenDebugMessages)
 		{
@@ -8741,11 +8741,34 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		}
 #endif // UE_BUILD_TEST
 
-		if (FPlatformMemory::IsDebugMemoryEnabled())
+		if (FPlatformMemory::IsExtraDevelopmentMemoryAvailable())
 		{
-			SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNING", "WARNING: Running with Debug Memory Enabled!");
+			SmallTextItem.Text = LOCTEXT("LLMWARNING", "WARNING: Running with Debug Memory Enabled!");
 			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 			MessageY += FontSizeY;
+		}
+
+		TArray<FText> PlatformScreenWarnings;
+
+		if (FPlatformMisc::GetPlatformScreenWarnings(PlatformScreenWarnings))
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+
+			for (FText& PlatformWarning : PlatformScreenWarnings)
+			{
+				SmallTextItem.Text = PlatformWarning;
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
+			}
+		}
+
+		// Only output disable message if there actually were any
+		if (MessageY != MessageStartY)
+		{
+			SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
+			SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
+			MessageY += 16;
 		}
 	}
 #endif // UE_BUILD_SHIPPING 
@@ -9046,6 +9069,58 @@ void UEngine::RestoreSelectedMaterialColor()
 	bIsOverridingSelectedColor = false;
 }
 
+EDynamicResolutionStatus UEngine::GetDynamicResolutionStatus() const
+{
+	#if !UE_SERVER
+	{
+		if (DynamicResolutionState->IsEnabled())
+		{
+			ensureMsgf(!bIsDynamicResolutionPaused,
+				TEXT("Looks like the dynamic resolution state has enabled itself."));
+
+			return EDynamicResolutionStatus::Enabled;
+		}
+		else if (bIsDynamicResolutionPaused)
+		{
+			return EDynamicResolutionStatus::Paused;
+		}
+	}
+	#endif // !UE_SERVER
+
+	return EDynamicResolutionStatus::Disabled;
+}
+
+void UEngine::PauseDynamicResolution()
+{
+	#if !UE_SERVER
+		ensureMsgf(!(DynamicResolutionState->IsEnabled() && bIsDynamicResolutionPaused),
+			TEXT("Looks like the dynamic resolution state has enabled itself."));
+
+		// Disable the state if it is enabled.
+		if (DynamicResolutionState->IsEnabled())
+		{
+			DynamicResolutionState->SetEnabled(false);
+		}
+		bIsDynamicResolutionPaused = true;
+	#endif // !UE_SERVER
+}
+
+#if !UE_SERVER
+void UEngine::EnableDynamicResolutionStateIfPossible()
+{
+	int32 OperationMode = CVarDynamicResOperationMode.GetValueOnGameThread();
+	
+	// Whether dynamic resolution is allowed to be enabled.
+	bool bEnable = (OperationMode == 2) || (OperationMode == 1 && bDynamicResolutionEnableUserSetting);
+
+	// Enable dynamic resolution if allowed, not paused, and is not already enabled.
+	if (bEnable && !bIsDynamicResolutionPaused && !DynamicResolutionState->IsEnabled())
+	{
+		DynamicResolutionState->SetEnabled(true);
+	}
+}
+#endif
+
 void UEngine::EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event)
 {
 	#if !UE_SERVER
@@ -9071,8 +9146,24 @@ void UEngine::EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event)
 		checkf(LastDynamicResolutionEvent == EDynamicResolutionStateEvent::EndFrame,
 			TEXT("EDynamicResolutionStateEvent::BeginFrame should only happen after EDynamicResolutionStateEvent::EndFrame."));
 
-		// Roll out dynamic resolution state for this frame.
-		DynamicResolutionState = NextDynamicResolutionState;
+		// Log dynamic resolution state change for support if something is going wrong with the heuristic.
+		if (DynamicResolutionState != NextDynamicResolutionState)
+		{
+			// Disable the hold state.
+			if (DynamicResolutionState->IsEnabled())
+			{
+				DynamicResolutionState->SetEnabled(false);
+			}
+
+			// Log dynamic resolution state change for support if something is going wrong with the heuristic.
+			UE_LOG(LogEngine, Log, TEXT("Changing dynamic resolution state."));
+
+			DynamicResolutionState = NextDynamicResolutionState;
+		}
+
+		// Enable dynamic resolution state if has been changed or if the settings changed.
+		EnableDynamicResolutionStateIfPossible();
+
 		DynamicResolutionState->ProcessEvent(EDynamicResolutionStateEvent::BeginFrame);
 	}
 	else if (LastDynamicResolutionEvent == EDynamicResolutionStateEvent::EndFrame)

@@ -126,7 +126,7 @@ public class AllDesktopPlatform : Platform
 		return PakType.DontCare;
 	}
     
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { };
 	}

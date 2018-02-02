@@ -300,7 +300,7 @@ struct FMallocBinned2::Private
 
 			void* Result;
 			{
-				LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+				LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 				Result = FPlatformMemory::BinnedAllocFromOS(PoolArraySize);
 			}
 
@@ -344,7 +344,7 @@ struct FMallocBinned2::Private
 		if (!Allocator.HashBucketFreeList)
 		{
 			{
-				LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+				LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 				Allocator.HashBucketFreeList = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(FMallocBinned2::PageSize);
 			}
 
@@ -670,7 +670,7 @@ FMallocBinned2::FMallocBinned2()
 	uint64 MaxHashBuckets = PtrToPoolMapping.GetMaxHashBuckets();
 
 	{
-		LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+		LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 		HashBuckets = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(Align(MaxHashBuckets * sizeof(PoolHashBucket), OsAllocationGranularity));
 	}
 
@@ -1123,7 +1123,7 @@ void FMallocBinned2::FPerThreadFreeBlockLists::SetTLS()
 	FPerThreadFreeBlockLists* ThreadSingleton = (FPerThreadFreeBlockLists*)FPlatformTLS::GetTlsValue(FMallocBinned2::Binned2TlsSlot);
 	if (!ThreadSingleton)
 	{
-		LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+		LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 		ThreadSingleton = new (FPlatformMemory::BinnedAllocFromOS(Align(sizeof(FPerThreadFreeBlockLists), FMallocBinned2::OsAllocationGranularity))) FPerThreadFreeBlockLists();
 		FPlatformTLS::SetTlsValue(FMallocBinned2::Binned2TlsSlot, ThreadSingleton);
 		FMallocBinned2::Private::RegisterThreadFreeBlockLists(ThreadSingleton);

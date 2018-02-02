@@ -119,7 +119,7 @@ void FNiagaraDataSet::InitGPUFromCPU_RenderThread()
 
 			if (NewBytes > 0)
 			{
-				RenderDataFloat.Initialize(sizeof(float), NewBytes / sizeof(float), EPixelFormat::PF_R32_FLOAT, BUF_Volatile);
+				RenderDataFloat.Initialize(sizeof(float), NewBytes / sizeof(float), EPixelFormat::PF_R32_FLOAT, BUF_Dynamic);
 			}
 		}
 
@@ -142,7 +142,7 @@ void FNiagaraDataSet::InitGPUFromCPU_RenderThread()
 
 			if (NewBytes > 0)
 			{
-				RenderDataInt.Initialize(sizeof(int32), NewBytes / sizeof(int32), EPixelFormat::PF_R32_SINT, BUF_Volatile);
+				RenderDataInt.Initialize(sizeof(int32), NewBytes / sizeof(int32), EPixelFormat::PF_R32_SINT, BUF_Dynamic);
 			}
 		}
 

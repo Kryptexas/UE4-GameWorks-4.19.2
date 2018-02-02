@@ -230,7 +230,7 @@ void FDefaultSpectatorScreenController::UpdateSpectatorScreenMode_RenderThread()
 
 void FDefaultSpectatorScreenController::RenderSpectatorScreen_RenderThread(FRHICommandListImmediate& RHICmdList, FRHITexture2D* BackBuffer, FTexture2DRHIRef SrcTexture, FVector2D WindowSize) const
 {
-	FScopedNamedEvent NamedEvent(FColor::Magenta, "RenderSocialScreen_RenderThread()");
+	SCOPED_NAMED_EVENT_TEXT("RenderSocialScreen_RenderThread()", FColor::Magenta);
 
 	check(IsInRenderingThread());
 

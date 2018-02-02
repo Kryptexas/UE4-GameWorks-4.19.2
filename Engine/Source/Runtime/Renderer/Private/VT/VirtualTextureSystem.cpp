@@ -25,7 +25,7 @@ DECLARE_DWORD_COUNTER_STAT( TEXT("Num page requests resident"),		STAT_NumPageReq
 DECLARE_DWORD_COUNTER_STAT( TEXT("Num page requests not resident"), STAT_NumPageRequestsNotResident,	STATGROUP_VirtualTexturing );
 DECLARE_DWORD_COUNTER_STAT( TEXT("Num page uploads"),				STAT_NumPageUploads,				STATGROUP_VirtualTexturing );
 
-DECLARE_GPU_STAT(VT);
+DECLARE_GPU_STAT( VirtualTexture );
 
 
 static TAutoConsoleVariable<int32> CVarVTMaxUploadsPerFrame(
@@ -155,7 +155,7 @@ void FVirtualTextureSystem::FeedbackAnalysis( FUniquePageList* RESTRICT Requeste
 void FVirtualTextureSystem::Update( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel )
 {
 	SCOPE_CYCLE_COUNTER( STAT_VirtualTextureSystem_Update );
-	SCOPED_GPU_STAT( RHICmdList, VT );
+	SCOPED_GPU_STAT( RHICmdList, VirtualTexture );
 
 	FMemMark Mark( FMemStack::Get() );
 	FUniquePageList* RESTRICT RequestedPageList = new(FMemStack::Get()) FUniquePageList;

@@ -524,16 +524,16 @@ void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 		{
 			CRC = FCrc::StrCrc32<TCHAR>(Name);
 
-			if (CachedStrings.Num() > 10000)
-			{
-				CachedStrings.Empty(10000);
+		if (CachedStrings.Num() > 10000)
+		{
+			CachedStrings.Empty(10000);
 				CachedStrings.Emplace(EventDeepCRC, EventDeepString);
-			}
+		}
 
-			if (CachedStrings.Find(CRC) == nullptr)
-			{
-				CachedStrings.Emplace(CRC, FString(Name));
-			}
+		if (CachedStrings.Find(CRC) == nullptr)
+		{
+			CachedStrings.Emplace(CRC, FString(Name));
+		}
 				
 		}
 		else
@@ -592,18 +592,18 @@ bool FD3DGPUProfiler::CheckGpuHeartbeat() const
 				Result = GFSDK_Aftermath_GetData(1, &AftermathContext, &ContextDataOut);
 				if (Result == GFSDK_Aftermath_Result_Success)
 				{
-					UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
-					uint32 NumCRCs = ContextDataOut.markerSize / sizeof(uint32);
-					uint32* Data = (uint32*)ContextDataOut.markerData;
-					for (uint32 i = 0; i < NumCRCs; i++)
+				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
+				uint32 NumCRCs = ContextDataOut.markerSize / sizeof(uint32);
+				uint32* Data = (uint32*)ContextDataOut.markerData;
+				for (uint32 i = 0; i < NumCRCs; i++)
+				{
+					const FString* Frame = CachedStrings.Find(Data[i]);
+					if (Frame != nullptr)
 					{
-						const FString* Frame = CachedStrings.Find(Data[i]);
-						if (Frame != nullptr)
-						{
-							UE_LOG(LogRHI, Error, TEXT("[Aftermath] %i: %s"), i, *(*Frame));
-						}
+						UE_LOG(LogRHI, Error, TEXT("[Aftermath] %i: %s"), i, *(*Frame));
 					}
-					UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
+				}
+				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
 				}
 				return false;
 			}
@@ -677,6 +677,14 @@ void UpdateBufferStats(TRefCountPtr<ID3D11Buffer> Buffer, bool bAllocating)
 		{
 			INC_MEMORY_STAT_BY(STAT_StructuredBufferMemory,Desc.ByteWidth);
 		}
+
+#if PLATFORM_WINDOWS
+		// this is a work-around on Windows. Due to the fact that there is no way
+		// to hook the actual d3d allocations we can't track the memory in the normal way.
+		// Instead we simply tell LLM the size of these resources.
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::Meshes, Desc.ByteWidth, ELLMTracker::Default, ELLMAllocType::None);
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::GraphicsPlatform, Desc.ByteWidth, ELLMTracker::Platform, ELLMAllocType::None);
+#endif
 	}
 	else
 	{ //-V523
@@ -696,6 +704,14 @@ void UpdateBufferStats(TRefCountPtr<ID3D11Buffer> Buffer, bool bAllocating)
 		{
 			DEC_MEMORY_STAT_BY(STAT_StructuredBufferMemory,Desc.ByteWidth);
 		}
+
+#if PLATFORM_WINDOWS
+		// this is a work-around on Windows. Due to the fact that there is no way
+		// to hook the actual d3d allocations we can't track the memory in the normal way.
+		// Instead we simply tell LLM the size of these resources.
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::Meshes, -(int64)Desc.ByteWidth, ELLMTracker::Default, ELLMAllocType::None);
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::GraphicsPlatform, -(int64)Desc.ByteWidth, ELLMTracker::Platform, ELLMAllocType::None);
+#endif
 	}
 }
 

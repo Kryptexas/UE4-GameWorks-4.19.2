@@ -608,7 +608,7 @@ void UUserWidget::Invalidate()
 
 void UUserWidget::PlayAnimation( UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
-	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimation");
+	SCOPED_NAMED_EVENT_TEXT("Widget::PlayAnimation", FColor::Emerald);
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)
@@ -625,7 +625,7 @@ void UUserWidget::PlayAnimation( UWidgetAnimation* InAnimation, float StartAtTim
 
 void UUserWidget::PlayAnimationTo(UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
-	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimationTo");
+	SCOPED_NAMED_EVENT_TEXT("Widget::PlayAnimationTo", FColor::Emerald);
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)

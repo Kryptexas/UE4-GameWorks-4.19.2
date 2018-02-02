@@ -1248,7 +1248,7 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 				FShaderCacheLibrary* ShaderCacheLibrary = ShaderCache->CodeCache;
 				if (ShaderCacheLibrary && !ShaderCacheLibrary->Shaders.Contains(Key))
 				{
-					Lock.RaiseLockToWrite();
+					Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 					ShaderCacheLibrary->AddShader(Key.Frequency, Key.SHAHash, Code, UncompressedSize);
 					bSubmit = true;
 				}
@@ -1990,13 +1990,13 @@ void FShaderCache::InternalLogDraw(FShaderCacheState& CacheState, uint32 Primiti
 			
 			if (DrawId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				DrawId = CurrentShaderPlatformCache.DrawStates.Add(CacheState.CurrentDrawKey);
 			}
 			
 			if (PSOId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				PSOId = ShaderPlatformPSOOnly(CurrentPlatform) ? CacheState.CurrentPSO.Index : CurrentShaderPlatformCache.PipelineStates.Add(CacheState.CurrentPSO);
 			}
 
@@ -2011,27 +2011,27 @@ void FShaderCache::InternalLogDraw(FShaderCacheState& CacheState, uint32 Primiti
 			
 			if (EntryId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				EntryId = CurrentShaderPlatformCache.PreDrawEntries.Add(Entry);
 			}
 			
 			FShaderStreamingCache* StreamCache = CurrentShaderPlatformCache.StreamingDrawStates.Find(StreamingKey);
 			if (!StreamCache)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				StreamCache = &CurrentShaderPlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey);
 			}
 			
 			TSet<int32>* ShaderDrawSet = StreamCache->ShaderDrawStates.Find(CacheState.CurrentPSO.BoundShaderState);
 			if (!ShaderDrawSet)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				ShaderDrawSet = &StreamCache->ShaderDrawStates.FindOrAdd(CacheState.CurrentPSO.BoundShaderState);
 			}
 			
 			if (!ShaderDrawSet->Contains(EntryId))
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				ShaderDrawSet->Add(EntryId,&bShaderDrawSetEntryExists);
 			}
 		}

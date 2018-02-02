@@ -276,6 +276,7 @@ bool GSupportsShaderFramebufferFetch = false;
 bool GSupportsShaderDepthStencilFetch = false;
 bool GSupportsTimestampRenderQueries = false;
 bool GRHISupportsGPUTimestampBubblesRemoval = false;
+bool GRHISupportsFrameCyclesBubblesRemoval = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;

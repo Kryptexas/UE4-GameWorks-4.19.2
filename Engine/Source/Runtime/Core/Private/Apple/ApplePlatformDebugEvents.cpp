@@ -203,7 +203,7 @@ uint16 FApplePlatformDebugEvents::GetEventCode(FString String)
 		
 		if(!CodePtr)
 		{
-			Lock.RaiseLockToWrite();
+			Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 			CodePtr = Names.Find(Hash);
 			if(CodePtr)
 			{

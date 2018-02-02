@@ -915,6 +915,20 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 }
 #endif
 
+
+#if WITH_ENGINE && CSV_PROFILER
+static void UpdateCoreCsvStats()
+{
+	CSV_CUSTOM_STAT_GLOBAL(RenderThreadTime, FPlatformTime::ToMilliseconds(GRenderThreadTime), ECsvCustomStatOp::Set);
+	CSV_CUSTOM_STAT_GLOBAL(GameThreadTime, FPlatformTime::ToMilliseconds(GGameThreadTime), ECsvCustomStatOp::Set);
+	CSV_CUSTOM_STAT_GLOBAL(GPUTime, FPlatformTime::ToMilliseconds(GGPUFrameTime), ECsvCustomStatOp::Set);
+	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+	float PhysicalMBFree = float(MemoryStats.AvailablePhysical / 1024) / 1024.0f;
+	CSV_CUSTOM_STAT_GLOBAL(MemoryFreeMB, PhysicalMBFree, ECsvCustomStatOp::Set);
+}
+#endif // WITH_ENGINE && CSV_PROFILER
+
+
 DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_PreInit_AfterStats, STATGROUP_LoadTime );
 
 int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
@@ -1482,6 +1496,10 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 	LoadPreInitModules();
 
 #if WITH_ENGINE && CSV_PROFILER
+	if (!IsRunningDedicatedServer())
+	{
+		FCoreDelegates::OnEndFrame.AddStatic(UpdateCoreCsvStats);
+	}
 	FCsvProfiler::Get()->Init();
 #endif
 
@@ -3197,6 +3215,7 @@ void FEngineLoop::Tick()
 				RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
 				GPU_STATS_BEGINFRAME(RHICmdList);
 				RHICmdList.BeginFrame();
+			FCoreDelegates::OnBeginFrameRT.Broadcast();
 			});
 
 		#if !UE_SERVER && WITH_ENGINE
@@ -3508,6 +3527,7 @@ void FEngineLoop::Tick()
 		// end of RHI frame
 		ENQUEUE_UNIQUE_RENDER_COMMAND(EndFrame,
 		{
+			FCoreDelegates::OnEndFrameRT.Broadcast();
 			RHICmdList.EndFrame();
 			GPU_STATS_ENDFRAME(RHICmdList);
 			RHICmdList.PopEvent();
@@ -4155,6 +4175,5 @@ void FEngineLoop::PreInitHMDDevice()
 	}
 #endif // #if WITH_ENGINE && !UE_SERVER
 }
-
 
 #undef LOCTEXT_NAMESPACE

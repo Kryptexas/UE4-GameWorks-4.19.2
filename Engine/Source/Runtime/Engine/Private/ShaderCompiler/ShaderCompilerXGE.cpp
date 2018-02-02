@@ -13,7 +13,7 @@
 // --------------------------------------------------------------------------
 namespace XGEShaderCompilerVariables
 {
-	int32 Enabled = 0;
+	int32 Enabled = 1;
 	FAutoConsoleVariableRef CVarXGEShaderCompile(
 		TEXT("r.XGEShaderCompile"),
 		Enabled,
@@ -22,7 +22,7 @@ namespace XGEShaderCompilerVariables
 		TEXT("1: Distribute builds using XGE (default)."),
 		ECVF_Default);
 
-	int32 Mode = 1;
+	int32 Mode = 2;
 	FAutoConsoleVariableRef CVarXGEShaderCompileMode(
 		TEXT("r.XGEShaderCompile.Mode"),
 		Mode,

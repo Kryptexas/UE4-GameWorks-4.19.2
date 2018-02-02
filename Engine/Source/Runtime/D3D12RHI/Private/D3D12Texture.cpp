@@ -200,6 +200,13 @@ void FD3D12TextureStats::D3D12TextureAllocated(TD3D12Texture2D<BaseResourceType>
 			Texture.SetMemorySize(TextureSize);
 
 			UpdateD3D12TextureStats(Desc, TextureSize, false, Texture.IsCubemap());
+
+#if PLATFORM_WINDOWS
+			// On Windows there is no way to hook into the low level d3d allocations and frees.
+			// This means that we must manually add the tracking here.
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, Texture.GetResource()->GetResource(), Texture.GetMemorySize(), ELLMTag::GraphicsPlatform));
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Texture.GetResource()->GetResource(), Texture.GetMemorySize(), ELLMTag::Textures));
+#endif
 		}
 	}
 }
@@ -217,6 +224,13 @@ void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<BaseResourceType>& 
 		check(TextureSize > 0 || (Texture.Flags & TexCreate_Virtual));
 
 		UpdateD3D12TextureStats(Desc, -TextureSize, false, Texture.IsCubemap());
+
+#if PLATFORM_WINDOWS
+		// On Windows there is no way to hook into the low level d3d allocations and frees.
+		// This means that we must manually add the tracking here.
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Platform, Texture.GetResource()->GetResource()));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Texture.GetResource()->GetResource()));
+#endif
 	}
 }
 
@@ -238,6 +252,13 @@ void FD3D12TextureStats::D3D12TextureAllocated(FD3D12Texture3D& Texture)
 		Texture.SetMemorySize(TextureSize);
 
 		UpdateD3D12TextureStats(Desc, TextureSize, true, false);
+
+#if PLATFORM_WINDOWS
+		// On Windows there is no way to hook into the low level d3d allocations and frees.
+		// This means that we must manually add the tracking here.
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, Texture.GetResource()->GetResource(), Texture.GetMemorySize(), ELLMTag::GraphicsPlatform));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Texture.GetResource()->GetResource(), Texture.GetMemorySize(), ELLMTag::Textures));
+#endif
 	}
 }
 
@@ -252,6 +273,13 @@ void FD3D12TextureStats::D3D12TextureDeleted(FD3D12Texture3D& Texture)
 		if (TextureSize > 0)
 		{
 			UpdateD3D12TextureStats(Desc, -TextureSize, true, false);
+
+#if PLATFORM_WINDOWS
+			// On Windows there is no way to hook into the low level d3d allocations and frees.
+			// This means that we must manually add the tracking here.
+			LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Platform, Texture.GetResource()->GetResource()));
+			LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Texture.GetResource()->GetResource()));
+#endif
 		}
 	}
 }
@@ -734,7 +762,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 						RTVDesc.Texture2DArray.MipSlice = MipIndex;
 						RTVDesc.Texture2DArray.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 
-						NewTexture->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
+						NewTexture->SetRenderTargetViewIndex(new FD3D12RenderTargetView(Device, RTVDesc, Location), RTVIndex++);
 					}
 				}
 				else
@@ -757,7 +785,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 						RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 					}
 
-					NewTexture->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
+					NewTexture->SetRenderTargetViewIndex(new FD3D12RenderTargetView(Device, RTVDesc, Location), RTVIndex++);
 				}
 			}
 		}
@@ -790,7 +818,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 					DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D12_DSV_FLAG_READ_ONLY_STENCIL : D3D12_DSV_FLAG_NONE;
 				}
 
-				NewTexture->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+				NewTexture->SetDepthStencilView(new FD3D12DepthStencilView(Device, DSVDesc, Location, HasStencil), AccessType);
 			}
 		}
 
@@ -852,8 +880,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 				SRVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, SRVDesc.Format);
 			}
 
-			FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
-			NewTexture->SetShaderResourceView(SRV);
+			NewTexture->SetShaderResourceView(new FD3D12ShaderResourceView(Device, SRVDesc, Location));
 		}
 
 		return NewTexture;
@@ -1007,7 +1034,7 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 			RTVDesc.Texture3D.FirstWSlice = 0;
 			RTVDesc.Texture3D.WSize = SizeZ;
 
-			Texture3D->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Texture3D->ResourceLocation, RTVDesc));
+			Texture3D->SetRenderTargetView(new FD3D12RenderTargetView(Device, RTVDesc, Texture3D->ResourceLocation));
 		}
 
 		// Create a shader resource view for the texture.
@@ -1018,8 +1045,7 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 		SRVDesc.Texture3D.MipLevels = NumMips;
 		SRVDesc.Texture3D.MostDetailedMip = 0;
 
-		FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Texture3D->ResourceLocation, SRVDesc);
-		Texture3D->SetShaderResourceView(SRV);
+		Texture3D->SetShaderResourceView(new FD3D12ShaderResourceView(Device, SRVDesc, Texture3D->ResourceLocation));
 
 		return Texture3D;
 	});
@@ -1202,8 +1228,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 
 		SRVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, SRVDesc.Format);
 
 		// Create a wrapper for the SRV and set it on the texture
-		FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &NewTexture->ResourceLocation, SRVDesc);
-		NewTexture->SetShaderResourceView(SRV);
+		NewTexture->SetShaderResourceView(new FD3D12ShaderResourceView(Device, SRVDesc, NewTexture->ResourceLocation));
 
 		return NewTexture;
 	});
@@ -2220,7 +2245,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromResource(EPixelFormat F
 					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
 				}
 
-				Texture2D->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), ArrayIndex * NumMips + MipIndex);
+				Texture2D->SetRenderTargetViewIndex(new FD3D12RenderTargetView(Device, RTVDesc, Location), ArrayIndex * NumMips + MipIndex);
 			}
 		}
 	}
@@ -2258,7 +2283,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromResource(EPixelFormat F
 				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
 			}
 
-			Texture2D->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+			Texture2D->SetDepthStencilView(new FD3D12DepthStencilView(Device, DSVDesc, Location, HasStencil), AccessType);
 		}
 	}
 
@@ -2300,8 +2325,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromResource(EPixelFormat F
 	}
 
 	// Create a wrapper for the SRV and set it on the texture
-	FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
-	Texture2D->SetShaderResourceView(SRV);
+	Texture2D->SetShaderResourceView(new FD3D12ShaderResourceView(Device, SRVDesc, Location));
 
 	FD3D12TextureStats::D3D12TextureAllocated(*Texture2D);
 
@@ -2389,7 +2413,7 @@ FTextureCubeRHIRef FD3D12DynamicRHI::RHICreateTextureCubeFromResource(EPixelForm
 					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
 				}
 
-				TextureCube->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), ArrayIndex * NumMips + MipIndex);
+				TextureCube->SetRenderTargetViewIndex(new FD3D12RenderTargetView(Device, RTVDesc, Location), ArrayIndex * NumMips + MipIndex);
 			}
 		}
 	}
@@ -2427,7 +2451,7 @@ FTextureCubeRHIRef FD3D12DynamicRHI::RHICreateTextureCubeFromResource(EPixelForm
 				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
 			}
 
-			TextureCube->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+			TextureCube->SetDepthStencilView(new FD3D12DepthStencilView(Device, DSVDesc, Location, HasStencil), AccessType);
 		}
 	}
 
@@ -2461,8 +2485,7 @@ FTextureCubeRHIRef FD3D12DynamicRHI::RHICreateTextureCubeFromResource(EPixelForm
 	SRVDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 
 	// Create a wrapper for the SRV and set it on the texture
-	FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
-	TextureCube->SetShaderResourceView(SRV);
+	TextureCube->SetShaderResourceView(new FD3D12ShaderResourceView(Device, SRVDesc, Location));
 
 	FD3D12TextureStats::D3D12TextureAllocated(*TextureCube);
 

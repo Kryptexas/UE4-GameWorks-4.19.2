@@ -864,8 +864,8 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	
 	if (bAnyViewIsReflectionCapture)
 	{
-		// If we're currently capturing a reflection capture, output SpecularColor * IndirectIrradiance for metals so they are not black in reflections,
-		// Since we don't have multiple bounce specular reflections
+	    // If we're currently capturing a reflection capture, output SpecularColor * IndirectIrradiance for metals so they are not black in reflections,
+	    // Since we don't have multiple bounce specular reflections
 		RenderReflectionCaptureSpecularBounceForAllViews(RHICmdList);
 	}
 	else
