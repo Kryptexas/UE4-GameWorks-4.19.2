@@ -1626,7 +1626,7 @@ public:
 	{
 		if (LowerLevel->DirectoryExists(Directory))
 		{
-			LowerLevel->FindFiles(FoundFiles, Directory, FileExtension);
+			LowerLevel->FindFilesRecursively(FoundFiles, Directory, FileExtension);
 		}
 		
 		bool bRecursive = true;
