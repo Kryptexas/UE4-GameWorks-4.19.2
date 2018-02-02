@@ -1073,8 +1073,7 @@ namespace UnrealBuildTool
 			// Override compile environment
 			Result.bFasterWithoutUnity = Rules.bFasterWithoutUnity;
 			Result.bOptimizeCode = ShouldEnableOptimization(Rules.OptimizeCode, Target.Configuration, bIsEngineModule);
-			Result.bUseRTTI = Rules.bUseRTTI || Target.bForceEnableRTTI;
-			Result.bUseInlining = Target.bUseInlining;
+			Result.bUseRTTI |= Rules.bUseRTTI;
 			Result.bUseAVX = Rules.bUseAVX;
 			Result.bEnableBufferSecurityChecks = Rules.bEnableBufferSecurityChecks;
 			Result.MinSourceFilesForUnityBuildOverride = Rules.MinSourceFilesForUnityBuildOverride;
@@ -1084,7 +1083,6 @@ namespace UnrealBuildTool
 			Result.bEnableObjCExceptions |= Rules.bEnableObjCExceptions;
 			Result.bEnableShadowVariableWarnings = Rules.bEnableShadowVariableWarnings;
 			Result.bEnableUndefinedIdentifierWarnings = Rules.bEnableUndefinedIdentifierWarnings;
-			Result.bUseStaticCRT = Target.bUseStaticCRT;
 			Result.OutputDirectory = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Rules.ShortName ?? Name);
 			Result.PCHOutputDirectory = (Result.PCHOutputDirectory == null)? null : DirectoryReference.Combine(Result.PCHOutputDirectory, Name);
 
@@ -1161,7 +1159,6 @@ namespace UnrealBuildTool
 			// Override compile environment
 			CompileEnvironment.bIsBuildingDLL = !Target.ShouldCompileMonolithic();
 			CompileEnvironment.bIsBuildingLibrary = false;
-			CompileEnvironment.bUseStaticCRT = (Target.Rules != null && Target.Rules.bUseStaticCRT);
 			CompileEnvironment.OutputDirectory = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Name);
 			CompileEnvironment.PCHOutputDirectory = (CompileEnvironment.PCHOutputDirectory == null)? null : DirectoryReference.Combine(CompileEnvironment.PCHOutputDirectory, Name);
 
