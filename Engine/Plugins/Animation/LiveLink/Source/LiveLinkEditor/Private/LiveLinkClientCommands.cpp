@@ -13,8 +13,8 @@ FLiveLinkClientCommands::FLiveLinkClientCommands()
 void FLiveLinkClientCommands::RegisterCommands()
 {
 	UI_COMMAND(AddSource, "Add", "Add a new live link source", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(RemoveSource, "Remove", "Remove selected live link source", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(RemoveAllSources, "Remove All", "Remove all live link sources", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(RemoveSource, "Remove Selected Source(s)", "Remove selected live link source", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(RemoveAllSources, "Remove All Sources", "Remove all live link sources", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE

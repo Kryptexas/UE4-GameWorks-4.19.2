@@ -599,7 +599,7 @@ void SLiveLinkClientPanel::HandleRemoveSource()
 
 bool SLiveLinkClientPanel::CanRemoveSource()
 {
-	return ListView->HasKeyboardFocus() && ListView->GetNumItemsSelected() > 0;
+	return ListView->GetNumItemsSelected() > 0;
 }
 
 void SLiveLinkClientPanel::HandleRemoveAllSources()
