@@ -886,7 +886,7 @@ namespace UnrealBuildTool
 					// Throw an exception if they don't match
 					if(!bFieldsMatch)
 					{
-						throw new BuildException("{0} modifies the value of {1}. This is not allowed, as {0} shares a compile environment with modules for {2}.\nRemove the modified setting or change {0} to use a unique build environment by setting 'BuildEnvironment = TargetBuildEnvironment.Unique;' in the {3} constructor.", ThisTargetName, Field.Name, BaseTargetName, ThisRules.GetType().Name);
+						throw new BuildException("{0} modifies the value of {1}. This is not allowed, as {0} has build products in common with {2}.\nRemove the modified setting or change {0} to use a unique build environment by setting 'BuildEnvironment = TargetBuildEnvironment.Unique;' in the {3} constructor.", ThisTargetName, Field.Name, BaseTargetName, ThisRules.GetType().Name);
 					}
 				}
 			}

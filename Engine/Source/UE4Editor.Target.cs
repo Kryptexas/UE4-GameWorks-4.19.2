@@ -13,12 +13,4 @@ public class UE4EditorTarget : TargetRules
 		bPrecompile = true;
 		ExtraModuleNames.Add("UE4Game");
 	}
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
-	}
 }

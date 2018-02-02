@@ -12,16 +12,4 @@ public class UE4ServerTarget : TargetRules
 		BuildEnvironment = TargetBuildEnvironment.Shared;
 		ExtraModuleNames.Add("UE4Game");
 	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-        TargetInfo Target,
-        ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-        ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-        )
-    {
-    }
 }

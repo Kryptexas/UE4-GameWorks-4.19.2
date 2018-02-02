@@ -102,7 +102,7 @@ TArray<FString> FCommandLine::FilterArgsForLogging;
 /**
  * When overriding this setting make sure that your define looks like the following in your .cs file:
  *
- *		OutCPPEnvironmentConfiguration.Definitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
+ *		GlobalDefinitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
  *
  * The important part is the \" as they quotes get stripped off by the compiler without them
  */
@@ -116,7 +116,7 @@ const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
 /**
  * When overriding this setting make sure that your define looks like the following in your .cs file:
  *
- *		OutCPPEnvironmentConfiguration.Definitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
+ *		GlobalDefinitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
  *
  * The important part is the \" as they quotes get stripped off by the compiler without them
  */

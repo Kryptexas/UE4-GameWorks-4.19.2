@@ -161,18 +161,21 @@ namespace UnrealBuildTool
 			#pragma warning disable CS1591
 			#endif
 
+			[Obsolete("LinkEnvironmentConfiguration.bHasExports is deprecated in the 4.19 release. Modify TargetRules.bHasExports instead.")]
 			public bool bHasExports
 			{
 				get { return Inner.bHasExports; }
 				set { Inner.bHasExports = value; }
 			}
 
+			[Obsolete("LinkEnvironmentConfiguration.bIsBuildingConsoleApplication is deprecated in the 4.19 release. Modify TargetRules.bIsBuildingConsoleApplication instead.")]
 			public bool bIsBuildingConsoleApplication
 			{
 				get { return Inner.bIsBuildingConsoleApplication; }
 				set { Inner.bIsBuildingConsoleApplication = value; }
 			}
 
+			[Obsolete("LinkEnvironmentConfiguration.bDisableSymbolCache is deprecated in the 4.19 release. Modify TargetRules.bDisableSymbolCache instead.")]
 			public bool bDisableSymbolCache
 			{
 				get { return Inner.bDisableSymbolCache; }
@@ -212,11 +215,13 @@ namespace UnrealBuildTool
 			#pragma warning disable CS1591
 			#endif
 
+			[Obsolete("CPPEnvironmentConfiguration.bEnableOSX109Support is deprecated in the 4.19 release. Modify TargetRules.GlobalDefinitions instead.")]
 			public List<string> Definitions
 			{
 				get { return Inner.GlobalDefinitions; }
 			}
 
+			[Obsolete("CPPEnvironmentConfiguration.bEnableOSX109Support is deprecated in the 4.19 release. Modify TargetRules.bEnableOSX109Support directly instead.")]
 			public bool bEnableOSX109Support
 			{
 				get { return Inner.bEnableOSX109Support; }
@@ -994,6 +999,15 @@ namespace UnrealBuildTool
 		public List<string> GlobalDefinitions = new List<string>();
 
 		/// <summary>
+		/// Wrapper around GlobalDefinitions for people just stripping CPPEnvironmentConfiguration from variable names due to deprecation in 4.18.
+		/// </summary>
+		[Obsolete("Definitions is deprecated in the 4.19 release. Use GlobalDefinitions instead.")]
+		public List<string> Definitions
+		{
+			get { return GlobalDefinitions; }
+		}
+
+		/// <summary>
 		/// Specifies the name of the launch module. For modular builds, this is the module that is compiled into the target's executable.
 		/// </summary>
 		public string LaunchModuleName
@@ -1258,6 +1272,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target information - such as platform and configuration</param>
 		/// <param name="OutLinkEnvironmentConfiguration">Output link environment settings</param>
 		/// <param name="OutCPPEnvironmentConfiguration">Output compile environment settings</param>
+		[ObsoleteOverride("SetupGlobalEnvironment() has been deprecated in the 4.19 release. Please set options from the constructor instead.")]
 		public virtual void SetupGlobalEnvironment(
 			TargetInfo Target,
 			ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,

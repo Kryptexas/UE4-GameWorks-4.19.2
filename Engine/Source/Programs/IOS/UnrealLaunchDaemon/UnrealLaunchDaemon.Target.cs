@@ -16,22 +16,11 @@ public class UnrealLaunchDaemonTarget : TargetRules
 		AdditionalPlugins.Add("UdpMessaging");
 
 		LaunchModuleName = "UnrealLaunchDaemon";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 		bBuildEditor = false;
 		bCompileAgainstEngine = false;
 
-		OutLinkEnvironmentConfiguration.bHasExports = false;
+		bHasExports = false;
 	}
 }

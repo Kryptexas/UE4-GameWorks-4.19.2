@@ -14,24 +14,14 @@ public class BuildPatchToolTarget : TargetRules
 		LaunchModuleName = "BuildPatchTool";
 		bOutputPubliclyDistributable = true;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration)
-	{
 		bBuildEditor = false;
 		bCompileAgainstEngine = false;
 		bCompileAgainstCoreUObject = false;
 		bCompileLeanAndMeanUE = true;
 		bUseLoggingInShipping = true;
 		bUseChecksInShipping = true;
-		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
-		OutLinkEnvironmentConfiguration.bHasExports = false;
+		bIsBuildingConsoleApplication = true;
+		bHasExports = false;
 	}
 }

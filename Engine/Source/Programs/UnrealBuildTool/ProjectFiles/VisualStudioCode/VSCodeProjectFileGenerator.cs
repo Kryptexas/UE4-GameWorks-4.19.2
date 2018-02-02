@@ -403,7 +403,7 @@ namespace UnrealBuildTool
 							}
 						}
 
-						NewTarget.Defines.AddRange(CppEnvironment.Definitions);
+						NewTarget.Defines.AddRange(Target.TargetRules.GlobalDefinitions);
 					}
 
 					NewProject.IncludePaths = new List<string>();
@@ -930,7 +930,7 @@ namespace UnrealBuildTool
 			ExecutableFilename += BuildPlatform.GetBinaryExtension(UEBuildBinaryType.Executable);
 
 			// Include the path to the actual executable for a Mac app bundle
-			if (Platform == UnrealTargetPlatform.Mac && !LinkEnvironment.bIsBuildingConsoleApplication)
+			if (Platform == UnrealTargetPlatform.Mac && !Target.TargetRules.bIsBuildingConsoleApplication)
 			{
 				ExecutableFilename += ".app/Contents/MacOS/" + Path.GetFileName(ExecutableFilename);
 			}

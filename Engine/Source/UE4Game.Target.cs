@@ -12,15 +12,8 @@ public class UE4GameTarget : TargetRules
 		BuildEnvironment = TargetBuildEnvironment.Shared;
 
 		ExtraModuleNames.Add("UE4Game");
-	}
 
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
-        if (Target.Platform == UnrealTargetPlatform.IOS)
+		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			// to make World Explorers as small as possible we excluded some items from the engine.
 			// uncomment below to make a smaller iOS build

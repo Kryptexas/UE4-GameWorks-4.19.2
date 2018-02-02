@@ -13,18 +13,7 @@ public class BootstrapPackagedGameTarget : TargetRules
 		LaunchModuleName = "BootstrapPackagedGame";
 
 		bUseStaticCRT = true;
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bUseUnityBuild = false;
 		bUseSharedPCHs = false;
 		bUseMallocProfiler = false;

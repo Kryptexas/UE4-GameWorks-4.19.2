@@ -10,18 +10,7 @@ public class UnrealFileServerTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Modular;
 		LaunchModuleName = "UnrealFileServer";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		// Lean and mean
 		bCompileLeanAndMeanUE = true;
 
@@ -40,6 +29,6 @@ public class UnrealFileServerTarget : TargetRules
 		bBuildDeveloperTools = false;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
-		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
+		bIsBuildingConsoleApplication = true;
 	}
 }

@@ -46,16 +46,6 @@ namespace UnrealBuildTool
 		public readonly ReadOnlyBuildVersion Version;
 
 		/// <summary>
-		/// The type of the target (if known)
-		/// </summary>
-		public readonly TargetType? Type;
-
-		/// <summary>
-		/// Whether the target is monolithic or not (if known)
-		/// </summary>
-		public readonly bool? bIsMonolithic;
-
-		/// <summary>
 		/// Constructs a TargetInfo for passing to the TargetRules constructor.
 		/// </summary>
 		/// <param name="Name">Name of the target being built</param>
@@ -86,38 +76,6 @@ namespace UnrealBuildTool
 			this.Architecture = Rules.Architecture;
 			this.ProjectFile = Rules.ProjectFile;
 			this.Version = Rules.Version;
-			this.Type = Rules.Type;
-			this.bIsMonolithic = (Rules.LinkType == TargetLinkType.Monolithic);
-		}
-
-		/// <summary>
-		/// True if the target type is a cooked game.
-		/// </summary>
-		public bool IsCooked
-		{
-			get
-			{
-				if (!Type.HasValue)
-				{
-					throw new BuildException("Trying to access TargetInfo.IsCooked when TargetInfo.Type is not set. Make sure IsCooked is used only in ModuleRules.");
-				}
-				return Type == TargetType.Client || Type == TargetType.Game || Type == TargetType.Server;
-			}
-		}
-
-		/// <summary>
-		/// True if the target type is a monolithic binary
-		/// </summary>
-		public bool IsMonolithic
-		{
-			get
-			{
-				if (!bIsMonolithic.HasValue)
-				{
-					throw new BuildException("Trying to access TargetInfo.IsMonolithic when bIsMonolithic is not set. Make sure IsMonolithic is used only in ModuleRules.");
-				}
-				return bIsMonolithic.Value;
-			}
 		}
 	}
 }

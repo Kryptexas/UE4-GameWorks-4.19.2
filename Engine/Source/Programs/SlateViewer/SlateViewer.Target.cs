@@ -14,18 +14,7 @@ public class SlateViewerTarget : TargetRules
 
 		LaunchModuleName = "SlateViewer";
 		ExtraModuleNames.Add("EditorStyle");
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
@@ -39,6 +28,6 @@ public class SlateViewerTarget : TargetRules
 
 		// SlateViewer.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.
-		OutLinkEnvironmentConfiguration.bHasExports = false;
+		bHasExports = false;
 	}
 }
