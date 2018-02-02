@@ -34,7 +34,8 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
 	Ar << S.MaxBoneInfluences;
 	Ar << S.CorrespondClothAssetIndex;
 	Ar << S.ClothingData;
-    Ar << S.DuplicatedVerticesBuffer;
+	Ar << S.DuplicatedVerticesBuffer;
+	Ar << S.bDisabled;
 
 	return Ar;
 }
@@ -446,6 +447,7 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* 
 		NewRenderSection.CorrespondClothAssetIndex = ModelSection.CorrespondClothAssetIndex;
 		NewRenderSection.ClothingData = ModelSection.ClothingData;
 		NewRenderSection.DuplicatedVerticesBuffer.Init(ModelSection.NumVertices, ModelSection.OverlappingVertices);
+		NewRenderSection.bDisabled = ModelSection.bDisabled;
 		RenderSections.Add(NewRenderSection);
 	}
 

@@ -186,6 +186,15 @@ public:
 	}
 
 	/**
+	* Add a custom action to the row context menu
+	*/
+	FDetailWidgetRow& AddCustomContextMenuAction(const FUIAction& Action, const FText& Name, const FText& Tooltip = FText(), const FSlateIcon& SlateIcon = FSlateIcon())
+	{
+		CustomMenuItems.Add(FCustomMenuData(Action, Name, Tooltip, SlateIcon));
+		return *this;
+	}
+
+	/**
 	 * @return true if the row has columns, false if it spans the entire row
 	 */
 	bool HasColumns() const
@@ -256,6 +265,24 @@ public:
 	FUIAction CopyMenuAction;
 	/** Action for pasting data on this row */
 	FUIAction PasteMenuAction;
+
+	struct FCustomMenuData
+	{
+		FCustomMenuData(const FUIAction& InAction, const FText& InName, const FText& InTooltip, const FSlateIcon& InSlateIcon)
+			: Action(InAction)
+			, Name(InName)
+			, Tooltip(InTooltip)
+			, SlateIcon(InSlateIcon)
+		{}
+
+		const FUIAction Action;
+		const FText Name;
+		const FText Tooltip;
+		const FSlateIcon SlateIcon;
+	};
+	/** Custom Action on this row */
+	TArray<FCustomMenuData> CustomMenuItems;
+
 	/* Tag to identify this row */
 	FName RowTagName;
 	/* Flag to track if property has been modified from default */

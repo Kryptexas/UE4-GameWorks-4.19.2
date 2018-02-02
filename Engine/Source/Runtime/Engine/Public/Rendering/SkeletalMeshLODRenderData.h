@@ -58,8 +58,11 @@ struct FSkelMeshRenderSection
 	/** Clothing data for this section, clothing is only present if ClothingData.IsValid() returns true */
 	FClothingSectionData ClothingData;
 
-    /** Index Buffer containting all duplicated vertices in the section and a buffer containing which indices into the index buffer are relevant per vertex **/
-    FDuplicatedVerticesBuffer DuplicatedVerticesBuffer;
+	/** Index Buffer containting all duplicated vertices in the section and a buffer containing which indices into the index buffer are relevant per vertex **/
+	FDuplicatedVerticesBuffer DuplicatedVerticesBuffer;
+
+	/** Disabled sections will not be collected when rendering, controlled from the source section in the skeletal mesh asset */
+	bool bDisabled;
 
 	FSkelMeshRenderSection()
 		: MaterialIndex(0)
@@ -71,6 +74,7 @@ struct FSkelMeshRenderSection
 		, NumVertices(0)
 		, MaxBoneInfluences(4)
 		, CorrespondClothAssetIndex(-1)
+		, bDisabled(false)
 	{}
 
 	FORCEINLINE bool HasClothingData() const

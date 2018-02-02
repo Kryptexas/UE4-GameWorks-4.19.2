@@ -45,6 +45,10 @@ struct CORE_API FReleaseObjectVersion
 
 		// Material layers serialization refactor
 		MaterialLayersParameterSerializationRefactor,
+
+		// Added disable flag to skeletal mesh data
+		AddSkeletalMeshSectionDisable,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

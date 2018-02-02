@@ -14,6 +14,7 @@
 #include "Rendering/ColorVertexBuffer.h"
 #include "Rendering/SkeletalMeshVertexClothBuffer.h"
 #include "Rendering/SkinWeightVertexBuffer.h"
+#include "ReleaseObjectVersion.h"
 
 /*-----------------------------------------------------------------------------
 FSoftSkinVertex
@@ -222,6 +223,7 @@ void FSkelMeshSection::CalcMaxBoneInfluences()
 FArchive& operator<<(FArchive& Ar, FSkelMeshSection& S)
 {
 	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	// When data is cooked for server platform some of the
 	// variables are not serialized so that they're always
@@ -388,14 +390,19 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshSection& S)
 			Ar << S.ClothingData;
 		}
 
-        Ar.UsingCustomVersion(FOverlappingVerticesCustomVersion::GUID);
+		Ar.UsingCustomVersion(FOverlappingVerticesCustomVersion::GUID);
+		
+		if (Ar.CustomVer(FOverlappingVerticesCustomVersion::GUID) >= FOverlappingVerticesCustomVersion::DetectOVerlappingVertices)
+		{
+			Ar << S.OverlappingVertices;
+		}
 
-        if (Ar.CustomVer(FOverlappingVerticesCustomVersion::GUID) >= FOverlappingVerticesCustomVersion::DetectOVerlappingVertices)
-        {
-            Ar << S.OverlappingVertices;
-        }
+		if(Ar.CustomVer(FReleaseObjectVersion::GUID) >= FReleaseObjectVersion::AddSkeletalMeshSectionDisable)
+		{
+			Ar << S.bDisabled;
+		}
 
-        return Ar;
+		return Ar;
 	}
 
 	return Ar;

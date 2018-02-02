@@ -478,6 +478,7 @@ bool SDetailSingleItemRow::OnContextMenuOpening(FMenuBuilder& MenuBuilder)
 		}
 	}
 
+	bool bAddedMenuEntry = false;
 	if (CopyAction.IsBound() && PasteAction.IsBound())
 	{
 		// Hide separator line if it only contains the SearchWidget, making the next 2 elements the top of the list
@@ -498,10 +499,21 @@ bool SDetailSingleItemRow::OnContextMenuOpening(FMenuBuilder& MenuBuilder)
 			FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "GenericCommands.Paste"),
 			PasteAction);
 
-		return true;
+		bAddedMenuEntry = true;
 	}
 
-	return false;
+	for(const FDetailWidgetRow::FCustomMenuData& CustomMenuData : Customization->GetWidgetRow().CustomMenuItems)
+	{
+		//Add the menu entry
+		MenuBuilder.AddMenuEntry(
+			CustomMenuData.Name,
+			CustomMenuData.Tooltip,
+			CustomMenuData.SlateIcon,
+			CustomMenuData.Action);
+		bAddedMenuEntry = true;
+	}
+
+	return bAddedMenuEntry;
 }
 
 void SDetailSingleItemRow::OnLeftColumnResized( float InNewWidth )

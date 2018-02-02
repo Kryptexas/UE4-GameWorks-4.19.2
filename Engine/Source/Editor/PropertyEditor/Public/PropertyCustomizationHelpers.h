@@ -656,6 +656,7 @@ DECLARE_DELEGATE(FOnPasteSectionList);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCanCopySectionItem, int32, int32);
 DECLARE_DELEGATE_TwoParams(FOnCopySectionItem, int32, int32);
 DECLARE_DELEGATE_TwoParams(FOnPasteSectionItem, int32, int32);
+DECLARE_DELEGATE_ThreeParams(FOnEnableSectionItem, int32, int32, bool);
 
 struct FSectionListDelegates
 {
@@ -691,6 +692,8 @@ struct FSectionListDelegates
 	FOnCanCopySectionItem OnCanCopySectionItem;
 	/** Delegate called Pasting a section item */
 	FOnPasteSectionItem OnPasteSectionItem;
+	/** Delegate called when enabling/disabling a section item */
+	FOnEnableSectionItem OnEnableSectionItem;
 };
 
 /**
@@ -828,6 +831,7 @@ private:
 	bool OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const;
 	void OnCopySectionItem(int32 LODIndex, int32 SectionIndex);
 	void OnPasteSectionItem(int32 LODIndex, int32 SectionIndex);
+	void OnEnableSectionItem(int32 LodIndex, int32 SectionIndex, bool bEnable);
 
 	/** Delegates for the Section list */
 	FSectionListDelegates SectionListDelegates;

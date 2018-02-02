@@ -1780,6 +1780,11 @@ void FSectionList::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
 	}
 }
 
+void FSectionList::OnEnableSectionItem(int32 LodIndex, int32 SectionIndex, bool bEnable)
+{
+	SectionListDelegates.OnEnableSectionItem.ExecuteIfBound(LodIndex, SectionIndex, bEnable);
+}
+
 void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const struct FSectionListItem& Item, bool bDisplayLink)
 {
 	uint32 NumSections = SectionListBuilder->GetNumSections(LodIndex);
@@ -1812,6 +1817,12 @@ void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const s
 
 	Row.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnCopySectionItem, LodIndex, Item.SectionIndex), FCanExecuteAction::CreateSP(this, &FSectionList::OnCanCopySectionItem, LodIndex, Item.SectionIndex)));
 	Row.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnPasteSectionItem, LodIndex, Item.SectionIndex)));
+
+	if(SectionListDelegates.OnEnableSectionItem.IsBound())
+	{
+		Row.AddCustomContextMenuAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnEnableSectionItem, LodIndex, Item.SectionIndex, true)), LOCTEXT("SectionItemContexMenu_Enable", "Enable"));
+		Row.AddCustomContextMenuAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnEnableSectionItem, LodIndex, Item.SectionIndex, false)), LOCTEXT("SectionItemContexMenu_Disable", "Disable"));
+	}
 
 	Row.NameContent()
 		[

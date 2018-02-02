@@ -1244,6 +1244,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 				SectionListDelegates.OnCopySectionItem.BindSP(this, &FPersonaMeshDetails::OnCopySectionItem);
 				SectionListDelegates.OnCanCopySectionItem.BindSP(this, &FPersonaMeshDetails::OnCanCopySectionItem);
 				SectionListDelegates.OnPasteSectionItem.BindSP(this, &FPersonaMeshDetails::OnPasteSectionItem);
+				SectionListDelegates.OnEnableSectionItem.BindSP(this, &FPersonaMeshDetails::OnSectionEnabledChanged);
 
 				LODCategory.AddCustomBuilder(MakeShareable(new FSectionList(LODCategory.GetParentLayout(), SectionListDelegates, false, 64, LODIndex)));
 
@@ -2383,31 +2384,47 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection(i
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SectionIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SectionIndex)
-			.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
+			SNew(SVerticalBox)
+			.Visibility(this, &FPersonaMeshDetails::ShowEnabledSectionDetail, LodIndex, SectionIndex)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
-				.Text(LOCTEXT("Highlight", "Highlight"))
+				SNew(SCheckBox)
+				.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SectionIndex)
+				.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SectionIndex)
+				.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+					.Text(LOCTEXT("Highlight", "Highlight"))
+				]
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 2, 0, 0)
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &FPersonaMeshDetails::IsIsolateSectionEnabled, SectionIndex)
+				.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionIsolatedChanged, SectionIndex)
+				.ToolTipText(LOCTEXT("Isolate_ToolTip", "Isolates this section in the viewport"))
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+					.Text(LOCTEXT("Isolate", "Isolate"))
+				]
 			]
 		]
 		+ SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding(0, 2, 0, 0)
-			[
-			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsIsolateSectionEnabled, SectionIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionIsolatedChanged, SectionIndex)
-			.ToolTipText(LOCTEXT("Isolate_ToolTip", "Isolates this section in the viewport"))
-				[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
-				.Text(LOCTEXT("Isolate", "Isolate"))
-				]
+		[
+			SNew(STextBlock)
+			.Visibility(this, &FPersonaMeshDetails::ShowDisabledSectionDetail, LodIndex, SectionIndex)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+			.Text(LOCTEXT("SectionDisabled", "Disabled"))
+			.ToolTipText(LOCTEXT("SectionDisable_ToolTip", "The section will not be rendered."))
 		];
 }
 
@@ -2495,6 +2512,77 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 		]
 	];
 	return SectionWidget;
+}
+
+bool FPersonaMeshDetails::IsSectionEnabled(int32 LodIndex, int32 SectionIndex) const
+{
+	if(SkeletalMeshPtr.IsValid())
+	{
+		FSkeletalMeshModel* SourceModel = SkeletalMeshPtr->GetImportedModel();
+
+		if(SourceModel->LODModels.IsValidIndex(LodIndex))
+		{
+			FSkeletalMeshLODModel& LodModel = SourceModel->LODModels[LodIndex];
+
+			if(LodModel.Sections.IsValidIndex(SectionIndex))
+			{
+				return !LodModel.Sections[SectionIndex].bDisabled;
+			}
+		}
+	}
+
+	return false;
+}
+
+EVisibility FPersonaMeshDetails::ShowEnabledSectionDetail(int32 LodIndex, int32 SectionIndex) const
+{
+	return IsSectionEnabled(LodIndex, SectionIndex) ? EVisibility::All : EVisibility::Collapsed;
+}
+
+EVisibility FPersonaMeshDetails::ShowDisabledSectionDetail(int32 LodIndex, int32 SectionIndex) const
+{
+	return IsSectionEnabled(LodIndex, SectionIndex) ? EVisibility::Collapsed : EVisibility::All;
+}
+
+void FPersonaMeshDetails::OnSectionEnabledChanged(int32 LodIndex, int32 SectionIndex, bool bEnable)
+{
+	if(SkeletalMeshPtr.IsValid())
+	{
+		FSkeletalMeshModel* SourceModel = SkeletalMeshPtr->GetImportedModel();
+
+		if(SourceModel->LODModels.IsValidIndex(LodIndex))
+		{
+			FSkeletalMeshLODModel& LodModel = SourceModel->LODModels[LodIndex];
+
+			if(LodModel.Sections.IsValidIndex(SectionIndex))
+			{
+				FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
+
+				if(Section.bDisabled != !bEnable)
+				{
+					FScopedTransaction Transaction(LOCTEXT("ChangeSectionEnabled", "Set section disabled flag."));
+
+					SkeletalMeshPtr->Modify();
+					SkeletalMeshPtr->PreEditChange(nullptr);
+
+					Section.bDisabled = !bEnable;
+
+					// Disable highlight and isolate flags
+					UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+					if(MeshComponent)
+					{
+						MeshComponent->SetSelectedEditorSection(INDEX_NONE);
+						MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
+						MeshComponent->SetMaterialPreview(INDEX_NONE);
+						MeshComponent->SetSectionPreview(INDEX_NONE);
+					}
+
+					// Invalidate render data
+					SkeletalMeshPtr->PostEditChange();
+				}
+			}
+		}
+	}
 }
 
 void FPersonaMeshDetails::SetCurrentLOD(int32 NewLodIndex)

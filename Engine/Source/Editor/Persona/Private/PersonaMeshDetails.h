@@ -206,6 +206,11 @@ private:
 	 */
 	TSharedRef<SWidget> OnGenerateCustomSectionWidgetsForSection(int32 LODIndex, int32 SectionIndex);
 
+	bool IsSectionEnabled(int32 LodIndex, int32 SectionIndex) const;
+	EVisibility ShowEnabledSectionDetail(int32 LodIndex, int32 SectionIndex) const;
+	EVisibility ShowDisabledSectionDetail(int32 LodIndex, int32 SectionIndex) const;
+	void OnSectionEnabledChanged(int32 LodIndex, int32 SectionIndex, bool bEnable);
+
 	TSharedRef<SWidget> OnGenerateLodComboBoxForLodPicker();
 	EVisibility LodComboBoxVisibilityForLodPicker() const;
 	bool IsLodComboBoxEnabledForLodPicker() const;

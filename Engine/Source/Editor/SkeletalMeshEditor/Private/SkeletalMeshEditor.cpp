@@ -432,6 +432,16 @@ void FSkeletalMeshEditor::OnCreateClothingAssetMenuItemClicked(FSkeletalMeshClot
 				Mesh->AddClothingAsset(NewClothingAsset);
 			}
 		}
+
+		//Make sure no section is isolated or highlighted
+		UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+		if(MeshComponent)
+		{
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
+			MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
+			MeshComponent->SetMaterialPreview(INDEX_NONE);
+			MeshComponent->SetSectionPreview(INDEX_NONE);
+		}
 	}
 }
 
