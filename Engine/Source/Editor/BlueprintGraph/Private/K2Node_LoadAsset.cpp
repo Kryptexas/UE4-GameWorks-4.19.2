@@ -115,20 +115,7 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 		bIsErrorFree &= LoadedObjectVariablePin && OutputObjectPinPin && CompilerContext.MovePinLinksToIntermediate(*OutputObjectPinPin, *LoadedObjectVariablePin).CanSafeConnect();
 	}
 
-	// connect assign exec input to function output
-	{
-		UEdGraphPin* CallFunctionOutputExePin = CallLoadAssetNode->FindPin(UEdGraphSchema_K2::PN_Then);
-		UEdGraphPin* AssignInputExePin = AssignNode->GetExecPin();
-		bIsErrorFree &= AssignInputExePin && CallFunctionOutputExePin && Schema->TryCreateConnection(AssignInputExePin, CallFunctionOutputExePin);
-	}
-
-	// connect assign exec output to output
-	{
-		UEdGraphPin* OutputCompletedPin = FindPin(UEdGraphSchema_K2::PN_Completed);
-		UEdGraphPin* AssignOutputExePin = AssignNode->GetThenPin();
-		bIsErrorFree &= OutputCompletedPin && AssignOutputExePin && CompilerContext.MovePinLinksToIntermediate(*OutputCompletedPin, *AssignOutputExePin).CanSafeConnect();
-	}
-
+	
 	// connect to asset
 	UEdGraphPin* CallFunctionAssetPin = CallLoadAssetNode->FindPin(GetInputPinName());
 	{
@@ -189,6 +176,20 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 		ensure(LoadedAssetEventPin);
 		UEdGraphPin* AssignRHSPPin = AssignNode->GetValuePin();
 		bIsErrorFree &= AssignRHSPPin && LoadedAssetEventPin && Schema->TryCreateConnection(LoadedAssetEventPin, AssignRHSPPin);
+	}
+
+	// connect assign exec input to event output
+	{
+		UEdGraphPin* OnLoadEventOutputPin = OnLoadEventNode->FindPin(UEdGraphSchema_K2::PN_Then);
+		UEdGraphPin* AssignInputExePin = AssignNode->GetExecPin();
+		bIsErrorFree &= AssignInputExePin && OnLoadEventOutputPin && Schema->TryCreateConnection(AssignInputExePin, OnLoadEventOutputPin);
+	}
+
+	// connect assign exec output to output
+	{
+		UEdGraphPin* OutputCompletedPin = FindPin(UEdGraphSchema_K2::PN_Completed);
+		UEdGraphPin* AssignOutputExePin = AssignNode->GetThenPin();
+		bIsErrorFree &= OutputCompletedPin && AssignOutputExePin && CompilerContext.MovePinLinksToIntermediate(*OutputCompletedPin, *AssignOutputExePin).CanSafeConnect();
 	}
 
 	if (!bIsErrorFree)
