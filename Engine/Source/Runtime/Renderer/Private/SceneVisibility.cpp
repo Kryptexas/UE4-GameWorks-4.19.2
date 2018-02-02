@@ -1694,7 +1694,6 @@ struct FRelevancePacket
 		// using a local counter to reduce memory traffic
 		int32 NumVisibleStaticMeshElements = 0;
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
-		FFrozenSceneViewMatricesGuard FrozenMatricesGuard(WriteView);
 		const FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 		const bool bHLODActive = Scene->SceneLODHierarchy.IsActive();
@@ -1891,6 +1890,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 {
 	check(OutHasDynamicMeshElementsMasks.Num() == Scene->Primitives.Num());
 
+	FFrozenSceneViewMatricesGuard FrozenMatricesGuard(View);
 	const FMarkRelevantStaticMeshesForViewData ViewData(View);
 
 	int32 NumMesh = View.StaticMeshVisibilityMap.Num();
