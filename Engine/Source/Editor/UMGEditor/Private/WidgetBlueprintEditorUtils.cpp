@@ -450,7 +450,7 @@ void FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(
 	if (Preview != nullptr && WidgetTree != nullptr)
 	{
 		// Find the first widget up the chain with a null parent, they're the only candidates for this approach.
-		while (WidgetTemplate->GetParent())
+		while (WidgetTemplate && WidgetTemplate->GetParent())
 		{
 			WidgetTemplate = WidgetTemplate->GetParent();
 		}
