@@ -414,7 +414,8 @@ namespace UnrealBuildTool
 			ECompilationResult Result = ECompilationResult.Succeeded;
 
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
-			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new UEConsoleTraceListener() });
+			bool bLogProgramNameWithSeverity = Arguments.Any(x => x.Equals("-FromMsBuild", StringComparison.InvariantCultureIgnoreCase));
+			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogProgramNameWithSeverity: bLogProgramNameWithSeverity, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new UEConsoleTraceListener() });
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
@@ -613,6 +614,7 @@ namespace UnrealBuildTool
 						bLogTimestamps: false,
 						InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
 						bLogSeverity: true,
+						bLogProgramNameWithSeverity: bLogProgramNameWithSeverity,
 						bLogSources: false,
 						bLogSourcesToConsole: false,
 						bColorConsoleOutput: true,

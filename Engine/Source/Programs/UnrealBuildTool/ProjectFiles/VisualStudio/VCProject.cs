@@ -1223,7 +1223,7 @@ namespace UnrealBuildTool
 					string BuildArguments = " " + TargetName + " " + UBTPlatformName + " " + UBTConfigurationName;
 					if (ProjectFileGenerator.bUsePrecompiled)
 					{
-						BuildArguments += " -useprecompiled";
+						BuildArguments += " -UsePrecompiled";
 					}
 					if (IsForeignProject)
 					{
@@ -1231,7 +1231,10 @@ namespace UnrealBuildTool
 					}
 
 					// Always wait for the mutex between UBT invocations, so that building the whole solution doesn't fail.
-					BuildArguments += " -waitmutex";
+					BuildArguments += " -WaitMutex";
+
+					// Always include a flag to format log messages for MSBuild
+					BuildArguments += " -FromMsBuild";
 
 					if (bUseFastPDB)
 					{
