@@ -1250,6 +1250,11 @@ namespace UnrealBuildTool
 					{
 						HotReload = EHotReload.FromEditor;
 					}
+
+					if (HotReload != EHotReload.Disabled && BuildConfiguration.bCleanProject)
+					{
+						throw new BuildException("Unable to clean target while hot-reloading. Close the editor and try again.");
+					}
 				}
 				TargetDescriptor HotReloadTargetDesc = (HotReload != EHotReload.Disabled) ? TargetDescs[0] : null;
 
