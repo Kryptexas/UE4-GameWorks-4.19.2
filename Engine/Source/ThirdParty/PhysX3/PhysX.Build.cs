@@ -25,7 +25,7 @@ public class PhysX : ModuleRules
 				}
 				else
 				{
-					return PhysXLibraryMode.Debug;
+					return PhysXLibraryMode.Checked;
 				}
 			case UnrealTargetConfiguration.Shipping:
 			case UnrealTargetConfiguration.Test:
