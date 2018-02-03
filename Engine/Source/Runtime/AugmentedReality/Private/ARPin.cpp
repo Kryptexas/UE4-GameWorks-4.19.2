@@ -6,6 +6,8 @@
 #include "DrawDebugHelpers.h"
 #include "Components/SceneComponent.h"
 
+#include "Engine/Engine.h"
+
 //
 //
 //
@@ -50,6 +52,13 @@ USceneComponent* UARPin::GetPinnedComponent() const
 	return PinnedComponent;
 }
 
+
+FTransform UARPin::GetLocalToTrackingTransform_NoAlignment() const
+{
+	return LocalToTrackingTransform;
+}
+
+
 void UARPin::OnTrackingStateChanged(EARTrackingState NewTrackingState)
 {
 	if (NewTrackingState == EARTrackingState::StoppedTracking)
@@ -62,27 +71,6 @@ void UARPin::OnTrackingStateChanged(EARTrackingState NewTrackingState)
 	OnARTrackingStateChanged.Broadcast(NewTrackingState);
 }
 
-void UARPin::OnTransformUpdated(const FTransform& TrackedGeometry_OldLocalToTrackingTransform, const FTransform& TrackedGeometry_NewLocalToTrackingTransform)
-{
-	// We have an existing TrackedGeometry LocalToTracking and a TrackedGeometry NewLocalToTracking.
-	// We want to find TrackedGeometry's TrackingToNewTracking. It represents the change in transforms.
-	// Then we apply this change to the ARPin: that we get ARPin.LocalToTracking *= TrackingToNewTracking;
-	FTransform TrackingToNewTracking = TrackedGeometry_OldLocalToTrackingTransform.GetRelativeTransformReverse(TrackedGeometry_NewLocalToTrackingTransform);
-	
-	const FTransform OldLocalToWorldTransform = GetLocalToWorldTransform();
-	LocalToTrackingTransform = TrackedGeometry_NewLocalToTrackingTransform;
-	LocalToAlignedTrackingTransform = LocalToTrackingTransform * GetARSystem()->GetAlignmentTransform();
-	const FTransform NewLocalToWorldTransform = GetLocalToWorldTransform();
-	
-	// Move the component to match the Pin's new location
-	if (PinnedComponent)
-	{
-		PinnedComponent->SetWorldTransform(NewLocalToWorldTransform);
-	}
-	
-	// Notify any subscribes that the Pin moved
-	OnARTransformUpdated.Broadcast(TrackingToNewTracking);
-}
 
 void UARPin::OnTransformUpdated(const FTransform& NewLocalToTrackingTransform)
 {
@@ -91,11 +79,10 @@ void UARPin::OnTransformUpdated(const FTransform& NewLocalToTrackingTransform)
 	LocalToTrackingTransform = NewLocalToTrackingTransform;
 	LocalToAlignedTrackingTransform = LocalToTrackingTransform * GetARSystem()->GetAlignmentTransform();
 	
-	const FTransform NewLocalToWorldTransform = GetLocalToWorldTransform();
-
 	// Move the component to match the Pin's new location
 	if (PinnedComponent)
 	{
+		const FTransform NewLocalToWorldTransform = GetLocalToWorldTransform();
 		PinnedComponent->SetWorldTransform(NewLocalToWorldTransform);
 	}
 
@@ -111,6 +98,12 @@ void UARPin::UpdateAlignmentTransform( const FTransform& NewAlignmentTransform )
 	
 	// Note that when the alignment transform changes, we are not going to rely on geometries sending updates.
 	// Instead, we are going to broadcast an update that directly modifies all the geometries and pins.
+	// Move the component to match the Pin's new location
+	if (PinnedComponent)
+	{
+		const FTransform NewLocalToWorldTransform = GetLocalToWorldTransform();
+		PinnedComponent->SetWorldTransform(NewLocalToWorldTransform);
+	}
 	
 	FTransform DeltaTransform = OldLocalToAlignedTracking.GetRelativeTransform(LocalToAlignedTrackingTransform);
 

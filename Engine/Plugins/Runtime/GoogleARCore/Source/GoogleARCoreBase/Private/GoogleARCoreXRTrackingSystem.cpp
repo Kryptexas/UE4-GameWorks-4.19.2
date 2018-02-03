@@ -200,7 +200,11 @@ void FGoogleARCoreXRTrackingSystem::OnSetAlignmentTransform(const FTransform& In
 		TrackedGeometry->UpdateAlignmentTransform(NewAlignmentTransform);
 	}
 
-	// TODO: update alignment on all ARPins.
+	TArray<UARPin*> AllARPins = GetAllPins();
+	for (UARPin* SomePin : AllARPins)
+	{
+		SomePin->UpdateAlignmentTransform(NewAlignmentTransform);
+	}
 
 	SetAlignmentTransform_Internal(InAlignmentTransform);
 }
@@ -239,7 +243,6 @@ TArray<UARTrackedGeometry*> FGoogleARCoreXRTrackingSystem::OnGetAllTrackedGeomet
 
 TArray<UARPin*> FGoogleARCoreXRTrackingSystem::OnGetAllPins() const
 {
-	// TODO: Implement this
 	TArray<UARPin*> AllARPins;
 	FGoogleARCoreDevice::GetInstance()->GetAllARPins(AllARPins);
 	return AllARPins;
@@ -247,12 +250,7 @@ TArray<UARPin*> FGoogleARCoreXRTrackingSystem::OnGetAllPins() const
 
 bool FGoogleARCoreXRTrackingSystem::OnIsTrackingTypeSupported(EARSessionType SessionType) const
 {
-	if (SessionType == EARSessionType::World)
-	{
-		return FGoogleARCoreDevice::GetInstance()->GetSupportStatus() == EGoogleARCoreSupportStatus::Supported;
-	}
-	
-	return false;
+	return FGoogleARCoreDevice::GetInstance()->GetIsTrackingTypeSupported(SessionType);
 }
 
 UARLightEstimate* FGoogleARCoreXRTrackingSystem::OnGetCurrentLightEstimate() const
@@ -273,11 +271,6 @@ void FGoogleARCoreXRTrackingSystem::OnRemovePin(UARPin* PinToRemove)
 	FGoogleARCoreDevice::GetInstance()->RemoveARPin(PinToRemove);
 }
 
-void FGoogleARCoreXRTrackingSystem::OnRemovePin(USceneComponent* ComponentToUnpin)
-{
-	// TODO: Implement this
-
-}
 
 void FGoogleARCoreXRTrackingSystem::AddReferencedObjects(FReferenceCollector& Collector)
 {

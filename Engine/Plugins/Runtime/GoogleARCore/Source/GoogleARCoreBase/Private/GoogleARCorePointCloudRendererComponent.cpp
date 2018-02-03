@@ -22,12 +22,15 @@ void UGoogleARCorePointCloudRendererComponent::DrawPointCloud()
 	if (UGoogleARCoreFrameFunctionLibrary::GetTrackingState() == EGoogleARCoreTrackingState::Tracking)
 	{
 		UGoogleARCorePointCloud* LatestPointCloud = nullptr;
-		EGoogleARCoreFunctionStatus Status = UGoogleARCoreFrameFunctionLibrary::GetLatestPointCloud(LatestPointCloud);
+		EGoogleARCoreFunctionStatus Status = UGoogleARCoreFrameFunctionLibrary::GetPointCloud(LatestPointCloud);
 		if (Status == EGoogleARCoreFunctionStatus::Success && LatestPointCloud != nullptr && LatestPointCloud->GetPointNum() > 0)
 		{
 			for (int i = 0; i < LatestPointCloud->GetPointNum(); i++)
 			{
-				DrawDebugPoint(World, LatestPointCloud->GetWorldSpacePoint(i), PointSize, PointColor, false);
+				FVector PointPosition = FVector::ZeroVector;
+				float PointConfidence = 0;
+				LatestPointCloud->GetPoint(i, PointPosition, PointConfidence);
+				DrawDebugPoint(World, PointPosition, PointSize, PointColor, false);
 			}
 		}
 	}

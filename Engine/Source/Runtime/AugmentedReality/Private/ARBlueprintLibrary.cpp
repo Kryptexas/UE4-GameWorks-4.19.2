@@ -254,7 +254,16 @@ void UARBlueprintLibrary::UnpinComponent( USceneComponent* ComponentToUnpin )
 	auto ARSystem = GetARSystem();
 	if (ensure(ARSystem.IsValid()))
 	{
-		return ARSystem->RemovePin( ComponentToUnpin );
+		TArray<UARPin*> AllPins = ARSystem->GetAllPins();
+		const int32 AllPinsCount = AllPins.Num();
+		for (int32 i=0; i<AllPinsCount; ++i)
+		{
+			if (AllPins[i]->GetPinnedComponent() == ComponentToUnpin)
+			{
+				ARSystem->RemovePin( AllPins[i] );
+				return;
+			}
+		}
 	}
 }
 

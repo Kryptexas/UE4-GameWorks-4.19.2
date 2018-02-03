@@ -68,7 +68,6 @@ namespace
 	{
 		if (!SessionPtr.IsValid())
 		{
-			UE_LOG(LogGoogleARCoreAPI, Error, TEXT("Invalid %s: It's ARSession is no longer valid. This could because the session is stopped or there is fatal error in the session."), *TypeName);
 			return false;
 		}
 #if PLATFORM_ANDROID
@@ -86,6 +85,22 @@ extern "C"
 #if PLATFORM_ANDROID
 void ArSession_reportEngineType(ArSession* session, const char* engine_type, const char* engine_version);
 #endif
+}
+
+/****************************************/
+/*       FGoogleARCoreAPKManager        */
+/****************************************/
+EGoogleARCoreAvailabilityInternal FGoogleARCoreAPKManager::CheckARCoreAPKAvailability()
+{
+	ensureMsgf(false, TEXT("FGoogleARCoreAPKManager::CheckARCoreAPKAvailability Not Implemented!"));
+	return EGoogleARCoreAvailabilityInternal::UnkownError;
+
+}
+
+EGoogleARCoreAPIStatus FGoogleARCoreAPKManager::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus)
+{
+	ensureMsgf(false, TEXT("FGoogleARCoreAPKManager::RequestInstall Not Implemented!"));
+	return EGoogleARCoreAPIStatus::AR_ERROR_FATAL;
 }
 
 /****************************************/
@@ -131,11 +146,19 @@ FGoogleARCoreSession::FGoogleARCoreSession()
 
 FGoogleARCoreSession::~FGoogleARCoreSession()
 {
+	for (UARPin* Anchor : UObjectManager->AllAnchors)
+	{
+		Anchor->OnTrackingStateChanged(EARTrackingState::StoppedTracking);
+	}
+
 	delete LatestFrame;
 
 #if PLATFORM_ANDROID
-	ArSession_destroy(SessionHandle);
-	ArConfig_destroy(ConfigHandle);
+	if (SessionHandle != nullptr)
+	{
+		ArSession_destroy(SessionHandle);
+		ArConfig_destroy(ConfigHandle);
+	}
 #endif
 }
 
@@ -229,6 +252,12 @@ EGoogleARCoreAPIStatus FGoogleARCoreSession::Pause()
 
 	PauseStatue = ToARCoreAPIStatus(ArSession_pause(SessionHandle));
 #endif
+
+	for (UARPin* Anchor : UObjectManager->AllAnchors)
+	{
+		Anchor->OnTrackingStateChanged(EARTrackingState::NotTracking);
+	}
+
 	return PauseStatue;
 }
 
@@ -379,7 +408,7 @@ FGoogleARCoreFrame::FGoogleARCoreFrame(FGoogleARCoreSession* InSession)
 	: Session(InSession)
 	, LatestCameraPose(FTransform::Identity)
 	, LatestCameraTimestamp(0)
-	, LatestCameraTrackingState(EGoogleARCoreTrackingState::Stopped)
+	, LatestCameraTrackingState(EGoogleARCoreTrackingState::StoppedTracking)
 	, LatestPointCloudStatus(EGoogleARCoreAPIStatus::AR_ERROR_SESSION_PAUSED)
 	, LatestImageMetadataStatus(EGoogleARCoreAPIStatus::AR_ERROR_SESSION_PAUSED)
 {
@@ -388,8 +417,11 @@ FGoogleARCoreFrame::FGoogleARCoreFrame(FGoogleARCoreSession* InSession)
 FGoogleARCoreFrame::~FGoogleARCoreFrame()
 {
 #if PLATFORM_ANDROID
-	ArFrame_destroy(FrameHandle);
-	ArPose_destroy(SketchPoseHandle);
+	if (SessionHandle != nullptr)
+	{
+		ArFrame_destroy(FrameHandle);
+		ArPose_destroy(SketchPoseHandle);
+	}
 #endif
 }
 
@@ -925,9 +957,10 @@ int UGoogleARCorePointCloud::GetPointNum()
 	return PointNum;
 }
 
-FVector UGoogleARCorePointCloud::GetWorldSpacePoint(int Index)
+void UGoogleARCorePointCloud::GetPoint(int Index, FVector& OutWorldPosition, float& OutConfidence)
 {
 	FVector Point = FVector::ZeroVector;
+	float Confidence = 0.0;
 	if (CheckIsSessionValid("ARCorePointCloud", Session))
 	{
 #if PLATFORM_ANDROID
@@ -937,24 +970,13 @@ FVector UGoogleARCorePointCloud::GetWorldSpacePoint(int Index)
 		Point.Y = PointData[Index * 4];
 		Point.Z = PointData[Index * 4 + 1];
 		Point.X = -PointData[Index * 4 + 2];
-		Point = Point * Session.Pin()->GetWorldToMeterScale();
-#endif
-	}
-	return Point;
-}
 
-float UGoogleARCorePointCloud::GetPointConfidence(int Index)
-{
-	float Confidence = 0.0;
-	if (CheckIsSessionValid("ARCorePointCloud", Session))
-	{
-#if PLATFORM_ANDROID
-		const float* PointData;
-		ArPointCloud_getData(Session.Pin()->GetHandle(), PointCloudHandle, &PointData);
+		Point = Point * Session.Pin()->GetWorldToMeterScale();
 		Confidence = PointData[Index * 4 + 3];
 #endif
 	}
-	return Confidence;
+	OutWorldPosition = Point;
+	OutConfidence = Confidence;
 }
 
 void UGoogleARCorePointCloud::ReleasePointCloud()

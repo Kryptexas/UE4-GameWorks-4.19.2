@@ -13,7 +13,34 @@ class UARSessionConfig;
 struct FARTraceResult;
 
 
-/** Implement IARSystemSupport for any platform that wants to be an Unreal AR System. e.g. AppleARKit, GoogleARCore. */
+/**
+ * Implement IARSystemSupport for any platform that wants to be an Unreal Augmented Reality System. e.g. AppleARKit, GoogleARCore.
+ * This interface is included as part of the abstract class \c FARSystemBase. The functions you must override
+ * are coalesced here for clarity.
+ * 
+ *  Augmented Reality Spaces
+ * -----------------------------------------------------------------------------------------------
+ * Engineers working on supporting Augmented Reality must be aware of three spaces:
+ *
+ * TrackingSpace :
+ *     This is the space defined by the underlying AR system (e.g. ARKit, ARCore, etc.)
+ *     Unreal has no control over the origin of this space.
+ *                     
+ * AlignedTrackingSpace :
+ *     To regain control of TrackingSpace, Unreal applies the AlignmentTransform so
+ *     bend TrackingSpace to its will. If you are implementing IARSystemSupport, you
+ *     will need to understand this transform and apply it accordingly.
+ *
+ * WorldSpace :
+ *     This is Unreal's coordinate system. Coordinates from Tracking Space can be translated
+ *     into WorldSpace by using the AlignmentTransform and the TrackingToWorldTransform.
+ *
+ *
+ * \verbatim
+ * [TrackingSpace]--(AlignmentTransform)-->[AlignedTrackingSpace]--(TrackingToWorld)-->[WorldSpace]
+ * \endverbatim
+ *
+ */
 class AUGMENTEDREALITY_API IARSystemSupport
 {
 public:
@@ -83,9 +110,6 @@ public:
 	 */
 	virtual void OnRemovePin(UARPin* PinToRemove) = 0;
 	
-	/** Unpin a component from any associated tracked geometry. This will remove the UARPin */
-	virtual void OnRemovePin(USceneComponent* ComponentToUnpin) = 0;
-	
 public:
 	virtual ~IARSystemSupport(){}
 };
@@ -109,30 +133,47 @@ public:
 	}
 
 public:
-	/** Control the construction of AR Systems. @see NewARSystem() */
+	/** Control the construction of AR Systems. \see NewARSystem() */
 	FARSystemBase();
 	void InitializeARSystem();
 	virtual ~FARSystemBase();
 
 public:	
+	/** \see UARBlueprintLibrary::GetTrackingQuality() */
 	EARTrackingQuality GetTrackingQuality() const;
+	/** \see UARBlueprintLibrary::StartARSession() */
 	void StartARSession(UARSessionConfig* InSessionConfig);
+	/** \see UARBlueprintLibrary::PauseARSession() */
 	void PauseARSession();
+	/** \see UARBlueprintLibrary::StopARSession() */
 	void StopARSession();
+	/** \see UARBlueprintLibrary::GetARSessionStatus() */
 	FARSessionStatus GetARSessionStatus() const;
+	/** \see UARBlueprintLibrary::IsSessionTypeSupported() */
 	bool IsSessionTypeSupported(EARSessionType SessionType) const;
 	
+	/**
+	 * \see UARBlueprintLibrary::SetAlignmentTransform()
+	 * \see IARSystemSupport
+	 * To understand the various spaces involved in Augmented Reality system, \see IARSystemSupport.
+	 */
 	void SetAlignmentTransform( const FTransform& InAlignmentTransform );
 	
+	/** \see UARBlueprintLibrary::LineTraceTrackedObjects() */
 	TArray<FARTraceResult> LineTraceTrackedObjects( const FVector2D ScreenCoords, EARLineTraceChannels TraceChannels );
+	/** \see UARBlueprintLibrary::GetAllTrackedGeometries() */
 	TArray<UARTrackedGeometry*> GetAllTrackedGeometries() const;
+	/** \see UARBlueprintLibrary::GetAllPins() */
 	TArray<UARPin*> GetAllPins() const;
-	
+
+	/** \see UARBlueprintLibrary::GetCurrentLightEstimate() */
 	UARLightEstimate* GetCurrentLightEstimate() const;
 	
+	/** \see UARBlueprintLibrary::PinComponent() */
 	UARPin* PinComponent( USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry = nullptr, const FName DebugName = NAME_None );
+	/** \see UARBlueprintLibrary::PinComponentToTraceResult() */
 	UARPin* PinComponent( USceneComponent* ComponentToPin, const FARTraceResult& HitResult, const FName DebugName = NAME_None );
-	void RemovePin( USceneComponent* ComponentToUnpin );
+	/** \see UARBlueprintLibrary::RemovePin() */
 	void RemovePin( UARPin* PinToRemove );
 	
 public:

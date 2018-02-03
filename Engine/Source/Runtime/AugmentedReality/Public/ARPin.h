@@ -24,6 +24,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="AR AugmentedReality|Pin")
 	FTransform GetLocalToTrackingTransform() const;
 	
+	
 	/**
 	 * Convenience function. Same as LocalToTrackingTransform, but
 	 * appends the TrackingToWorld Transform.
@@ -59,14 +60,13 @@ public:
 	
 public:
 	
+	FTransform GetLocalToTrackingTransform_NoAlignment() const;
+	
 	/** Notify the ARPin about changes to how it is being tracked. */
 	void OnTrackingStateChanged(EARTrackingState NewTrackingState);
 	
 	/** Notify this UARPin that the transform of the Pin has changed */
 	void OnTransformUpdated(const FTransform& NewLocalToTrackingTransform);
-
-	/** Notify this UARPin that the transform of the TrackedGeometry has changed */
-	void OnTransformUpdated(const FTransform& TrackedGeometry_OldLocalToTrackingTransform, const FTransform& TrackedGeometry_NewLocalToTrackingTransform);
 	
 	/** Notify the UARPin that the AlignmentTransform has changing. */
 	void UpdateAlignmentTransform( const FTransform& NewAlignmentTransform );

@@ -55,7 +55,6 @@ protected:
 
 	virtual UARPin* OnPinComponent(USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry = nullptr, const FName DebugName = NAME_None) override;
 	virtual void OnRemovePin(UARPin* PinToRemove) override;
-	virtual void OnRemovePin(USceneComponent* ComponentToUnpin) override;
 
 private:
 	//~ FGCObject

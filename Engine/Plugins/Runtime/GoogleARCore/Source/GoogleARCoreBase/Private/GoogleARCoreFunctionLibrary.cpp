@@ -23,27 +23,41 @@ namespace
 		return nullptr;
 	}
 
+	EGoogleARCoreAvailability ToGoogleARCoreAvailability(EGoogleARCoreAvailabilityInternal AvailabilityInternal)
+	{
+		switch (AvailabilityInternal)
+		{
+		case EGoogleARCoreAvailabilityInternal::UnkownError:
+		case EGoogleARCoreAvailabilityInternal::UnkownTimedOut:
+			return EGoogleARCoreAvailability::UnkownError;
+		case EGoogleARCoreAvailabilityInternal::UnsupportedDeviceNotCapable:
+			return EGoogleARCoreAvailability::UnsupportedDeviceNotCapable;
+		case EGoogleARCoreAvailabilityInternal::SupportedNotInstalled:
+		case EGoogleARCoreAvailabilityInternal::SupportedApkTooOld:
+			return EGoogleARCoreAvailability::SupportedNotInstalled;
+		case EGoogleARCoreAvailabilityInternal::SupportedInstalled:
+			return EGoogleARCoreAvailability::SupportedInstalled;
+		default:
+			ensureMsgf(false, TEXT("Unknown conversion from EGoogleARCoreAvailabilityInternal %d to EGoogleARCoreAvailability."), static_cast<int>(AvailabilityInternal));
+			return EGoogleARCoreAvailability::UnkownError;
+		}
+	}
+
 	const float DefaultLineTraceDistance = 100000; // 1000 meter
 }
 
 /************************************************************************/
 /*  UGoogleARCoreSessionFunctionLibrary | Lifecycle                     */
 /************************************************************************/
-EGoogleARCoreSupportStatus UGoogleARCoreSessionFunctionLibrary::GetARCoreSupportStatus()
+void UGoogleARCoreSessionFunctionLibrary::CheckARCoreAvailability(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreAvailability& OutAvailability)
 {
-	return FGoogleARCoreDevice::GetInstance()->GetSupportStatus();
+	ensureMsgf(false, TEXT("UGoogleARCoreSessionFunctionLibrary::CheckARCoreAPKAvailability Not Implemented!"));
 }
 
-void UGoogleARCoreSessionFunctionLibrary::GetSessionRequiredRuntimPermissionsWithConfig(
-	UARSessionConfig* Config,
-	TArray<FString>& RuntimePermissions)
-{
-	FGoogleARCoreDevice::GetInstance()->GetRequiredRuntimePermissionsForConfiguration(*Config, RuntimePermissions);
-}
 
-EGoogleARCoreTrackingState UGoogleARCoreFrameFunctionLibrary::GetTrackingState()
+void UGoogleARCoreSessionFunctionLibrary::InstallARCoreService(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreInstallRequestResult& OutInstallResult)
 {
-	return FGoogleARCoreDevice::GetInstance()->GetTrackingState();
+	ensureMsgf(false, TEXT("UGoogleARCoreSessionFunctionLibrary::InstallARCoreService Not Implemented!"));
 }
 
 struct FARCoreStartSessionAction : public FPendingLatentAction
@@ -145,7 +159,12 @@ template void UGoogleARCoreSessionFunctionLibrary::GetAllTrackable<UARTrackedPoi
 /************************************************************************/
 /*  UGoogleARCoreFrameFunctionLibrary                                   */
 /************************************************************************/
-void UGoogleARCoreFrameFunctionLibrary::GetLatestPose(FTransform& LastePose)
+EGoogleARCoreTrackingState UGoogleARCoreFrameFunctionLibrary::GetTrackingState()
+{
+	return FGoogleARCoreDevice::GetInstance()->GetTrackingState();
+}
+
+void UGoogleARCoreFrameFunctionLibrary::GetPose(FTransform& LastePose)
 {
 	LastePose = FGoogleARCoreDevice::GetInstance()->GetLatestPose();
 }
@@ -177,23 +196,23 @@ void UGoogleARCoreFrameFunctionLibrary::GetUpdatedTrackablePoints(TArray<UARTrac
 	FGoogleARCoreDevice::GetInstance()->GetUpdatedTrackables<UARTrackedPoint>(OutTrackablePointList);
 }
 
-void UGoogleARCoreFrameFunctionLibrary::GetLatestLightEstimation(FGoogleARCoreLightEstimate& LightEstimation)
+void UGoogleARCoreFrameFunctionLibrary::GetLightEstimation(FGoogleARCoreLightEstimate& LightEstimation)
 {
 	LightEstimation = FGoogleARCoreDevice::GetInstance()->GetLatestLightEstimate();
 }
 
-EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::GetLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud)
+EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::GetPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud)
 {
 	return FGoogleARCoreDevice::GetInstance()->GetLatestPointCloud(OutLatestPointCloud);
 }
 
-EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::AcquireLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud)
+EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::AcquirePointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud)
 {
 	return FGoogleARCoreDevice::GetInstance()->AcquireLatestPointCloud(OutLatestPointCloud);
 }
 
 #if PLATFORM_ANDROID
-EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::GetLatestCameraMetadata(const ACameraMetadata*& OutCameraMetadata)
+EGoogleARCoreFunctionStatus UGoogleARCoreFrameFunctionLibrary::GetCameraMetadata(const ACameraMetadata*& OutCameraMetadata)
 {
 	return FGoogleARCoreDevice::GetInstance()->GetLatestCameraMetadata(OutCameraMetadata);
 }

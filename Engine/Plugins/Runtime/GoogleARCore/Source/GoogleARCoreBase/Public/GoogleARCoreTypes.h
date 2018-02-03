@@ -28,25 +28,36 @@ typedef struct ArAnchor_ ArAnchor;
 
 /**
  * @ingroup GoogleARCoreBase
- * Describes the ARCore support status.
+ * Describes the status of ARCore availability
  */
 UENUM(BlueprintType)
-enum class EGoogleARCoreSupportStatus : uint8
+enum class EGoogleARCoreAvailability : uint8
 {
-	/** ARCore is supported. */
-	Supported,
-	/** The device is not compatible with ARCore. */
-	DeviceNotCompatiable,
-	/** ARCore APK is not installed. Try to install the ARCore APK to fix the problem.*/
-	ARCoreAPKNotInstalled,
-	/** The Android version on the device doesn't support ARCore. Try to update the Android version on the phone to fix the problem. */
-	AndroidVersionNotSupported,
-	/** ARCore APK version is too old. Try to update ARCore APK to fix the problem. */
-	ARCoreAPKTooOld,
-	/** ARCore SDK version is too old. Try to use an Unreal Engine with newer version of ARCore plugin to fix the problem.*/
-	ARCoreSDKTooOld,
-	/** Unknown reason. */
-	Unknown
+	/* An internal error occurred while determining ARCore availability. */
+	UnkownError,
+	/* ARCore is not supported on this device.*/
+	UnsupportedDeviceNotCapable,
+	/* The device and Android version are supported, but the ARCore app is not installed or not up to date*/
+	SupportedNotInstalled,
+	/* ARCore is supported, installed, and available to use. */
+	SupportedInstalled
+};
+
+/**
+ * @ingroup GoogleARCoreBase
+ * Describes the result of ARCore install request
+ */
+UENUM(BlueprintType)
+enum class EGoogleARCoreInstallRequestResult : uint8
+{
+	/* The ARCore app is installed*/
+	Installed,
+	/* ARCore app install request failed because the device is not compatible. */
+	DeviceNotCompatible,
+	/* ARCore app install request failed because the user declined the installation. */
+	UserDeclinedInstallation,
+	/* ARCore app install request failed because some error happens while checking or requesting installation. */
+	Error
 };
 
 /**
@@ -84,9 +95,9 @@ enum class EGoogleARCoreTrackingState : uint8
 	/** Tracking is valid. */
 	Tracking = 0,
 	/** Tracking is temporary lost but could recover in the future. */
-	Paused = 1,
+	NotTracking = 1,
 	/** Tracking is lost will not recover. */
-	Stopped = 2
+	StoppedTracking = 2
 };
 
 /**
@@ -151,13 +162,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
 	int GetPointNum();
 
-	/** Returns the point position in Unreal world space given the point index. */
+	/** Returns the point position in Unreal world space and it's confidence value from 0 ~ 1. */
 	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
-	FVector GetWorldSpacePoint(int Index);
-
-	/** Returns the point confidence value given the point index. */
-	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
-	float GetPointConfidence(int Index);
+	void GetPoint(int Index, FVector& OutWorldPosition, float& OutConfidence);
 
 	/** Release PointCloud's resources back to ArCore. Data will not be available after releasePointCloud is called. */
 	UFUNCTION(BlueprintCallable, Category = "UGoogleARCorePointCloud")
@@ -169,4 +176,18 @@ private:
 #if PLATFORM_ANDROID
 	ArPointCloud* PointCloudHandle;
 #endif
+};
+
+/**
+* Helper class used to expose FGoogleARCoreSessionConfig setting in the Editor plugin settings.
+*/
+UCLASS(config = Engine, defaultconfig)
+class GOOGLEARCOREBASE_API UGoogleARCoreEditorSettings : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	/** Check this option if you app require ARCore to run on Android. */
+	UPROPERTY(EditAnywhere, config, Category = "ARCore Plugin Settings", meta = (ShowOnlyInnerProperties))
+	bool bARCoreRequiredApp = true;
 };

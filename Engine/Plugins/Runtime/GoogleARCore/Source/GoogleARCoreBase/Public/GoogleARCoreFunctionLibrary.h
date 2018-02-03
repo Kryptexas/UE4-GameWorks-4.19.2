@@ -18,24 +18,23 @@ class GOOGLEARCOREBASE_API UGoogleARCoreSessionFunctionLibrary : public UBluepri
 
 public:
 	//-----------------Lifecycle---------------------
-	/**
-	 * Checks whether Google ARCore is supported.
-	 *
-	 * @return	The GoogleARCore support status.
-	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear arcore supported"))
-	static EGoogleARCoreSupportStatus GetARCoreSupportStatus();
 
 	/**
-	 * Gets a list of the required runtime permissions for the given configuration suitable
-	 * for use with the AndroidPermission plugin. You only need to use this function if you
-	 * want to handle runtime permission request yourself.
+	 * Latent Action to check if ARCore is available on the device.
 	 *
-	 * @param Configuration				The configuration to check for permission.
-	 * @param OutRuntimePermissions		The returned runtime permission.
+	 * @return	The ARCore availability on the device.
 	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear arcore permission"))
-	static void GetSessionRequiredRuntimPermissionsWithConfig(UARSessionConfig* Configuration, TArray<FString>& OutRuntimePermissions);
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Lifecycle", meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", Keywords = "googlear arcore availability"))
+	static void CheckARCoreAvailability(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreAvailability& OutAvailability);
+
+	/**
+	 * Latent Action to install the ARCore app to make the device be able to run ARCore app.
+	 * You only need to request install if CheckARCoreAvailability returns SupportedNotInstalled.
+	 *
+	 * @return	The ARCore availability on the device.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Lifecycle", meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", Keywords = "googlear arcore availability"))
+	static void InstallARCoreService(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreInstallRequestResult& OutInstallResult);
 
 	/**
 	 * Starts a new ARCore tracking session GoogleARCore specific configuration.
@@ -113,7 +112,7 @@ public:
 	static EGoogleARCoreTrackingState GetTrackingState();
 
 	/**
-	 * Gets the latest tracking pose of the ARCore device.
+	 * Gets the latest tracking pose in Unreal world space of the ARCore device.
 	 *
 	 * Note that ARCore motion tracking has already integrated with HMD and the motion controller interface.
 	 * Use this function only if you need to implement your own tracking component.
@@ -122,7 +121,7 @@ public:
 	 * @return				True if the pose is updated successfully for this frame.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Frame|Motion", meta = (Keywords = "googlear arcore pose transform"))
-	static void GetLatestPose(FTransform& OutPose);
+	static void GetPose(FTransform& OutPose);
 
 	/**
 	 * Traces a ray from the user's device in the direction of the given location in the camera
@@ -171,7 +170,7 @@ public:
 	 * @param OutLightEstimate		The struct that describes the latest light estimation.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|LightEstimation", meta = (Keywords = "googlear arcore light ambient"))
-	static void GetLatestLightEstimation(FGoogleARCoreLightEstimate& OutLightEstimate);
+	static void GetLightEstimation(FGoogleARCoreLightEstimate& OutLightEstimate);
 
 	/**
 	 * Gets the latest point cloud that will be only available for this frame.
@@ -182,7 +181,7 @@ public:
 	 * @return  An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, ResourceExhausted.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|PointCloud", meta = (Keywords = "googlear arcore pointcloud"))
-	static EGoogleARCoreFunctionStatus GetLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
+	static EGoogleARCoreFunctionStatus GetPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
 
 	/**
 	 * Acquires latest point cloud. This will make the point cloud remain valid unless you call UGoogleARCrePointCloud::ReleasePointCloud().
@@ -192,7 +191,7 @@ public:
 	 * @return  An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, ResourceExhausted.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|PointCloud", meta = (Keywords = "googlear arcore pointcloud"))
-	static EGoogleARCoreFunctionStatus AcquireLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
+	static EGoogleARCoreFunctionStatus AcquirePointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
 
 #if PLATFORM_ANDROID
 	/**
@@ -202,6 +201,6 @@ public:
 	 * @param OutCameraMetadata		A pointer to a ACameraMetadata struct which is only valid in one frame.
 	 * @return An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, NotAvailable.
 	 */
-	static EGoogleARCoreFunctionStatus GetLatestCameraMetadata(const ACameraMetadata*& OutCameraMetadata);
+	static EGoogleARCoreFunctionStatus GetCameraMetadata(const ACameraMetadata*& OutCameraMetadata);
 #endif
 };

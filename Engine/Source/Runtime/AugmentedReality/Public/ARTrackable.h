@@ -35,6 +35,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="AR AugmentedReality|Tracked Geometry")
 	FTransform GetLocalToTrackingTransform() const;
 	
+	FTransform GetLocalToTrackingTransform_NoAlignment() const;
+	
 	UFUNCTION(BlueprintPure, Category="AR AugmentedReality|Tracked Geometry")
 	EARTrackingState GetTrackingState() const;
 	

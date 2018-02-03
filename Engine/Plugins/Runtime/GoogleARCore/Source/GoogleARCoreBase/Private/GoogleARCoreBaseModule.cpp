@@ -59,6 +59,16 @@ TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FGoogleARCoreBaseModu
 void FGoogleARCoreBaseModule::StartupModule()
 {
 	ensureMsgf(FModuleManager::Get().LoadModule("AugmentedReality"), TEXT("ARCore depends on the AugmentedReality module.") );
+	
+	// Register editor settings:
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->RegisterSettings("Project", "Plugins", "GoogleARCore",
+			LOCTEXT("GoogleARCoreSetting", "GoogleARCore"),
+			LOCTEXT("GoogleARCoreSettingDescription", "Settings of the GoogleARCore plugin"),
+			GetMutableDefault<UGoogleARCoreEditorSettings>());
+	}
 
 	// Complete ARCore setup.
 	FGoogleARCoreDevice::GetInstance()->OnModuleLoaded();
@@ -82,4 +92,12 @@ void FGoogleARCoreBaseModule::ShutdownModule()
 
 	// Complete ARCore teardown.
 	FGoogleARCoreDevice::GetInstance()->OnModuleUnloaded();
+
+	// Unregister editor settings.
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->UnregisterSettings("Project", "Plugins", "GoogleARCore");
+	}
 }

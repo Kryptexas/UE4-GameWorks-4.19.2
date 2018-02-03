@@ -15,5 +15,5 @@ class GOOGLEARCOREBASE_API UGoogleARCoreSessionConfig : public UARSessionConfig
 {
 	GENERATED_BODY()
 
-		// We keep the type here so that we could extends ARCore specific session config later.
+	// We keep the type here so that we could extends ARCore specific session config later.
 };

@@ -62,6 +62,41 @@ enum class EGoogleARCoreAPIStatus : int
 	AR_UNAVAILABLE_SDK_TOO_OLD = -104,
 };
 
+UENUM(BlueprintType)
+enum class EGoogleARCoreInstallStatusInternal : uint8
+{
+	/* The requested resource is already installed.*/
+	Installed = 0,
+	/* Installation of the resource was requested. The current activity will be paused. */
+	Requrested = 1,
+	/* Cannot start the install request because the platform is not supported. */
+	NotAvailable = 200,
+};
+
+enum class EGoogleARCoreAvailabilityInternal : uint8
+{
+	/* An internal error occurred while determining ARCore availability. */
+	UnkownError = 0,
+	/* ARCore is not installed, and a query has been issued to check if ARCore is is supported. */
+	UnkownChecking = 1,
+	/*
+	* ARCore is not installed, and the query to check if ARCore is supported
+	* timed out. This may be due to the device being offline.
+	*/
+	UnkownTimedOut = 2,
+	/* ARCore is not supported on this device.*/
+	UnsupportedDeviceNotCapable = 100,
+	/* The device and Android version are supported, but the ARCore APK is not installed.*/
+	SupportedNotInstalled = 201,
+	/*
+	* The device and Android version are supported, and a version of the
+	* ARCore APK is installed, but that ARCore APK version is too old.
+	*/
+	SupportedApkTooOld = 202,
+	/* ARCore is supported, installed, and available to use. */
+	SupportedInstalled = 203
+};
+
 #if PLATFORM_ANDROID
 static ArTrackableType GetTrackableType(UClass* ClassType)
 {
@@ -108,6 +143,14 @@ public:
 	void DumpTrackableHandleMap(const ArSession* SessionHandle);
 #endif
 };
+
+class FGoogleARCoreAPKManager
+{
+public:
+	static EGoogleARCoreAvailabilityInternal CheckARCoreAPKAvailability();
+	static EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus);
+};
+
 
 class FGoogleARCoreSession : public TSharedFromThis<FGoogleARCoreSession>, public FGCObject
 {
@@ -184,7 +227,6 @@ public:
 	template< class T > void GetUpdatedTrackables(TArray<T*>& OutARCoreTrackableList) const;
 	
 	void ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel RequestedTraceChannels, TArray<FARTraceResult>& OutHitResults) const;
-
 
 	bool IsDisplayRotationChanged() const;
 	FMatrix GetProjectionMatrix() const;
@@ -300,7 +342,9 @@ public:
 template< class T >
 T* UGoogleARCoreUObjectManager::GetTrackableFromHandle(ArTrackable* TrackableHandle, FGoogleARCoreSession* Session)
 {
-	if (!TrackableHandleMap.Contains(TrackableHandle) || !TrackableHandleMap[TrackableHandle].IsValid())
+	if (!TrackableHandleMap.Contains(TrackableHandle) 
+		|| !TrackableHandleMap[TrackableHandle].IsValid()
+		|| TrackableHandleMap[TrackableHandle]->GetTrackingState() == EARTrackingState::StoppedTracking)
 	{
 		// Add the trackable to the cache.
 		UARTrackedGeometry* NewTrackableObject = nullptr;
@@ -336,17 +380,8 @@ T* UGoogleARCoreUObjectManager::GetTrackableFromHandle(ArTrackable* TrackableHan
 	}
 	else
 	{
-		// Work around an issue in ARCore that trackable may become tracking again from stopped tracking.
-		if (TrackableHandleMap[TrackableHandle]->GetTrackingState() == EARTrackingState::StoppedTracking)
-		{
-			FGoogleARCoreTrackableResource* TrackableResource = reinterpret_cast<FGoogleARCoreTrackableResource*>(TrackableHandleMap[TrackableHandle]->GetNativeResource());
-			TrackableResource->ResetNativeHandle(TrackableHandle);
-		}
-		else
-		{
-			// If we are not create new trackable object, release the trackable handle.
-			ArTrackable_release(TrackableHandle);
-		}
+		// If we are not create new trackable object, release the trackable handle.
+		ArTrackable_release(TrackableHandle);
 	}
 
 	T* Result = Cast<T>(TrackableHandleMap[TrackableHandle].Get());

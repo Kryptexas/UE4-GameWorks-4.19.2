@@ -6,12 +6,11 @@
 #include "Engine/EngineBaseTypes.h"
 #include "HAL/ThreadSafeBool.h"
 #include "Containers/Queue.h"
+#include "Containers/Map.h"
 
 #include "GoogleARCoreTypes.h"
 #include "GoogleARCoreAPI.h"
 #include "GoogleARCorePassthroughCameraRenderer.h"
-
-#define ENABLE_ARCORE_DEBUG_LOG 1
 
 class FGoogleARCoreDevice
 {
@@ -20,7 +19,11 @@ public:
 
 	FGoogleARCoreDevice();
 
-	EGoogleARCoreSupportStatus GetSupportStatus();
+	EGoogleARCoreAvailabilityInternal CheckARCoreAPKAvailability();
+
+	EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus);
+
+	bool GetIsTrackingTypeSupported(EARSessionType SessionType);
 	
 	bool GetIsARCoreSessionRunning();
 
@@ -67,12 +70,20 @@ public:
 	template< class T >
 	void GetUpdatedTrackables(TArray<T*>& OutARCoreTrackableList)
 	{
+		if (!bIsARCoreSessionRunning)
+		{
+			return;
+		}
 		ARCoreSession->GetLatestFrame()->GetUpdatedTrackables<T>(OutARCoreTrackableList);
 	}
 
 	template< class T >
 	void GetAllTrackables(TArray<T*>& OutARCoreTrackableList)
 	{
+		if (!bIsARCoreSessionRunning)
+		{
+			return;
+		}
 		ARCoreSession->GetAllTrackables<T>(OutARCoreTrackableList);
 	}
 
@@ -132,12 +143,10 @@ private:
 	bool bPermissionDeniedByUser;
 	bool bStartSessionRequested; // User called StartSession
 	bool bShouldSessionRestart; // Start tracking on activity start
-	bool bStartSessionQueued;
 	float WorldToMeterScale;
 	class UARCoreAndroidPermissionHandler* PermissionHandler;
 	FThreadSafeBool bDisplayOrientationChanged;
 
-	EGoogleARCoreSupportStatus SessionSupportStatus;
 	EARSessionStatus CurrentSessionStatus;
 
 	FGoogleARCoreDeviceCameraBlitter CameraBlitter;

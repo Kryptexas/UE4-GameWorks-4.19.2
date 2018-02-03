@@ -27,6 +27,41 @@
 // For orientation changed
 #include "Misc/CoreDelegates.h"
 
+namespace ARKitUtil
+{
+
+static UARPin* PinFromComponent( const USceneComponent* Component, const TArray<UARPin*>& InPins )
+{
+	for (UARPin* Pin : InPins)
+	{
+		if (Pin->GetPinnedComponent() == Component)
+		{
+			return Pin;
+		}
+	}
+	
+	return nullptr;
+}
+
+
+static TArray<UARPin*> PinsFromGeometry( const UARTrackedGeometry* Geometry, const TArray<UARPin*>& InPins )
+{
+	TArray<UARPin*> OutPins;
+	for (UARPin* Pin : InPins)
+	{
+		if (Pin->GetTrackedGeometry() == Geometry)
+		{
+			OutPins.Add(Pin);
+		}
+	}
+	
+	return OutPins;
+}
+
+	
+}
+
+
 //
 //  FAppleARKitXRCamera
 //
@@ -587,10 +622,16 @@ void FAppleARKitSystem::OnSetAlignmentTransform(const FTransform& InAlignmentTra
 {
 	const FTransform& NewAlignmentTransform = InAlignmentTransform;
 	
-	for (auto GeoIt=GeometriesToPins.CreateIterator(); GeoIt; ++GeoIt)
+	// Update transform for all geometries
+	for (auto GeoIt=TrackedGeometries.CreateIterator(); GeoIt; ++GeoIt)
 	{
-		GeoIt.Key()->UpdateAlignmentTransform(NewAlignmentTransform);
 		GeoIt.Value()->UpdateAlignmentTransform(NewAlignmentTransform);
+	}
+	
+	// Update transform for all Pins
+	for (UARPin* Pin : Pins)
+	{
+		Pin->UpdateAlignmentTransform(NewAlignmentTransform);
 	}
 	
 	SetAlignmentTransform_Internal(InAlignmentTransform);
@@ -739,8 +780,6 @@ TArray<UARTrackedGeometry*> FAppleARKitSystem::OnGetAllTrackedGeometries() const
 
 TArray<UARPin*> FAppleARKitSystem::OnGetAllPins() const
 {
-	TArray<UARPin*> Pins;
-	ComponentsToPins.GenerateValueArray(Pins);
 	return Pins;
 }
 
@@ -753,16 +792,17 @@ UARPin* FAppleARKitSystem::OnPinComponent( USceneComponent* ComponentToPin, cons
 {
 	if ( ensureMsgf(ComponentToPin != nullptr, TEXT("Cannot pin component.")) )
 	{
-		if (UARPin** FindResult = ComponentsToPins.Find(ComponentToPin))
+		if (UARPin* FindResult = ARKitUtil::PinFromComponent(ComponentToPin, Pins))
 		{
 			UE_LOG(LogAppleARKit, Warning, TEXT("Component %s is already pinned. Unpin it first."), *ComponentToPin->GetReadableName());
-			OnRemovePin(*FindResult);
+			OnRemovePin(FindResult);
 		}
 
-		// PinToWorld * TrackingToWorld(-1) = PinToWorld * WorldToTracking
-		// The Worlds cancel out, and we get PinToTracking
-		// But we must translate this into Unreal's transform API
-		const FTransform PinToTrackingTransform = PinToWorldTransform.GetRelativeTransform(GetTrackingToWorldTransform());
+		// PinToWorld * AlignedTrackingToWorld(-1) * TrackingToAlignedTracking(-1) = PinToWorld * WorldToAlignedTracking * AlignedTrackingToTracking
+		// The Worlds and AlignedTracking cancel out, and we get PinToTracking
+		// But we must translate this logic into Unreal's transform API
+		const FTransform& TrackingToAlignedTracking = GetAlignmentTransform();
+		const FTransform PinToTrackingTransform = PinToWorldTransform.GetRelativeTransform(GetTrackingToWorldTransform()).GetRelativeTransform(TrackingToAlignedTracking);
 
 		// If the user did not provide a TrackedGeometry, create the simplest TrackedGeometry for this pin.
 		UARTrackedGeometry* GeometryToPinTo = TrackedGeometry;
@@ -775,8 +815,7 @@ UARPin* FAppleARKitSystem::OnPinComponent( USceneComponent* ComponentToPin, cons
 		UARPin* NewPin = NewObject<UARPin>();
 		NewPin->InitARPin(SharedThis(this), ComponentToPin, PinToTrackingTransform, GeometryToPinTo, DebugName);
 		
-		GeometriesToPins.Add(GeometryToPinTo, NewPin);
-		ComponentsToPins.Add(ComponentToPin, NewPin);
+		Pins.Add(NewPin);
 		
 		return NewPin;
 	}
@@ -788,19 +827,7 @@ UARPin* FAppleARKitSystem::OnPinComponent( USceneComponent* ComponentToPin, cons
 
 void FAppleARKitSystem::OnRemovePin(UARPin* PinToRemove)
 {
-	GeometriesToPins.Remove(PinToRemove->GetTrackedGeometry());
-	ComponentsToPins.Remove(PinToRemove->GetPinnedComponent());
-}
-
-void FAppleARKitSystem::OnRemovePin(USceneComponent* ComponentToUnpin)
-{
-	UARPin** PinSearchResult = ComponentsToPins.Find(ComponentToUnpin);
-	if ( ensureMsgf(PinSearchResult != nullptr, TEXT("Component is not pinned")) )
-	{
-		UARPin* PinToRemove = *PinSearchResult;
-		GeometriesToPins.Remove(PinToRemove->GetTrackedGeometry());
-		ComponentsToPins.Remove(ComponentToUnpin);
-	}
+	Pins.RemoveSingleSwap(PinToRemove);
 }
 
 bool FAppleARKitSystem::GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const
@@ -843,8 +870,7 @@ void FAppleARKitSystem::AddReferencedObjects( FReferenceCollector& Collector )
 	FARSystemBase::AddReferencedObjects(Collector);
 
 	Collector.AddReferencedObjects( TrackedGeometries );
-	Collector.AddReferencedObjects( ComponentsToPins );
-	Collector.AddReferencedObjects( GeometriesToPins );
+	Collector.AddReferencedObjects( Pins );
 	
 	if(LightEstimate)
 	{
@@ -1055,8 +1081,12 @@ void FAppleARKitSystem::OrientationChanged(const int32 NewOrientationRaw)
 void FAppleARKitSystem::SessionDidUpdateFrame_DelegateThread(TSharedPtr< FAppleARKitFrame, ESPMode::ThreadSafe > Frame)
 {
 	// Thread safe swap buffered frame
-	FScopeLock ScopeLock(&FrameLock);
-	LastReceivedFrame = Frame;
+	DECLARE_CYCLE_STAT(TEXT("FAppleARKitSystem::SessionDidUpdateFrame_DelegateThread"),
+					   STAT_FAppleARKitSystem_SessionUpdateFrame,
+					   STATGROUP_APPLEARKIT);
+	
+	auto UpdateFrameTask = FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP( this, &FAppleARKitSystem::SessionDidUpdateFrame_Internal, Frame.ToSharedRef() );
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(UpdateFrameTask, GET_STATID(STAT_FAppleARKitSystem_SessionUpdateFrame), nullptr, ENamedThreads::GameThread);
 }
 			
 void FAppleARKitSystem::SessionDidFailWithError_DelegateThread(const FString& Error)
@@ -1156,6 +1186,7 @@ void FAppleARKitSystem::SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor
 	}
 }
 
+
 void FAppleARKitSystem::SessionDidAddAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData )
 {
 	// In case we have camera tracking turned off, we still need to update the frame
@@ -1214,55 +1245,61 @@ void FAppleARKitSystem::SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKit
 	if (ensure(GeometrySearchResult != nullptr))
 	{
 		UARTrackedGeometry* FoundGeometry = *GeometrySearchResult;
-		UARPin** PinSearchResult = GeometriesToPins.Find( FoundGeometry );
-		UARPin* Pin = PinSearchResult == nullptr
-			? nullptr
-			: (*PinSearchResult);
+		TArray<UARPin*> PinsToUpdate = ARKitUtil::PinsFromGeometry(FoundGeometry, Pins);
 		
-		const FTransform LocalToTrackingTransform_PreUpdate = FoundGeometry->GetLocalToTrackingTransform();
-		const FTransform& LocalToTrackingTransform_PostUpdate = AnchorData->Transform;
-		
-		switch (AnchorData->AnchorType)
+		for (UARPin* Pin : PinsToUpdate)
 		{
-			case EAppleAnchorType::Anchor:
+			// We figure out the delta transform for the Anchor (aka. TrackedGeometry in ARKit) and apply that
+			// delta to figure out the new ARPin transform.
+			const FTransform Anchor_LocalToTrackingTransform_PreUpdate = FoundGeometry->GetLocalToTrackingTransform_NoAlignment();
+			const FTransform& Anchor_LocalToTrackingTransform_PostUpdate = AnchorData->Transform;
+			
+			const FTransform AnchorDeltaTransform = Anchor_LocalToTrackingTransform_PreUpdate.GetRelativeTransform(Anchor_LocalToTrackingTransform_PostUpdate);
+			
+			const FTransform Pin_LocalToTrackingTransform_PostUpdate = Pin->GetLocalToTrackingTransform_NoAlignment() * AnchorDeltaTransform;
+			
+			switch (AnchorData->AnchorType)
 			{
-				FoundGeometry->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform());
-				if (Pin != nullptr)
+				case EAppleAnchorType::Anchor:
 				{
-					Pin->OnTransformUpdated(LocalToTrackingTransform_PreUpdate, LocalToTrackingTransform_PostUpdate);
-				}
-				
-				break;
-			}
-			case EAppleAnchorType::PlaneAnchor:
-			{
-				if (UARPlaneGeometry* PlaneGeo = Cast<UARPlaneGeometry>(FoundGeometry))
-				{
-					PlaneGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->Center, AnchorData->Extent);
+					FoundGeometry->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform());
 					if (Pin != nullptr)
 					{
-						Pin->OnTransformUpdated(LocalToTrackingTransform_PreUpdate, LocalToTrackingTransform_PostUpdate);
+						Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
 					}
+					
+					break;
 				}
-				break;
-			}
-			case EAppleAnchorType::FaceAnchor:
-			{
-				if (UARFaceGeometry* FaceGeo = Cast<UARFaceGeometry>(FoundGeometry))
+				case EAppleAnchorType::PlaneAnchor:
 				{
-					// Update LiveLink first, because the other updates use MoveTemp for efficiency
-					if (LiveLinkSource.IsValid())
+					if (UARPlaneGeometry* PlaneGeo = Cast<UARPlaneGeometry>(FoundGeometry))
 					{
-						LiveLinkSource->PublishBlendShapes(FaceTrackingLiveLinkSubjectName, GameThreadTimestamp, GameThreadFrameNumber, AnchorData->BlendShapes);
+						PlaneGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->Center, AnchorData->Extent);
+						if (Pin != nullptr)
+						{
+							Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
+						}
 					}
+					break;
+				}
+				case EAppleAnchorType::FaceAnchor:
+				{
+					if (UARFaceGeometry* FaceGeo = Cast<UARFaceGeometry>(FoundGeometry))
+					{
+						// Update LiveLink first, because the other updates use MoveTemp for efficiency
+						if (LiveLinkSource.IsValid())
+						{
+							LiveLinkSource->PublishBlendShapes(FaceTrackingLiveLinkSubjectName, GameThreadTimestamp, GameThreadFrameNumber, AnchorData->BlendShapes);
+						}
 
-					FaceGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->BlendShapes, AnchorData->FaceVerts, AnchorData->FaceIndices);
-					if (Pin != nullptr)
-					{
-						Pin->OnTransformUpdated(LocalToTrackingTransform_PreUpdate, LocalToTrackingTransform_PostUpdate);
+						FaceGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->BlendShapes, AnchorData->FaceVerts, AnchorData->FaceIndices);
+						if (Pin != nullptr)
+						{
+							Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
+						}
 					}
+					break;
 				}
-				break;
 			}
 		}
 	}
@@ -1279,12 +1316,12 @@ void FAppleARKitSystem::SessionDidRemoveAnchors_Internal( FGuid AnchorGuid )
 	// Notify pin that it is being orphaned
 	{
 		UARTrackedGeometry* TrackedGeometryBeingRemoved = TrackedGeometries.FindChecked(AnchorGuid);
-		UARPin** ARPinSearchResult = GeometriesToPins.Find(TrackedGeometryBeingRemoved);
-		if (ARPinSearchResult != nullptr)
+		TrackedGeometryBeingRemoved->UpdateTrackingState(EARTrackingState::StoppedTracking);
+		
+		TArray<UARPin*> ARPinsBeingOrphaned = ARKitUtil::PinsFromGeometry(TrackedGeometryBeingRemoved, Pins);
+		for(UARPin* PinBeingOrphaned : ARPinsBeingOrphaned)
 		{
-			UARPin* ARPinBeingOrphaned = *ARPinSearchResult;
-			TrackedGeometryBeingRemoved->UpdateTrackingState(EARTrackingState::StoppedTracking);
-			ARPinBeingOrphaned->OnTrackingStateChanged(EARTrackingState::StoppedTracking);
+			PinBeingOrphaned->OnTrackingStateChanged(EARTrackingState::StoppedTracking);
 		}
 	}
 	
@@ -1293,6 +1330,11 @@ void FAppleARKitSystem::SessionDidRemoveAnchors_Internal( FGuid AnchorGuid )
 
 #endif //ARKIT_SUPPORT
 
+void FAppleARKitSystem::SessionDidUpdateFrame_Internal( TSharedRef< FAppleARKitFrame, ESPMode::ThreadSafe > Frame )
+{
+	LastReceivedFrame = Frame;
+	UpdateFrame();
+}
 
 
 

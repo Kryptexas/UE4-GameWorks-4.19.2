@@ -69,7 +69,6 @@ protected:
 	virtual UARLightEstimate* OnGetCurrentLightEstimate() const override;
 	virtual UARPin* OnPinComponent(USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry = nullptr, const FName DebugName = NAME_None) override;
 	virtual void OnRemovePin(UARPin* PinToRemove) override;
-	virtual void OnRemovePin(USceneComponent* ComponentToUnpin) override;
 	//~IARSystemSupport
 
 private:
@@ -93,6 +92,7 @@ private:
 	void SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData );
 	void SessionDidRemoveAnchors_Internal( FGuid AnchorGuid );
 #endif // ARKIT_SUPPORT
+	void SessionDidUpdateFrame_Internal( TSharedRef< FAppleARKitFrame, ESPMode::ThreadSafe > Frame );
 
 	
 public:
@@ -140,8 +140,7 @@ private:
 	// PROPERTIES REPORTED TO FGCObject
 	// ...
 	TMap< FGuid, UARTrackedGeometry* > TrackedGeometries;
-	TMap< USceneComponent*, UARPin* > ComponentsToPins;
-	TMap< UARTrackedGeometry*, UARPin* > GeometriesToPins;
+	TArray<UARPin*> Pins;
 	UARLightEstimate* LightEstimate;
 	// ...
 	// PROPERTIES REPORTED TO FGCObject

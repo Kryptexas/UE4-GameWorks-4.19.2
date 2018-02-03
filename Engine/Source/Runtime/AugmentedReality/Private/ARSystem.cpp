@@ -124,11 +124,6 @@ UARPin* FARSystemBase::PinComponent( USceneComponent* ComponentToPin, const FART
 	return OnPinComponent( ComponentToPin, HitResult.GetLocalToWorldTransform(), HitResult.GetTrackedGeometry(), DebugName );
 }
 
-void FARSystemBase::RemovePin( USceneComponent* ComponentToUnpin )
-{
-	OnRemovePin( ComponentToUnpin );
-}
-
 void FARSystemBase::RemovePin( UARPin* PinToRemove )
 {
 	OnRemovePin( PinToRemove );

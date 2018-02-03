@@ -68,28 +68,39 @@ public:
 	UARSessionConfig();
 	
 public:
+	/** @see SessionType */
 	EARSessionType GetSessionType() const;
 
+	/** @see PlaneDetectionMode */
 	EARPlaneDetectionMode GetPlaneDetectionMode() const;
 
+	/** @see LightEstimationMode */
 	EARLightEstimationMode GetLightEstimationMode() const;
 
+	/** @see FrameSyncMode */
 	EARFrameSyncMode GetFrameSyncMode() const;
 
+	/** @see bEnableAutomaticCameraOverlay */
 	bool ShouldRenderCameraOverlay() const;
 
+	/** @see bEnableAutomaticCameraTracking */
 	bool ShouldEnableCameraTracking() const;
 
 private:
+	
+	/** @see EARSessionType */
 	UPROPERTY(EditAnywhere, Category = "AR Settings")
 	EARSessionType SessionType;
 
+	/** @see EARPlaneDetectionMode */
 	UPROPERTY(EditAnywhere, Category = "AR Settings")
 	EARPlaneDetectionMode PlaneDetectionMode;
 
+	/** @see EARLightEstimationMode */
 	UPROPERTY(EditAnywhere, Category = "AR Settings")
 	EARLightEstimationMode LightEstimationMode;
 
+	/** @see EARFrameSyncMode */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "AR Settings")
 	EARFrameSyncMode FrameSyncMode;
 

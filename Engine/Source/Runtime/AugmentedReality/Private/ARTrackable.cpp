@@ -40,6 +40,11 @@ FTransform UARTrackedGeometry::GetLocalToTrackingTransform() const
 	return LocalToAlignedTrackingTransform;
 }
 
+FTransform UARTrackedGeometry::GetLocalToTrackingTransform_NoAlignment() const
+{
+	return LocalToTrackingTransform;
+}
+
 EARTrackingState UARTrackedGeometry::GetTrackingState() const
 {
 	return TrackingState;
