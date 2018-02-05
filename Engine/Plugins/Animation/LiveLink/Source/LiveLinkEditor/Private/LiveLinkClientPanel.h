@@ -73,6 +73,12 @@ private:
 	// Registered with the client and called when client's subjects change
 	void OnSubjectsChangedHandler();
 
+	// Controls whether the editor performance throttling warning should be visible
+	EVisibility ShowEditorPerformanceThrottlingWarning() const;
+
+	// Handle disabling of editor performance throttling
+	FReply DisableEditorPerformanceThrottling();
+
 private:
 	const TArray<FLiveLinkSourceUIEntryPtr>& GetCurrentSources() const;
 

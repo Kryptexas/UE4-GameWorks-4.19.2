@@ -20,6 +20,7 @@
 #include "PropertyEditorModule.h"
 #include "IStructureDetailsView.h"
 #include "LiveLinkVirtualSubjectDetails.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 #include "LiveLinkSourceFactory.h"
 
@@ -225,6 +226,14 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 			.FillWidth(1.f)
 		);
 
+	const int WarningPadding = 8;
+
+	UProperty* PerformanceThrottlingProperty = FindFieldChecked<UProperty>(UEditorPerformanceSettings::StaticClass(), GET_MEMBER_NAME_CHECKED(UEditorPerformanceSettings, bThrottleCPUWhenNotForeground));
+	PerformanceThrottlingProperty->GetDisplayNameText();
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("PropertyName"), PerformanceThrottlingProperty->GetDisplayNameText());
+	FText PerformanceWarningText = FText::Format(LOCTEXT("LiveLinkPerformanceWarningMessage", "Warning: The editor setting '{PropertyName}' is currently enabled\nThis will stop editor windows from updating in realtime while the editor is not in focus"), Arguments);
+	
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -287,6 +296,38 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 			.Value(0.5f)
 			[
 				SettingsDetailsView.ToSharedRef()
+			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+			.BorderBackgroundColor(FColor(166, 137, 0))
+			.Visibility(this, &SLiveLinkClientPanel::ShowEditorPerformanceThrottlingWarning)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.Padding(FMargin(WarningPadding, WarningPadding, WarningPadding, WarningPadding))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(PerformanceWarningText)
+					.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+					.ShadowColorAndOpacity(FLinearColor::Black.CopyWithNewOpacity(0.3f))
+					.ShadowOffset(FVector2D::UnitVector)
+				]
+
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(0.f, 0.f, WarningPadding, 0.f))
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.OnClicked(this, &SLiveLinkClientPanel::DisableEditorPerformanceThrottling)
+					.Text(LOCTEXT("LiveLinkPerformanceWarningDisable", "Disable"))
+				]
 			]
 		]
 	];
@@ -625,6 +666,21 @@ void SLiveLinkClientPanel::PostUndo(bool bSuccess)
 void SLiveLinkClientPanel::PostRedo(bool bSuccess)
 {
 	SettingsDetailsView->ForceRefresh();
+}
+
+EVisibility SLiveLinkClientPanel::ShowEditorPerformanceThrottlingWarning() const
+{
+	const UEditorPerformanceSettings* Settings = GetDefault<UEditorPerformanceSettings>();
+	return Settings->bThrottleCPUWhenNotForeground ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FReply SLiveLinkClientPanel::DisableEditorPerformanceThrottling()
+{
+	UEditorPerformanceSettings* Settings = GetMutableDefault<UEditorPerformanceSettings>();
+	Settings->bThrottleCPUWhenNotForeground = false;
+	Settings->PostEditChange();
+	Settings->SaveConfig();
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE
