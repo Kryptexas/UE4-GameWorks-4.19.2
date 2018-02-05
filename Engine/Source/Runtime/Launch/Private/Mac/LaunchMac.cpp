@@ -235,7 +235,14 @@ static int32 MacOSVersionCompare(const NSOperatingSystemVersion& VersionA, const
 
 	FEngineLoop::AppExit();
 
-	[NSApp terminate: nil];
+	if (GGuardedMainErrorLevel == 0)
+	{
+		[NSApp terminate: nil];
+	}
+	else
+	{
+		_Exit(GGuardedMainErrorLevel);
+	}
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
