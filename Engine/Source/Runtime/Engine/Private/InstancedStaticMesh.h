@@ -223,7 +223,7 @@ public:
 	{
 	}
 
-	struct FDataType : public FInstancedStaticMeshDataType, public FStaticMeshDataType
+	struct FDataType : public FInstancedStaticMeshDataType, public FLocalVertexFactory::FDataType
 	{
 	};
 
@@ -266,8 +266,6 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-
-	virtual void ReleaseRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 

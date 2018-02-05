@@ -247,7 +247,6 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-	virtual void ReleaseRHI() override;
 
 	static bool SupportsTessellationShaders() { return true; }
 

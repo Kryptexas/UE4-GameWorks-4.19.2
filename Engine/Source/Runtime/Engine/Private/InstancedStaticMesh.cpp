@@ -583,17 +583,6 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 	InitDeclaration(Elements);
 }
 
-void FInstancedStaticMeshVertexFactory::ReleaseRHI()
-{
-	Data.PositionComponentSRV.SafeRelease();
-	Data.TangentsSRV.SafeRelease();
-	Data.TextureCoordinatesSRV.SafeRelease();
-	Data.ColorComponentsSRV.SafeRelease();
-	Data.InstanceOriginSRV.SafeRelease();
-	Data.InstanceTransformSRV.SafeRelease();
-	Data.InstanceLightmapSRV.SafeRelease();
-	FLocalVertexFactory::ReleaseRHI();
-}
 
 FVertexFactoryShaderParameters* FInstancedStaticMeshVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
