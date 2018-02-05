@@ -595,7 +595,7 @@ void AHUD::NextDebugTarget()
 		}
 	}
 
-	CurrentTargetIndex = (CurrentTargetIndex + 1) % Targets.Num();
+	CurrentTargetIndex = Targets.Num() > 0 ? (CurrentTargetIndex + 1) % Targets.Num() : INDEX_NONE;
 	if (Targets.IsValidIndex(CurrentTargetIndex))
 	{
 		ShowDebugTargetActor = Targets[CurrentTargetIndex];
