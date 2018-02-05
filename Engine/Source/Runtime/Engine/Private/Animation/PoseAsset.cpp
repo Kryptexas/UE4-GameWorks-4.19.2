@@ -198,7 +198,7 @@ bool FPoseDataContainer::FillUpSkeletonPose(FPoseData* PoseData, USkeleton* InSk
 		for (TPair<FName, int32>& TrackIter : TrackMap)
 		{
 			int32 SkeletonIndex = TrackIter.Value;
-			PoseData->LocalSpacePose[TrackIndex] = RefPose[SkeletonIndex];
+			PoseData->SourceLocalSpacePose[TrackIndex] = RefPose[SkeletonIndex];
 
 			++TrackIndex;
 		}
