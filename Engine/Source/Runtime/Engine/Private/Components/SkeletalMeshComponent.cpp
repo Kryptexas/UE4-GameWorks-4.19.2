@@ -842,7 +842,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 			if(PostProcessAnimInstance)
 			{
 				UClass* CurrentClass = PostProcessAnimInstance->GetClass();
-				UClass* MeshClass = *SkeletalMesh->PostProcessAnimBlueprint;
+				UClass* MeshClass = SkeletalMesh ? *SkeletalMesh->PostProcessAnimBlueprint : nullptr;
 				if(CurrentClass != MeshClass)
 				{
 					if(MeshClass)
