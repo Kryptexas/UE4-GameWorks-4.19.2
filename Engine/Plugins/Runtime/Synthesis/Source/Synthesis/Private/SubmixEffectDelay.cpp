@@ -118,7 +118,7 @@ void FSubmixEffectDelay::OnNumChannelsChanged(int32 NumChannels)
 
 		for (int32 DelayIndex = PriorNumDelayLines; DelayIndex < DelayLines.Num(); DelayIndex++)
 		{
-			DelayLinesPtr[DelayIndex].Init(SampleRate, MaxDelayLineLength);
+			DelayLinesPtr[DelayIndex].Init(SampleRate, MaxDelayLineLength / 1000.0f);
 		}
 	}
 }
