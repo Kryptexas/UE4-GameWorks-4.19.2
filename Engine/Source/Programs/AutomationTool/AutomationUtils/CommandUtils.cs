@@ -2831,6 +2831,8 @@ namespace AutomationTool
 				List<string> Extensions = new List<string>();
 				Extensions.Add(".dll");
 				Extensions.Add(".exe");
+				Extensions.Add(".msi");
+				Extensions.Add(".dle");
 
 				bool IsExecutable = bIgnoreExtension;
 
