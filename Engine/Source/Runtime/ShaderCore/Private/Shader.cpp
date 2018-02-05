@@ -1929,8 +1929,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_BoundsChecking") : TEXT("");
 		}
 		{
-			static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-			KeyString += (CVar && CVar->GetInt() != 0 && RHIGetShaderLanguageVersion(Platform) >= 2) ? TEXT("_MVF") : TEXT("");
+			KeyString += (!IsMobilePlatform(Platform) != 0 && RHIGetShaderLanguageVersion(Platform) >= 2) ? TEXT("_MVFetch") : TEXT("");
 		}
 		
 		uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);

@@ -434,8 +434,7 @@ public:
 	bool SupportsManualVertexFetch(ERHIFeatureLevel::Type InFeatureLevel) const 
 	{ 
 		check(InFeatureLevel != ERHIFeatureLevel::Num);
-		static const auto MetalCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || (MetalCVar && MetalCVar->GetInt() != 0 && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) >= 2));
+		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || (!IsMobilePlatform(GMaxRHIShaderPlatform) != 0 && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) >= 2));
 	}
 
 protected:

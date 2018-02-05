@@ -43,13 +43,6 @@ static FAutoConsoleVariableRef CVarMetalNonBlockingPresent(
 	TEXT("When enabled (> 0) this will force MetalRHI to query if a back-buffer is available to present and if not will skip the frame. Only functions on macOS, it is ignored on iOS/tvOS.\n")
 	TEXT("(Off by default (0))"));
 
-int32 GMetalManualVertexFetch = 0;
-static FAutoConsoleVariableRef CVarMetalManualVertexFetch(
-	TEXT("r.Metal.ManualVertexFetch"),
-	GMetalManualVertexFetch,
-	TEXT("When enabled (> 0) this will allow MetalRHI to use the manual-vertex-fetch shader permutations that reduce the number of pipeline states.\n")
-	TEXT("(Off by default (0))"), ECVF_ReadOnly);
-
 #if PLATFORM_MAC
 static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
 // The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.

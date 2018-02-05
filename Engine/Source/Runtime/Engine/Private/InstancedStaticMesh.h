@@ -239,8 +239,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
-		static const auto MetalCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
-		if (!ContainsManualVertexFetch && !IsES2Platform(Platform) && (!IsMetalPlatform(Platform) || (MetalCVar && MetalCVar->GetInt() != 0 && RHIGetShaderLanguageVersion(Platform) >= 2)))
+		if (!ContainsManualVertexFetch && !IsES2Platform(Platform) && (!IsMetalPlatform(Platform) || (!IsMobilePlatform(Platform) != 0 && RHIGetShaderLanguageVersion(Platform) >= 2)))
 		{
 			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
 		}
