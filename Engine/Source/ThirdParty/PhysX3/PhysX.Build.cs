@@ -322,19 +322,6 @@ public class PhysX : ModuleRules
 			{
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
-
-			if (Target.bCompileAPEX)
-			{
-				string[] StaticLibrariesApexLinux = new string[] {
-					"NvParameterized{0}",
-					"RenderDebug{0}"
-				};
-
-				foreach (string Lib in StaticLibrariesApexLinux)
-				{
-					PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
-				}
-			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
