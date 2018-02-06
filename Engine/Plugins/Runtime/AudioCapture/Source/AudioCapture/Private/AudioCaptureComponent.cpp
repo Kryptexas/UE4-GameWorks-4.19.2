@@ -119,7 +119,7 @@ void UAudioCaptureComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 	check(CaptureSynth.IsCapturing());
 
 	// Allow the mic capture to buffer up some audio before starting to consume it
-	if (FramesSinceStarting >= 1024)
+	if (FramesSinceStarting >= JitterLatencyFrames)
 	{
 		// Check if we need to get more audio
 		if (ReadSampleIndex >= CaptureAudioDataSamples)

@@ -29,6 +29,14 @@ class AUDIOCAPTURE_API UAudioCaptureComponent : public USynthComponent
 	virtual void FinishDestroy() override;
 	//~ End UObject interface
 
+public:
+	/** 
+	*   Induced latency in audio frames to use to account for jitter between mic capture hardware and audio render hardware. 
+	 *	Increasing this number will increase latency but reduce potential for underruns.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Latency", meta = (ClampMin = "0", ClampMax = "1024"))
+	int32 JitterLatencyFrames;
+
 private:
 
 	Audio::FAudioCaptureSynth CaptureSynth;
