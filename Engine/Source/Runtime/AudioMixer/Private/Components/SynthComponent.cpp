@@ -196,6 +196,9 @@ void USynthComponent::Initialize(int32 SampleRateOverride)
 			Synth->SourceEffectChain = SourceEffectChain;
 			Synth->SoundSubmixObject = SoundSubmix;
 			Synth->SoundSubmixSends = SoundSubmixSends;
+			Synth->BusSends = BusSends;
+			Synth->PreEffectBusSends = PreEffectBusSends;
+			Synth->bOutputToBusOnly = bOutputToBusOnly;
 
 			Synth->Init(this, NumChannels, SampleRate, PreferredBufferLength);
 		}
