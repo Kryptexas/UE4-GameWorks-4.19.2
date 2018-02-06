@@ -17,20 +17,6 @@
 // Live Link Log Category
 DECLARE_LOG_CATEGORY_EXTERN(LogLiveLink, Log, All);
 
-// Structure that identifies an individual subject (MDW: 22/Nov/2017 XR classes came from Dev-VR, need to be reconciled with Dev-AnimPhys)
-struct FLiveLinkSubjectKeyXR
-{
-	// The Name of this subject
-	FName SubjectName;
-
-	// The guid for this subjects source
-	FGuid Source;
-
-	FLiveLinkSubjectKeyXR() {}
-	FLiveLinkSubjectKeyXR(FName InSubjectName, FGuid InSource) : SubjectName(InSubjectName), Source(InSource) {}
-	FLiveLinkSubjectKeyXR(const FLiveLinkSubjectKeyXR& Rhs) : SubjectName(Rhs.SubjectName), Source(Rhs.Source) {}
-};
-
 struct FLiveLinkFrame
 {
 public:
@@ -108,7 +94,7 @@ struct FLiveLinkSubjectKey
 	FGuid Source;
 
 	FLiveLinkSubjectKey() {}
-	FLiveLinkSubjectKey(FName InSubjectName) : SubjectName(InSubjectName) {}
+	FLiveLinkSubjectKey(FName InSubjectName, FGuid InSource) : SubjectName(InSubjectName), Source(InSource) {}
 	FLiveLinkSubjectKey(const FLiveLinkSubjectKey& Rhs) : SubjectName(Rhs.SubjectName), Source(Rhs.Source) {}
 };
 
@@ -195,13 +181,6 @@ public:
 	ULiveLinkSourceSettings* GetSourceSettingsForEntry(FGuid InEntryGuid);
 
 	void OnPropertyChanged(FGuid InEntryGuid, const FPropertyChangedEvent& PropertyChangedEvent);
-
-	// Get a list of currently active subjects
-	TArray<FLiveLinkSubjectKeyXR> GetSubjectsXR();
-
-	// Functions for managing sources changed delegate
-	FDelegateHandle RegisterSubjectsChangedHandleXR(const FSimpleMulticastDelegate::FDelegate& SubjectsChanged);
-	void UnregisterSubjectsChangedHandleXR(FDelegateHandle Handle);
 
 	// Functions for managing sources changed delegate
 	FDelegateHandle RegisterSourcesChangedHandle(const FSimpleMulticastDelegate::FDelegate& SourcesChanged);

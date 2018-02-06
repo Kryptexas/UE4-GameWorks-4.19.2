@@ -20,12 +20,12 @@ class FLiveLinkMotionController : public IMotionController
 	struct FLiveLinkMotionControllerEnumeratedSource
 	{
 		// Subject key for talking to live link
-		FLiveLinkSubjectKeyXR SubjectKey;
+		FLiveLinkSubjectKey SubjectKey;
 
 		// MotionSource name for interacting with Motion Controller system
 		FName MotionSource;
 
-		FLiveLinkMotionControllerEnumeratedSource(const FLiveLinkSubjectKeyXR& Key, FName MotionSourceName) : SubjectKey(Key), MotionSource(MotionSourceName) {}
+		FLiveLinkMotionControllerEnumeratedSource(const FLiveLinkSubjectKey& Key, FName MotionSourceName) : SubjectKey(Key), MotionSource(MotionSourceName) {}
 	};
 
 	// Built array of Live Link Sources to give to Motion Controller system
@@ -35,13 +35,13 @@ public:
 	FLiveLinkMotionController(FLiveLinkClient& InClient) : Client(InClient)
 	{ 
 		BuildSourceData();
-		OnSubjectsChangedHandle = Client.RegisterSubjectsChangedHandleXR(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FLiveLinkMotionController::OnSubjectsChangedHandler));
+		OnSubjectsChangedHandle = Client.RegisterSubjectsChangedHandle(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FLiveLinkMotionController::OnSubjectsChangedHandler));
 		WildcardSource = FGuid::NewGuid();
 	}
 
 	~FLiveLinkMotionController()
 	{
-		Client.UnregisterSubjectsChangedHandleXR(OnSubjectsChangedHandle);
+		Client.UnregisterSubjectsChangedHandle(OnSubjectsChangedHandle);
 		OnSubjectsChangedHandle.Reset();
 	}
 
@@ -57,7 +57,7 @@ public:
 
 	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const FName MotionSource, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 	{
-		FLiveLinkSubjectKeyXR SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
+		FLiveLinkSubjectKey SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
 		if (const FLiveLinkSubjectFrame* Frame = Client.GetSubjectData(SubjectKey.SubjectName))
 		{
 			if (Frame->Transforms.Num() > 0)
@@ -72,7 +72,7 @@ public:
 
 	float GetCustomParameterValue(const FName MotionSource, FName ParameterName, bool& bValueFound) const override
 	{
-		FLiveLinkSubjectKeyXR SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
+		FLiveLinkSubjectKey SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
 		if (const FLiveLinkSubjectFrame* Frame = Client.GetSubjectData(SubjectKey.SubjectName))
 		{
 			int32 ParamIndex = Frame->CurveKeyData.CurveNames.IndexOfByKey(ParameterName);
@@ -93,7 +93,7 @@ public:
 
 	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const FName MotionSource) const override
 	{
-		FLiveLinkSubjectKeyXR SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
+		FLiveLinkSubjectKey SubjectKey = GetSubjectKeyFromMotionSource(MotionSource);
 		if (const FLiveLinkSubjectFrame* Frame = Client.GetSubjectData(SubjectKey.SubjectName))
 		{
 			return ETrackingStatus::Tracked;
@@ -111,13 +111,13 @@ public:
 	// Builds cached source data for passing to motion controller system
 	void BuildSourceData()
 	{
-		TArray<FLiveLinkSubjectKeyXR> SubjectKeys = Client.GetSubjectsXR();
+		TArray<FLiveLinkSubjectKey> SubjectKeys = Client.GetSubjects();
 
 		TMap<FGuid, TArray<FName>> LiveLinkSubjects;
 
 		TArray<FName>& UniqueNames = LiveLinkSubjects.Add(WildcardSource);
 		
-		for (const FLiveLinkSubjectKeyXR& Subject : SubjectKeys)
+		for (const FLiveLinkSubjectKey& Subject : SubjectKeys)
 		{
 			LiveLinkSubjects.FindOrAdd(Subject.Source).Add(Subject.SubjectName);
 			UniqueNames.AddUnique(Subject.SubjectName);
@@ -152,7 +152,7 @@ public:
 			for (FName Subject : Subjects)
 			{
 				FName FullName = *FString::Format(TEXT("{0} ({1})"), { Subject.ToString(), Header.Value.ToString() });
-				EnumeratedSources.Emplace(FLiveLinkSubjectKeyXR(Subject,Header.Key), FullName);
+				EnumeratedSources.Emplace(FLiveLinkSubjectKey(Subject,Header.Key), FullName);
 			}
 		}
 	}
@@ -171,14 +171,14 @@ public:
 	}
 
 private:
-	FLiveLinkSubjectKeyXR GetSubjectKeyFromMotionSource(FName MotionSource) const
+	FLiveLinkSubjectKey GetSubjectKeyFromMotionSource(FName MotionSource) const
 	{
 		const FLiveLinkMotionControllerEnumeratedSource* EnumeratedSource = EnumeratedSources.FindByPredicate([&](const FLiveLinkMotionControllerEnumeratedSource& Item) { return Item.MotionSource == MotionSource; });
 		if (EnumeratedSource)
 		{
 			return EnumeratedSource->SubjectKey;
 		}
-		return FLiveLinkSubjectKeyXR(MotionSource,FGuid());
+		return FLiveLinkSubjectKey(MotionSource,FGuid());
 	}
 
 	// Registered with the client and called when client's subjects change

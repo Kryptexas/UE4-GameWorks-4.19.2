@@ -499,16 +499,15 @@ TArray<FLiveLinkSubjectKey> FLiveLinkClient::GetSubjects()
 
 		for (const TPair<FName, FLiveLinkSubject>& LiveSubject : LiveSubjectData)
 		{
-			SubjectEntries.Emplace(LiveSubject.Key);
-			SubjectEntries.Last().Source = LiveSubject.Value.LastModifier;
+			SubjectEntries.Emplace(LiveSubject.Key, LiveSubject.Value.LastModifier);
 		}
 	}
 
 	for (TPair<FName, FLiveLinkVirtualSubject>& VirtualSubject : VirtualSubjects)
 	{
-		const int32 NewItem = SubjectEntries.Emplace(VirtualSubject.Key);
-		SubjectEntries[NewItem].Source = VirtualSubjectGuid;
+		const int32 NewItem = SubjectEntries.Emplace(VirtualSubject.Key, VirtualSubjectGuid);
 	}
+
 	return SubjectEntries;
 }
 
@@ -606,32 +605,6 @@ void FLiveLinkClient::OnPropertyChanged(FGuid InEntryGuid, const FPropertyChange
 	}
 }
 
-TArray<FLiveLinkSubjectKeyXR> FLiveLinkClient::GetSubjectsXR()
-{
-	TArray<FLiveLinkSubjectKeyXR> SubjectEntries;
-	{
-		FScopeLock Lock(&SubjectDataAccessCriticalSection);
-
-		SubjectEntries.Reserve(LiveSubjectData.Num());
-
-		for (const TPair<FName, FLiveLinkSubject>& LiveSubject : LiveSubjectData)
-		{
-			SubjectEntries.Emplace(LiveSubject.Key, LiveSubject.Value.LastModifier);
-		}
-	}
-	return SubjectEntries;
-}
-
-FDelegateHandle FLiveLinkClient::RegisterSubjectsChangedHandleXR(const FSimpleMulticastDelegate::FDelegate& SourcesChanged)
-{
-	return OnLiveLinkSubjectsChanged.Add(SourcesChanged);
-}
-
-void FLiveLinkClient::UnregisterSubjectsChangedHandleXR(FDelegateHandle Handle)
-{
-	OnLiveLinkSubjectsChanged.Remove(Handle);
-}
-
 FDelegateHandle FLiveLinkClient::RegisterSourcesChangedHandle(const FSimpleMulticastDelegate::FDelegate& SourcesChanged)
 {
 	return OnLiveLinkSourcesChanged.Add(SourcesChanged);
@@ -642,9 +615,9 @@ void FLiveLinkClient::UnregisterSourcesChangedHandle(FDelegateHandle Handle)
 	OnLiveLinkSourcesChanged.Remove(Handle);
 }
 
-FDelegateHandle FLiveLinkClient::RegisterSubjectsChangedHandle(const FSimpleMulticastDelegate::FDelegate& SourcesChanged)
+FDelegateHandle FLiveLinkClient::RegisterSubjectsChangedHandle(const FSimpleMulticastDelegate::FDelegate& SubjectsChanged)
 {
-	return OnLiveLinkSubjectsChanged.Add(SourcesChanged);
+	return OnLiveLinkSubjectsChanged.Add(SubjectsChanged);
 }
 
 void FLiveLinkClient::UnregisterSubjectsChangedHandle(FDelegateHandle Handle)
