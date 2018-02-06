@@ -71,6 +71,13 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		CheckIfFunctionIsCallable(Function, Context, Node);
 		// Make sure the pin mapping is sound (all pins wire up to a matching function parameter, and all function parameters match a pin)
 
+		// Make sure the function is not a delegate, otherwise codegen will complain. Front end should prevent placement of callfunction
+		// nodes, but better to detect this here than get an assertion failure in codegen:
+		if(Function->HasAnyFunctionFlags(FUNC_Delegate))
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("CallingDelegate_Error", "@@ is trying to call a delegate function - delegates cannot be called directly").ToString(), Node);
+		}
+
 		// Remaining unmatched pins
 		TArray<UEdGraphPin*> RemainingPins;
 		RemainingPins.Append(Node->Pins);
