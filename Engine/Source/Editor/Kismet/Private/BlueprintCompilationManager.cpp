@@ -1752,13 +1752,13 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 					nullptr
 				);
 
-				if(bAreDelegateGraphs)
-				{
-					NewFunction->FunctionFlags |= FUNC_Delegate;
-				}
-
 				if(NewFunction)
 				{
+					if(bAreDelegateGraphs)
+					{
+						NewFunction->FunctionFlags |= FUNC_Delegate;
+					}
+
 					// locals:
 					for( const FBPVariableDescription& BPVD : EntryNode->LocalVariables )
 					{
