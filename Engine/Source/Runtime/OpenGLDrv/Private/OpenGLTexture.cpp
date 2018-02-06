@@ -2371,6 +2371,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DFromResource(EPixelFormat 
 		nullptr,
 		ClearValueBinding);
 
+	Texture2D->SetAliased(true);
 	OpenGLTextureAllocated(Texture2D, TexCreateFlags);
 	return Texture2D;
 }
@@ -2396,6 +2397,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArrayFromResource(EPixelFo
 		nullptr,
 		ClearValueBinding);
 
+	Texture2DArray->SetAliased(true);
 	OpenGLTextureAllocated(Texture2DArray, TexCreateFlags);
 	return Texture2DArray;
 }
@@ -2421,6 +2423,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeFromResource(EPixelFor
 		nullptr,
 		ClearValueBinding);
 
+	TextureCube->SetAliased(true);
 	OpenGLTextureAllocated(TextureCube, TexCreateFlags);
 	return TextureCube;
 }
