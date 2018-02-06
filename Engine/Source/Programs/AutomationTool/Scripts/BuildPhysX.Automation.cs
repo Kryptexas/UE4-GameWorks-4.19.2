@@ -73,6 +73,7 @@ class BuildPhysX : BuildCommand
 	private static DirectoryReference SharedSourceRootDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "PxShared");
 	private static DirectoryReference RootOutputBinaryDirectory = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "ThirdParty", "PhysX3");
 	private static DirectoryReference RootOutputLibDirectory = DirectoryReference.Combine(PhysXSourceRootDirectory, "Lib");
+	private static DirectoryReference ThirdPartySourceDirectory = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Source", "ThirdParty");
 
 	//private static DirectoryReference PhysX34SourceLibRootDirectory = DirectoryReference.Combine(PhysX34SourceRootDirectory, "Lib");
 	//private static DirectoryReference APEX14SourceLibRootDirectory = DirectoryReference.Combine(APEX14SourceRootDirectory, "Lib");
@@ -159,6 +160,14 @@ class BuildPhysX : BuildCommand
 		return DirectoryReference.Combine(Directory, "compiler", GetCMakeTargetDirectoryName(TargetData, TargetWindowsCompiler));
 	}
 
+	private static string GetBundledLinuxLibCxxFlags()
+	{
+		string CxxFlags = "\"-I " + ThirdPartySourceDirectory + "/Linux/LibCxx/include -I " + ThirdPartySourceDirectory + "/Linux/LibCxx/include/c++/v1\"";
+		string CxxLinkerFlags = "\"-stdlib=libc++ -nodefaultlibs -L " + ThirdPartySourceDirectory + "/Linux/LibCxx/lib/Linux/x86_64-unknown-linux-gnu/ " + ThirdPartySourceDirectory + "/Linux/LibCxx/lib/Linux/x86_64-unknown-linux-gnu/libc++.a " + ThirdPartySourceDirectory + "/Linux/LibCxx/lib/Linux/x86_64-unknown-linux-gnu/libc++abi.a -lm -lc -lgcc_s\"";
+
+		return "-DCMAKE_CXX_FLAGS=" + CxxFlags + " -DCMAKE_EXE_LINKER_FLAGS=" + CxxLinkerFlags + " -DCAMKE_MODULE_LINKER_FLAGS=" + CxxLinkerFlags + " -DCMAKE_SHARED_LINKER_FLAGS=" + CxxLinkerFlags + " ";
+	}
+
 	private static string GetLinuxToolchainSettings(TargetPlatformData TargetData)
 	{
 		if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
@@ -237,7 +246,7 @@ class BuildPhysX : BuildCommand
 						}
 						return DirectoryReference.Combine(PhysXCMakeFiles, "Android").ToString() + " -G \"MinGW Makefiles\" -DTARGET_BUILD_PLATFORM=android -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\android\\android.toolchain.cmake\" -DANDROID_NDK=\"" + NDKDirectory + "\" -DCMAKE_MAKE_PROGRAM=\"" + NDKDirectory + "\\prebuilt\\windows-x86_64\\bin\\make.exe\" -DANDROID_NATIVE_API_LEVEL=\"" + AndroidAPILevel + "\" -DANDROID_ABI=\"" + AndroidABI + "\" -DANDROID_STL=gnustl_shared" + OutputFlags;
 					case UnrealTargetPlatform.Linux:
-						return DirectoryReference.Combine(PhysXCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
+						return DirectoryReference.Combine(PhysXCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 " + GetBundledLinuxLibCxxFlags() + " -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
 					case UnrealTargetPlatform.Mac:
 						return DirectoryReference.Combine(PhysXCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=mac" + OutputFlags;
 					case UnrealTargetPlatform.IOS:
@@ -273,7 +282,7 @@ class BuildPhysX : BuildCommand
 					case UnrealTargetPlatform.Switch:
 						return DirectoryReference.Combine(ApexCMakeFiles, "Switch").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=switch -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\switch\\NX64Toolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=NX-NXFP2-a64" + OutputFlags + ApexFlags;
 					case UnrealTargetPlatform.Linux:
-						return DirectoryReference.Combine(ApexCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DAPEX_LINUX_SHARED_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags + ApexFlags;
+						return DirectoryReference.Combine(ApexCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DAPEX_LINUX_SHARED_LIBRARIES=1 " + GetBundledLinuxLibCxxFlags() + " -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags + ApexFlags;
 					case UnrealTargetPlatform.Mac:
 						return DirectoryReference.Combine(ApexCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=mac" + OutputFlags + ApexFlags;
 					 default:
@@ -294,7 +303,7 @@ class BuildPhysX : BuildCommand
                     case UnrealTargetPlatform.XboxOne:
                         return DirectoryReference.Combine(NvClothCMakeFiles, "XboxOne").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=xboxone -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\XboxOne\\XboxOneToolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=DURANGO" + OutputFlags;
                     case UnrealTargetPlatform.Linux:
-                        return DirectoryReference.Combine(NvClothCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Linux").ToString() + " --no-warn-unused-cli -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=linux -DPX_STATIC_LIBRARIES=1 " + GetBundledLinuxLibCxxFlags() + " -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags;
                     case UnrealTargetPlatform.Mac:
                         return DirectoryReference.Combine(NvClothCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=mac" + OutputFlags;
 
