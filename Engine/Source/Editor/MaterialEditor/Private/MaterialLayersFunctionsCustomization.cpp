@@ -58,14 +58,16 @@ FMaterialLayersFunctionsCustomization::FMaterialLayersFunctionsCustomization(con
 	{
 		if (MaterialLayersFunctions->Layers.Num() != MaterialLayersFunctions->RestrictToLayerRelatives.Num())
 		{
-			for (int32 LayerIt = 0; LayerIt < MaterialLayersFunctions->Layers.Num() - MaterialLayersFunctions->RestrictToLayerRelatives.Num(); LayerIt++)
+			int32 OriginalSize = MaterialLayersFunctions->RestrictToLayerRelatives.Num();
+			for (int32 LayerIt = 0; LayerIt < MaterialLayersFunctions->Layers.Num() - OriginalSize; LayerIt++)
 			{
 				MaterialLayersFunctions->RestrictToLayerRelatives.Add(false);
 			}
 		}
 		if (MaterialLayersFunctions->Blends.Num() != MaterialLayersFunctions->RestrictToBlendRelatives.Num())
 		{
-			for (int32 BlendIt = 0; BlendIt < MaterialLayersFunctions->Blends.Num() - MaterialLayersFunctions->RestrictToBlendRelatives.Num(); BlendIt++)
+			int32 OriginalSize = MaterialLayersFunctions->RestrictToBlendRelatives.Num();
+			for (int32 BlendIt = 0; BlendIt < MaterialLayersFunctions->Blends.Num() - OriginalSize; BlendIt++)
 			{
 				MaterialLayersFunctions->RestrictToBlendRelatives.Add(false);
 			}

@@ -640,14 +640,16 @@ void SMaterialLayersFunctionsInstanceTree::Construct(const FArguments& InArgs)
 	{
 		if (FunctionInstance->Layers.Num() != FunctionInstance->RestrictToLayerRelatives.Num())
 		{
-			for (int32 LayerIt = 0; LayerIt < FunctionInstance->Layers.Num() - FunctionInstance->RestrictToLayerRelatives.Num(); LayerIt++)
+			int32 OriginalSize = FunctionInstance->RestrictToLayerRelatives.Num();
+			for (int32 LayerIt = 0; LayerIt < FunctionInstance->Layers.Num() - OriginalSize; LayerIt++)
 			{
 				FunctionInstance->RestrictToLayerRelatives.Add(false);
 			}
 		}
 		if (FunctionInstance->Blends.Num() != FunctionInstance->RestrictToBlendRelatives.Num())
 		{
-			for (int32 BlendIt = 0; BlendIt < FunctionInstance->Blends.Num() - FunctionInstance->RestrictToBlendRelatives.Num(); BlendIt++)
+			int32 OriginalSize = FunctionInstance->RestrictToBlendRelatives.Num();
+			for (int32 BlendIt = 0; BlendIt < FunctionInstance->Blends.Num() - OriginalSize; BlendIt++)
 			{
 				FunctionInstance->RestrictToBlendRelatives.Add(false);
 			}
