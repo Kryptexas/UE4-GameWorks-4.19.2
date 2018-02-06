@@ -896,25 +896,10 @@ namespace UnrealBuildTool
 							}
 
 							// Read from the editor config
-							DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
-							if(IsEngineInstalled())
+							ProjectFileFormat PreferredSourceCodeAccessor;
+							if(ProjectFileGenerator.GetPreferredSourceCodeAccessor(ProjectFile, out PreferredSourceCodeAccessor))
 							{
-								BuildVersion Version;
-								if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-								{
-									EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
-								}
-							}
-							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
-
-							string PreferredAccessor;
-							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
-							{
-								ProjectFileFormat PreferredFormat;
-								if (Enum.TryParse(PreferredAccessor, out PreferredFormat))
-								{
-									ProjectFileFormats.Add(PreferredFormat);
-								}
+								ProjectFileFormats.Add(PreferredSourceCodeAccessor);
 							}
 
 							// If there's still nothing set, get the default project file format for this platform

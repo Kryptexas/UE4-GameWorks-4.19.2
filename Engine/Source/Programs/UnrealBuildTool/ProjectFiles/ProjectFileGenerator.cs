@@ -430,6 +430,40 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets the user's preferred IDE from their editor settings
+		/// </summary>
+		/// <param name="ProjectFile">Project file being built</param>
+		/// <param name="Format">Preferred format for the project being built</param>
+		/// <returns>True if a preferred IDE was set, false otherwise</returns>
+		public static bool GetPreferredSourceCodeAccessor(FileReference ProjectFile, out ProjectFileFormat Format)
+		{
+			DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
+			if(UnrealBuildTool.IsEngineInstalled())
+			{
+				BuildVersion Version;
+				if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+				{
+					EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
+				}
+			}
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
+
+			string PreferredAccessor;
+			if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
+			{
+				ProjectFileFormat PreferredFormat;
+				if (Enum.TryParse(PreferredAccessor, out PreferredFormat))
+				{
+					Format = PreferredFormat;
+					return true;
+				}
+			}
+
+			Format = ProjectFileFormat.VisualStudio;
+			return false;
+		}
+
+		/// <summary>
 		/// Generates a Visual Studio solution file and Visual C++ project files for all known engine and game targets.
 		/// Does not actually build anything.
 		/// </summary>

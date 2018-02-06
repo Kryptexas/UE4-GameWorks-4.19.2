@@ -322,7 +322,7 @@ namespace UnrealBuildTool
 			// Set the compiler version if necessary
 			if (Target.WindowsPlatform.Compiler == WindowsCompiler.Default)
 			{
-				Target.WindowsPlatform.Compiler = GetDefaultCompiler();
+				Target.WindowsPlatform.Compiler = GetDefaultCompiler(Target.ProjectFile);
 			}
 
 			// Disable linking if we're using a static analyzer
@@ -379,7 +379,7 @@ namespace UnrealBuildTool
 		/// Gets the default compiler which should be used, if it's not set explicitly by the target, command line, or config file.
 		/// </summary>
 		/// <returns>The default compiler version</returns>
-		internal static WindowsCompiler GetDefaultCompiler()
+		internal static WindowsCompiler GetDefaultCompiler(FileReference ProjectFile)
 		{
 			// If there's no specific compiler set, try to pick the matching compiler for the selected IDE
 			object ProjectFormatObject;
@@ -391,6 +391,20 @@ namespace UnrealBuildTool
 					return WindowsCompiler.VisualStudio2017;
 				}
 				else if (ProjectFormat == VCProjectFileFormat.VisualStudio2015)
+				{
+					return WindowsCompiler.VisualStudio2015;
+				}
+			}
+
+			// Check the editor settings too
+			ProjectFileFormat PreferredAccessor;
+			if(ProjectFileGenerator.GetPreferredSourceCodeAccessor(ProjectFile, out PreferredAccessor))
+			{
+				if(PreferredAccessor == ProjectFileFormat.VisualStudio2017)
+				{
+					return WindowsCompiler.VisualStudio2017;
+				}
+				else if(PreferredAccessor == ProjectFileFormat.VisualStudio2015)
 				{
 					return WindowsCompiler.VisualStudio2015;
 				}
