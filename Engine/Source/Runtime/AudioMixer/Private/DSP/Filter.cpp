@@ -75,13 +75,13 @@ namespace Audio
 	{
 		const float InCutoffFrequencyClamped = FMath::Max(InCutoffFrequency, 20.0f);
 
-		if (InFilterType != FilterType ||
-			InCutoffFrequencyClamped != InCutoffFrequency ||
-			Bandwidth != InBandwidth ||
-			GainDB != InGainDB)
+		if (FilterType != InFilterType ||
+			!FMath::IsNearlyEqual(Frequency, InCutoffFrequencyClamped) ||
+			!FMath::IsNearlyEqual(Bandwidth, InBandwidth) ||
+			!FMath::IsNearlyEqual(GainDB, InGainDB))
 		{
 			FilterType = InFilterType;
-			Frequency = InCutoffFrequency;
+			Frequency = InCutoffFrequencyClamped;
 			Bandwidth = InBandwidth;
 			GainDB = InGainDB;
 			CalculateBiquadCoefficients();
