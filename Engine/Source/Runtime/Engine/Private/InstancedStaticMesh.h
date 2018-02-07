@@ -206,9 +206,9 @@ struct FInstancedStaticMeshDataType
 	/** The stream to read the Lightmap Bias and Random instance ID from. */
 	FVertexStreamComponent InstanceLightmapAndShadowMapUVBiasComponent;
 
-	FShaderResourceViewRHIRef InstanceOriginSRV;
-	FShaderResourceViewRHIRef InstanceTransformSRV;
-	FShaderResourceViewRHIRef InstanceLightmapSRV;
+	FShaderResourceViewRHIParamRef InstanceOriginSRV;
+	FShaderResourceViewRHIParamRef InstanceTransformSRV;
+	FShaderResourceViewRHIParamRef InstanceLightmapSRV;
 };
 
 /**
