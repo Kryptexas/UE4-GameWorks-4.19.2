@@ -179,13 +179,6 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		FString ValueStr = HandleSpecialTypes(LocalContext, LocalProperty, LocalValuePtr);
 		if (ValueStr.IsEmpty())
 		{
-			// An instanced reference to a non-NULL default subobject will have already been assigned and thus will return
-			// an empty string here in order to avoid emitting an unnecessary reassignment statement to the generated code.
-			if (LocalProperty->ContainsInstancedObjectProperty())
-			{
-				return bComplete;
-			}
-
 			const UStructProperty* StructProperty = Cast<const UStructProperty>(LocalProperty);
 			UScriptStruct* InnerInlineStruct = InlineValueStruct(StructProperty ? StructProperty->Struct : nullptr, LocalValuePtr);
 			if (StructProperty && StructProperty->Struct && InnerInlineStruct)
@@ -326,22 +319,9 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 			}
 			else
 			{
-				int32 StartIndex = 0;
-				if (ArrayProperty->ContainsInstancedObjectProperty())
-				{
-					// Arrays of instanced objects may already contain one or more instances. In that case we don't need to reassign those slots.
-					FScriptArrayHelper ScriptDefaultArrayHelper(ArrayProperty, DefaultValuePtr);
+				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("Reserve"), ScriptArrayHelper.Num()));
 
-					StartIndex = ScriptDefaultArrayHelper.Num();
-					check(StartIndex <= ScriptArrayHelper.Num());
-				}
-				
-				if (StartIndex < ScriptArrayHelper.Num())
-				{
-					Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("Reserve"), ScriptArrayHelper.Num()));
-				}
-
-				for (int32 Index = StartIndex; Index < ScriptArrayHelper.Num(); ++Index)
+				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 				{
 					const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
 
@@ -363,25 +343,12 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		FScriptSetHelper ScriptSetHelper(SetProperty, ValuePtr);
 		if (ScriptSetHelper.Num())
 		{
-			int32 StartIndex = 0;
-			if (SetProperty->ContainsInstancedObjectProperty())
-			{
-				// Sets of instanced objects may already contain one or more instances. In that case we don't need to reassign those slots.
-				FScriptSetHelper ScriptDefaultSetHelper(SetProperty, DefaultValuePtr);
-
-				StartIndex = ScriptDefaultSetHelper.Num();
-				check(StartIndex <= ScriptSetHelper.Num());
-			}
-			
-			if (StartIndex < ScriptSetHelper.Num())
-			{
-				Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
-			}
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
 
 			auto ForEachElementInSet = [&](TFunctionRef<void(int32)> Process)
 			{
 				int32 Size = ScriptSetHelper.Num();
-				for (int32 I = StartIndex; Size; ++I)
+				for (int32 I = 0; Size; ++I)
 				{
 					if (ScriptSetHelper.IsValidIndex(I))
 					{
@@ -425,21 +392,11 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		check(MapProperty->KeyProp && MapProperty->ValueProp);
 		FScriptMapHelper ScriptMapHelper(MapProperty, ValuePtr);
 		if (ScriptMapHelper.Num())
-		{	
-			int32 StartIndex = 0;
-			if (MapProperty->ContainsInstancedObjectProperty())
-			{
-				// Maps of instanced objects may already contain one or more instances. In that case we don't need to reassign those slots.
-				FScriptMapHelper ScriptDefaultMapHelper(MapProperty, DefaultValuePtr);
-
-				StartIndex = ScriptDefaultMapHelper.Num();
-				check(StartIndex <= ScriptMapHelper.Num());
-			}
-
+		{
 			auto ForEachPairInMap = [&](TFunctionRef<void(int32)> Process)
 			{
 				int32 Size = ScriptMapHelper.Num();
-				for (int32 I = StartIndex; Size; ++I)
+				for (int32 I = 0; Size; ++I)
 				{
 					if (ScriptMapHelper.IsValidIndex(I))
 					{
@@ -449,10 +406,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 				}
 			};
 
-			if (StartIndex > ScriptMapHelper.Num())
-			{
-				Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptMapHelper.Num()));
-			}
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptMapHelper.Num()));
 
 			const UStructProperty* KeyStructProperty = Cast<const UStructProperty>(MapProperty->KeyProp);
 			const EStructConstructionType KeyConstruction = StructConstruction(KeyStructProperty);
@@ -743,22 +697,19 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UStruct* Struct,
 
 FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr)
 {
-	auto HandleObjectValueLambda = [&Context, Property](UObject* Object, UClass* Class) -> FString
+	auto HandleObjectValueLambda = [&Context, Property, ValuePtr](UObject* Object, UClass* Class) -> FString
 	{
 		if (Object)
 		{
 			const bool bIsDefaultSubobject = Object->IsDefaultSubobject();
 			const bool bIsInstancedReference = Property->HasAnyPropertyFlags(CPF_InstancedReference);
-			const bool bIsInstancedDefaultSubobject = (bIsDefaultSubobject && bIsInstancedReference);
 
 			UClass* ObjectClassToUse = Context.GetFirstNativeOrConvertedClass(Class);
 			{
 				const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
 				if (!MappedObject.IsEmpty())
 				{
-					// Return an empty string for an instanced reference to a default subobject that has already been mapped for initialization;
-					// this ensures that we won't emit a redundant statement to reassign the instance back to the same property in the generated code.
-					return bIsInstancedDefaultSubobject ? FString() : MappedObject;
+					return MappedObject;
 				}
 			}
 
@@ -784,8 +735,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				// We should always find a mapping in this case.
 				if (ensure(!MappedObject.IsEmpty()))
 				{
-					// Only return the mapped name if we instanced the subobject in the codegen; otherwise, we don't need to reassign the reference value in the generated code.
-					return bIsDefaultSubobject ? FString() : MappedObject;
+					return MappedObject;
 				}
 			}
 
@@ -798,6 +748,11 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 					return MappedObject;
 				}
 			}
+		}
+		else
+		{
+			// Emit valid representation for a null object.
+			return Context.ExportTextItem(Property, ValuePtr);
 		}
 
 		return FString();
