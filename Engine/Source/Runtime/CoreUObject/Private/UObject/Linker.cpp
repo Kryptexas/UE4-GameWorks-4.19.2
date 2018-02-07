@@ -417,12 +417,22 @@ static void LogGetPackageLinkerError(FArchive* LinkerArchive, const TCHAR* InFil
 
 			if(InFilename != NULL && InOuter != NULL)
 			{
+				FString PackageName;
+				if (!FPackageName::TryConvertFilenameToLongPackageName(InFilename, PackageName))
+				{
+					PackageName = InFilename;
+				}
+				FString OuterPackageName;
+				if (!FPackageName::TryConvertFilenameToLongPackageName(InOuter->GetPathName(), OuterPackageName))
+				{
+					OuterPackageName = InOuter->GetPathName();
+				}
 				// Output the summary error & the filename link. This might be something like "..\Content\Foo.upk Out of Memory"
 				TSharedRef<FTokenizedMessage> Message = LoadErrors.Error();
-				Message->AddToken(FAssetNameToken::Create(FPackageName::FilenameToLongPackageName(InFilename)));
+				Message->AddToken(FAssetNameToken::Create(PackageName));
 				Message->AddToken(FTextToken::Create(FText::FromString(TEXT(":"))));
 				Message->AddToken(FTextToken::Create(InSummaryErrorMessage));
-				Message->AddToken(FAssetNameToken::Create(FPackageName::FilenameToLongPackageName(InOuter->GetPathName())));
+				Message->AddToken(FAssetNameToken::Create(OuterPackageName));
 			}
 
 			Local::OutputErrorDetail(LinkerArchive, NAME_LoadErrors);
