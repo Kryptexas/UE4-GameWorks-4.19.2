@@ -2689,6 +2689,7 @@ bool UMaterialInstance::UpdateMaterialLayersParameterValue(const FMaterialParame
 				Param.Value.UpdateStaticPermutationString();
 				return true;
 			}
+#if WITH_EDITOR
 			for(int32 LayerNameIndex = 0; LayerNameIndex < LayersValue.LayerNames.Num(); LayerNameIndex++) 
 			{
 				if (LayersValue.LayerNames[LayerNameIndex].ToString() != Param.Value.LayerNames[LayerNameIndex].ToString())
@@ -2699,7 +2700,7 @@ bool UMaterialInstance::UpdateMaterialLayersParameterValue(const FMaterialParame
 					return true;
 				}
 			}
-			
+#endif 			
 			break;
 		}
 	}
@@ -3419,7 +3420,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 bool UMaterialInstance::UpdateLightmassTextureTracking()
 {
 	bool bTexturesHaveChanged = false;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TArray<UTexture*> UsedTextures;
 	
 	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
@@ -3452,7 +3453,7 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 			}
 		}
 	}
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 
 	return bTexturesHaveChanged;
 }
@@ -3824,7 +3825,7 @@ const FStaticParameterSet& UMaterialInstance::GetStaticParameters() const
 
 void UMaterialInstance::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (bIncludeTextures)
 	{
 		OutGuids.Append(ReferencedTextureGuids);
