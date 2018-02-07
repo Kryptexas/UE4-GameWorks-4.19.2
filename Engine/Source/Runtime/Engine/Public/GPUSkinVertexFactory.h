@@ -321,6 +321,10 @@ public:
 		{
 			check(IsInParallelRenderingThread());
 
+			if ((CurrentRevisionNumber - PreviousRevisionNumber) > 1)
+			{
+				bPrevious = false;
+			}
 
 			uint32 BufferIndex = CurrentBuffer ^ (uint32)bPrevious;
 
