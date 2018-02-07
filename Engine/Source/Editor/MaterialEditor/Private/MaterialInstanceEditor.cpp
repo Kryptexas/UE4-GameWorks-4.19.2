@@ -664,6 +664,7 @@ void FMaterialInstanceEditor::OnApply()
 	if (bIsFunctionPreviewMaterial && MaterialEditorInstance)
 	{
 		UE_LOG(LogMaterialInstanceEditor, Log, TEXT("Applying instance %s"), *GetEditingObjects()[0]->GetName());
+		MaterialEditorInstance->bIsFunctionInstanceDirty = true;
 		MaterialEditorInstance->ApplySourceFunctionChanges();
 	}
 }

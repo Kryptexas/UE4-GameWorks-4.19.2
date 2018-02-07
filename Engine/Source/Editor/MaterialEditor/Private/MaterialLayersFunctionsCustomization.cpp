@@ -418,11 +418,6 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 		ThumbnailOverride = FIntPoint(32, 32);
 	}
 	FOnSetObject AssetChanged = FOnSetObject::CreateSP(ParentCustomization, &FMaterialLayersFunctionsCustomization::RefreshOnAssetChange, Index, InAssociation);
-	TSharedRef<STextBlock> ParentTextBlock = SNew(STextBlock)
-		.Text(LOCTEXT("Parent", "Parent "))
-		.TextStyle(FEditorStyle::Get(), "TinyText");
-	ParentTextBlock->SetToolTipText(LOCTEXT("ParentTooltip", "This allows you to set the parent class of your layer or blend asset to filter the possible assets to use."));
-	ParentTextBlock->EnableToolTipForceField(true);
 
 	FMaterialParameterInfo FunctionInfo;
 	FunctionInfo.Index = Index;

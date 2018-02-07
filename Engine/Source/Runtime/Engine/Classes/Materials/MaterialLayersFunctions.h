@@ -83,7 +83,6 @@ struct ENGINE_API FMaterialLayersFunctions
 		FText LayerName = FText(LOCTEXT("Background", "Background"));
 		LayerNames.Add(LayerName);
 		RestrictToLayerRelatives.Push(false);
-		RestrictToBlendRelatives.Push(false);
 #endif
 		LayerStates.Push(true);
 
@@ -136,7 +135,7 @@ struct ENGINE_API FMaterialLayersFunctions
 #if WITH_EDITOR
 		LayerNames.RemoveAt(Index);
 		RestrictToLayerRelatives.RemoveAt(Index);
-		RestrictToBlendRelatives.RemoveAt(Index);
+		RestrictToBlendRelatives.RemoveAt(Index - 1);
 #endif
 		KeyString = GetStaticPermutationString();
 	}

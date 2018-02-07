@@ -931,6 +931,23 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 		// Loop through all types of parameters for this material and add them to the parameter arrays.
 		TArray<FMaterialParameterInfo> OutParameterInfo;
 		TArray<FGuid> Guids;
+		// Need to get layer info first as other params are collected from layers
+		SourceInstance->GetAllMaterialLayersParameterInfo(OutParameterInfo, Guids);
+		// Copy Static Material Layers Parameters
+		for (int32 ParameterIdx = 0; ParameterIdx < SourceStaticParameters.MaterialLayersParameters.Num(); ParameterIdx++)
+		{
+			FStaticMaterialLayersParameter MaterialLayersParameterParameterValue = FStaticMaterialLayersParameter(SourceStaticParameters.MaterialLayersParameters[ParameterIdx]);
+			UDEditorMaterialLayersParameterValue& ParameterValue = *(NewObject<UDEditorMaterialLayersParameterValue>());
+
+			ParameterValue.ParameterValue = MaterialLayersParameterParameterValue.Value;
+			ParameterValue.bOverride = MaterialLayersParameterParameterValue.bOverride;
+			ParameterValue.ParameterInfo = MaterialLayersParameterParameterValue.ParameterInfo;
+			ParameterValue.ExpressionId = MaterialLayersParameterParameterValue.ExpressionGUID;
+
+			ParameterValue.SortPriority = 0; // Has custom interface so not a supported feature
+
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
+		}
 
 		// Scalar Parameters.
 		SourceInstance->GetAllScalarParameterInfo(OutParameterInfo, Guids);
@@ -1068,22 +1085,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			
 			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
-		SourceInstance->GetAllMaterialLayersParameterInfo(OutParameterInfo, Guids);
-		// Copy Static Material Layers Parameters
-		for(int32 ParameterIdx=0; ParameterIdx<SourceStaticParameters.MaterialLayersParameters.Num(); ParameterIdx++)
-		{
-			FStaticMaterialLayersParameter MaterialLayersParameterParameterValue = FStaticMaterialLayersParameter(SourceStaticParameters.MaterialLayersParameters[ParameterIdx]);
-			UDEditorMaterialLayersParameterValue& ParameterValue = *(NewObject<UDEditorMaterialLayersParameterValue>());
-
-			ParameterValue.ParameterValue = MaterialLayersParameterParameterValue.Value;
-			ParameterValue.bOverride = MaterialLayersParameterParameterValue.bOverride;
-			ParameterValue.ParameterInfo = MaterialLayersParameterParameterValue.ParameterInfo;
-			ParameterValue.ExpressionId = MaterialLayersParameterParameterValue.ExpressionGUID;
-
-			ParameterValue.SortPriority = 0; // Has custom interface so not a supported feature
-
-			AssignParameterToGroup(ParentMaterial, &ParameterValue);
-		}
+		
 
 		// Copy Static Switch Parameters
 		SourceInstance->GetAllStaticSwitchParameterInfo(OutParameterInfo, Guids);

@@ -2689,6 +2689,16 @@ bool UMaterialInstance::UpdateMaterialLayersParameterValue(const FMaterialParame
 				Param.Value.UpdateStaticPermutationString();
 				return true;
 			}
+			for(int32 LayerNameIndex = 0; LayerNameIndex < LayersValue.LayerNames.Num(); LayerNameIndex++) 
+			{
+				if (LayersValue.LayerNames[LayerNameIndex].ToString() != Param.Value.LayerNames[LayerNameIndex].ToString())
+				{
+					Param.Value = LayersValue;
+					Param.bOverride = true;//bOverridden;
+					Param.Value.UpdateStaticPermutationString();
+					return true;
+				}
+			}
 			
 			break;
 		}

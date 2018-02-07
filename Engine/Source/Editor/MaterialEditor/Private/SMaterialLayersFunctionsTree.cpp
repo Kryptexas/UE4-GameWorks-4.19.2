@@ -30,6 +30,7 @@
 #include "SImage.h"
 #include "MaterialEditor/MaterialEditorPreviewParameters.h"
 #include "SButton.h"
+#include "SInlineEditableTextBlock.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialLayerCustomization"
@@ -95,6 +96,19 @@ public:
 	{
 		return GetFilterState(InTree, InStackData) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
+
+	FText GetLayerName(SMaterialLayersFunctionsInstanceTree* InTree, int32 Counter) const
+	{
+		return InTree->FunctionInstance->GetLayerName(Counter);
+	}
+
+	void OnNameChanged(const FText& InText, ETextCommit::Type CommitInfo, SMaterialLayersFunctionsInstanceTree* InTree, int32 Counter)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RenamedSection", "Renamed layer and blend section"));
+		InTree->FunctionInstanceHandle->NotifyPreChange();
+		InTree->FunctionInstance->LayerNames[Counter] = InText;
+		InTree->FunctionInstanceHandle->NotifyPostChange();
+	};
 
 	/**
 	* Construct the widget
@@ -178,18 +192,20 @@ public:
 				ThumbnailBox->SetMinDesiredHeight(ThumbnailSize);
 			}
 
-			HeaderRowWidget->AddSlot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(5.0f)
-				[
-					SNew(STextBlock)
-					.Text(NameOverride)
-				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-				];
+		
 
-			if (StackParameterData->ParameterInfo.Index != 0 && FMaterialPropertyHelpers::IsOverriddenExpression(Tree->FunctionParameter))
+			if (StackParameterData->ParameterInfo.Index != 0)
 			{
+				HeaderRowWidget->AddSlot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						SNew(SInlineEditableTextBlock)
+						.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SMaterialLayersFunctionsInstanceTreeItem::GetLayerName, InArgs._InTree, StackParameterData->ParameterInfo.Index)))
+						.OnTextCommitted(FOnTextCommitted::CreateSP(this, &SMaterialLayersFunctionsInstanceTreeItem::OnNameChanged, InArgs._InTree, StackParameterData->ParameterInfo.Index))
+						.Font(FEditorStyle::GetFontStyle(TEXT("MaterialEditor.Layers.EditableFontImportant")))
+					];
 				HeaderRowWidget->AddSlot()
 					.FillWidth(1.0f)
 					.VAlign(VAlign_Center)
@@ -202,6 +218,18 @@ public:
 					.Padding(0.0f, 0.0f, 5.0f, 0.0f)
 					[
 						PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(InArgs._InTree, &SMaterialLayersFunctionsInstanceTree::RemoveLayer, StackParameterData->ParameterInfo.Index))
+					];
+			}
+			else
+			{
+				HeaderRowWidget->AddSlot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						SNew(STextBlock)
+						.Text(NameOverride)
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
 					];
 			}
 			LeftSideWidget = HeaderRowWidget;
@@ -1216,7 +1244,7 @@ public:
 				[
 					SNew(STextBlock)
 					.Text(NameOverride)
-					.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+					.TextStyle(FEditorStyle::Get(), "BoldText")
 				];
 			LeftSideWidget = HeaderRowWidget;
 		}

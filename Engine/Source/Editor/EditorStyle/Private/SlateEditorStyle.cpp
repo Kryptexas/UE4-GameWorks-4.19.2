@@ -6629,6 +6629,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "MaterialEditor.Tabs.HLSLCode", new IMAGE_BRUSH( "/Icons/icon_MatEd_HLSL_Code_16x", Icon16x16 ) );
 
 		Set( "MaterialEditor.Layers.EditableFont", DEFAULT_FONT("Regular", 8));
+		Set("MaterialEditor.Layers.EditableFontImportant", DEFAULT_FONT("Bold", FCoreStyle::RegularTextSize));
 		Set( "MaterialEditor.NormalFont", DEFAULT_FONT( "Regular", 9 ) );
 		Set( "MaterialEditor.BoldFont", DEFAULT_FONT( "Bold", 9 ) );
 
