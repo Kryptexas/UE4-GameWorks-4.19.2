@@ -21,7 +21,7 @@ void FIOSErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ver
 	if( GIsGuarded )
 	{
 //		FOutputDevice::Serialize(Msg, Verbosity, Category);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 	else
 	{

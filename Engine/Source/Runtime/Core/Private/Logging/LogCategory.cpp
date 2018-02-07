@@ -50,6 +50,6 @@ void FLogCategoryBase::PostTrigger(ELogVerbosity::Type VerbosityLevel)
 	{
 		GLog->FlushThreadedLogs();
 		DebugBreakOnLog = false; // toggle this off automatically
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 }

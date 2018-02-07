@@ -341,6 +341,7 @@ struct CORE_API FGenericPlatformMisc
 	}
 
 	/** Break into the debugger, if IsDebuggerPresent returns true, otherwise do nothing  */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreak is deprecated. Use the UE_DEBUG_BREAK() macro instead.")
 	FORCEINLINE static void DebugBreak()
 	{
 		if (IsDebuggerPresent())

@@ -24,6 +24,10 @@
 #include "Switch/SwitchPlatformMisc.h"
 #endif
 
+#ifndef UE_DEBUG_BREAK
+#error UE_DEBUG_BREAK is not defined for this platform
+#endif
+
 #ifndef PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
 #error PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING is not defined.
 #endif

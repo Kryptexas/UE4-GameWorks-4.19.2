@@ -6,6 +6,12 @@
 #include "HAL/PlatformMemory.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 
+#if UE_BUILD_SHIPPING
+#define UE_DEBUG_BREAK() ((void)0)
+#else
+#define UE_DEBUG_BREAK() ((void)(FWindowsPlatformMisc::IsDebuggerPresent() && (__debugbreak(), 1)))
+#endif
+
 class GenericApplication;
 struct FGuid;
 struct FVector2D;
@@ -45,29 +51,27 @@ struct CORE_API FWindowsPlatformMisc
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
+
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreak is deprecated. Use the UE_DEBUG_BREAK() macro instead.")
 	FORCEINLINE static void DebugBreak()
 	{
-		if (IsDebuggerPresent())
-		{
-			// Prefer __debugbreak() instead of ::DebugBreak() on Windows platform, so the code pointer isn't left
-			// inside the DebugBreak() Windows system library (which we usually won't have symbols for), and avoids
-			// us having to "step out" to get back to Unreal code.
-			__debugbreak();
-		}
+		UE_DEBUG_BREAK();
 	}
 #endif
 
 
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreakReturningFalse is deprecated. Use the (UE_DEBUG_BREAK(), false) expression instead.")
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
 #if !UE_BUILD_SHIPPING
-		DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 		return false;
 	}
 
 	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse() is deprecated.")
 	static FORCEINLINE bool DebugBreakAndPromptForRemoteReturningFalse(bool bIsEnsure = false)
 	{
 #if !UE_BUILD_SHIPPING
@@ -76,7 +80,7 @@ struct CORE_API FWindowsPlatformMisc
 			PromptForRemoteDebugging(bIsEnsure);
 		}
 
-		DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 
 		return false;

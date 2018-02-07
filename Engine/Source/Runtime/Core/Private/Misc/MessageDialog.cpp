@@ -99,7 +99,7 @@ EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const 
 
 		if (FPlatformMisc::IsDebuggerPresent())
 		{
-			FPlatformMisc::DebugBreak();
+			UE_DEBUG_BREAK();
 		}
 		else
 		{

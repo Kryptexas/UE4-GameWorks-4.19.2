@@ -940,7 +940,7 @@ struct FRHICommandWaitForAndSubmitSubList final : public FRHICommand<FRHICommand
 		if (EventToWaitFor.GetReference() && !EventToWaitFor->IsComplete() && !(!IsRunningRHIInSeparateThread() || !IsInRHIThread()))
 		{
 			GEventToWaitFor = EventToWaitFor.GetReference();
-			FPlatformMisc::DebugBreak();
+			UE_DEBUG_BREAK();
 			check(EventToWaitFor->IsComplete());
 		}
 		if (EventToWaitFor.GetReference() && !EventToWaitFor->IsComplete())

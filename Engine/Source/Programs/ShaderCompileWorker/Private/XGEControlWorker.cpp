@@ -214,7 +214,7 @@ int32 XGEController_Main(int ArgC, TCHAR* ArgV[])
 	while (!FPlatformMisc::IsDebuggerPresent())
 		FPlatformProcess::Sleep(1.0f);
 
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 #endif
 
 	int32 ReturnCode = 0;

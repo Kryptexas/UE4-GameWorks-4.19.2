@@ -18,7 +18,7 @@ FMacErrorOutputDevice::FMacErrorOutputDevice()
 
 void FMacErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 
 	if( !GIsCriticalError )
 	{   
@@ -49,7 +49,7 @@ void FMacErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ver
 	{
 		// Propagate error so structured exception handler can perform necessary work.
 #if PLATFORM_EXCEPTIONS_DISABLED
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 		FPlatformMisc::RaiseException( 1 );
 	}

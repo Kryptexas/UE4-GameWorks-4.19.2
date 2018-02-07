@@ -1028,7 +1028,7 @@ void FName::StaticInit()
 					// we can't print out here because there may be no log yet if this happens before main starts
 					if (FPlatformMisc::IsDebuggerPresent())
 					{
-						FPlatformMisc::DebugBreak();
+						UE_DEBUG_BREAK();
 					}
 					else
 					{
@@ -1047,7 +1047,7 @@ void FName::StaticInit()
 	{
 		if (FPlatformMisc::IsDebuggerPresent())
 		{
-			FPlatformMisc::DebugBreak();
+			UE_DEBUG_BREAK();
 		}
 		else
 		{

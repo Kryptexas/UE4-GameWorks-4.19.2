@@ -427,7 +427,7 @@ bool FHTML5HttpRequest::StartRequest()
 	else
 	{
 		UE_LOG(LogHttp, Fatal, TEXT("Unsupported verb '%s"), *Verb);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 
 	return true;

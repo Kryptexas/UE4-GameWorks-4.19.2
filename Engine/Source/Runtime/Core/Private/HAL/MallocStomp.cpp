@@ -121,7 +121,7 @@ void FMallocStomp::Free(void* InPtr)
 	if(AllocDataPtr->Sentinel != SentinelExpectedValue)
 	{
 		// There was a memory underrun related to this allocation.
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 
 #if PLATFORM_LINUX || PLATFORM_MAC

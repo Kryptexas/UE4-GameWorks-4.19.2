@@ -605,7 +605,7 @@ bool FCurlHttpRequest::SetupRequest()
 	else
 	{
 		UE_LOG(LogHttp, Fatal, TEXT("Unsupported verb '%s', can be perhaps added with CURLOPT_CUSTOMREQUEST"), *Verb);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 
 	// set up header function to receive response headers

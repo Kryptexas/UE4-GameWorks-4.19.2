@@ -401,7 +401,7 @@ _purecall_handler DefaultPureCallHandler;
 static void PureCallHandler()
 {
 	static bool bHasAlreadyBeenCalled = false;
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 	if( bHasAlreadyBeenCalled )
 	{
 		// Call system handler if we're double faulting.

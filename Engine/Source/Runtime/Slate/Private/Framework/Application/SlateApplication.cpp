@@ -2076,7 +2076,7 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		UE_LOG(LogSlate, Warning, TEXT("A modal window tried to take control while running in unattended script mode. The window was canceled."));
 		if (FPlatformMisc::IsDebuggerPresent())
 		{
-			FPlatformMisc::DebugBreak();
+			UE_DEBUG_BREAK();
 		}
 		else
 		{

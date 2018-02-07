@@ -17,7 +17,7 @@ void FAndroidErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type
 	FPlatformMisc::LowLevelOutputDebugString(*FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Msg, GPrintLogTimes));
 	if (GIsGuarded)
 	{
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 	else
 	{

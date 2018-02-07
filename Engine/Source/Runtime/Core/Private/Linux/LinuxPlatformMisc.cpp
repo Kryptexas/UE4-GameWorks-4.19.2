@@ -748,7 +748,7 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 #if !UE_BUILD_SHIPPING
 CORE_API TFunction<void()> UngrabAllInputCallback;
 
-void FLinuxPlatformMisc::DebugBreak()
+void FLinuxPlatformMisc::DebugBreakInternal()
 {
 	if( IsDebuggerPresent() )
 	{

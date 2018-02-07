@@ -1432,7 +1432,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheckSubobjects, Fatal, All);
 	if (!(Pred)) \
 	{ \
 		Result = false; \
-		FPlatformMisc::DebugBreak(); \
+		UE_DEBUG_BREAK(); \
 		UE_LOG(LogCheckSubobjects, Log, TEXT("CompCheck %s failed."), TEXT(#Pred)); \
 	} 
 

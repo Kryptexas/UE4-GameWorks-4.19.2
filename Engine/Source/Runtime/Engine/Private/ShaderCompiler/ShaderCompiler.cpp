@@ -2180,7 +2180,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 						// A shader compile error has occurred, see the debug output for information.
 						// Double click the errors in the VS.NET output window and the IDE will take you directly to the file and line of the error.
 						// Check ErrorJobs for more state on the failed shaders, for example in-memory includes like Material.usf
-						FPlatformMisc::DebugBreak();
+						UE_DEBUG_BREAK();
 						// Set GRetryShaderCompilation to true in the debugger to enable retries in debug
 						// NOTE: MaterialTemplate.usf will not be reloaded when retrying!
 						bRetryCompile = GRetryShaderCompilation;

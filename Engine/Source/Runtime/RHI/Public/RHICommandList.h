@@ -1743,7 +1743,7 @@ struct FRHICommandDebugBreak final : public FRHICommand<FRHICommandDebugBreak>
 	{
 		if (FPlatformMisc::IsDebuggerPresent())
 		{
-			FPlatformMisc::DebugBreak();
+			UE_DEBUG_BREAK();
 		}
 	}
 };
@@ -2273,7 +2273,7 @@ public:
 		{
 			if (FPlatformMisc::IsDebuggerPresent())
 			{
-				FPlatformMisc::DebugBreak();
+				UE_DEBUG_BREAK();
 			}
 			return;
 		}
@@ -3309,7 +3309,7 @@ public:
 		{
 			if (FPlatformMisc::IsDebuggerPresent())
 			{
-				FPlatformMisc::DebugBreak();
+				UE_DEBUG_BREAK();
 			}
 			return;
 		}
@@ -3531,7 +3531,7 @@ public:
 		{
 			if (FPlatformMisc::IsDebuggerPresent())
 			{
-				FPlatformMisc::DebugBreak();
+				UE_DEBUG_BREAK();
 			}
 			return;
 		}
