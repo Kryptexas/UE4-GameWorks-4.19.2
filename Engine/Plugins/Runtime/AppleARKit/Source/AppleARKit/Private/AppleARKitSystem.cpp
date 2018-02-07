@@ -1247,59 +1247,58 @@ void FAppleARKitSystem::SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKit
 		UARTrackedGeometry* FoundGeometry = *GeometrySearchResult;
 		TArray<UARPin*> PinsToUpdate = ARKitUtil::PinsFromGeometry(FoundGeometry, Pins);
 		
-		for (UARPin* Pin : PinsToUpdate)
+		
+		// We figure out the delta transform for the Anchor (aka. TrackedGeometry in ARKit) and apply that
+		// delta to figure out the new ARPin transform.
+		const FTransform Anchor_LocalToTrackingTransform_PreUpdate = FoundGeometry->GetLocalToTrackingTransform_NoAlignment();
+		const FTransform& Anchor_LocalToTrackingTransform_PostUpdate = AnchorData->Transform;
+		
+		const FTransform AnchorDeltaTransform = Anchor_LocalToTrackingTransform_PreUpdate.GetRelativeTransform(Anchor_LocalToTrackingTransform_PostUpdate);
+		
+		switch (AnchorData->AnchorType)
 		{
-			// We figure out the delta transform for the Anchor (aka. TrackedGeometry in ARKit) and apply that
-			// delta to figure out the new ARPin transform.
-			const FTransform Anchor_LocalToTrackingTransform_PreUpdate = FoundGeometry->GetLocalToTrackingTransform_NoAlignment();
-			const FTransform& Anchor_LocalToTrackingTransform_PostUpdate = AnchorData->Transform;
-			
-			const FTransform AnchorDeltaTransform = Anchor_LocalToTrackingTransform_PreUpdate.GetRelativeTransform(Anchor_LocalToTrackingTransform_PostUpdate);
-			
-			const FTransform Pin_LocalToTrackingTransform_PostUpdate = Pin->GetLocalToTrackingTransform_NoAlignment() * AnchorDeltaTransform;
-			
-			switch (AnchorData->AnchorType)
+			case EAppleAnchorType::Anchor:
 			{
-				case EAppleAnchorType::Anchor:
+				FoundGeometry->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform());
+				for (UARPin* Pin : PinsToUpdate)
 				{
-					FoundGeometry->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform());
-					if (Pin != nullptr)
+					const FTransform Pin_LocalToTrackingTransform_PostUpdate = Pin->GetLocalToTrackingTransform_NoAlignment() * AnchorDeltaTransform;
+					Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
+				}
+				
+				break;
+			}
+			case EAppleAnchorType::PlaneAnchor:
+			{
+				if (UARPlaneGeometry* PlaneGeo = Cast<UARPlaneGeometry>(FoundGeometry))
+				{
+					PlaneGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->Center, AnchorData->Extent);
+					for (UARPin* Pin : PinsToUpdate)
 					{
+						const FTransform Pin_LocalToTrackingTransform_PostUpdate = Pin->GetLocalToTrackingTransform_NoAlignment() * AnchorDeltaTransform;
 						Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
 					}
-					
-					break;
 				}
-				case EAppleAnchorType::PlaneAnchor:
+				break;
+			}
+			case EAppleAnchorType::FaceAnchor:
+			{
+				if (UARFaceGeometry* FaceGeo = Cast<UARFaceGeometry>(FoundGeometry))
 				{
-					if (UARPlaneGeometry* PlaneGeo = Cast<UARPlaneGeometry>(FoundGeometry))
+					// Update LiveLink first, because the other updates use MoveTemp for efficiency
+					if (LiveLinkSource.IsValid())
 					{
-						PlaneGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->Center, AnchorData->Extent);
-						if (Pin != nullptr)
-						{
-							Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
-						}
+						LiveLinkSource->PublishBlendShapes(FaceTrackingLiveLinkSubjectName, GameThreadTimestamp, GameThreadFrameNumber, AnchorData->BlendShapes);
 					}
-					break;
-				}
-				case EAppleAnchorType::FaceAnchor:
-				{
-					if (UARFaceGeometry* FaceGeo = Cast<UARFaceGeometry>(FoundGeometry))
-					{
-						// Update LiveLink first, because the other updates use MoveTemp for efficiency
-						if (LiveLinkSource.IsValid())
-						{
-							LiveLinkSource->PublishBlendShapes(FaceTrackingLiveLinkSubjectName, GameThreadTimestamp, GameThreadFrameNumber, AnchorData->BlendShapes);
-						}
 
-						FaceGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->BlendShapes, AnchorData->FaceVerts, AnchorData->FaceIndices);
-						if (Pin != nullptr)
-						{
-							Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
-						}
+					FaceGeo->UpdateTrackedGeometry(SharedThis(this), GameThreadFrameNumber, GameThreadTimestamp, AnchorData->Transform, GetAlignmentTransform(), AnchorData->BlendShapes, AnchorData->FaceVerts, AnchorData->FaceIndices);
+					for (UARPin* Pin : PinsToUpdate)
+					{
+						const FTransform Pin_LocalToTrackingTransform_PostUpdate = Pin->GetLocalToTrackingTransform_NoAlignment() * AnchorDeltaTransform;
+						Pin->OnTransformUpdated(Pin_LocalToTrackingTransform_PostUpdate);
 					}
-					break;
 				}
+				break;
 			}
 		}
 	}
