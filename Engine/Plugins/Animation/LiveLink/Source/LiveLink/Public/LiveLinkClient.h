@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,8 @@ struct FLiveLinkFrame
 public:
 	TArray<FTransform>		Transforms;
 	TArray<FOptionalCurveElement>	Curves;
+
+	FLiveLinkMetaData		MetaData;
 
 	FLiveLinkTimeCode TimeCode;
 
@@ -65,6 +67,9 @@ struct FLiveLinkSubject
 
 	// Add a frame of data to the subject
 	void AddFrame(const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode, FGuid FrameSource);
+
+	// Add a frame of data from a FLiveLinkFrameData
+	void AddFrame(const FLiveLinkFrameData& FrameData, FGuid FrameSource);
 
 	// Populate OutFrame with a frame based off of the supplied time and our own offsets
 	void BuildInterpolatedFrame(const double InSeconds, FLiveLinkSubjectFrame& OutFrame);
@@ -146,6 +151,7 @@ public:
 
 	virtual void ClearSubject(FName SubjectName) override;
 	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) override;
+	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const FLiveLinkFrameData& FrameData) override;
 	// End ILiveLinkClient Interface
 
 	// Add a new virtual subject to the client

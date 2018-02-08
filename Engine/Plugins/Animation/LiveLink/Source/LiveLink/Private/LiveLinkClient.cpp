@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveLinkClient.h"
 #include "ScopeLock.h"
@@ -146,6 +146,91 @@ void FLiveLinkSubject::AddFrame(const TArray<FTransform>& Transforms, const TArr
 	}
 }
 
+void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid FrameSource)
+{
+	LastModifier = FrameSource;
+
+	FLiveLinkFrame* NewFrame = nullptr;
+
+	if (CachedInterpolationSettings.bUseInterpolation)
+	{
+		if (FrameData.TimeCode.Time < LastReadTime)
+		{
+			//Gone back in time
+			Frames.Reset();
+			LastReadTime = 0;
+			SubjectTimeOffset = FrameData.TimeCode.Offset;
+		}
+
+		if (Frames.Num() == 0)
+		{
+			Frames.AddDefaulted();
+			NewFrame = &Frames[0];
+			LastReadFrame = 0;
+		}
+		else
+		{
+			if (LastReadFrame > MIN_FRAMES_TO_REMOVE)
+			{
+				check(Frames.Num() > LastReadFrame);
+				Frames.RemoveAt(0, LastReadFrame, false);
+				LastReadFrame = 0;
+			}
+
+			int32 FrameIndex = Frames.Num() - 1;
+
+			for (; FrameIndex >= 0; --FrameIndex)
+			{
+				if (Frames[FrameIndex].TimeCode.Time < FrameData.TimeCode.Time)
+				{
+					break;
+				}
+			}
+
+			int32 NewFrameIndex = Frames.Insert(FLiveLinkFrame(), FrameIndex + 1);
+			NewFrame = &Frames[NewFrameIndex];
+		}
+	}
+	else
+	{
+		//No interpolation
+		if (Frames.Num() > 1)
+		{
+			Frames.Reset();
+		}
+
+		if (Frames.Num() == 0)
+		{
+			Frames.AddDefaulted();
+		}
+
+		NewFrame = &Frames[0];
+
+		LastReadTime = 0;
+		LastReadFrame = 0;
+
+		SubjectTimeOffset = FrameData.TimeCode.Offset;
+	}
+
+	FLiveLinkCurveIntegrationData IntegrationData = CurveKeyData.UpdateCurveKey(FrameData.CurveElements);
+
+	check(NewFrame);
+	NewFrame->Transforms = FrameData.Transforms;
+	NewFrame->Curves = MoveTemp(IntegrationData.CurveValues);
+	NewFrame->MetaData = FrameData.MetaData;
+	NewFrame->TimeCode = FrameData.TimeCode;
+
+	// update existing curves
+	if (IntegrationData.NumNewCurves > 0)
+	{
+		for (FLiveLinkFrame& Frame : Frames)
+		{
+			Frame.ExtendCurveData(IntegrationData.NumNewCurves);
+		}
+	}
+}
+
+
 void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkSubjectFrame& OutFrame)
 {
 	OutFrame.RefSkeleton = RefSkeleton;
@@ -159,6 +244,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 	{
 		OutFrame.Transforms = Frames.Last().Transforms;
 		OutFrame.Curves = Frames.Last().Curves;
+		OutFrame.MetaData = Frames.Last().MetaData;
 		LastReadTime = Frames.Last().TimeCode.Time;
 		LastReadFrame = Frames.Num()-1;
 	}
@@ -179,6 +265,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 					LastReadFrame = FrameIndex;
 					OutFrame.Transforms = Frames[FrameIndex].Transforms;
 					OutFrame.Curves = Frames[FrameIndex].Curves;
+					OutFrame.MetaData = Frames[FrameIndex].MetaData;
 					bBuiltFrame = true;
 					break;
 				}
@@ -193,6 +280,8 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 
 					Blend(PreFrame.Transforms, PostFrame.Transforms, OutFrame.Transforms, BlendWeight);
 					Blend(PreFrame.Curves, PostFrame.Curves, OutFrame.Curves, BlendWeight);
+					// MetaData doesn't interpolate so use the PreFrame
+					OutFrame.MetaData = PreFrame.MetaData;
 
 					bBuiltFrame = true;
 					break;
@@ -206,6 +295,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 			// Failed to find an interp point so just take earliest frame
 			OutFrame.Transforms = Frames[0].Transforms;
 			OutFrame.Curves = Frames[0].Curves;
+			OutFrame.MetaData = Frames[0].MetaData;
 		}
 	}
 }
@@ -357,10 +447,16 @@ void FLiveLinkClient::BuildVirtualSubjectFrame(FLiveLinkVirtualSubject& VirtualS
 
 	SnapshotSubject.Transforms.Reset(SnapshotSubject.RefSkeleton.GetBoneNames().Num());
 	SnapshotSubject.Transforms.Add(FTransform::Identity);
+	SnapshotSubject.MetaData.StringMetaData.Empty();
 	for (FName SubjectName : VirtualSubject.Subjects)
 	{
 		FLiveLinkSubjectFrame& SubjectFrame = ActiveSubjectSnapshots.FindChecked(SubjectName);
 		SnapshotSubject.Transforms.Append(SubjectFrame.Transforms);
+		for (const auto& MetaDatum : SubjectFrame.MetaData.StringMetaData)
+		{
+			FName QualifiedKey = FName(*(SubjectName.ToString() + MetaDatum.Key.ToString()));
+			SnapshotSubject.MetaData.StringMetaData.Emplace(SubjectName, MetaDatum.Value);
+		}
 	}
 }
 
@@ -477,6 +573,16 @@ void FLiveLinkClient::PushSubjectData(FGuid SourceGuid, FName SubjectName, const
 	if (FLiveLinkSubject* Subject = LiveSubjectData.Find(SubjectName))
 	{
 		Subject->AddFrame(Transforms, CurveElements, TimeCode, SourceGuid);
+	}
+}
+
+void FLiveLinkClient::PushSubjectData(FGuid SourceGuid, FName SubjectName, const FLiveLinkFrameData& FrameData)
+{
+	FScopeLock Lock(&SubjectDataAccessCriticalSection);
+
+	if (FLiveLinkSubject* Subject = LiveSubjectData.Find(SubjectName))
+	{
+		Subject->AddFrame(FrameData, SourceGuid);
 	}
 }
 

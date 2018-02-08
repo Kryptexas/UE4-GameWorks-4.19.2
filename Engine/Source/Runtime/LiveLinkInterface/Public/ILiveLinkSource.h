@@ -1,9 +1,10 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Guid.h"
+#include "LiveLinkTypes.h"
 
 class ILiveLinkClient;
 class ULiveLinkSourceSettings;

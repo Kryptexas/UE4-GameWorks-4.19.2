@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveLinkMessageBusSource.h"
 #include "LiveLinkMessages.h"
@@ -106,5 +106,11 @@ void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMe
 	}*/
 
 	FLiveLinkTimeCode TC = Client->MakeTimeCode(Message.Time, Message.FrameNum);
-	Client->PushSubjectData(SourceGuid, Message.SubjectName, Message.Transforms, Message.Curves, TC);
+	FLiveLinkFrameData FrameData;
+	FrameData.Transforms = Message.Transforms;
+	FrameData.CurveElements = Message.Curves;
+	FrameData.MetaData = Message.MetaData;
+	FrameData.TimeCode = TC;
+	Client->PushSubjectData(SourceGuid, Message.SubjectName, FrameData);
+	//Client->PushSubjectData(SourceGuid, Message.SubjectName, Message.Transforms, Message.Curves, TC);
 }

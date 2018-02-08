@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,12 @@ public:
 	virtual void ClearSubject(const FName& SubjectName) = 0;
 
 	// Update subject with transform data
-	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, double Time, int32 FrameNum) = 0;
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, 
+		double Time, int32 FrameNum) = 0;
+
+	// Update subject with additional metadata
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData,
+		const FLiveLinkMetaData& MetaData, double Time, int32 FrameNum) = 0;
 
 	// Is this provider currently connected to something
 	virtual bool HasConnection() const = 0;

@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Object.h"
@@ -33,6 +33,10 @@ struct FLiveLinkSubjectFrameMessage
 	// Curve data for this frame
 	UPROPERTY()
 	TArray<FLiveLinkCurveElement> Curves;
+
+	// Subject MetaData for this frame
+	UPROPERTY()
+	FLiveLinkMetaData MetaData;
 
 	// Incrementing time for interpolation
 	UPROPERTY()

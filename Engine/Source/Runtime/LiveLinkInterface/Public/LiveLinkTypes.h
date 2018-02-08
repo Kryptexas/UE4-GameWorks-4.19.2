@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,54 @@ public:
 	
 	UPROPERTY()
 	float CurveValue;
+};
+
+USTRUCT()
+struct FLiveLinkMetaData
+{
+public:
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY()
+	TMap<FName, FString> StringMetaData;
+};
+
+USTRUCT()
+struct FLiveLinkTimeCode
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	// Time for this frame. Used during interpolation. If this goes backwards we will dump already stored frames. 
+	UPROPERTY()
+	double Time;
+
+	// Frame number for this data.
+	UPROPERTY()
+	int32 FrameNum;
+
+	// Value calculated on create to represent the different between the source time and client time
+	UPROPERTY()
+	double Offset;
+};
+
+USTRUCT()
+struct FLiveLinkFrameData
+{
+public:
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY()
+	TArray<FTransform> Transforms;
+	
+	UPROPERTY()
+	TArray<FLiveLinkCurveElement> CurveElements;
+	
+	UPROPERTY()
+	FLiveLinkTimeCode TimeCode;
+
+	UPROPERTY()
+	FLiveLinkMetaData MetaData;
 };
 
 struct FOptionalCurveElement
@@ -83,18 +131,6 @@ struct FLiveLinkCurveKey
 	FLiveLinkCurveIntegrationData UpdateCurveKey(const TArray<FLiveLinkCurveElement>& CurveElements);
 };
 
-struct FLiveLinkTimeCode
-{
-	// Time for this frame. Used during interpolation. If this goes backwards we will dump already stored frames. 
-	double Time;
-
-	// Frame number for this data.
-	int32 FrameNum;
-
-	// Value calculated on create to represent the different between the source time and client time
-	double Offset;
-};
-
 struct FLiveLinkSubjectFrame
 {
 	// Ref Skeleton for transforms
@@ -111,4 +147,7 @@ struct FLiveLinkSubjectFrame
 	
 	// Curve data for this frame
 	TArray<FOptionalCurveElement>	Curves;
+
+	// Metadata for this frame
+	FLiveLinkMetaData MetaData;
 };

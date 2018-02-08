@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveLinkProvider.h"
 #include "IMessageContext.h"
@@ -20,6 +20,9 @@ struct FTrackedSubject
 
 	// Curve data
 	TArray<FLiveLinkCurveElement> Curves;
+
+	// MetaData for subject
+	FLiveLinkMetaData MetaData;
 
 	// Incrementing time (application time) for interpolation purposes
 	double Time;
@@ -131,6 +134,7 @@ private:
 		SubjectFrame->Transforms = Subject.Transforms;
 		SubjectFrame->SubjectName = SubjectName;
 		SubjectFrame->Curves = Subject.Curves;
+		SubjectFrame->MetaData = Subject.MetaData;
 		SubjectFrame->Time = Subject.Time;
 		SubjectFrame->FrameNum = Subject.FrameNum;
 
@@ -228,6 +232,20 @@ public:
 
 		Subject.Transforms = BoneTransforms;
 		Subject.Curves = CurveData;
+		Subject.Time = Time;
+		Subject.FrameNum = FrameNum;
+
+		SendSubjectFrameToConnections(SubjectName);
+	}
+
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData,
+		const FLiveLinkMetaData& MetaData, double Time, int32 FrameNum) override
+	{
+		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
+
+		Subject.Transforms = BoneTransforms;
+		Subject.Curves = CurveData;
+		Subject.MetaData = MetaData;
 		Subject.Time = Time;
 		Subject.FrameNum = FrameNum;
 
