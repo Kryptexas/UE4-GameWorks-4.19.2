@@ -3358,9 +3358,17 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 				Layers.Sort(FLayerPtr_CompareTotal());
 				TArray<const ovrpLayerSubmit*> LayerSubmitPtr;
 
-				LayerSubmitPtr.SetNum(Layers.Num());
+				int32 LayerNum = Layers.Num();
+#if PLATFORM_ANDROID
+				if (LayerNum > 4)
+				{
+					UE_LOG(LogHMD, Warning, TEXT("Oculus on Android only supports up to 4 stereo layers at the moment, and you're using %d. Reduce the number in use to resolve this issue."), LayerNum);
+					LayerNum = 4;
+				}
+#endif
+				LayerSubmitPtr.SetNum(LayerNum);
 
-				for (int32 LayerIndex = 0; LayerIndex < Layers.Num(); LayerIndex++)
+				for (int32 LayerIndex = 0; LayerIndex < LayerNum; LayerIndex++)
 				{
 					LayerSubmitPtr[LayerIndex] = Layers[LayerIndex]->UpdateLayer_RHIThread(Settings_RHIThread.Get(), Frame_RHIThread.Get());
 				}
