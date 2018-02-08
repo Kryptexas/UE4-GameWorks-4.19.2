@@ -1199,7 +1199,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 			EmitterContext.Header.IncreaseIndent();
 			if (bUseStaticVariables)
 			{
-				EmitterContext.Header.AddLine(TEXT("static TWeakObjectPtr<UProperty> __PropertyPtr{};"));
+				EmitterContext.Header.AddLine(TEXT("static TWeakObjectPtr<const UProperty> __PropertyPtr{};"));
 				EmitterContext.Header.AddLine(TEXT("const UProperty* __Property = __PropertyPtr.Get();"));
 				EmitterContext.Header.AddLine(TEXT("if (nullptr == __Property)"));
 				EmitterContext.Header.AddLine(TEXT("{"));
