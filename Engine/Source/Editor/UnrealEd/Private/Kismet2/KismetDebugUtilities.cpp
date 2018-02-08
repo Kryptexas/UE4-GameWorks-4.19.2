@@ -188,7 +188,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 			bShouldBreakExecution = true;
 			break;
 		case EBlueprintExceptionType::Tracepoint:
-			bShouldBreakExecution = Data.bIsSingleStepping;
+			bShouldBreakExecution = Data.bIsSingleStepping || Data.TargetGraphStackDepth != INDEX_NONE;
 			break;
 		case EBlueprintExceptionType::WireTracepoint:
 			break;
