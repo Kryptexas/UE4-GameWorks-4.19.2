@@ -57,26 +57,17 @@ void FMovieSceneEvaluationField::Invalidate(TRange<float> Range)
 	}
 }
 
-int32 FMovieSceneEvaluationField::Insert(TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
+int32 FMovieSceneEvaluationField::Insert(float InsertTime, TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
 {
-	const int32 InsertIndex = Algo::UpperBoundBy(Ranges, InRange.GetLowerBound(), &TRange<float>::GetLowerBound, MovieSceneHelpers::SortLowerBounds);
+	const int32 InsertIndex = Algo::UpperBoundBy(Ranges, TRangeBound<float>(InsertTime), &TRange<float>::GetLowerBound, MovieSceneHelpers::SortLowerBounds);
 
-	// While we have floating point representations of ranges, there are a number of situations that can lead to the check firing:
-	// 		1. Consider ranges of (0,9.16666603f) and (9.16666698f,20) offset in an inner sequence by 98.8333511f:
-	//			Such transformation would result in the upper and lower bounds rounding to the same inclusive value (108.000015f) making them overlap in the parent space.
-	//		2. When compiling a segment at a particular time, that time transformed into an inner sequence could result in a compiled range that doesn't actually
-	//			include the global time when transformed back into the master space. In this scenario we always inflate the compiled range to include the global time, but this shouldn't be necessary
-	//			Such logic can lead to us attempting to add overlapping ranges into the field
+	// Intersect the supplied range with the allowable space between adjacent existing ranges
+	TRange<float> InsertSpace(
+		Ranges.IsValidIndex(InsertIndex-1) ? TRangeBound<float>::FlipInclusion(Ranges[InsertIndex-1].GetUpperBound()) : TRangeBound<float>::Open(),
+		Ranges.IsValidIndex(InsertIndex  ) ? TRangeBound<float>::FlipInclusion(Ranges[InsertIndex  ].GetLowerBound()) : TRangeBound<float>::Open()
+		);
 
-	// @todo: Remove this code and enforce the check below outright when we have proper time representation
-	if (Ranges.IsValidIndex(InsertIndex  ) && Ranges[InsertIndex  ].Overlaps(InRange))
-	{
-		InRange = TRange<float>(InRange.GetLowerBound(), TRangeBound<float>::FlipInclusion(Ranges[InsertIndex].GetLowerBound()));
-	}
-	if (Ranges.IsValidIndex(InsertIndex-1) && Ranges[InsertIndex-1].Overlaps(InRange))
-	{
-		InRange = TRange<float>(TRangeBound<float>::FlipInclusion(Ranges[InsertIndex-1].GetUpperBound()), InRange.GetUpperBound());
-	}
+	InRange = TRange<float>::Intersection(InRange, InsertSpace);
 
 	if (!ensure(!InRange.IsEmpty()))
 	{

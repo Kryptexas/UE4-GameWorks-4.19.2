@@ -226,12 +226,14 @@ const FMovieSceneEvaluationGroup* FMovieSceneRootEvaluationTemplateInstance::Set
 		}
 		else
 		{
-			TOptional<FCompiledGroupResult> CompileResult = FMovieSceneCompiler::CompileTime(Context.GetTime(), *RootOverrideInstance.Sequence, *TemplateStore);
+			float CurrentTime = Context.GetTime();
+			TOptional<FCompiledGroupResult> CompileResult = FMovieSceneCompiler::CompileTime(CurrentTime, *RootOverrideInstance.Sequence, *TemplateStore);
 
 			if (CompileResult.IsSet())
 			{
 				TRange<float> FieldRange = CompileResult->Range;
 				TemplateFieldIndex = RootOverrideInstance.Template->EvaluationField.Insert(
+					CurrentTime,
 					FieldRange,
 					MoveTemp(CompileResult->Group),
 					MoveTemp(CompileResult->MetaData)

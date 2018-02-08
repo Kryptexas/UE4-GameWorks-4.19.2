@@ -243,12 +243,13 @@ struct FMovieSceneEvaluationField
 	/**
 	 * Insert a new range into this field
 	 *
-	 * @param InRange		The range to add
+	 * @param InsertTime	The time at which to insert the range
+	 * @param InRange		The total range to insert to the field. Will potentially be intersected with preexisting adjacent ranges
 	 * @param InGroup		The group defining what should happen at this time
 	 * @param InMetaData	The meta-data defining efficient access to what happens in this frame
 	 * @return The index the entries were inserted at
 	 */
-	MOVIESCENE_API int32 Insert(TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData);
+	MOVIESCENE_API int32 Insert(float InsertTime, TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData);
 
 	/**
 	 * Add the specified data to this field, assuming the specified range lies after any other entries
