@@ -613,6 +613,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		const bool bSkeletonMismatch = AnimSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
 		const bool bSkeletonNotCompatible = AnimSkeleton && !bSkeletonMismatch && (AnimSkeleton->IsCompatibleMesh(SkeletalMesh) == false);
 
+		LastPoseTickFrame = 0;
+
 		if (bBlueprintMismatch || bSkeletonMismatch || bSkeletonNotCompatible || bClearAnimInstance)
 		{
 			ClearAnimScriptInstance();

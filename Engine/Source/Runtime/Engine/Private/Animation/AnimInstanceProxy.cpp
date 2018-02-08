@@ -384,10 +384,13 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 #endif
 
 	FMessageLog MessageLog("AnimBlueprintLog");
-	const TArray<FLogMessageEntry>& Messages = LoggedMessagesMap.FindChecked("Update");
-	for (const FLogMessageEntry& Message : Messages)
+	const TArray<FLogMessageEntry>* Messages = LoggedMessagesMap.Find("Update");
+	if (ensureMsg(Messages, TEXT("PreUpdate isn't called. This could potentially cause other issues."))
 	{
-		MessageLog.Message(Message.Key, Message.Value);
+		for (const FLogMessageEntry& Message : *Messages)
+		{
+			MessageLog.Message(Message.Key, Message.Value);
+		}
 	}
 }
 
