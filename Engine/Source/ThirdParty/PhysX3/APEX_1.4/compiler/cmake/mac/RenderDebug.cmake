@@ -9,6 +9,8 @@ SET(APEX_MODULE_DIR ${PROJECT_SOURCE_DIR}/../../../module)
 
 SET(RD_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../shared/general/RenderDebug)
 
+SET(RENDERDEBUG_LIBTYPE STATIC)
+
 # Use generator expressions to set config specific preprocessor definitions
 SET(RENDERDEBUG_COMPILE_DEFS 
 	# Common to all configurations

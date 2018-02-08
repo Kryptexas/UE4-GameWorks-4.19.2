@@ -214,7 +214,9 @@ public class APEX : ModuleRules
 					"/libApexFramework{0}.so",
 					"/libApexShared{0}.so",
 					"/libAPEX_Legacy{0}.so",
-					"/libAPEX_Clothing{0}.so"
+					"/libAPEX_Clothing{0}.so",
+					"/libNvParameterized{0}.so",
+					"/libRenderDebug{0}.so"
 				};
 
 				foreach (string RuntimeDependency in DynamicLibrariesLinux)
@@ -222,16 +224,6 @@ public class APEX : ModuleRules
 					string LibraryPath = PhysXBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
 					PublicAdditionalLibraries.Add(LibraryPath);
 					RuntimeDependencies.Add(LibraryPath);
-				}
-
-				string[] StaticLibrariesApexLinux = new string[] {
-					"NvParameterized{0}",
-					"RenderDebug{0}"
-				};
-
-				foreach (string Lib in StaticLibrariesApexLinux)
-				{
-					PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 				}
 			}
 		}

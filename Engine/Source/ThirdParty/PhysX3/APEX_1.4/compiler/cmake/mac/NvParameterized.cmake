@@ -10,6 +10,8 @@ SET(APEX_MODULE_DIR ${PROJECT_SOURCE_DIR}/../../../module)
 SET(NVP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../NvParameterized)
 #SET(AM_SOURCE_DIR ${APEX_MODULE_DIR}/{{TARGET_MODULE_DIR}})
 
+SET(NVPARAMETERIZED_LIBTYPE STATIC)
+
 # Use generator expressions to set config specific preprocessor definitions
 SET(NVPARAMETERIZED_COMPILE_DEFS 
 

@@ -2,7 +2,8 @@
 # Build RenderDebug common
 #
 
-ADD_LIBRARY(RenderDebug STATIC 
+ADD_LIBRARY(RenderDebug
+	${RENDERDEBUG_LIBTYPE}
 	${RENDERDEBUG_PLATFORM_SOURCE_FILES}
 
 	${RD_SOURCE_DIR}/src/ClientServer.cpp

@@ -2,7 +2,8 @@
 # Build NvParameterized common
 #
 
-ADD_LIBRARY(NvParameterized STATIC 
+ADD_LIBRARY(NvParameterized
+	${NVPARAMETERIZED_LIBTYPE}
 	${NVPARAMETERIZED_PLATFORM_SOURCE_FILES}
 
 	${NVP_SOURCE_DIR}/src/BinaryHelper.cpp
