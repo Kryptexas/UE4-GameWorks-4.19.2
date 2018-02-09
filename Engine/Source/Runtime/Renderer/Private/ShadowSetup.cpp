@@ -1954,16 +1954,15 @@ void ComputeWholeSceneShadowCacheModes(
 #if DO_CHECK
 								checkf(ExistingShadowMapSize.X > 0 && ExistingShadowMapSize.Y > 0,
 									TEXT("%d, %d"), ExistingShadowMapSize.X, ExistingShadowMapSize.Y);
-								checkf(ActualDesiredResolution < VecExistingSize.X || ActualDesiredResolution < VecExistingSize.Y,
-									TEXT("%f, %s, %s"), ActualDesiredResolution, *VecExistingSize.ToString(),
-									LightSceneInfo->Proxy->GetLightType() == LightType_Point ? TEXT("Point") : TEXT("Spot"));
 #endif
 								FVector2D DropRatio = (VecExistingSize - VecDesiredSize) / (VecExistingSize - VecNewSize);
 								float MaxDropRatio = FMath::Max(
 									InOutShadowMapSize.X < ExistingShadowMapSize.X ? DropRatio.X : 0.f,
 									InOutShadowMapSize.Y < ExistingShadowMapSize.Y ? DropRatio.Y : 0.f);
 
-								bRejectedByGuardBand = MaxDropRatio < 0.5f;
+								// MaxDropRatio <= 0 can happen when max shadow map resolution is lowered (for example,
+								// by changing quality settings). In that case, just let it happen.
+								bRejectedByGuardBand = MaxDropRatio > 0.f && MaxDropRatio < 0.5f;
 							}
 
 							if (bOverBudget || bRejectedByGuardBand)
