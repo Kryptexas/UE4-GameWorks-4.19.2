@@ -58,21 +58,25 @@ bool FMeshMaterialRenderItem::Render_GameThread(const FCanvas* Canvas)
 		Canvas->GetAllowedModes()
 	};
 
-	ENQUEUE_RENDER_COMMAND(DrawMaterialCommand)(
-		[Parameters](FRHICommandListImmediate& RHICmdList)
+	if (Vertices.Num() && Indices.Num())
 	{
-		FDrawingPolicyRenderState DrawRenderState(*Parameters.View);
+		ENQUEUE_RENDER_COMMAND(DrawMaterialCommand)(
+			[Parameters](FRHICommandListImmediate& RHICmdList)
+		{
+			FDrawingPolicyRenderState DrawRenderState(*Parameters.View);
 
-		// disable depth test & writes
-		DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
-		DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			// disable depth test & writes
+			DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		Parameters.RenderItem->QueueMaterial(RHICmdList, DrawRenderState, Parameters.View);
+			Parameters.RenderItem->QueueMaterial(RHICmdList, DrawRenderState, Parameters.View);
 
-		delete Parameters.View;
-	});
+			delete Parameters.View;
+		});
 
-	return true;
+	}
+	
+	return true;	
 }
 
 void FMeshMaterialRenderItem::GenerateRenderData()

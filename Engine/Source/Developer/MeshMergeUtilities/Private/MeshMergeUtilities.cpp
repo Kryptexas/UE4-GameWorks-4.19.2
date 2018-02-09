@@ -217,12 +217,12 @@ void FMeshMergeUtilities::BakeMaterialsForComponent(TArray<TWeakObjectPtr<UObjec
 					// Add all user defined properties for baking out
 					for (const FPropertyEntry& Entry : MaterialOptions->Properties)
 					{
-						int32 NumTextureCoordinates;
-						bool bUsesVertexData;
-						Material->AnalyzeMaterialProperty(Entry.Property, NumTextureCoordinates, bUsesVertexData);
-
 						if (!Entry.bUseConstantValue && Entry.Property != MP_MAX)
 						{
+							int32 NumTextureCoordinates;
+							bool bUsesVertexData;
+							Material->AnalyzeMaterialProperty(Entry.Property, NumTextureCoordinates, bUsesVertexData);
+
 							MaterialSettings.PropertySizes.Add(Entry.Property, Entry.bUseCustomSize ? Entry.CustomSize : MaterialOptions->TextureSize);
 						}
 					}
@@ -1122,28 +1122,28 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<UStaticMeshComponent*>& C
 
 	for (const UStaticMeshComponent* StaticMeshComponent : ComponentsToMerge)
 	{
-		const int32 ScreenSizeBasedLODLevel = Utilities->GetLODLevelForScreenSize(StaticMeshComponent, Utilities->CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance));
-		const int32 LODIndex = InMeshProxySettings.bCalculateCorrectLODModel ? ScreenSizeBasedLODLevel : 0;
-		static const bool bPropagateVertexColours = true;
+			const int32 ScreenSizeBasedLODLevel = Utilities->GetLODLevelForScreenSize(StaticMeshComponent, Utilities->CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance));
+			const int32 LODIndex = InMeshProxySettings.bCalculateCorrectLODModel ? ScreenSizeBasedLODLevel : 0;
+			static const bool bPropagateVertexColours = true;
 
-		// Retrieve mesh data in FRawMesh form
-		FRawMesh* RawMesh = new FRawMesh();
-		FMeshMergeHelpers::RetrieveMesh(StaticMeshComponent, LODIndex, *RawMesh, bPropagateVertexColours);
-		const int32 MeshIndex = RawMeshData.Add(RawMesh);
+			// Retrieve mesh data in FRawMesh form
+			FRawMesh* RawMesh = new FRawMesh();
+			FMeshMergeHelpers::RetrieveMesh(StaticMeshComponent, LODIndex, *RawMesh, bPropagateVertexColours);
+			const int32 MeshIndex = RawMeshData.Add(RawMesh);
 
-		// Reset section array for reuse
-		Sections.SetNum(0, false);
-		// Extract sections for given LOD index from the mesh 
-		FMeshMergeHelpers::ExtractSections(StaticMeshComponent, LODIndex, Sections);
+			// Reset section array for reuse
+			Sections.SetNum(0, false);
+			// Extract sections for given LOD index from the mesh 
+			FMeshMergeHelpers::ExtractSections(StaticMeshComponent, LODIndex, Sections);
 
-		for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
-		{
-			FSectionInfo& Section = Sections[SectionIndex];
-			const int32 UniqueIndex = UniqueSections.AddUnique(Section);
-			UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, Section.MaterialIndex));
+			for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+			{
+				FSectionInfo& Section = Sections[SectionIndex];
+				const int32 UniqueIndex = UniqueSections.AddUnique(Section);
+				UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, Section.MaterialIndex));
 
-			SectionToMesh.Add(UniqueIndex, MeshIndex);
-		}
+				SectionToMesh.Add(UniqueIndex, MeshIndex);
+			}
 
 		int32 LightMapWidth, LightMapHeight;
 		StaticMeshComponent->GetLightMapResolution(LightMapWidth, LightMapHeight);
@@ -2036,7 +2036,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 					for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 					{
 						// Whether this channel has data
-						if (DataTracker.DoesUVChannelContainData(ChannelIdx, RetrievedLODIndex))
+						if (DataTracker.DoesUVChannelContainData(ChannelIdx, LODIndex))
 						{
 							const TArray<FVector2D>& SourceChannel = RawMeshPtr->WedgeTexCoords[ChannelIdx];
 							TArray<FVector2D>& TargetChannel = MergedMesh.WedgeTexCoords[ChannelIdx];
