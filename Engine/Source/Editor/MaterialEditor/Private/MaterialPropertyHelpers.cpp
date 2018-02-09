@@ -437,8 +437,11 @@ FReply FMaterialPropertyHelpers::OnClickedSaveNewLayerInstance(class UMaterialFu
 {
 	const FString DefaultSuffix = TEXT("_Inst");
 	TArray<FEditorParameterGroup> ParameterGroups;
-	UMaterialInterface* FunctionPreviewMaterial = Object->GetPreviewMaterial();
-
+	UMaterialInterface* FunctionPreviewMaterial = nullptr;
+	if (Object)
+	{
+		FunctionPreviewMaterial = Object->GetPreviewMaterial();
+	}
 	for (TSharedPtr<FStackSortedData> Group : InSortedData->Children)
 	{
 		ParameterGroups.Add(Group->Group);
