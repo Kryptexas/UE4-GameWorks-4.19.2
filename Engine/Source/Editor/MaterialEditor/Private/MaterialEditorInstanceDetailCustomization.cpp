@@ -286,18 +286,58 @@ void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyH
 				.Padding(2.0f)
 				[
 					SNew(SButton)
-					.HAlign(HAlign_Right)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Dark")
+					.HAlign(HAlign_Center)
 					.OnClicked(OnSiblingButtonClicked)
-					.Text(LOCTEXT("SaveToSiblingInstance", "Save To Sibling Instance"))
+					.ToolTipText(LOCTEXT("SaveToSiblingInstance", "Save To Sibling Instance"))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT("\xf0c7 \xf178"))) /*fa-filter*/)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT(" Save Sibling"))) /*fa-filter*/)
+						]
+					]
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(2.0f)
 				[
 					SNew(SButton)
-					.HAlign(HAlign_Right)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Dark")
+					.HAlign(HAlign_Center)
 					.OnClicked(OnChildButtonClicked)
-					.Text(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+					.ToolTipText(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT("\xf0c7 \xf149"))) /*fa-filter*/)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT(" Save Child"))) /*fa-filter*/)
+						]
+					]
 				]
 			];
 	}

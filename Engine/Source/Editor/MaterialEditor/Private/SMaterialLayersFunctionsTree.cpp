@@ -31,6 +31,7 @@
 #include "MaterialEditor/MaterialEditorPreviewParameters.h"
 #include "SButton.h"
 #include "SInlineEditableTextBlock.h"
+#include "Materials/MaterialFunctionInstance.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialLayerCustomization"
@@ -252,12 +253,6 @@ public:
 // ASSET --------------------------------------------------
 		if (StackParameterData->StackDataType == EStackDataType::Asset)
 		{
-			TSharedRef<STextBlock> ParentTextBlock = SNew(STextBlock)
-				.Text(LOCTEXT("Parent", "Parent "))
-				.TextStyle(FEditorStyle::Get(), "TinyText");
-			ParentTextBlock->SetToolTipText(LOCTEXT("ParentTooltip", "This allows you to set the parent class of your layer or blend asset to filter the possible assets to use."));
-			ParentTextBlock->EnableToolTipForceField(true);
-
 			FOnSetObject ObjectChanged = FOnSetObject::CreateSP(this, &SMaterialLayersFunctionsInstanceTreeItem::RefreshOnRowChange, Tree);
 			StackParameterData->ParameterHandle->GetProperty()->SetMetaData(FName(TEXT("DisplayThumbnail")), TEXT("true"));
 			FIntPoint ThumbnailOverride;
@@ -291,42 +286,104 @@ public:
 
 			FOnSetObject AssetChanged = FOnSetObject::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::RefreshOnAssetChange, StackParameterData->ParameterInfo.Index, InAssociation);
 
-			RightSideWidget = SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0)
+			FOnClicked OnChildButtonClicked;
+			FOnClicked OnSiblingButtonClicked;
+			UMaterialFunctionInterface* LocalFunction = nullptr;
+			if (StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
+			{
+				LocalFunction = Tree->FunctionInstance->Layers[StackParameterData->ParameterInfo.Index];
+			}
+			else if (StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter)
+			{
+				LocalFunction = Tree->FunctionInstance->Blends[StackParameterData->ParameterInfo.Index];
+			}
+			
+
+			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewLayerInstance,
+				ImplicitConv<UMaterialFunctionInterface*>(LocalFunction), StackParameterData);
+
+			TSharedPtr<SHorizontalBox> SaveInstanceBox;
+
+			RightSideWidget = SNew(SVerticalBox)
+				+SVerticalBox::Slot()
 				[
-					SNew(SObjectPropertyEntryBox)
-					.AllowedClass(UMaterialFunctionInterface::StaticClass())
-					.ObjectPath(this, &SMaterialLayersFunctionsInstanceTreeItem::GetInstancePath, Tree)
-					.ThumbnailPool(Tree->GetTreeThumbnailPool())
-					.OnShouldFilterAsset(AssetFilter)
-					.OnObjectChanged(AssetChanged)
-					.CustomResetToDefault(ResetAssetOverride)
-					.DisplayCompactSize(true)
-					.ThumbnailSizeOverride(ThumbnailOverride)
-					.NewAssetFactories(FMaterialPropertyHelpers::GetAssetFactories(InAssociation))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SCheckBox)
-					.Type(ESlateCheckBoxType::ToggleButton)
-					.Style(&FCoreStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
-					.OnCheckStateChanged(this, &SMaterialLayersFunctionsInstanceTreeItem::FilterClicked, InArgs._InTree, StackParameterData)
-					.IsChecked(this, &SMaterialLayersFunctionsInstanceTreeItem::GetFilterChecked, InArgs._InTree, StackParameterData)
-					.ToolTipText(LOCTEXT("FilterLayerAssets", "Filter asset picker to only show related layers or blends. \nStaying within the inheritance hierarchy can improve instruction count."))
-					.Content()
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0)
 					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-						.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+						SNew(SObjectPropertyEntryBox)
+						.AllowedClass(UMaterialFunctionInterface::StaticClass())
+						.ObjectPath(this, &SMaterialLayersFunctionsInstanceTreeItem::GetInstancePath, Tree)
+						.ThumbnailPool(Tree->GetTreeThumbnailPool())
+						.OnShouldFilterAsset(AssetFilter)
+						.OnObjectChanged(AssetChanged)
+						.CustomResetToDefault(ResetAssetOverride)
+						.DisplayCompactSize(true)
+						.ThumbnailSizeOverride(ThumbnailOverride)
+						.NewAssetFactories(FMaterialPropertyHelpers::GetAssetFactories(InAssociation))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::ToggleButton)
+						.Style(&FCoreStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
+						.OnCheckStateChanged(this, &SMaterialLayersFunctionsInstanceTreeItem::FilterClicked, InArgs._InTree, StackParameterData)
+						.IsChecked(this, &SMaterialLayersFunctionsInstanceTreeItem::GetFilterChecked, InArgs._InTree, StackParameterData)
+						.ToolTipText(LOCTEXT("FilterLayerAssets", "Filter asset picker to only show related layers or blends. \nStaying within the inheritance hierarchy can improve instruction count."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+						]
+					]
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SAssignNew(SaveInstanceBox, SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.FillWidth(1.0)
+					[
+						SNullWidget::NullWidget
 					]
 				]
 			;
-
+			
+			SaveInstanceBox->AddSlot()
+				.AutoWidth()
+				.Padding(2.0f)
+				[
+					SNew(SButton)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Dark")
+					.HAlign(HAlign_Center)
+					.OnClicked(OnChildButtonClicked)
+					.ToolTipText(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT("\xf0c7 \xf149"))) /*fa-filter*/)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT(" Save Child"))) /*fa-filter*/)
+						]
+					]
+				];
 			
 			const int32 LayerStateIndex = InAssociation == EMaterialParameterAssociation::BlendParameter ? StackParameterData->ParameterInfo.Index + 1 : StackParameterData->ParameterInfo.Index;
 			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex];
@@ -801,7 +858,7 @@ TSharedPtr<class FAssetThumbnailPool> SMaterialLayersFunctionsInstanceTree::GetT
 void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 {
 	check(MaterialEditorInstance);
-
+	MaterialEditorInstance->RegenerateArrays();
 	NonLayerProperties.Empty();
 	LayerProperties.Empty();
 	FunctionParameter = nullptr;
@@ -1095,18 +1152,58 @@ void SMaterialLayersFunctionsInstanceWrapper::Refresh()
 				.Padding(2.0f)
 				[
 					SNew(SButton)
-					.HAlign(HAlign_Right)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.DarkGrey")
+					.HAlign(HAlign_Center)
 					.OnClicked(OnSiblingButtonClicked)
-					.Text(LOCTEXT("SaveToSiblingInstance", "Save To Sibling Instance"))
+					.ToolTipText(LOCTEXT("SaveToSiblingInstance", "Save To Sibling Instance"))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT("\xf0c7 \xf178"))) /*fa-filter*/)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Text(FText::FromString(FString(TEXT(" Save Sibling"))) /*fa-filter*/)
+						]
+					]
 				];
 		HeaderBox->AddSlot()
 			.AutoWidth()
 			.Padding(2.0f)
 			[
 				SNew(SButton)
-				.HAlign(HAlign_Right)
+				.ButtonStyle(FEditorStyle::Get(), "FlatButton.DarkGrey")
+				.HAlign(HAlign_Center)
 				.OnClicked(OnChildButtonClicked)
-				.Text(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+				.ToolTipText(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+				.Content()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Text(FText::FromString(FString(TEXT("\xf0c7 \xf149"))) /*fa-filter*/)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Text(FText::FromString(FString(TEXT(" Save Child"))) /*fa-filter*/)
+					]
+				]
 			];
 	}
 	else
@@ -1263,12 +1360,6 @@ public:
 	// ASSET ---------------------------------------------------------------------
 		if (StackParameterData->StackDataType == EStackDataType::Asset)
 		{
-			TSharedRef<STextBlock> ParentTextBlock = SNew(STextBlock)
-				.Text(LOCTEXT("Parent", "Parent "))
-				.TextStyle(FEditorStyle::Get(), "TinyText");
-			ParentTextBlock->SetToolTipText(LOCTEXT("ParentTooltip", "This allows you to set the parent class of your layer or blend asset to filter the possible assets to use."));
-			ParentTextBlock->EnableToolTipForceField(true);
-
 			if (StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
 			{
 				NameOverride = FMaterialPropertyHelpers::LayerID;
@@ -1647,9 +1738,29 @@ void SMaterialLayersFunctionsMaterialWrapper::Refresh()
 					.Padding(2.0f)
 					[
 						SNew(SButton)
-						.HAlign(HAlign_Right)
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Dark")
+						.HAlign(HAlign_Center)
 						.OnClicked(OnChildButtonClicked)
-						.Text(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+						.ToolTipText(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+						.Content()
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+								.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+								.Text(FText::FromString(FString(TEXT("\xf0c7 \xf149"))) /*fa-filter*/)
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+								.Text(FText::FromString(FString(TEXT(" Save Child"))) /*fa-filter*/)
+							]
+						]
 					]
 				]
 				+ SVerticalBox::Slot()

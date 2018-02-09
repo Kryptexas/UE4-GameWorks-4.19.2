@@ -295,7 +295,6 @@ void FMaterialLayersFunctionsCustomization::RefreshOnAssetChange(const struct FA
 		// Refresh the header so the reset to default button is no longer visible
 		SavedLayoutBuilder->ForceRefreshDetails();
 	}
-
 	RebuildChildren();
 }
 

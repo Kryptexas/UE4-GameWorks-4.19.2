@@ -432,6 +432,98 @@ FReply FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance(class UMateria
 	return FReply::Handled();
 }
 
+
+FReply FMaterialPropertyHelpers::OnClickedSaveNewLayerInstance(class UMaterialFunctionInterface* Object, TSharedPtr<FStackSortedData> InSortedData)
+{
+	const FString DefaultSuffix = TEXT("_Inst");
+	TArray<FEditorParameterGroup> ParameterGroups;
+	UMaterialInterface* FunctionPreviewMaterial = Object->GetPreviewMaterial();
+
+	for (TSharedPtr<FStackSortedData> Group : InSortedData->Children)
+	{
+		ParameterGroups.Add(Group->Group);
+	}
+
+	for (FEditorParameterGroup ParameterGroup : ParameterGroups)
+	{
+		for (int32 ParamIdx = 0; ParamIdx < ParameterGroup.Parameters.Num(); ++ParamIdx)
+		{
+			UDEditorParameterValue* Parameter = ParameterGroup.Parameters[ParamIdx];
+
+
+			if (Parameter)
+			{
+				Parameter->ParameterInfo.Association = EMaterialParameterAssociation::GlobalParameter;
+				Parameter->ParameterInfo.Index = INDEX_NONE;
+			}
+		}
+	}
+
+	if (Object)
+	{
+		UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(FunctionPreviewMaterial);
+		if (EditedMaterial)
+		{
+
+			UMaterialInstanceConstant* ProxyMaterial = NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional);
+			ProxyMaterial->SetParentEditorOnly(EditedMaterial);
+			ProxyMaterial->PreEditChange(NULL);
+			ProxyMaterial->PostEditChange();
+			CopyMaterialToInstance(ProxyMaterial, ParameterGroups);
+			FunctionPreviewMaterial = ProxyMaterial;
+		}
+		// Create an appropriate and unique name 
+		FString Name;
+		FString PackageName;
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+
+
+		UObject* Child;
+		if (Object->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
+		{
+			UMaterialFunctionMaterialLayerInstanceFactory* LayerFactory = NewObject<UMaterialFunctionMaterialLayerInstanceFactory>();
+			LayerFactory->InitialParent = Object;
+			Child = AssetToolsModule.Get().CreateAssetWithDialog(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerInstance::StaticClass(), LayerFactory);
+		}
+		else if (Object->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+		{
+			UMaterialFunctionMaterialLayerBlendInstanceFactory* BlendFactory = NewObject<UMaterialFunctionMaterialLayerBlendInstanceFactory>();
+			BlendFactory->InitialParent = Object;
+			Child = AssetToolsModule.Get().CreateAssetWithDialog(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerBlendInstance::StaticClass(), BlendFactory);
+		}
+		else
+		{
+			UMaterialFunctionInstanceFactory* Factory = NewObject<UMaterialFunctionInstanceFactory>();
+			Factory->InitialParent = Object;
+			Child = AssetToolsModule.Get().CreateAssetWithDialog(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionInstance::StaticClass(), Factory);
+		}
+
+		UMaterialFunctionInstance* ChildInstance = Cast<UMaterialFunctionInstance>(Child);
+		if (ChildInstance)
+		{
+			if (ChildInstance->IsTemplate(RF_ClassDefaultObject) == false)
+			{
+				ChildInstance->MarkPackageDirty();
+				ChildInstance->SetParent(Object);
+				UMaterialInstance* EditedInstance = Cast<UMaterialInstance>(FunctionPreviewMaterial);
+				if (EditedInstance)
+				{
+					ChildInstance->ScalarParameterValues = EditedInstance->ScalarParameterValues;
+					ChildInstance->VectorParameterValues = EditedInstance->VectorParameterValues;
+					ChildInstance->TextureParameterValues = EditedInstance->TextureParameterValues;
+					ChildInstance->FontParameterValues = EditedInstance->FontParameterValues;
+
+					const FStaticParameterSet& StaticParameters = EditedInstance->GetStaticParameters();
+					ChildInstance->StaticSwitchParameterValues = StaticParameters.StaticSwitchParameters;
+					ChildInstance->StaticComponentMaskParameterValues = StaticParameters.StaticComponentMaskParameters;
+				}
+			}
+		}
+	}
+	return FReply::Handled();
+}
+
 bool FMaterialPropertyHelpers::IsOverriddenExpression(UDEditorParameterValue* Parameter)
 {
 	return Parameter->bOverride != 0;
