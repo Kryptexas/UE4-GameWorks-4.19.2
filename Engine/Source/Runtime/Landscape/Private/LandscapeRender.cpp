@@ -1179,13 +1179,15 @@ float FLandscapeComponentSceneProxy::GetComponentScreenSize(const FSceneView* Vi
 	FVector CameraOrigin = View->ViewMatrices.GetViewOrigin();
 	FMatrix ProjMatrix = View->ViewMatrices.GetProjectionMatrix();
 
-	float ComponentDistanceSquared = FMath::Max(FVector::DistSquared(Origin, CameraOrigin), FMath::Square(MaxExtend));
+	const FVector OriginToCamera = (CameraOrigin - Origin).GetAbs();
+	const FVector ClosestPoint = OriginToCamera.ComponentMin(FVector(MaxExtend));
+	const float DistSquared = (OriginToCamera - ClosestPoint).SizeSquared();
 
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(0.5f * ProjMatrix.M[0][0], 0.5f * ProjMatrix.M[1][1]);
 
 	// Calculate screen-space projected radius
-	float SquaredScreenRadius = FMath::Square(ScreenMultiple * ElementRadius) / FMath::Max(1.0f, ComponentDistanceSquared);
+	float SquaredScreenRadius = FMath::Square(ScreenMultiple * ElementRadius) / FMath::Max(1.0f, DistSquared);
 
 	return FMath::Min(SquaredScreenRadius * 2.0f, 1.0f);
 }
