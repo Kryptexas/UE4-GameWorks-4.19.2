@@ -41,10 +41,6 @@ struct FLiveLinkSubjectFrameMessage
 	// Incrementing time for interpolation
 	UPROPERTY()
 	double Time;
-
-	// Frame number
-	UPROPERTY()
-	int32 FrameNum;
 };
 
 USTRUCT()

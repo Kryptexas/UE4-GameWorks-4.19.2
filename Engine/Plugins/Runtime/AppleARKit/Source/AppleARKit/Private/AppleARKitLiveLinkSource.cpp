@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AppleARKitLiveLinkSource.h"
 #include "Package.h"
@@ -123,11 +123,12 @@ void FAppleARKitLiveLinkSource::PublishBlendShapes(FName SubjectName, double Tim
 	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EARFaceBlendShape"), true);
 	if (EnumPtr != nullptr)
 	{
-		TArray<FTransform> Transforms;
+		static FLiveLinkFrameData LiveLinkFrame;
 
-		FLiveLinkTimeCode TimeCode = Client->MakeTimeCode(Timestamp, FrameNumber);
+		LiveLinkFrame.WorldTime = Timestamp;
 
-		static TArray<FLiveLinkCurveElement> BlendShapes;
+		TArray<FLiveLinkCurveElement>& BlendShapes = LiveLinkFrame.CurveElements;
+		
 		BlendShapes.Reset((int32)EARFaceBlendShape::MAX);
 
 		// Iterate through all of the blend shapes copying them into the LiveLink data type
@@ -143,7 +144,7 @@ void FAppleARKitLiveLinkSource::PublishBlendShapes(FName SubjectName, double Tim
 		}
 
 		// Share the data locally with the LiveLink client
-		Client->PushSubjectData(SourceGuid, SubjectName, Transforms, BlendShapes, TimeCode);
+		Client->PushSubjectData(SourceGuid, SubjectName, LiveLinkFrame);
 		// Send it to the remote editor via the message bus
 		if (RemoteLiveLinkPublisher.IsValid())
 		{

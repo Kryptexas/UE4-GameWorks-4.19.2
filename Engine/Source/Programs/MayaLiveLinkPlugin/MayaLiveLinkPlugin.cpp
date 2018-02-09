@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "RequiredProgramMainCPPInclude.h"
 #include "CommandLine.h"
@@ -392,10 +392,10 @@ struct FLiveLinkStreamedJointHeirarchySubject : IStreamedEntity
 		}
 		else
 		{
-			LiveLinkProvider->UpdateSubjectFrame(SubjectToStream.SubjectName, JointTransforms, Curves, StreamTime, MAnimControl::currentTime().value());
+			LiveLinkProvider->UpdateSubjectFrame(SubjectToStream.SubjectName, JointTransforms, Curves, StreamTime);
 		}
 #else
-		LiveLinkProvider->UpdateSubjectFrame(SubjectName, JointTransforms, Curves, StreamTime, FrameNumber);
+		LiveLinkProvider->UpdateSubjectFrame(SubjectName, JointTransforms, Curves, StreamTime);
 #endif
 	}
 
@@ -440,7 +440,7 @@ public:
 			CameraTransform[0].SetRotation(CameraTransform[0].GetRotation() * FRotator(0.f, -90.f, 0.f).Quaternion());
 			TArray<FLiveLinkCurveElement> Curves;
 
-			LiveLinkProvider->UpdateSubjectFrame(SubjectName, CameraTransform, Curves, StreamTime, FrameNumber);
+			LiveLinkProvider->UpdateSubjectFrame(SubjectName, CameraTransform, Curves, StreamTime);
 		}
 	}
 
@@ -529,7 +529,7 @@ public:
 		// Convert Maya Camera orientation to Unreal
 		TArray<FLiveLinkCurveElement> Curves;
 
-		LiveLinkProvider->UpdateSubjectFrame(SubjectName, UETransforms, Curves, StreamTime, FrameNumber);
+		LiveLinkProvider->UpdateSubjectFrame(SubjectName, UETransforms, Curves, StreamTime);
 	}
 
 private:

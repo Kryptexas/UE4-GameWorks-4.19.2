@@ -63,89 +63,6 @@ void Blend(const TArray<Type>& A, const TArray<Type>& B, TArray<Type>& Output, f
 	}
 }
 
-void FLiveLinkSubject::AddFrame(const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode, FGuid FrameSource)
-{
-	LastModifier = FrameSource;
-
-	FLiveLinkFrame* NewFrame = nullptr;
-
-	if(CachedInterpolationSettings.bUseInterpolation)
-	{
-		if (TimeCode.Time < LastReadTime)
-		{
-			//Gone back in time
-			Frames.Reset();
-			LastReadTime = 0;
-			SubjectTimeOffset = TimeCode.Offset;
-		}
-
-		if (Frames.Num() == 0)
-		{
-			Frames.AddDefaulted();
-			NewFrame = &Frames[0];
-			LastReadFrame = 0;
-		}
-		else
-		{
-			if (LastReadFrame > MIN_FRAMES_TO_REMOVE)
-			{
-				check(Frames.Num() > LastReadFrame);
-				Frames.RemoveAt(0, LastReadFrame, false);
-				LastReadFrame = 0;
-			}
-
-			int32 FrameIndex = Frames.Num() - 1;
-
-			for (; FrameIndex >= 0; --FrameIndex)
-			{
-				if (Frames[FrameIndex].TimeCode.Time < TimeCode.Time)
-				{
-					break;
-				}
-			}
-
-			int32 NewFrameIndex = Frames.Insert(FLiveLinkFrame(), FrameIndex + 1);
-			NewFrame = &Frames[NewFrameIndex];
-		}
-	}
-	else
-	{
-		//No interpolation
-		if (Frames.Num() > 1)
-		{
-			Frames.Reset();
-		}
-
-		if (Frames.Num() == 0)
-		{
-			Frames.AddDefaulted();
-		}
-
-		NewFrame = &Frames[0];
-
-		LastReadTime = 0;
-		LastReadFrame = 0;
-
-		SubjectTimeOffset = TimeCode.Offset;
-	}
-
-	FLiveLinkCurveIntegrationData IntegrationData = CurveKeyData.UpdateCurveKey(CurveElements);
-
-	check(NewFrame);
-	NewFrame->Transforms = Transforms;
-	NewFrame->Curves = MoveTemp(IntegrationData.CurveValues);
-	NewFrame->TimeCode = TimeCode;
-
-	// update existing curves
-	if (IntegrationData.NumNewCurves > 0)
-	{
-		for (FLiveLinkFrame& Frame : Frames)
-		{
-			Frame.ExtendCurveData(IntegrationData.NumNewCurves);
-		}
-	}
-}
-
 void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid FrameSource)
 {
 	LastModifier = FrameSource;
@@ -154,12 +71,12 @@ void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid Frame
 
 	if (CachedInterpolationSettings.bUseInterpolation)
 	{
-		if (FrameData.TimeCode.Time < LastReadTime)
+		if (FrameData.WorldTime.Time < LastReadTime)
 		{
 			//Gone back in time
 			Frames.Reset();
 			LastReadTime = 0;
-			SubjectTimeOffset = FrameData.TimeCode.Offset;
+			SubjectTimeOffset = FrameData.WorldTime.Offset;
 		}
 
 		if (Frames.Num() == 0)
@@ -181,7 +98,7 @@ void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid Frame
 
 			for (; FrameIndex >= 0; --FrameIndex)
 			{
-				if (Frames[FrameIndex].TimeCode.Time < FrameData.TimeCode.Time)
+				if (Frames[FrameIndex].WorldTime.Time < FrameData.WorldTime.Time)
 				{
 					break;
 				}
@@ -209,7 +126,7 @@ void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid Frame
 		LastReadTime = 0;
 		LastReadFrame = 0;
 
-		SubjectTimeOffset = FrameData.TimeCode.Offset;
+		SubjectTimeOffset = FrameData.WorldTime.Offset;
 	}
 
 	FLiveLinkCurveIntegrationData IntegrationData = CurveKeyData.UpdateCurveKey(FrameData.CurveElements);
@@ -218,7 +135,7 @@ void FLiveLinkSubject::AddFrame(const FLiveLinkFrameData& FrameData, FGuid Frame
 	NewFrame->Transforms = FrameData.Transforms;
 	NewFrame->Curves = MoveTemp(IntegrationData.CurveValues);
 	NewFrame->MetaData = FrameData.MetaData;
-	NewFrame->TimeCode = FrameData.TimeCode;
+	NewFrame->WorldTime = FrameData.WorldTime;
 
 	// update existing curves
 	if (IntegrationData.NumNewCurves > 0)
@@ -245,7 +162,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 		OutFrame.Transforms = Frames.Last().Transforms;
 		OutFrame.Curves = Frames.Last().Curves;
 		OutFrame.MetaData = Frames.Last().MetaData;
-		LastReadTime = Frames.Last().TimeCode.Time;
+		LastReadTime = Frames.Last().WorldTime.Time;
 		LastReadFrame = Frames.Num()-1;
 	}
 	else
@@ -256,7 +173,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 
 		for (int32 FrameIndex = Frames.Num() - 1; FrameIndex >= 0; --FrameIndex)
 		{
-			if (Frames[FrameIndex].TimeCode.Time < LastReadTime)
+			if (Frames[FrameIndex].WorldTime.Time < LastReadTime)
 			{
 				//Found Start frame
 
@@ -276,7 +193,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 					const FLiveLinkFrame& PostFrame = Frames[FrameIndex + 1];
 
 					// Calc blend weight (Amount through frame gap / frame gap) 
-					const float BlendWeight = (LastReadTime - PreFrame.TimeCode.Time) / (PostFrame.TimeCode.Time - PreFrame.TimeCode.Time);
+					const float BlendWeight = (LastReadTime - PreFrame.WorldTime.Time) / (PostFrame.WorldTime.Time - PreFrame.WorldTime.Time);
 
 					Blend(PreFrame.Transforms, PostFrame.Transforms, OutFrame.Transforms, BlendWeight);
 					Blend(PreFrame.Curves, PostFrame.Curves, OutFrame.Curves, BlendWeight);
@@ -527,22 +444,6 @@ void FLiveLinkClient::RemoveAllSources()
 	OnLiveLinkSourcesChanged.Broadcast();
 }
 
-FLiveLinkTimeCode FLiveLinkClient::MakeTimeCode(double InTime, int32 InFrameNum) const
-{
-	FLiveLinkTimeCode TC = MakeTimeCodeFromTimeOnly(InTime);
-	TC.FrameNum = InFrameNum;
-	return TC;
-}
-
-FLiveLinkTimeCode FLiveLinkClient::MakeTimeCodeFromTimeOnly(double InTime) const
-{
-	FLiveLinkTimeCode TC;
-	TC.Time = InTime;
-	TC.Offset = FPlatformTime::Seconds() - InTime;
-	return TC;
-}
-
-
 void FLiveLinkClient::PushSubjectSkeleton(FGuid SourceGuid, FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton)
 {
 	FScopeLock Lock(&SubjectDataAccessCriticalSection);
@@ -564,16 +465,6 @@ void FLiveLinkClient::ClearSubject(FName SubjectName)
 	FScopeLock Lock(&SubjectDataAccessCriticalSection);
 
 	LiveSubjectData.Remove(SubjectName);
-}
-
-void FLiveLinkClient::PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode)
-{
-	FScopeLock Lock(&SubjectDataAccessCriticalSection);
-
-	if (FLiveLinkSubject* Subject = LiveSubjectData.Find(SubjectName))
-	{
-		Subject->AddFrame(Transforms, CurveElements, TimeCode, SourceGuid);
-	}
 }
 
 void FLiveLinkClient::PushSubjectData(FGuid SourceGuid, FName SubjectName, const FLiveLinkFrameData& FrameData)

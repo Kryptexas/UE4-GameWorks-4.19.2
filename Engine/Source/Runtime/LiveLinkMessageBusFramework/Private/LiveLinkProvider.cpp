@@ -27,8 +27,6 @@ struct FTrackedSubject
 	// Incrementing time (application time) for interpolation purposes
 	double Time;
 
-	// Frame number of current data
-	int32 FrameNum;
 };
 
 // Address that we have had a connection request from
@@ -136,7 +134,6 @@ private:
 		SubjectFrame->Curves = Subject.Curves;
 		SubjectFrame->MetaData = Subject.MetaData;
 		SubjectFrame->Time = Subject.Time;
-		SubjectFrame->FrameNum = Subject.FrameNum;
 
 		MessageEndpoint->Send(SubjectFrame, Address);
 	}
@@ -226,20 +223,19 @@ public:
 		SendClearSubjectToConnections(SubjectName);
 	}
 
-	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, double Time, int32 FrameNum)
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, double Time)
 	{
 		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
 
 		Subject.Transforms = BoneTransforms;
 		Subject.Curves = CurveData;
 		Subject.Time = Time;
-		Subject.FrameNum = FrameNum;
 
 		SendSubjectFrameToConnections(SubjectName);
 	}
 
 	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData,
-		const FLiveLinkMetaData& MetaData, double Time, int32 FrameNum) override
+		const FLiveLinkMetaData& MetaData, double Time) override
 	{
 		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
 
@@ -247,7 +243,6 @@ public:
 		Subject.Curves = CurveData;
 		Subject.MetaData = MetaData;
 		Subject.Time = Time;
-		Subject.FrameNum = FrameNum;
 
 		SendSubjectFrameToConnections(SubjectName);
 	}

@@ -25,7 +25,7 @@ public:
 
 	FLiveLinkMetaData		MetaData;
 
-	FLiveLinkTimeCode TimeCode;
+	FLiveLinkWorldTime WorldTime;
 
 	void ExtendCurveData(int32 ExtraCurves)
 	{
@@ -64,9 +64,6 @@ struct FLiveLinkSubject
 
 	FLiveLinkSubject()
 	{}
-
-	// Add a frame of data to the subject
-	void AddFrame(const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode, FGuid FrameSource);
 
 	// Add a frame of data from a FLiveLinkFrameData
 	void AddFrame(const FLiveLinkFrameData& FrameData, FGuid FrameSource);
@@ -141,16 +138,12 @@ public:
 	void RemoveAllSources();
 
 	// ILiveLinkClient Interface
-	virtual FLiveLinkTimeCode MakeTimeCode(double InTime, int32 InFrameNum) const override;
-	virtual FLiveLinkTimeCode MakeTimeCodeFromTimeOnly(double InTime) const override;
 
 	virtual void AddSource(TSharedPtr<ILiveLinkSource> InSource) override;
 
-	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override { PushSubjectSkeleton(FGuid(), SubjectName, RefSkeleton); }
 	virtual void PushSubjectSkeleton(FGuid SourceGuid, FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) override;
 
 	virtual void ClearSubject(FName SubjectName) override;
-	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) override;
 	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const FLiveLinkFrameData& FrameData) override;
 	// End ILiveLinkClient Interface
 

@@ -105,12 +105,10 @@ void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMe
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\tTransform: %s\n"), *T.ToString());
 	}*/
 
-	FLiveLinkTimeCode TC = Client->MakeTimeCode(Message.Time, Message.FrameNum);
 	FLiveLinkFrameData FrameData;
 	FrameData.Transforms = Message.Transforms;
 	FrameData.CurveElements = Message.Curves;
 	FrameData.MetaData = Message.MetaData;
-	FrameData.TimeCode = TC;
+	FrameData.WorldTime = FLiveLinkWorldTime(Message.Time);
 	Client->PushSubjectData(SourceGuid, Message.SubjectName, FrameData);
-	//Client->PushSubjectData(SourceGuid, Message.SubjectName, Message.Transforms, Message.Curves, TC);
 }
