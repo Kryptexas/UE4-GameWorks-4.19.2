@@ -12,9 +12,13 @@ TWeakPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitARKitSystemPtr
 
 TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> FAppleARKitModule::CreateTrackingSystem()
 {
+#if PLATFORM_IOS
 	auto NewARKitSystem = AppleARKitSupport::CreateAppleARKitSystem();
 	FAppleARKitARKitSystemPtr = NewARKitSystem;
     return NewARKitSystem;
+#else
+	return TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe>();
+#endif
 }
 
 TSharedPtr<class FAppleARKitSystem, ESPMode::ThreadSafe> FAppleARKitModule::GetARKitSystem()
