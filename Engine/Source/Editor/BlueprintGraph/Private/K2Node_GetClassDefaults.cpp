@@ -357,6 +357,7 @@ void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& Compiler
 
 				UK2Node_PureAssignmentStatement* CopyDefaultValue = CompilerContext.SpawnIntermediateNode<UK2Node_PureAssignmentStatement>(this, SourceGraph);
 				CopyDefaultValue->AllocateDefaultPins();
+				CopyDefaultValue->GetVariablePin()->PinType = OutputPin->PinType;
 				CompilerContext.GetSchema()->TryCreateConnection(LocalVariable->GetVariablePin(), CopyDefaultValue->GetVariablePin());
 
 				// Note: This must be done AFTER connecting the variable input, which sets the pin type.
