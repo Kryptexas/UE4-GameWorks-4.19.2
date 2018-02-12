@@ -803,6 +803,8 @@ struct FDefaultSubobjectData
 	// Generate code to initialize the default subobject based on its archetype.
 	virtual void EmitPropertyInitialization(FEmitterLocalContext& Context)
 	{
+		TSharedPtr<FScopeBlock> ScopeBlock;
+
 		// Start a new scope block only if necessary.
 		if (bAddLocalScope)
 		{
@@ -812,8 +814,7 @@ struct FDefaultSubobjectData
 				Context.AddLine(FString::Printf(TEXT("if(%s)"), *VariableName));
 			}
 
-			Context.AddLine(TEXT("{"));
-			Context.IncreaseIndent();
+			ScopeBlock = MakeShareable(new FScopeBlock(Context));
 			Context.AddLine(FString::Printf(TEXT("// --- Default subobject \'%s\' //"), *Object->GetName()));
 		}
 
@@ -854,8 +855,6 @@ struct FDefaultSubobjectData
 		{
 			// Close current scope block (if necessary).
 			Context.AddLine(FString::Printf(TEXT("// --- END default subobject \'%s\' //"), *Object->GetName()));
-			Context.DecreaseIndent();
-			Context.AddLine(TEXT("}"));
 		}
 	}
 
