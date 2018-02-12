@@ -201,7 +201,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 	// (not required by glTF spec)
 
 	//                          v-- freak out if named texture doesn't exist
-	#define GET_TEXTURE(Name) check(InMaterial.Name.Texture); UTexture2D* Texture = Textures[InMaterial.Name.Texture->SourceIndex];
+	#define GET_TEXTURE(Name) check(InMaterial.Name.TextureIndex != INDEX_NONE); UTexture2D* Texture = Textures[InMaterial.Name.TextureIndex];
 	#define SET_OR_VERIFY(Property, Value) Texture->Property = Value;
 	//                                        ^-- this simply overwrites already-set values. TODO: verify already-set values.
 
@@ -221,7 +221,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 
 	// Color and alpha go to different inputs, so handle factor.rgb and factor.a separately.
 
-	const bool bHasBaseColorTexture = InMaterial.BaseColor.Texture != nullptr;
+	const bool bHasBaseColorTexture = InMaterial.BaseColor.TextureIndex != INDEX_NONE;
 	const bool bHasBaseColorFactor = FVector(InMaterial.BaseColorFactor) != FVector(1.0f, 1.0f, 1.0f);
 
 	DECLARE_SAMPLER_NODE(BaseColor)
@@ -281,7 +281,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 	// -- texture
 	// -- (float)scale * texture
 
-	const bool bHasNormalTexture = InMaterial.Normal.Texture != nullptr;
+	const bool bHasNormalTexture = InMaterial.Normal.TextureIndex != INDEX_NONE;
 
 	if (bHasNormalTexture)
 	{
@@ -319,7 +319,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 	// -- (float)factor * texture.G
 	// -- (float)factor (as const roughness value)
 
-	const bool bHasMetallicRoughnessTexture = InMaterial.MetallicRoughness.Texture != nullptr;
+	const bool bHasMetallicRoughnessTexture = InMaterial.MetallicRoughness.TextureIndex != INDEX_NONE;
 	const bool bFullyRough = !bHasMetallicRoughnessTexture && InMaterial.RoughnessFactor == 1.0f;
 	// For factor * texture, we create a node if factor != 1
 	// For solo factor (no texture) we create a node if it differs from Unreal's default unconnected input values:
@@ -364,7 +364,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 	// -- texture.R
 	// -- (float)strength * texture.R
 
-	const bool bHasOcclusionTexture = InMaterial.Occlusion.Texture != nullptr;
+	const bool bHasOcclusionTexture = InMaterial.Occlusion.TextureIndex != INDEX_NONE;
 
 	if (bHasOcclusionTexture)
 	{
@@ -408,7 +408,7 @@ static UMaterial* ImportMaterial(UObject* Parent, FName InName, EObjectFlags Fla
 	// -- (vec3)factor * texture
 	// -- (vec3)factor (as const emissive color)
 
-	const bool bHasEmissiveTexture = InMaterial.Emissive.Texture != nullptr;
+	const bool bHasEmissiveTexture = InMaterial.Emissive.TextureIndex != INDEX_NONE;
 	// For factor * texture, we create a node if factor != vec3(1)
 	// For solo factor (no texture) we create a node if it differs from Unreal's default emission of vec3(0)
 	const bool bHasEmissiveFactor = InMaterial.EmissiveFactor != (bHasEmissiveTexture ? FVector(1.0f, 1.0f, 1.0f) : FVector::ZeroVector);

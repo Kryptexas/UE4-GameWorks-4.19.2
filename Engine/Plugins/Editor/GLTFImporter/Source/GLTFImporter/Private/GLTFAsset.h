@@ -781,13 +781,11 @@ private:
 	const FString Name;
 
 public:
-	const uint32 SourceIndex; // so we can track FTex-to-UTexture2D correlation
 	const FImage& Source;
 	const FSampler& Sampler;
 
-	FTex(const FString& InName, uint32 InSourceIndex, const FImage& InSource, const FSampler& InSampler)
+	FTex(const FString& InName, const FImage& InSource, const FSampler& InSampler)
 		: Name(InName)
-		, SourceIndex(InSourceIndex)
 		, Source(InSource)
 		, Sampler(InSampler)
 	{}
@@ -797,7 +795,7 @@ public:
 
 struct FMatTex
 {
-	FTex* Texture { nullptr };
+	int32 TextureIndex { INDEX_NONE };
 	uint8 TexCoord { 0 };
 };
 
@@ -841,7 +839,7 @@ struct FMat
 	bool IsFullyRough() const // move this to GLTFMaterial.cpp ?
 	{
 		// No separate roughness texture in glTF :(
-		return RoughnessFactor == 1.0f && MetallicRoughness.Texture == nullptr;
+		return RoughnessFactor == 1.0f && MetallicRoughness.TextureIndex == INDEX_NONE;
 	}
 
 	bool IsOpaque() const

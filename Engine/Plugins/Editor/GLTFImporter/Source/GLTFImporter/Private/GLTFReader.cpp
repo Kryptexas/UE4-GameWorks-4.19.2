@@ -488,7 +488,7 @@ void FGLTFReader::SetupTexture(const FJsonObject& Object)
 		const FImage& Source = Asset.Images[SourceIndex];
 		const FSampler& Sampler = HasSampler ? Asset.Samplers[SamplerIndex] : FSampler::DefaultSampler;
 
-		Asset.Textures.Emplace(TexName, SourceIndex, Source, Sampler);
+		Asset.Textures.Emplace(TexName, Source, Sampler);
 	}
 }
 
@@ -502,7 +502,7 @@ float FGLTFReader::SetupMaterialTexture(FMatTex& MatTex, const FJsonObject& Obje
 		INDEX TexIndex = GetIndex(TexObj, "index");
 		if (Asset.Textures.IsValidIndex(TexIndex))
 		{
-			MatTex.Texture = &Asset.Textures[TexIndex];
+			MatTex.TextureIndex = TexIndex;
 			uint32 TexCoord = GetUnsignedInt(TexObj, "texCoord");
 			check(TexCoord < 2); // How many texcoords does Unreal support? This plugin supports only 0 and 1 at the moment.
 			MatTex.TexCoord = TexCoord;
