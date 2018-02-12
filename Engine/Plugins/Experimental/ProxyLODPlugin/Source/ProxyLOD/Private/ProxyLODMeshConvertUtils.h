@@ -197,7 +197,7 @@ void ProxyLOD::MixedPolyMeshToAOSMesh(const FMixedPolyMesh& MixedPolyMesh, TAOSM
 			[&MixedPolyMesh, &DstAOSMesh, NumQuads](const ProxyLOD::FUIntRange& Range)
 		{
 			uint32* Indices = DstAOSMesh.Indexes;
-			for (uint32 t = Range.begin(), T = Range.end(); t < T; ++t)
+			for (uint32 t = Range.begin(), EndT = Range.end(); t < EndT; ++t)
 			{
 				const uint32 Offset = NumQuads * 6 + t * 3;
 				const openvdb::Vec3I& Tri = MixedPolyMesh.Triangles[t];

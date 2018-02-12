@@ -1690,7 +1690,7 @@ public:
 		check(bHasBeenRegistered);
 		uint32 MaxTextureSamplers = 0;
 
-		for (TMap<FShaderPrimaryKey,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
+		for (typename TMap<FShaderPrimaryKey,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
 		{
 			if (ShaderIt.Value())
 			{
@@ -1788,7 +1788,7 @@ public:
 			auto SortedShaders = Shaders;
 			SortedShaders.KeySort(TCompareShaderTypePermutation<FShaderType>());
 
-			for (TMap<FShaderPrimaryKey, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
+			for (typename TMap<FShaderPrimaryKey, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
 			{
 				FShader* CurrentShader = ShaderIt.Value();
 				FShaderType* Type = ShaderIt.Key().Type;
