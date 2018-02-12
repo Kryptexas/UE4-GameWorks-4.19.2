@@ -132,11 +132,13 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 	}
 #endif
 	
+#if !UE_BUILD_SHIPPING
 	Class MTLDebugDevice = NSClassFromString(@"MTLDebugDevice");
 	if ([Device isKindOfClass:MTLDebugDevice])
 	{
 		Features |= EMetalFeaturesValidation;
 	}
+#endif
 	
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 	if (CVar->GetInt() == 0 || FParse::Param(FCommandLine::Get(),TEXT("metalshaderdebug")))
