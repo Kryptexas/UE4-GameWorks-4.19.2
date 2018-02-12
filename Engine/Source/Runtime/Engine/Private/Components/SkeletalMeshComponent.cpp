@@ -1024,10 +1024,7 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 			}
 		}
 
-		if( !bLODHasChanged )
-		{
-			return false;
-		}
+		return bLODHasChanged;
 	}
 #endif
 
