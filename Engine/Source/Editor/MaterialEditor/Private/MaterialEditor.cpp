@@ -1301,7 +1301,7 @@ void FMaterialEditor::DrawMessages( FViewport* InViewport, FCanvas* Canvas )
 		FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
 
 		// Size of the tile we are about to draw.  Should extend the length of the view in X.
-		const FIntPoint TileSize( InViewport->GetSizeXY().X, 25);
+		const FIntPoint TileSize( InViewport->GetSizeXY().X / Canvas->GetDPIScale(), 25);
 
 		const FColor PreviewColor( 70,100,200 );
 		const FColor FontColor( 255,255,128 );
