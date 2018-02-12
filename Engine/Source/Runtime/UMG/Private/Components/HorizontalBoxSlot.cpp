@@ -11,6 +11,7 @@ UHorizontalBoxSlot::UHorizontalBoxSlot(const FObjectInitializer& ObjectInitializ
 {
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
+	Slot = NULL;
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 

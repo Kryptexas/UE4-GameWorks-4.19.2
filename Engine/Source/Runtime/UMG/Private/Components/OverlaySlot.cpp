@@ -11,6 +11,7 @@ UOverlaySlot::UOverlaySlot(const FObjectInitializer& ObjectInitializer)
 {
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;
+	Slot = NULL;
 }
 
 void UOverlaySlot::ReleaseSlateResources(bool bReleaseChildren)
