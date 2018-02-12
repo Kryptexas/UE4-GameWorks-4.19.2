@@ -593,10 +593,11 @@ public:
 		const int32 LocalNumBits = NumBits;
 		const int32 DwordCount = FMath::DivideAndRoundUp(LocalNumBits, NumBitsPerDWORD);
 		int32 DwordIndex = DwordCount-1;
+		int32 SlackCount = (LocalNumBits % NumBitsPerDWORD);
 
+		if(SlackCount != 0)
 		{
-			int32 SlackIndex = (LocalNumBits % NumBitsPerDWORD);
-			uint32 Mask = (~0u) << SlackIndex;
+			uint32 Mask = (~0u) << SlackCount;
 			uint32 TailTest = bValue ? DwordArray[DwordCount - 1] & ~Mask : DwordArray[DwordCount - 1] | Mask;
 
 			// If we're looking for a false, then we flip the bits - then we only need to find the first one bit
