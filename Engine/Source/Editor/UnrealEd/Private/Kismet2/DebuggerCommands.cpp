@@ -2083,8 +2083,7 @@ FText FInternalPlayWorldCommandCallbacks::GetResumePlaySessionToolTip()
 void FInternalPlayWorldCommandCallbacks::SingleFrameAdvance_Clicked()
 {
 	// We want to function just like Single stepping where we will stop at a breakpoint if one is encountered but we also want to stop after 1 tick if a breakpoint is not encountered.
-	const bool bAllowStepIn = true;
-	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
+	FKismetDebugUtilities::RequestSingleStepIn();
 	if (HasPlayWorld())
 	{
 		GUnrealEd->PlayWorld->bDebugFrameStepExecution = true;
@@ -2123,8 +2122,7 @@ void FInternalPlayWorldCommandCallbacks::ShowCurrentStatement_Clicked()
 
 void FInternalPlayWorldCommandCallbacks::StepInto_Clicked()
 {
-	const bool bAllowStepIn = true;
-	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
+	FKismetDebugUtilities::RequestSingleStepIn();
 	if (HasPlayWorld())
 	{
 		LeaveDebuggingMode();
@@ -2134,8 +2132,7 @@ void FInternalPlayWorldCommandCallbacks::StepInto_Clicked()
 
 void FInternalPlayWorldCommandCallbacks::StepOver_Clicked()
 {
-	const bool bAllowStepIn = false;
-	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
+	FKismetDebugUtilities::RequestStepOver();
 	if (HasPlayWorld())
 	{
 		LeaveDebuggingMode();

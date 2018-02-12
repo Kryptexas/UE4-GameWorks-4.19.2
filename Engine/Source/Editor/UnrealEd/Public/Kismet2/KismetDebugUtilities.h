@@ -113,8 +113,11 @@ public:
 	/** Returns the most recent hit breakpoint; if a PIE/SIE session is started but paused; otherwise NULL */
 	static class UEdGraphNode* GetMostRecentBreakpointHit();
 
-	/** Request an attempt to single-step to the next node, with parameter to control step into sub graphs */
-	static void RequestSingleStepping(bool bInAllowStepIn);
+	/** Request an attempt to single-step to the next node */
+	static void RequestSingleStepIn();
+	
+	/** Request an attempt to step over to the next node in this graph or the calling graph */
+	static void RequestStepOver();
 
 	/** Request an attempt to step out of the current graph */
 	static void RequestStepOut();

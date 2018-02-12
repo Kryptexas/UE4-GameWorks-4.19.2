@@ -43,7 +43,8 @@ class FKismetDebugUtilitiesData : public TThreadSingleton<FKismetDebugUtilitiesD
 {
 public:
 	FKismetDebugUtilitiesData()
-		: CurrentInstructionPointer(nullptr)
+		: TargetGraphNodes()
+		, CurrentInstructionPointer(nullptr)
 		, MostRecentBreakpointInstructionPointer(nullptr)
 		, MostRecentStoppedNode(nullptr)
 		, TargetGraphStackDepth(INDEX_NONE)
@@ -57,6 +58,7 @@ public:
 
 	void Reset()
 	{
+		TargetGraphNodes.Empty();
 		CurrentInstructionPointer = nullptr;
 		MostRecentStoppedNode = nullptr;
 
@@ -68,6 +70,10 @@ public:
 		bIsSingleStepping = false;
 	}
 
+	// List of graph nodes that the user wants to stop at, at the current TargetGraphStackDepth. Used for Step Over:
+	TArray< TWeakObjectPtr< class UEdGraphNode> > TargetGraphNodes;
+
+	// Current node:
 	TWeakObjectPtr< class UEdGraphNode > CurrentInstructionPointer;
 
 	// The current instruction encountered if we are stopped at a breakpoint; NULL otherwise
@@ -116,15 +122,47 @@ void FKismetDebugUtilities::EndOfScriptExecution()
 	}
 }
 
-void FKismetDebugUtilities::RequestSingleStepping(bool bInAllowStepIn)
+void FKismetDebugUtilities::RequestSingleStepIn()
 {
 	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
 	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
 
-	Data.bIsSingleStepping = bInAllowStepIn;
-	if (!bInAllowStepIn)
+	Data.bIsSingleStepping = true;
+}
+
+void FKismetDebugUtilities::RequestStepOver()
+{
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+
+	if(BlueprintExceptionTracker.ScriptStack.Num() > 0)
 	{
 		Data.TargetGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num();
+		
+		// get the current graph that we're stopped at:
+		const FFrame* CurrentFrame = BlueprintExceptionTracker.ScriptStack.Last();
+		if(CurrentFrame->Object)
+		{
+			if(UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(CurrentFrame->Object->GetClass()))
+			{
+				const int32 BreakpointOffset = CurrentFrame->Code - CurrentFrame->Node->Script.GetData() - 1;
+				UEdGraphNode* BlueprintNode = BPGC->DebugData.FindSourceNodeFromCodeLocation(CurrentFrame->Node, BreakpointOffset, true);
+				if(BlueprintNode)
+				{
+					// add any nodes connected via execs as TargetGraphNodes:
+					for(UEdGraphPin* Pin : BlueprintNode->Pins)
+					{
+						if(Pin->Direction == EGPD_Output && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec && Pin->LinkedTo.Num() > 0)
+						{
+							for(UEdGraphPin* LinkedTo : Pin->LinkedTo)
+							{
+								Data.TargetGraphNodes.AddUnique(LinkedTo->GetOwningNode());
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -506,10 +544,36 @@ void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bo
 					Data.MostRecentBreakpointInstructionOffset >= BreakpointOffset
 				);
 
-			// If we have a TargetGraphStackDepth, don't break if we haven't reached that stack depth:
+			// If we have a TargetGraphStackDepth, don't break if we haven't reached that stack depth, or if we've stepped
+			// in to a collapsed graph/macro instance:
 			if(InOutBreakExecution && Data.TargetGraphStackDepth != INDEX_NONE && !bHitBreakpoint)
 			{
 				InOutBreakExecution = Data.TargetGraphStackDepth >= BlueprintExceptionTracker.ScriptStack.Num();
+				if(InOutBreakExecution && Data.TargetGraphStackDepth == BlueprintExceptionTracker.ScriptStack.Num())
+				{
+					// we're at the same stack depth, don't break if we've entered a different graph, but do break if we left the 
+					// graph that we were trying to step over..
+					const FFrame* CurrentFrame = BlueprintExceptionTracker.ScriptStack.Last();
+					if(CurrentFrame->Object)
+					{
+						if(UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(CurrentFrame->Object->GetClass()))
+						{
+							UEdGraphNode* BlueprintNode = BPGC->DebugData.FindSourceNodeFromCodeLocation(CurrentFrame->Node, BreakpointOffset, true);
+							if(Data.TargetGraphNodes.Num() == 0 || Data.TargetGraphNodes.Contains(BlueprintNode))
+							{
+								InOutBreakExecution = true;
+							}
+							else
+							{
+								InOutBreakExecution = false; // nowhere to stop
+							}
+						}
+						else
+						{
+							InOutBreakExecution = false;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -520,6 +584,7 @@ void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bo
 		Data.MostRecentBreakpointGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num();
 		Data.MostRecentBreakpointInstructionOffset = BreakpointOffset;
 		Data.TargetGraphStackDepth = INDEX_NONE;
+		Data.TargetGraphNodes.Empty();
 	}
 }
 
