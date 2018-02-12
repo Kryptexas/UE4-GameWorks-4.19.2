@@ -1833,11 +1833,10 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 				const FAssetData& FirstAssetData = SelectedLevels[0];
 				
 				// Convert from package name to filename. Add a trailing slash to prevent an invalid conversion when an asset is in a root folder (e.g. /Game)
-				const FString FilesystemPathWithTrailingSlash = FPackageName::LongPackageNameToFilename(FirstAssetData.PackagePath.ToString() + TEXT("/"));
+				FString FilesystemPath = FPackageName::LongPackageNameToFilename(FirstAssetData.PackagePath.ToString() + TEXT("/"));;
 
 				// Remove the slash if needed
-				FString FilesystemPath = FilesystemPathWithTrailingSlash;
-				if ( FilesystemPath.EndsWith(TEXT("/")) )
+				if ( FilesystemPath.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) )
 				{
 					FilesystemPath = FilesystemPath.LeftChop(1);
 				}
@@ -2034,12 +2033,11 @@ bool FEditorFileUtils::LoadMap()
 		return false;
 	}
 
-	bool bResult = false;
 	static bool bIsDialogOpen = false;
 
 	struct FLocal
 	{
-		static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets, bool* OutResult)
+		static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
 		{
 			bIsDialogOpen = false;
 
@@ -2055,7 +2053,6 @@ bool FEditorFileUtils::LoadMap()
 					bool bSaveContentPackages = true;
 					if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
 					{
-						*OutResult = false;
 						return;
 					}
 				}
@@ -2063,7 +2060,7 @@ bool FEditorFileUtils::LoadMap()
 				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
 				const bool bLoadAsTemplate = false;
 				const bool bShowProgress = true;
-				*OutResult = FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
+				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 			}
 		}
 
@@ -2077,12 +2074,12 @@ bool FEditorFileUtils::LoadMap()
 	{
 		bIsDialogOpen = true;
 		const bool bAllowMultipleSelection = false;
-		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen, &bResult),
+		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen),
 								FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
 								bAllowMultipleSelection);
 	}
 
-	return bResult;
+	return false; // TODO: Because OpenLevelPickingDialog is not modal, this always returned false. UE-55083 tracks making this return a proper value again.
 }
 
 static void NotifyBSPNeedsRebuild(const FString& PackageName)
