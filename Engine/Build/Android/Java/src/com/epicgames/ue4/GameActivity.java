@@ -3043,6 +3043,33 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 						nativeVirtualKeyboardChanged(message);
 					}
 				}
+				downgradeEasyCorrectionSpans();
+			}
+
+			/**
+			 * Downgrades to simple suggestions all the easy correction spans that are not a spell check
+			 * span.
+			 */
+			private void downgradeEasyCorrectionSpans() 
+			{
+				CharSequence text = newVirtualKeyboardInput.getText();
+				if(android.os.Build.VERSION.SDK_INT >= 14) 
+				{
+					if (text instanceof android.text.Spannable) 
+					{
+						android.text.Spannable spannable = (android.text.Spannable) text;
+						android.text.style.SuggestionSpan[] suggestionSpans = spannable.getSpans(0, spannable.length(), android.text.style.SuggestionSpan.class);
+						for (int i = 0; i < suggestionSpans.length; i++) 
+						{
+							int flags = suggestionSpans[i].getFlags();
+							if ((flags & android.text.style.SuggestionSpan.FLAG_EASY_CORRECT) != 0 && (flags & android.text.style.SuggestionSpan.FLAG_MISSPELLED) == 0) 
+							{
+								flags &= ~android.text.style.SuggestionSpan.FLAG_EASY_CORRECT;
+								suggestionSpans[i].setFlags(flags);
+							}
+						}
+					}
+				}
 			}
 		});
 		
