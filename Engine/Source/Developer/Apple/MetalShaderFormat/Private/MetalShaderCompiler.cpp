@@ -228,6 +228,38 @@ static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInpu
     return !bArchiving && bDebug;
 }
 
+static bool ExecProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr)
+{
+#if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
+	return FPlatformProcess::ExecProcess(Command, Params, OutReturnCode, OutStdOut, OutStdErr);
+#else
+	void* ReadPipe = nullptr, *WritePipe = nullptr;
+	FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
+	FProcHandle Proc;
+
+	Proc = FPlatformProcess::CreateProc(Command, Params, true, true, true, NULL, -1, NULL, WritePipe);
+
+	if (!Proc.IsValid())
+	{
+		return false;
+	}
+
+	// Wait for the process to complete
+	int32 ReturnCode = 0;
+	FPlatformProcess::WaitForProc(Proc);
+	FPlatformProcess::GetProcReturnCode(Proc, &ReturnCode);
+
+	*OutStdOut = FPlatformProcess::ReadPipe(ReadPipe);
+	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+	FPlatformProcess::CloseProc(Proc);
+	if (OutReturnCode)
+		*OutReturnCode = ReturnCode;
+
+	// Did it work?
+	return (ReturnCode == 0);
+#endif
+}
+
 bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr)
 {
 #if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
@@ -239,7 +271,8 @@ bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutRetu
 	}
 
 	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" \"") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT("\" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
-	return FPlatformProcess::ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
+	return ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
+
 #endif
 }
 
@@ -376,7 +409,7 @@ bool CopyLocalFileToRemote(FString const& LocalPath, FString const& RemotePath)
 
 	int32	returnCode;
 	FString	stdOut, stdErr;
-	return (FPlatformProcess::ExecProcess(*GRSyncPath, *params, &returnCode, &stdOut, &stdErr) && returnCode == 0);
+	return ExecProcess(*GRSyncPath, *params, &returnCode, &stdOut, &stdErr);
 #endif
 }
 
@@ -405,7 +438,7 @@ bool CopyRemoteFileToLocal(FString const& RemotePath, FString const& LocalPath)
 
 	int32	returnCode;
 	FString	stdOut, stdErr;
-	return (FPlatformProcess::ExecProcess(*GRSyncPath, *params, &returnCode, &stdOut, &stdErr) && returnCode == 0);
+	return ExecProcess(*GRSyncPath, *params, &returnCode, &stdOut, &stdErr);
 #endif
 }
 
