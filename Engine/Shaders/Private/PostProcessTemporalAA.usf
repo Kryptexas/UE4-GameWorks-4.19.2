@@ -85,6 +85,7 @@ float OneOverHistoryPreExposure;
 	#define AA_FILTERED 1
 	#define AA_MANUALLY_CLAMP_HISTORY_UV 1
 	#define AA_SINGLE_PASS_RESPONSIVE 1
+	#define AA_TONE 1
 	#define AA_YCOCG 1
 	
 	#define AA_UPSAMPLE 1
@@ -101,12 +102,13 @@ float OneOverHistoryPreExposure;
 		#if AA_DOWNSAMPLE
 			#define AA_SAMPLES 9
 		#else
-			#define AA_SAMPLES 5
+			#define AA_UPSAMPLE_CLAMPING_METHOD 0
+			#define AA_SAMPLES 6
 		#endif
 
 	#else
+		#define AA_UPSAMPLE_CLAMPING_METHOD 3
 		#define AA_DYNAMIC_ANTIGHOST 1
-		#define AA_TONE 1
 		#define AA_SAMPLES 9
 
 	#endif
@@ -116,29 +118,6 @@ float OneOverHistoryPreExposure;
 		#define AA_SAMPLE_CACHE_METHOD 1
 	#else
 		#define AA_SAMPLE_CACHE_METHOD 2
-	#endif
-
-	#if 0 // Exp1
-		// Conclusions:
-		//		Too much ghosting
-		//		No aliasing
-		//		Less flickering
-		//		Pixel shader animation are OK
-		#define AA_SAMPLES 9
-
-	#elif 1 // Exp5
-		// Conclusions:
-		//		Good antighosting at sp=50%.
-		//		Excellent antighosting at sp=83%.
-		//		Excellent anti aliasing at sp=50% and 83%.
-		//		Pixel shader animation are OK
-		//
-		// Room for improvement.
-		#define AA_UPSAMPLE_CLAMPING_METHOD 3
-
-	#else
-		#error Unknown TAA upsample experiment.
-
 	#endif
 
 	#if !COMPUTESHADER
@@ -293,8 +272,8 @@ float OneOverHistoryPreExposure;
 
 //------------------------------------------------------- CONFIG CHECKS
 
-#if AA_SAMPLES != 9 && AA_SAMPLES != 5
-	#error Samples must be 5 or 9
+#if AA_SAMPLES != 9 && AA_SAMPLES != 5 && AA_SAMPLES != 6
+	#error Samples must be 5, (6 for TAAU) or 9
 #endif
 
 #if AA_SAMPLE_CACHE_METHOD >= 2 && !COMPUTESHADER
@@ -1231,7 +1210,7 @@ void FilterCurrentFrameInputSamples(
 
 	#if AA_SAMPLES == 9
 		const uint SampleIndexes[9] = kSquareIndexes3x3;
-	#elif AA_SAMPLES == 5
+	#elif AA_SAMPLES == 5 || AA_SAMPLES == 6
 		const uint SampleIndexes[5] = kPlusIndexes3x3;
 	#endif
 
@@ -1251,11 +1230,23 @@ void FilterCurrentFrameInputSamples(
 		for (uint i = 0; i < AA_SAMPLES; i++)
 		{
 			// Get the sample offset from the nearest input pixel.
-			int2 SampleOffset = kOffsets3x3[SampleIndexes[i]];
+			int2 SampleOffset;
+			float2 fSampleOffset;
+			
+			if (AA_SAMPLES == 6 && i == 5)
+			{
+				fSampleOffset = sign(dKO);
+				SampleOffset = int2(fSampleOffset);
+			}
+			else
+			{
+				SampleOffset = kOffsets3x3[SampleIndexes[i]];
+				fSampleOffset = float2(SampleOffset);
+			}
 
 			// Compute the pixel delta between output pixels and input pixel I.
 			//  Note: abs() is unecessary because of the dot(dPP, dPP) latter on.
-			float2 dPP = float2(SampleOffset) - dKO;
+			float2 dPP = fSampleOffset - dKO;
 			
 			// Compute the weigth of this input sample.
 			float SampleWeight = ComputeSampleWeigth(IntermediaryResult, dPP);
@@ -1463,8 +1454,20 @@ void ComputeNeighborhoodBoundingbox(
 
 		NeighborMax = max3( Neighbors[1], Neighbors[3], Neighbors[4] );
 		NeighborMax = max3( NeighborMax,  Neighbors[5], Neighbors[7] );
-
-		if( AA_SAMPLES == 9 )
+		
+		#if AA_SAMPLES == 6
+		{
+			float2 PPCo = InputParams.ViewportUV * View.ViewSizeAndInvSize.xy + TemporalJitterPixels;
+			float2 PPCk = floor(PPCo) + 0.5;
+			float2 dKO = PPCo - PPCk;
+			
+			int2 FifthNeighborOffset = int2(sign(dKO));
+			float4 FifthNeighbor = SampleCachedSceneColorTexture(InputParams, FifthNeighborOffset).Color;
+			
+			NeighborMin = min(NeighborMin, FifthNeighbor);
+			NeighborMax = max(NeighborMax, FifthNeighbor);
+		}
+		#elif AA_SAMPLES == 9
 		{
 			float4 NeighborMinPlus = NeighborMin;
 			float4 NeighborMaxPlus = NeighborMax;
@@ -1481,6 +1484,7 @@ void ComputeNeighborhoodBoundingbox(
 				NeighborMax = NeighborMax * 0.5 + NeighborMaxPlus * 0.5;
 			}
 		}
+		#endif
 	}
 	#endif
 
