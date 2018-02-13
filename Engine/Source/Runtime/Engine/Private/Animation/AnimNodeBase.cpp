@@ -470,7 +470,9 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 		// This cached function is NULL when the CDO is initially serialized, or (in editor) when the class has been
 		// recompiled and any instances have been re-instanced. When new instances are spawned, this function is
 		// duplicated (it is a UProperty) onto those instances so we dont pay the cost of the FindFunction() call
+#if !WITH_EDITOR
 		if (Function == nullptr)
+#endif
 		{
 			// we cant call FindFunction on anything but the game thread as it accesses a shared map in the object's class
 			check(IsInGameThread());
@@ -487,7 +489,9 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	for (FExposedValueCopyRecord& CopyRecord : CopyRecords)
 	{
 		// We do a similar thing to the above function caching process for properties here too
+#if !WITH_EDITOR
 		if (CopyRecord.CachedSourceProperty == nullptr)
+#endif
 		{
 			CopyRecord.CachedSourceProperty = AnimInstanceObject->GetClass()->FindPropertyByName(CopyRecord.SourcePropertyName);
 		}
@@ -507,7 +511,9 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			{
 				void* Source = CopyRecord.CachedSourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, 0);
 				UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(CopyRecord.CachedSourceProperty);
+#if !WITH_EDITOR
 				if (CopyRecord.CachedSourceStructSubProperty == nullptr)
+#endif
 				{
 					CopyRecord.CachedSourceStructSubProperty = SourceStructProperty->Struct->FindPropertyByName(CopyRecord.SourceSubPropertyName);
 				}
