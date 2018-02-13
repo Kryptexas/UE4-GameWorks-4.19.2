@@ -53,6 +53,7 @@ public:
 		, StackFrameAtIntraframeDebugging(nullptr)
 		, TraceStackSamples(FKismetDebugUtilities::MAX_TRACE_STACK_SAMPLES)
 		, bIsSingleStepping(false)
+		, bIsSteppingOut(false)
 	{
 	}
 
@@ -68,6 +69,7 @@ public:
 		StackFrameAtIntraframeDebugging = nullptr;
 
 		bIsSingleStepping = false;
+		bIsSteppingOut = false;
 	}
 
 	// List of graph nodes that the user wants to stop at, at the current TargetGraphStackDepth. Used for Step Over:
@@ -104,6 +106,9 @@ public:
 
 	// This flag controls whether we're trying to 'step in' to a function
 	bool bIsSingleStepping;
+
+	// This flag controls whether we're trying to 'step out' of a graph
+	bool bIsSteppingOut;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -174,6 +179,7 @@ void FKismetDebugUtilities::RequestStepOut()
 	Data.bIsSingleStepping = false;
 	if (BlueprintExceptionTracker.ScriptStack.Num() > 1)
 	{
+		Data.bIsSteppingOut = true;
 		Data.TargetGraphStackDepth = BlueprintExceptionTracker.ScriptStack.Num() - 1;
 	}
 }
@@ -585,6 +591,23 @@ void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bo
 		Data.MostRecentBreakpointInstructionOffset = BreakpointOffset;
 		Data.TargetGraphStackDepth = INDEX_NONE;
 		Data.TargetGraphNodes.Empty();
+		Data.bIsSteppingOut = false;
+	}
+	else if(Data.TargetGraphStackDepth != INDEX_NONE && Data.bIsSteppingOut)
+	{
+		UK2Node_Tunnel* AsTunnel = Cast<UK2Node_Tunnel>(NodeStoppedAt);
+		if(AsTunnel)
+		{
+			// if we go through a tunnel entry/exit node update the target stack depth...
+			if(AsTunnel->bCanHaveInputs)
+			{
+				Data.TargetGraphStackDepth += 1;
+			}
+			else if(AsTunnel->bCanHaveOutputs)
+			{
+				Data.TargetGraphStackDepth -= 1;
+			}
+		}
 	}
 }
 
