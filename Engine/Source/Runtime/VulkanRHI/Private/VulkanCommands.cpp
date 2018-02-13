@@ -630,6 +630,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 	RHI_DRAW_CALL_STATS(PrimitiveType, NumInstances*NumPrimitives);
+	checkf(GRHISupportsFirstInstance || FirstInstance == 0, TEXT("FirstInstance must be 0, see GRHISupportsFirstInstance"));
 
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 	FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();

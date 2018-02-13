@@ -158,9 +158,9 @@ public:
 
 	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 	{
-		bool IsMetal = IsMetalPlatform(GMaxRHIShaderPlatform);
-		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, IsMetal ? 0 : InVertexOffset);
-		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, IsMetal ? 0 : InInstanceOffset);
+		bool const bZeroInstanceOffset = IsMetalPlatform(GMaxRHIShaderPlatform) || IsVulkanPlatform(GMaxRHIShaderPlatform) || IsVulkanMobilePlatform(GMaxRHIShaderPlatform);
+		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, bZeroInstanceOffset ? 0 : InVertexOffset);
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, bZeroInstanceOffset ? 0 : InInstanceOffset);
 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
 	}
 
