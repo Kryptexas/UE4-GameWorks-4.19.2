@@ -292,6 +292,7 @@ void FSlateMacMenu::UpdateCachedState()
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
 	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
+	if(!GIsSlowTask)
 	{
 		MacApplication->GetWindowsArrayMutex().Lock();
 		const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
