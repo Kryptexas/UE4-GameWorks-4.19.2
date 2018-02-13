@@ -494,10 +494,10 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			}
 			else
 			{
-				check(GWhiteTexture->TextureRHI);
-				*ResourceTable++ = GWhiteTexture->TextureRHI;
-				check(GWhiteTexture->SamplerStateRHI);
-				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
+				check(GBlackTexture->TextureRHI);
+				*ResourceTable++ = GBlackTexture->TextureRHI;
+				check(GBlackTexture->SamplerStateRHI);
+				*ResourceTable++ = GBlackTexture->SamplerStateRHI;
 			}
 		}
 
