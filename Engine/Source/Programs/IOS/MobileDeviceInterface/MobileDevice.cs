@@ -1,4 +1,3 @@
-// Software License Agreement (BSD License)
 // 
 // Copyright (c) 2007, Peter Dennis Bartok <PeterDennisBartok@gmail.com>
 // All rights reserved.
@@ -3014,6 +3013,9 @@ namespace Manzana
 
                 case 0xE800005A:
                     return "Already Archived Error";
+
+				case 0xE8000067:
+					return "Device not Included in Provisioning Profile (0xE8000067)";
 
 				case 0xE8008001:
 					return "Unknown code signature related error (0xE8008001); your executable may be missing or misnamed (e.g., underscore issue)";
