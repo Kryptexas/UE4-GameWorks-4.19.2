@@ -1839,9 +1839,19 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 		{
 			FObjectExport& Export = ExportMap[ExportIndex];
-			if (Export.Object == nullptr && (Export.ObjectFlags & RF_DefaultSubObject) != 0 && Export.OuterIndex.IsExport() && Export.OuterIndex.ToExport() == DeferredCDOIndex)
+			if((Export.ObjectFlags & RF_DefaultSubObject) != 0 && Export.OuterIndex.ToExport() == DeferredCDOIndex)
 			{
-				CreateExport(ExportIndex);
+				if (Export.Object == nullptr && Export.OuterIndex.IsExport())
+				{
+					CreateExport(ExportIndex);
+				}
+
+				// In order to complete loading of the CDO we need to also preload its subobjects. Other CDOs 
+				// will use these subobjects as archetypes for their own subobjects when they run InitSubobjectProperties
+				if(Export.Object)
+				{
+					Preload(Export.Object);
+				}
 			}
 		}
 
