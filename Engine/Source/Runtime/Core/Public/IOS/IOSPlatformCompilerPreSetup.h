@@ -50,3 +50,8 @@
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
 #endif
+
+// Apple LLVM 9.1.0 (Xcode 9.3)
+#if (__clang_major__ > 9) || (__clang_major__ == 9 && __clang_minor__ >= 1)
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
