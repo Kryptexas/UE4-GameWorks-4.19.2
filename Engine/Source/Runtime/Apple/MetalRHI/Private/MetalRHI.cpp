@@ -270,8 +270,8 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	if(GPUDesc.GPUVendorId == GRHIVendorId)
 	{
 		GRHIDeviceId = GPUDesc.GPUDeviceId;
-		MemoryStats.DedicatedVideoMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
-		MemoryStats.TotalGraphicsMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
+		MemoryStats.DedicatedVideoMemory = (int64)GPUDesc.GPUMemoryMB * 1024 * 1024;
+		MemoryStats.TotalGraphicsMemory = (int64)GPUDesc.GPUMemoryMB * 1024 * 1024;
 		MemoryStats.DedicatedSystemMemory = 0;
 		MemoryStats.SharedSystemMemory = 0;
 	}
@@ -338,7 +338,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		UE_LOG(LogRHI,Log,TEXT("Texture pool is %llu MB (%d%% of %llu MB)"),
 			   GTexturePoolSize / 1024 / 1024,
 			   GPoolSizeVRAMPercentage,
-			   MemoryStats.TotalGraphicsMemory);
+			   MemoryStats.TotalGraphicsMemory / 1024 / 1024);
 	}
 		
 	GRHISupportsRHIThread = false;
