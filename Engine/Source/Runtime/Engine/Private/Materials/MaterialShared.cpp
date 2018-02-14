@@ -1097,13 +1097,6 @@ bool FMaterialResource::IsDefaultMaterial() const
 	return Material->IsDefaultMaterial();
 }
 
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-bool FMaterialResource::IsEditorOnlyDefaultMaterial() const
-{
-	return Material->IsEditorOnlyDefaultMaterial();
-}
-#endif
-
 int32 FMaterialResource::GetNumCustomizedUVs() const
 {
 	return Material->NumCustomizedUVs;

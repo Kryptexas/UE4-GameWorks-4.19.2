@@ -1005,24 +1005,10 @@ public:
 	 */
 	ENGINE_API static UMaterial* GetDefaultMaterial(EMaterialDomain Domain);
 
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-	/**
-	 * Return the editor-time-only default material, creating it if necessary
-	 */
-	ENGINE_API static UMaterial* GetEditorOnlyDefaultMaterial(EMaterialDomain Domain);
-#endif
-
 	/**
 	 * Returns true if the material is one of the default materials.
 	 */
 	ENGINE_API bool IsDefaultMaterial() const;
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-	/**
-	 * Returns true if the material is one of the editor-time-only default materials.
-	 */
-	ENGINE_API bool IsEditorOnlyDefaultMaterial() const;
-#endif
 
 	/** 
 	 * Releases rendering resources used by this material. 

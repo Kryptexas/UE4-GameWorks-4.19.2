@@ -304,9 +304,10 @@ public:
 	void UpdatePreviewMaterial(bool bForce=false);
 
 	/**
-	 * Updates the original material with the changes made in the editor
-	 */
-	void UpdateOriginalMaterial();
+	* Updates the original material with the changes made in the editor
+	* @return true if the update was successful.  False if update was canceled (eg attempted to update Default Material with errors, which would cause a crash).
+	*/
+	bool UpdateOriginalMaterial();
 
 	/**
 	 * Updates list of Material Info used to show stats

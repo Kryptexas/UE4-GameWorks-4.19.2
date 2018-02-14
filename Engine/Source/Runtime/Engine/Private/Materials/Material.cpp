@@ -272,21 +272,6 @@ public:
 			return MaterialResource;
 		}
 
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		// Editor-only fallback override to prevent crashing on default material compilation errors
-		if (Material->IsDefaultMaterial() && !Material->IsEditorOnlyDefaultMaterial())
-		{
-			static bool bCallOnce = true;
-			if (bCallOnce)
-			{
-				UE_LOG(LogMaterial, Error, TEXT("Had to fallback to editor-only default material, likely caused by broken WorldGridMaterial."));
-				bCallOnce = false;
-			}
-			
-			return GetEditorOnlyFallbackRenderProxy().GetMaterial(InFeatureLevel);
-		}
-#endif
-
 		// If we are the default material, must not try to fall back to the default material in an error state as that will be infinite recursion
 		check(!Material->IsDefaultMaterial());
 
@@ -329,12 +314,6 @@ public:
 			}
 			return false;
 		}
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		else if (Material->IsDefaultMaterial())
-		{	
-			return false;
-		}
-#endif
 		else
 		{
 			return GetFallbackRenderProxy().GetVectorValue(ParameterInfo, OutValue, Context);
@@ -369,12 +348,6 @@ public:
 
 			return false;
 		}
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		else if (Material->IsDefaultMaterial())
-		{	
-			return false;
-		}
-#endif
 		else
 		{
 			return GetFallbackRenderProxy().GetScalarValue(ParameterInfo, OutValue, Context);
@@ -387,12 +360,6 @@ public:
 		{
 			return false;
 		}
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		else if (Material->IsDefaultMaterial())
-		{	
-			return false;
-		}
-#endif
 		else
 		{
 			return GetFallbackRenderProxy().GetTextureValue(ParameterInfo,OutValue,Context);
@@ -413,24 +380,8 @@ private:
 	/** Get the fallback material. */
 	FMaterialRenderProxy& GetFallbackRenderProxy() const
 	{
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		UMaterial* Default = UMaterial::GetDefaultMaterial(Material->MaterialDomain);
-		FMaterialRenderProxy* DefaultProxy = Default ? Default->GetRenderProxy(IsSelected(),IsHovered()) : nullptr;
-		if (!Default || !DefaultProxy || DefaultProxy->IsDeleted())
-		{
-			return GetEditorOnlyFallbackRenderProxy();
-		}
-#endif
-
 		return *(UMaterial::GetDefaultMaterial(Material->MaterialDomain)->GetRenderProxy(IsSelected(),IsHovered()));
 	}
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-	FMaterialRenderProxy& GetEditorOnlyFallbackRenderProxy() const
-	{
-		return *(UMaterial::GetEditorOnlyDefaultMaterial(Material->MaterialDomain)->GetRenderProxy(IsSelected(),IsHovered()));
-	}
-#endif
 
 	UMaterial* Material;
 };
@@ -452,9 +403,6 @@ static UMaterialFunction* GPowerToRoughnessMaterialFunction = NULL;
 static UMaterialFunction* GConvertFromDiffSpecMaterialFunction = NULL;
 
 static UMaterial* GDefaultMaterials[MD_MAX] = {0};
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-static UMaterial* GEditorOnlyDefaultMaterials[MD_MAX] = {0};
-#endif
 
 static const TCHAR* GDefaultMaterialNames[MD_MAX] =
 {
@@ -526,41 +474,6 @@ void UMaterialInterface::InitDefaultMaterials()
 					GDefaultMaterials[Domain]->AddToRoot();
 				}
 			}
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-			if (!GEditorOnlyDefaultMaterials[Domain] && RecursionLevel == 1)
-			{
-				FString MaterialName = FString::Printf(TEXT("EditorOnlyDefaultMaterial_%i"), Domain);
-				UMaterial* DefaultMaterial = NewObject<UMaterial>(GetTransientPackage(), FName(*MaterialName));
-				GEditorOnlyDefaultMaterials[Domain] = DefaultMaterial;
-
-				DefaultMaterial->StateId = FGuid(0x7ADB99A8, 0xF8894EA1, 0x92475671, 0xC7AD77B3 + Domain);
-				DefaultMaterial->bUsedAsSpecialEngineMaterial = true;
-				DefaultMaterial->MaterialDomain = (EMaterialDomain)Domain;	
-				DefaultMaterial->SetShadingModel(MSM_Unlit);
-
-				// Solid, glowing magenta surface to be a visible error case
-				DefaultMaterial->BaseColor.Constant = FColor(255, 0, 255, 255);
-				DefaultMaterial->BaseColor.UseConstant = 1;
-				DefaultMaterial->EmissiveColor.Constant = FColor(255, 0, 255, 255);
-				DefaultMaterial->EmissiveColor.UseConstant = 1;
-
-				switch(Domain)
-				{
-				case MD_DeferredDecal: DefaultMaterial->BlendMode = BLEND_Translucent; break;
-				//case MD_Volume: DefaultMaterial->BlendMode = BLEND_Additive; break;
-				case MD_Volume: DefaultMaterial->MaterialDomain = MD_Surface; break; // As with default materials, no volume-specific fallback
-				default: DefaultMaterial->BlendMode = BLEND_Opaque;
-				}
-	
-				FPropertyChangedEvent PropertyChangedEvent(nullptr, EPropertyChangeType::Redirected);
-				DefaultMaterial->PreEditChange(nullptr);		
-				DefaultMaterial->PostEditChangeProperty(PropertyChangedEvent);
-	
-				checkf(GEditorOnlyDefaultMaterials[Domain], TEXT("Failed to create editor-only default material for domain %i."), Domain);
-				GEditorOnlyDefaultMaterials[Domain]->AddToRoot();
-			}
-#endif
 		}
 		
 		RecursionLevel--;
@@ -836,27 +749,8 @@ UMaterial* UMaterial::GetDefaultMaterial(EMaterialDomain Domain)
 	check(Domain >= MD_Surface && Domain < MD_MAX);
 	check(GDefaultMaterials[Domain] != NULL);
 	UMaterial* Default = GDefaultMaterials[Domain];
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-	FMaterialRenderProxy* DefaultProxy = Default ? Default->GetRenderProxy(false, false) : nullptr;
-	if (!Default || !DefaultProxy || DefaultProxy->IsDeleted())
-	{
-		Default = GetEditorOnlyDefaultMaterial(Domain);
-	}
-#endif
-
 	return Default;
 }
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-UMaterial* UMaterial::GetEditorOnlyDefaultMaterial(EMaterialDomain Domain)
-{
-	InitDefaultMaterials();
-	check(Domain >= MD_Surface && Domain < MD_MAX);
-	check(GEditorOnlyDefaultMaterials[Domain] != NULL);
-	return GEditorOnlyDefaultMaterials[Domain];
-}
-#endif
 
 bool UMaterial::IsDefaultMaterial() const
 {
@@ -864,24 +758,9 @@ bool UMaterial::IsDefaultMaterial() const
 	for (int32 Domain = MD_Surface; !bDefault && Domain < MD_MAX; ++Domain)
 	{
 		bDefault = (this == GDefaultMaterials[Domain]);
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-		bDefault |= (this == GEditorOnlyDefaultMaterials[Domain]);
-#endif
 	}
 	return bDefault;
 }
-
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-bool UMaterial::IsEditorOnlyDefaultMaterial() const
-{
-	bool bDefault = false;
-	for (int32 Domain = MD_Surface; !bDefault && Domain < MD_MAX; ++Domain)
-	{
-		bDefault = (this == GEditorOnlyDefaultMaterials[Domain]);
-	}
-	return bDefault;
-}
-#endif
 
 UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -3047,20 +2926,9 @@ void UMaterial::CacheShadersForResources(EShaderPlatform ShaderPlatform, const T
 		{
 			if (IsDefaultMaterial())
 			{
-#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
-				if (!IsEditorOnlyDefaultMaterial())
-				{
-					UE_ASSET_LOG(LogMaterial, Error, this,
-						TEXT("Failed to compile Default Material for platform %s!"),
-						*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
-				}
-				else
-#endif
-				{
-					UE_ASSET_LOG(LogMaterial, Fatal, this,
-						TEXT("Failed to compile Default Material for platform %s!"),
-						*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
-				}
+				UE_ASSET_LOG(LogMaterial, Fatal, this,
+					TEXT("Failed to compile Default Material for platform %s!"),
+					*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			}
 
 			UE_ASSET_LOG(LogMaterial, Warning, this, TEXT("Failed to compile Material for platform %s, Default Material will be used in game."), 
