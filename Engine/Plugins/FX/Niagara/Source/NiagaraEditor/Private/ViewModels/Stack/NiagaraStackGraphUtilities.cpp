@@ -808,7 +808,7 @@ UNiagaraNodeFunctionCall* FNiagaraStackGraphUtilities::AddScriptModuleToStack(FA
 	return NewModuleNode;
 }
 
-UNiagaraNodeAssignment* FNiagaraStackGraphUtilities::AddParameterModuleToStack(FNiagaraVariable ParameterVariable, UNiagaraNodeOutput& TargetOutputNode, int32 TargetIndex)
+UNiagaraNodeAssignment* FNiagaraStackGraphUtilities::AddParameterModuleToStack(FNiagaraVariable ParameterVariable, UNiagaraNodeOutput& TargetOutputNode, int32 TargetIndex, const FString* InDefaultValue)
 {
 	UEdGraph* Graph = TargetOutputNode.GetGraph();
 	Graph->Modify();
@@ -816,6 +816,10 @@ UNiagaraNodeAssignment* FNiagaraStackGraphUtilities::AddParameterModuleToStack(F
 	FGraphNodeCreator<UNiagaraNodeAssignment> AssignmentNodeCreator(*Graph);
 	UNiagaraNodeAssignment* NewAssignmentNode = AssignmentNodeCreator.CreateNode();
 	NewAssignmentNode->AssignmentTarget = ParameterVariable;
+	if (InDefaultValue)
+	{
+		NewAssignmentNode->AssignmentDefaultValue = *InDefaultValue;
+	}
 	AssignmentNodeCreator.Finalize();
 
 	ConnectModuleNode(*NewAssignmentNode, TargetOutputNode, TargetIndex);

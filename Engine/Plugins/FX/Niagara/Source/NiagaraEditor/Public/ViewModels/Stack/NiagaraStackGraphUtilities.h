@@ -94,7 +94,7 @@ namespace FNiagaraStackGraphUtilities
 	
 	bool FindScriptModulesInStack(FAssetData ModuleScriptAsset, UNiagaraNodeOutput& TargetOutputNode, TArray<UNiagaraNodeFunctionCall*> OutFunctionCalls);
 
-	UNiagaraNodeAssignment* AddParameterModuleToStack(FNiagaraVariable ParameterVariable, UNiagaraNodeOutput& TargetOutputNode, int32 TargetIndex = INDEX_NONE);
+	UNiagaraNodeAssignment* AddParameterModuleToStack(FNiagaraVariable ParameterVariable, UNiagaraNodeOutput& TargetOutputNode, int32 TargetIndex = INDEX_NONE, const FString* InDefaultValue = nullptr);
 		
 	UNiagaraMaterialParameterNode* AddMaterialParameterModuleToStack(TSharedRef<FNiagaraEmitterViewModel>& EmitterViewModel, UNiagaraNodeOutput& TargetOutputNode, int32 TargetIndex = INDEX_NONE);
 

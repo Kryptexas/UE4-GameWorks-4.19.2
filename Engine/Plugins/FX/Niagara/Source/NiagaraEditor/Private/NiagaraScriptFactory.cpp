@@ -11,9 +11,14 @@
 #include "NiagaraScriptSource.h"
 #include "NiagaraScriptFactoryNew.h"
 #include "NiagaraNodeOutput.h"
+#include "NiagaraNodeInput.h"
+#include "NiagaraNodeParameterMapGet.h"
+#include "NiagaraNodeParameterMapSet.h"
+#include "EdGraphSchema_Niagara.h"
 #include "NiagaraEditorSettings.h"
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
+#include "NiagaraStackGraphUtilities.h"
 #include "AssetTypeActions/AssetTypeActions_NiagaraScript.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptFactory"
@@ -43,7 +48,10 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 	}
 	else
 	{
+		UE_LOG(LogNiagaraEditor, Log, TEXT("Default Script \"%s\" could not be loaded. Creating graph procedurally."), *SettingDefaultScript.ToString());
+
 		NewScript = NewObject<UNiagaraScript>(InParent, Class, Name, Flags | RF_Transactional);
+		NewScript->Usage = GetScriptUsage();
 		InitializeScript(NewScript);
 	}
 
@@ -111,34 +119,101 @@ void UNiagaraScriptFactoryNew::InitializeScript(UNiagaraScript* NewScript)
 		if(Source)
 		{
 			UNiagaraGraph* CreatedGraph = NewObject<UNiagaraGraph>(Source, NAME_None, RF_Transactional);
-			Source->NodeGraph = CreatedGraph;
-
+			Source->NodeGraph = CreatedGraph;				
+			
+			const UEdGraphSchema_Niagara* NiagaraSchema = Cast<UEdGraphSchema_Niagara>(CreatedGraph->GetSchema());
+			
 			FGraphNodeCreator<UNiagaraNodeOutput> OutputNodeCreator(*CreatedGraph);
 			UNiagaraNodeOutput* OutputNode = OutputNodeCreator.CreateNode();
+			OutputNode->SetUsage(NewScript->Usage);
 
-			FNiagaraVariable PosAttrib(FNiagaraTypeDefinition::GetVec3Def(), "Position");
-			FNiagaraVariable VelAttrib(FNiagaraTypeDefinition::GetVec3Def(), "Velocity");
-			FNiagaraVariable RotAttrib(FNiagaraTypeDefinition::GetFloatDef(), "Rotation");
-			FNiagaraVariable AgeAttrib(FNiagaraTypeDefinition::GetFloatDef(), "NormalizedAge");
-			FNiagaraVariable ColAttrib(FNiagaraTypeDefinition::GetColorDef(), "Color");
-			FNiagaraVariable SizeAttrib(FNiagaraTypeDefinition::GetVec2Def(), "Size");
+			FGraphNodeCreator<UNiagaraNodeInput> InputNodeCreator(*CreatedGraph);
+			UNiagaraNodeInput* InputNode = InputNodeCreator.CreateNode();
+			InputNode->Usage = ENiagaraInputNodeUsage::Parameter;
 
-			OutputNode->Outputs.Add(PosAttrib);
-			OutputNode->Outputs.Add(VelAttrib);
-			OutputNode->Outputs.Add(RotAttrib);
-			OutputNode->Outputs.Add(ColAttrib);
-			OutputNode->Outputs.Add(SizeAttrib);
-			OutputNode->Outputs.Add(AgeAttrib);
+			UNiagaraNodeParameterMapGet* GetNode = nullptr;
+			UNiagaraNodeParameterMapSet* SetNode = nullptr;
 
-			OutputNodeCreator.Finalize();
+			switch (NewScript->Usage)
+			{
+			case ENiagaraScriptUsage::DynamicInput:
+				{
+					FNiagaraVariable InVar(FNiagaraTypeDefinition::GetParameterMapDef(), TEXT("MapIn"));
+					InputNode->Input = InVar;
 
+					FNiagaraVariable OutVar(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Output"));
+					OutputNode->Outputs.Add(OutVar);
+					
+					OutputNodeCreator.Finalize();
+					InputNodeCreator.Finalize();
 
+					FGraphNodeCreator<UNiagaraNodeParameterMapGet> GetNodeCreator(*CreatedGraph);
+					GetNode = GetNodeCreator.CreateNode();
+					GetNodeCreator.Finalize();
+					UEdGraphPin* FloatOutPin = GetNode->RequestNewTypedPin(EGPD_Output, FNiagaraTypeDefinition::GetFloatDef(), TEXT("Module.InputArg"));
+
+					if (FloatOutPin)
+					{
+						NiagaraSchema->TryCreateConnection(InputNode->GetOutputPin(0), GetNode->GetInputPin(0));
+						NiagaraSchema->TryCreateConnection(FloatOutPin, OutputNode->GetInputPin(0));
+					}
+
+				}
+				break;
+			case ENiagaraScriptUsage::Module:
+				{
+					FNiagaraVariable InVar(FNiagaraTypeDefinition::GetParameterMapDef(), TEXT("MapIn"));
+					InputNode->Input = InVar;
+
+					FNiagaraVariable OutVar(FNiagaraTypeDefinition::GetParameterMapDef(), TEXT("Output"));
+					OutputNode->Outputs.Add(OutVar);
+
+					OutputNodeCreator.Finalize();
+					InputNodeCreator.Finalize();
+
+					FGraphNodeCreator<UNiagaraNodeParameterMapGet> GetNodeCreator(*CreatedGraph);
+					GetNode = GetNodeCreator.CreateNode();
+					GetNodeCreator.Finalize();
+					UEdGraphPin* FloatOutPin = GetNode->RequestNewTypedPin(EGPD_Output, FNiagaraTypeDefinition::GetFloatDef(), TEXT("Module.InputArg"));
+
+					FGraphNodeCreator<UNiagaraNodeParameterMapSet> SetNodeCreator(*CreatedGraph);
+					SetNode = SetNodeCreator.CreateNode();
+					SetNodeCreator.Finalize();
+					UEdGraphPin* FloatInPin = SetNode->RequestNewTypedPin(EGPD_Input, FNiagaraTypeDefinition::GetFloatDef(), TEXT("Particles.DummyFloat"));
+
+					if (FloatOutPin)
+					{
+						NiagaraSchema->TryCreateConnection(InputNode->GetOutputPin(0), SetNode->GetInputPin(0));
+						NiagaraSchema->TryCreateConnection(InputNode->GetOutputPin(0), GetNode->GetInputPin(0));
+						NiagaraSchema->TryCreateConnection(SetNode->GetOutputPin(0), OutputNode->GetInputPin(0));
+						NiagaraSchema->TryCreateConnection(FloatOutPin, FloatInPin);
+					}
+				}
+				break;
+			default:
+			case ENiagaraScriptUsage::Function:
+				{
+					FNiagaraVariable InVar(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Input"));
+					InputNode->Input = InVar;
+
+					FNiagaraVariable OutVar(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Output"));
+					OutputNode->Outputs.Add(OutVar);
+
+					OutputNodeCreator.Finalize();
+					InputNodeCreator.Finalize();
+
+					NiagaraSchema->TryCreateConnection(InputNode->GetOutputPin(0), OutputNode->GetInputPin(0));
+				}
+				break;
+			}
+
+			FNiagaraStackGraphUtilities::RelayoutGraph(*CreatedGraph);
 			// Set pointer in script to source
 			NewScript->SetSource(Source);
 
-			FString ErrorMessages;
-			FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-			NiagaraEditorModule.CompileScript(NewScript, ErrorMessages);
+			FString OutGraphLevelErrorMessages;
+			bool bForce = true;
+			NewScript->Compile(OutGraphLevelErrorMessages, bForce);
 		}
 	}
 }
