@@ -660,28 +660,44 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 	// Check out the packages
 	if (PackagesToCheckOut.Num() > 0)
 	{
-		TArray<UPackage*> PackagesCheckedOutOrMadeWritable;
-		TArray<UPackage*> PackagesNotNeedingCheckout;
-		bUserAcceptedCheckout = bAutoCheckout ? AutoCheckOut(PackagesToCheckOut) : FEditorFileUtils::PromptToCheckoutPackages(false, PackagesToCheckOut, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout);
-		if (bUserAcceptedCheckout)
+		if (ISourceControlModule::Get().IsEnabled())
 		{
-			// Make a list of any packages in the list which weren't checked out for some reason
-			TArray<UPackage*> PackagesThatCouldNotBeCheckedOut = PackagesToCheckOut;
-
-			for (UPackage* Package : PackagesCheckedOutOrMadeWritable)
+			TArray<UPackage*> PackagesCheckedOutOrMadeWritable;
+			TArray<UPackage*> PackagesNotNeedingCheckout;
+			bUserAcceptedCheckout = bAutoCheckout ? AutoCheckOut(PackagesToCheckOut) : FEditorFileUtils::PromptToCheckoutPackages(false, PackagesToCheckOut, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout);
+			if (bUserAcceptedCheckout)
 			{
-				PackagesThatCouldNotBeCheckedOut.Remove(Package);
+				// Make a list of any packages in the list which weren't checked out for some reason
+				TArray<UPackage*> PackagesThatCouldNotBeCheckedOut = PackagesToCheckOut;
+
+				for (UPackage* Package : PackagesCheckedOutOrMadeWritable)
+				{
+					PackagesThatCouldNotBeCheckedOut.RemoveSwap(Package);
+				}
+
+				for (UPackage* Package : PackagesNotNeedingCheckout)
+				{
+					PackagesThatCouldNotBeCheckedOut.RemoveSwap(Package);
+				}
+
+				// If there's anything which couldn't be checked out, abort the operation.
+				if (PackagesThatCouldNotBeCheckedOut.Num() > 0)
+				{
+					bUserAcceptedCheckout = false;
+				}
 			}
-
-			for (UPackage* Package : PackagesNotNeedingCheckout)
+		}
+		else
+		{
+			TArray<FString> PackageFilenames = USourceControlHelpers::PackageFilenames(PackagesToCheckOut);
+			for (const FString& PackageFilename : PackageFilenames)
 			{
-				PackagesThatCouldNotBeCheckedOut.Remove(Package);
-			}
-
-			// If there's anything which couldn't be checked out, abort the operation.
-			if (PackagesThatCouldNotBeCheckedOut.Num() > 0)
-			{
-				bUserAcceptedCheckout = false;
+				// If the file exist but readonly, do not allow the rename.
+				if (IFileManager::Get().FileExists(*PackageFilename) && IFileManager::Get().IsReadOnly(*PackageFilename))
+				{
+					bUserAcceptedCheckout = false;
+					break;
+				}
 			}
 		}
 	}
@@ -697,7 +713,7 @@ bool FAssetRenameManager::AutoCheckOut(TArray<UPackage*>& PackagesToCheckOut) co
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 		ECommandResult::Type StatusResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackagesToCheckOut);
 
-		if (StatusResult == ECommandResult::Cancelled)
+		if (StatusResult != ECommandResult::Succeeded)
 		{
 			bSomethingFailed = true;
 		}
