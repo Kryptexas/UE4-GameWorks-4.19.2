@@ -1027,8 +1027,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
                     if(visibleScreenYOffset > 200)
                     {
 						//Log.debug("VK: show");
-						//newVirtualKeyboardInput.setBackgroundColor(Color.WHITE);
-						//newVirtualKeyboardInput.setCursorVisible(true);
+						//#jira UE-55117 Android virtual keyboard can have text input hidden by software buttons
+						newVirtualKeyboardInput.getLayoutParams().width = Math.abs(visibleRect.right - visibleRect.left );
+						newVirtualKeyboardInput.setX(leftDiff);
                     	newVirtualKeyboardInput.setY(keyboardYPos);
                     	newVirtualKeyboardInput.setVisibility(View.VISIBLE);
 						newVirtualKeyboardInput.requestFocus();
