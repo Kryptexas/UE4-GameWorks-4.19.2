@@ -272,13 +272,13 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, int32 Vie
 
 	if (Vertices.Num())
 	{
-		FDynamicMeshBuilder DynamicMeshBuilder(View->GetFeatureLevel());
-		DynamicMeshBuilder.AddVertices(Vertices);
-
 		for (const FSpriteRenderSection& Batch : BatchedSections)
 		{
 			if (Batch.IsValid())
 			{
+				FDynamicMeshBuilder DynamicMeshBuilder(View->GetFeatureLevel());
+				DynamicMeshBuilder.AddVertices(Vertices);
+
 				FMaterialRenderProxy* ParentMaterialProxy = Batch.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
 
 				FDynamicMeshBuilderSettings Settings;
