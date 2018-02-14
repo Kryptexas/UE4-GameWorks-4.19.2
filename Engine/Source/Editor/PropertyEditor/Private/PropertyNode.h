@@ -252,6 +252,8 @@ enum EPropertyDataValidationResult : uint8
 	EditInlineNewValueChanged,
 	/** The size of an array changed (delete,insert,add) */
 	ArraySizeChanged,
+	/** An internal node's children were rebuilt for some reason */
+	ChildrenRebuilt,
 	/** All data is valid */
 	DataValid,
 };

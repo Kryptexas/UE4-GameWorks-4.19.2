@@ -499,7 +499,7 @@ bool FPropertyRowGenerator::ValidatePropertyNodes(const FRootPropertyNodeList &P
 			UpdateDetailRows();
 			break;
 		}
-		else if (Result == EPropertyDataValidationResult::ArraySizeChanged)
+		else if (Result == EPropertyDataValidationResult::ArraySizeChanged || Result == EPropertyDataValidationResult::ChildrenRebuilt)
 		{
 			UpdateDetailRows();
 		}

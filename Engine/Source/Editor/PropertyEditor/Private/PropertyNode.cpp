@@ -401,7 +401,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 	if (bChildrenRebuilt)
 	{
 		bChildrenRebuilt = false;
-		return EPropertyDataValidationResult::ArraySizeChanged;
+		return EPropertyDataValidationResult::ChildrenRebuilt;
 	}
 
 	// The root must always be validated

@@ -717,7 +717,7 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 				UpdatePropertyMaps();
 				UpdateFilteredDetails();
 			}
-			else if(Result == EPropertyDataValidationResult::ArraySizeChanged)
+			else if(Result == EPropertyDataValidationResult::ArraySizeChanged || Result == EPropertyDataValidationResult::ChildrenRebuilt)
 			{
 				RestoreExpandedItems(RootPropertyNode.ToSharedRef());
 				UpdateFilteredDetails();
@@ -756,7 +756,7 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 
 						break;
 					}
-					else if (Result == EPropertyDataValidationResult::ArraySizeChanged)
+					else if (Result == EPropertyDataValidationResult::ArraySizeChanged || Result == EPropertyDataValidationResult::ChildrenRebuilt)
 					{
 						RestoreExpandedItems(PropertyNode.ToSharedRef());
 						UpdateFilteredDetails();
