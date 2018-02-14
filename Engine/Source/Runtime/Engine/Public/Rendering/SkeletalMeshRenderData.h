@@ -50,7 +50,7 @@ public:
 	/**
 	* Computes the maximum number of bones per section used to render this mesh.
 	*/
-	int32 GetMaxBonesPerSection() const;
+	ENGINE_API int32 GetMaxBonesPerSection() const;
 
 private:
 	/** True if the resource has been initialized. */
