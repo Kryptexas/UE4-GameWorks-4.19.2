@@ -82,7 +82,7 @@ protected:
 	bool IsHardwareSurveyRequired()
 	{
 		// Analytics must have been initialized FIRST.
-		if (Analytics == nullptr || IsRunningDedicatedServer())
+		if (Analytics == nullptr || IsRunningDedicatedServer() || GIsBuildMachine)
 		{
 			return false;
 		}
