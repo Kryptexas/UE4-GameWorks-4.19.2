@@ -32,7 +32,9 @@ enum class EControllerHand : uint8
 	Special_8,
 	Special_9,
 	Special_10,
-	Special_11
+	Special_11,
+
+	ControllerHand_Count UMETA(Hidden, DisplayName = "<INVALID>"),
 };
 
 USTRUCT(BlueprintType)

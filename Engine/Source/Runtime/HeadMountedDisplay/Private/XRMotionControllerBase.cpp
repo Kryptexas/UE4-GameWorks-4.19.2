@@ -10,6 +10,27 @@
 FName FXRMotionControllerBase::LeftHandSourceId(TEXT("Left"));
 FName FXRMotionControllerBase::RightHandSourceId(TEXT("Right"));
 
+// NOTE: indices should match up with the EControllerHand enum
+static const FName LegacyHandMappings[] = {
+	FXRMotionControllerBase::LeftHandSourceId,	// EControllerHand::Left
+	FXRMotionControllerBase::RightHandSourceId, // EControllerHand::Right
+	TEXT("AnyHand"),		// EControllerHand::AnyHand
+	TEXT("Pad"), 			// EControllerHand::Pad
+	TEXT("ExternalCamera"), // EControllerHand::ExternalCamera
+	TEXT("Gun"), 			// EControllerHand::Gun
+	TEXT("Special_1"),		// EControllerHand::Special_1
+	TEXT("Special_2"),		// EControllerHand::Special_2
+	TEXT("Special_3"),		// EControllerHand::Special_3
+	TEXT("Special_4"),		// EControllerHand::Special_4
+	TEXT("Special_5"),		// EControllerHand::Special_5
+	TEXT("Special_6"),		// EControllerHand::Special_6
+	TEXT("Special_7"),		// EControllerHand::Special_7
+	TEXT("Special_8"),		// EControllerHand::Special_8
+	TEXT("Special_9"),		// EControllerHand::Special_9
+	TEXT("Special_10"),		// EControllerHand::Special_10
+	TEXT("Special_11")		// EControllerHand::Special_11
+};
+
 bool FXRMotionControllerBase::GetControllerOrientationAndPosition(const int32 ControllerIndex, const FName MotionSource, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
 	bool bSucess = false;
@@ -63,31 +84,29 @@ ETrackingStatus FXRMotionControllerBase::GetControllerTrackingStatus(const int32
 
 void FXRMotionControllerBase::EnumerateSources(TArray<FMotionControllerSource>& SourcesOut) const
 {
-	UEnum* HandEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EControllerHand"));
-	if (HandEnum)
+	const int32 HandsCount = ARRAY_COUNT(LegacyHandMappings);
+	ensure(HandsCount == (int32)EControllerHand::ControllerHand_Count);
+
+	for (int32 HandIndex = 0; HandIndex < HandsCount; ++HandIndex)
 	{
-		for (int64 HandVal = 0; HandVal < HandEnum->GetMaxEnumValue(); ++HandVal)
-		{
-			FString ValueName = HandEnum->GetNameStringByValue(HandVal);
-			if (!ValueName.IsEmpty())
-			{
-				SourcesOut.Add(FName(*ValueName));
-			}
-		}
+		SourcesOut.Add(LegacyHandMappings[HandIndex]);
 	}
 }
 
 bool FXRMotionControllerBase::GetHandEnumForSourceName(const FName Source, EControllerHand& OutHand)
 {
-	UEnum* HandEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EControllerHand"));
-	if (HandEnum)
+	const int32 HandsCount = ARRAY_COUNT(LegacyHandMappings);
+	ensure(HandsCount == (int32)EControllerHand::ControllerHand_Count);
+
+	bool bFound = false;
+	for (int32 HandIndex = 0; HandIndex < HandsCount; ++HandIndex)
 	{
-		const int64 NameValue = HandEnum->GetValueByName(Source);
-		if (NameValue != INDEX_NONE)
+		if (LegacyHandMappings[HandIndex] == Source)
 		{
-			OutHand = (EControllerHand)NameValue;
-			return true;
+			OutHand = (EControllerHand)HandIndex;
+			bFound  = true;
+			break;
 		}
 	}
-	return false;
+	return bFound;
 }
