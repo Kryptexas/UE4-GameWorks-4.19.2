@@ -104,7 +104,7 @@ bool FGenericPlatformStackWalk::SymbolInfoToHumanReadableString( const FProgramC
 		}
 		else
 		{
-			FCStringAnsi::Strcat(StackLine, " []");
+			FCStringAnsi::Strncat(StackLine, " []", MAX_SPRINTF);
 		}
 
 		// Append the stack line.
