@@ -3,8 +3,12 @@
 #include "LiveLinkMessageBusSource.h"
 #include "LiveLinkMessages.h"
 #include "ILiveLinkClient.h"
+#include "LiveLinkMessageBusHeartbeatManager.h"
 
 #include "MessageEndpointBuilder.h"
+
+const double LL_CONNECTION_TIMEOUT = 15.0;
+const double LL_HALF_CONNECTION_TIMEOUT = LL_CONNECTION_TIMEOUT / 2.0;
 
 void FLiveLinkMessageBusSource::ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid)
 {
@@ -19,26 +23,31 @@ void FLiveLinkMessageBusSource::ReceiveClient(ILiveLinkClient* InClient, FGuid I
 
 
 	MessageEndpoint->Send(new FLiveLinkConnectMessage(), ConnectionAddress);
+	
+	// Register for heartbeats
+	bIsValid = true;
+	FHeartbeatManager::Get()->RegisterSource(this);
 }
 
-const double LL_CONNECTION_TIMEOUT = 15.0;
-const double LL_HALF_CONNECTION_TIMEOUT = LL_CONNECTION_TIMEOUT / 2.0;
-
-bool FLiveLinkMessageBusSource::IsSourceStillValid()
+void FLiveLinkMessageBusSource::SendHeartbeat()
 {
 	const double CurrentTime = FPlatformTime::Seconds();
 
 	if (HeartbeatLastSent > (CurrentTime - LL_HALF_CONNECTION_TIMEOUT) &&
-		ConnectionLastActive < (CurrentTime - LL_CONNECTION_TIMEOUT) )
+		ConnectionLastActive < (CurrentTime - LL_CONNECTION_TIMEOUT))
 	{
 		//We have recently tried to heartbeat and not received anything back
-		return false;
+		bIsValid = false;
 	}
+
 	MessageEndpoint->Send(new FLiveLinkHeartbeatMessage(), ConnectionAddress);
 	HeartbeatLastSent = CurrentTime;
-	
-	//Don't know that connection is dead yet
-	return true;
+}
+
+
+bool FLiveLinkMessageBusSource::IsSourceStillValid()
+{
+	return bIsValid;
 }
 
 void FLiveLinkMessageBusSource::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
@@ -54,6 +63,7 @@ void FLiveLinkMessageBusSource::HandleClearSubject(const FLiveLinkClearSubject& 
 
 bool FLiveLinkMessageBusSource::RequestSourceShutdown()
 {
+	FHeartbeatManager::Get()->RemoveSource(this);
 	FMessageEndpoint::SafeRelease(MessageEndpoint);
 	return true;
 }

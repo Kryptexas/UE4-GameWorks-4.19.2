@@ -1,9 +1,11 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ILiveLinkModule.h"
 
 #include "Features/IModularFeatures.h"
 #include "IMotionController.h"
+
+#include "LiveLinkMessageBusHeartbeatManager.h"
 
 #include "LiveLinkClient.h"
 
@@ -211,12 +213,15 @@ public:
 	{
 		IModularFeatures::Get().RegisterModularFeature(FLiveLinkClient::ModularFeatureName, &LiveLinkClient);
 		LiveLinkMotionController.RegisterController();
+		// Create a HeartbeatManager Instance
+		FHeartbeatManager::Get();
 	}
 
 	virtual void ShutdownModule() override
 	{
 		LiveLinkMotionController.UnregisterController();
 		IModularFeatures::Get().UnregisterModularFeature(FLiveLinkClient::ModularFeatureName, &LiveLinkClient);
+		delete FHeartbeatManager::Get();
 	}
 
 	virtual bool SupportsDynamicReloading() override

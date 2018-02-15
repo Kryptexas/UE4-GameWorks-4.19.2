@@ -1,10 +1,11 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ILiveLinkSource.h"
 #include "MessageEndpoint.h"
 #include "IMessageContext.h"
+#include "ThreadSafeBool.h"
 
 class ILiveLinkClient;
 struct FLiveLinkPongMessage;
@@ -37,6 +38,8 @@ public:
 	virtual FText GetSourceMachineName() const { return SourceMachineName; }
 	virtual FText GetSourceStatus() const { return SourceStatus; }
 
+	void SendHeartbeat();
+
 private:
 
 	// Message bus message handlers
@@ -64,4 +67,7 @@ private:
 
 	// Time we last recieved anything 
 	double ConnectionLastActive;
+
+	// Current Validity of Source
+	FThreadSafeBool bIsValid;
 };
