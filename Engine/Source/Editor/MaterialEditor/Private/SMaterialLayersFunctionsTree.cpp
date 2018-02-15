@@ -176,7 +176,25 @@ public:
 				TSharedPtr<SBox> ThumbnailBox;
 				UObject* AssetObject;
 				AssetChild->ParameterHandle->GetValue(AssetObject);
-				const TSharedPtr<FAssetThumbnail> AssetThumbnail = MakeShareable(new FAssetThumbnail(AssetObject, ThumbnailSize, ThumbnailSize, InArgs._InTree->GetTreeThumbnailPool()));
+				int32 PreviewIndex = INDEX_NONE;
+				int32 ThumbnailIndex = INDEX_NONE;
+				EMaterialParameterAssociation PreviewAssociation = EMaterialParameterAssociation::GlobalParameter;
+
+				if(Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
+				{
+					PreviewIndex = StackParameterData->ParameterInfo.Index;
+					PreviewAssociation = EMaterialParameterAssociation::LayerParameter;
+					Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
+					ThumbnailIndex = PreviewIndex;
+				}
+				if (Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+				{
+					PreviewIndex = StackParameterData->ParameterInfo.Index;
+					PreviewAssociation = EMaterialParameterAssociation::BlendParameter;
+					Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
+					ThumbnailIndex = PreviewIndex - 1;
+				}
+
 				HeaderRowWidget->AddSlot()
 					.AutoWidth()
 					.HAlign(HAlign_Center)
@@ -186,7 +204,7 @@ public:
 					[
 						SAssignNew(ThumbnailBox, SBox)
 						[
-							AssetThumbnail->MakeThumbnailWidget()
+							Tree->CreateThumbnailWidget(PreviewAssociation, ThumbnailIndex, ThumbnailSize)
 						]
 					];
 				ThumbnailBox->SetMaxDesiredHeight(ThumbnailSize);
@@ -289,6 +307,8 @@ public:
 			FOnClicked OnChildButtonClicked;
 			FOnClicked OnSiblingButtonClicked;
 			UMaterialFunctionInterface* LocalFunction = nullptr;
+			TSharedPtr<SBox> ThumbnailBox;
+
 			if (StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::LayerParameter)
 			{
 				LocalFunction = Tree->FunctionInstance->Layers[StackParameterData->ParameterInfo.Index];
@@ -297,7 +317,6 @@ public:
 			{
 				LocalFunction = Tree->FunctionInstance->Blends[StackParameterData->ParameterInfo.Index];
 			}
-			
 
 			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewLayerInstance,
 				ImplicitConv<UMaterialFunctionInterface*>(LocalFunction), StackParameterData);
@@ -308,18 +327,28 @@ public:
 				+SVerticalBox::Slot()
 				[
 					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f)
+					.MaxWidth(ThumbnailOverride.X)
+					[
+						SAssignNew(ThumbnailBox, SBox)
+						[
+							Tree->CreateThumbnailWidget(StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index, ThumbnailOverride.X)
+						]
+					]
 					+ SHorizontalBox::Slot()
 					.FillWidth(1.0)
 					[
 						SNew(SObjectPropertyEntryBox)
 						.AllowedClass(UMaterialFunctionInterface::StaticClass())
 						.ObjectPath(this, &SMaterialLayersFunctionsInstanceTreeItem::GetInstancePath, Tree)
-						.ThumbnailPool(Tree->GetTreeThumbnailPool())
 						.OnShouldFilterAsset(AssetFilter)
 						.OnObjectChanged(AssetChanged)
 						.CustomResetToDefault(ResetAssetOverride)
 						.DisplayCompactSize(true)
-						.ThumbnailSizeOverride(ThumbnailOverride)
 						.NewAssetFactories(FMaterialPropertyHelpers::GetAssetFactories(InAssociation))
 					]
 					+ SHorizontalBox::Slot()
@@ -354,7 +383,9 @@ public:
 					]
 				]
 			;
-			
+			ThumbnailBox->SetMaxDesiredHeight(ThumbnailOverride.Y);
+			ThumbnailBox->SetMinDesiredHeight(ThumbnailOverride.X);
+
 			SaveInstanceBox->AddSlot()
 				.AutoWidth()
 				.Padding(2.0f)
@@ -561,8 +592,11 @@ public:
 			LeftSideWidget = NodeWidgets.NameWidget.ToSharedRef();
 			RightSideWidget = NodeWidgets.ValueWidget.ToSharedRef();
 
+			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index));
+			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index));
+
 			const int32 LayerStateIndex = StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter ? StackParameterData->ParameterInfo.Index + 1 : StackParameterData->ParameterInfo.Index;
-			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex];
+			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && Tree->FunctionInstance->LayerStates[LayerStateIndex];
 			LeftSideWidget->SetEnabled(InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex]);
 			RightSideWidget->SetEnabled(bEnabled);
 		}
@@ -576,7 +610,7 @@ public:
 			RightSideWidget = NodeWidgets.ValueWidget.ToSharedRef();
 
 			const int32 LayerStateIndex = StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter ? StackParameterData->ParameterInfo.Index + 1 : StackParameterData->ParameterInfo.Index;
-			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex];
+			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && Tree->FunctionInstance->LayerStates[LayerStateIndex];
 			LeftSideWidget->SetEnabled(InArgs._InTree->FunctionInstance->LayerStates[LayerStateIndex]);
 			RightSideWidget->SetEnabled(bEnabled);
 		}
@@ -932,6 +966,16 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 				LayerHandle->GetNumChildren(LayerChildren);
 				uint32 BlendChildren;
 				BlendHandle->GetNumChildren(BlendChildren);
+				if (StoredLayerPreviews.Num() != LayerChildren)
+				{
+					StoredLayerPreviews.Empty();
+					StoredLayerPreviews.AddDefaulted(LayerChildren);
+				}
+				if (StoredBlendPreviews.Num() != BlendChildren)
+				{
+					StoredBlendPreviews.Empty();
+					StoredBlendPreviews.AddDefaulted(BlendChildren);
+				}
 					
 				TSharedPtr<FStackSortedData> StackProperty(new FStackSortedData());
 				StackProperty->StackDataType = EStackDataType::Stack;
@@ -949,6 +993,15 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 				ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::LayerParameter;
 				ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
 
+				StoredLayerPreviews[LayerChildren - 1] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+				UObject* AssetObject;
+				ChildProperty->ParameterHandle->GetValue(AssetObject);
+				if (AssetObject)
+				{
+					UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
+					StoredLayerPreviews[LayerChildren - 1]->SetParentEditorOnly(EditedMaterial);
+				}
+
 				StackProperty->Children.Add(ChildProperty);
 				LayerProperties.Add(StackProperty);
 					
@@ -964,6 +1017,13 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterInfo.Index = Counter;
 						ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::BlendParameter;
 						ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
+						StoredBlendPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+						ChildProperty->ParameterHandle->GetValue(AssetObject);
+						if (AssetObject)
+						{
+							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
+							StoredBlendPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+						}
 						LayerProperties.Last()->Children.Add(ChildProperty);
 							
 						StackProperty = MakeShareable(new FStackSortedData());
@@ -981,7 +1041,13 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterInfo.Index = Counter;
 						ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::LayerParameter;
 						ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
-
+						StoredLayerPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+						ChildProperty->ParameterHandle->GetValue(AssetObject);
+						if (AssetObject)
+						{
+							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
+							StoredLayerPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+						}
 						LayerProperties.Last()->Children.Add(ChildProperty);
 					}
 				}
@@ -1021,6 +1087,52 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 bool SMaterialLayersFunctionsInstanceTree::IsLayerVisible(int32 Index) const
 {
 	return FunctionInstance->GetLayerVisibility(Index);
+}
+
+TSharedRef<SWidget> SMaterialLayersFunctionsInstanceTree::CreateThumbnailWidget(EMaterialParameterAssociation InAssociation, int32 InIndex, float InThumbnailSize)
+{
+	UObject* ThumbnailObject = nullptr;
+	if (InAssociation == EMaterialParameterAssociation::LayerParameter)
+	{
+		ThumbnailObject = StoredLayerPreviews[InIndex];
+	}
+	else if (InAssociation == EMaterialParameterAssociation::BlendParameter)
+	{
+		ThumbnailObject = StoredBlendPreviews[InIndex];
+	}
+	const TSharedPtr<FAssetThumbnail> AssetThumbnail = MakeShareable(new FAssetThumbnail(ThumbnailObject, InThumbnailSize, InThumbnailSize, GetTreeThumbnailPool()));
+	return AssetThumbnail->MakeThumbnailWidget();
+}
+
+void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex)
+{
+	// Need to invert index b/c layer properties is generated in reverse order
+	TArray<TSharedPtr<FStackSortedData>> AssetChildren = LayerProperties[LayerProperties.Num() - 1 - InIndex]->Children;
+	UMaterialInstanceConstant* MaterialToUpdate = nullptr;
+	TArray<FEditorParameterGroup> ParameterGroups;
+	for (TSharedPtr<FStackSortedData> AssetChild : AssetChildren)
+	{
+		for (TSharedPtr<FStackSortedData> Group : AssetChild->Children)
+		{
+			if (Group->ParameterInfo.Association == InAssociation)
+			{
+				ParameterGroups.Add(Group->Group);
+			}
+		}
+		if (InAssociation == EMaterialParameterAssociation::LayerParameter)
+		{
+			MaterialToUpdate = StoredLayerPreviews[InIndex];
+		}
+		if (InAssociation == EMaterialParameterAssociation::BlendParameter)
+		{
+			MaterialToUpdate = StoredBlendPreviews[InIndex - 1];
+		}
+
+	}
+	if (MaterialToUpdate != nullptr)
+	{
+		FMaterialPropertyHelpers::TransitionAndCopyParameters(MaterialToUpdate, ParameterGroups);
+	}
 }
 
 void SMaterialLayersFunctionsInstanceTree::ShowSubParameters(TSharedPtr<FStackSortedData> ParentParameter)
