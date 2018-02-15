@@ -683,7 +683,10 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	}
 
 	// Store the name of this material (for the tutorial widget meta)
-	Material->MaterialGraph->OriginalMaterialFullName = OriginalMaterial->GetName();
+	if (OriginalMaterial != nullptr)
+	{
+		Material->MaterialGraph->OriginalMaterialFullName = OriginalMaterial->GetName();
+	}
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
 
