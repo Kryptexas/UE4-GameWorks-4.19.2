@@ -691,7 +691,7 @@ void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld, const FMaterialRe
 void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriorityGroup, const FDynamicMeshBuilderSettings& Settings, FDynamicMeshDrawOffset const * const DrawOffset, int32 ViewIndex, FMeshElementCollector& Collector, const FHitProxyId HitProxyId )
 {
 	// Only draw non-empty meshes.
-	if(VertexBuffer->Vertices.Num() > 0)
+	if((VertexBuffer && VertexBuffer->Vertices.Num() > 0) || (DrawOffset != nullptr))
 	{
 		if (VertexBuffer || IndexBuffer)
 		{
@@ -743,14 +743,10 @@ void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRen
 
 			OneFrameResources->PrimitiveUniformBuffer->InitResource();
 
-			//if drawoffset is used do not zero out.
-			if (DrawOffset == nullptr)
-			{
-				// Clear the resource pointers so they cannot be overwritten accidentally.
-				// These resources will be released by the PDI.
-				VertexBuffer = nullptr;
-				IndexBuffer = nullptr;
-			}
+			// Clear the resource pointers so they cannot be overwritten accidentally.
+			// These resources will be released by the PDI.
+			VertexBuffer = nullptr;
+			IndexBuffer = nullptr;
 		}
 
 		const bool bHasValidIndexBuffer = OneFrameResources->IndexBuffer && OneFrameResources->IndexBuffer->Indices.Num();
