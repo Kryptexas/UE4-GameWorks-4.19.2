@@ -47,7 +47,7 @@ public:
 	 *
 	 * @param TutorialAssetName The name of the tutorial asset.
 	 */
-	virtual void LaunchTutorial(const FString& TutorialAssetName) = 0;
+	virtual void LaunchTutorial(const FString& TutorialAssetName, TSharedPtr<SWindow> InNavigationWindow = nullptr ) = 0;
 
 	//Parameter for LaunchTutorial function
 	enum ETutorialStartType

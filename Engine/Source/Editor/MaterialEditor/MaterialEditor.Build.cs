@@ -18,8 +18,8 @@ public class MaterialEditor : ModuleRules
 				"AssetRegistry", 
 				"AssetTools",
 				"Kismet",
-				"EditorWidgets"
-			}
+				"EditorWidgets",
+            }
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -36,11 +36,13 @@ public class MaterialEditor : ModuleRules
 				"ShaderCore",
 				"RenderCore",
 				"RHI",
-				"UnrealEd",
                 "MaterialUtilities",
                 "PropertyEditor",
+				"UnrealEd",
 				"GraphEditor",
                 "AdvancedPreviewScene",
+                "Projects",
+
 			}
 		);
 

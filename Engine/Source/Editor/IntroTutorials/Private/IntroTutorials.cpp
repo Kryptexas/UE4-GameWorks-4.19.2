@@ -436,9 +436,9 @@ void FIntroTutorials::DetachWidget()
 	}
 }
 
-void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName)
+void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName, TSharedPtr<SWindow> InNavigationWindow)
 {
-	LaunchTutorialByName(TutorialAssetName);
+	LaunchTutorialByName(TutorialAssetName, true, InNavigationWindow);
 }
 
 void FIntroTutorials::LaunchTutorialByName(const FString& InAssetPath, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
