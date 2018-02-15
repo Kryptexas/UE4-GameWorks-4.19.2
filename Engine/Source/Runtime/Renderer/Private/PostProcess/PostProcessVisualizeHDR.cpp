@@ -196,8 +196,8 @@ void FRCPassPostProcessVisualizeHDR::Process(FRenderingCompositePassContext& Con
 	const FViewInfo& ViewInfo = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
@@ -253,8 +253,8 @@ void FRCPassPostProcessVisualizeHDR::Process(FRenderingCompositePassContext& Con
 	Y += 160;
 
 	float MinX = 64 + 10;
-	float MaxY = View.ViewRect.Max.Y - 64;
-	float SizeX = View.ViewRect.Size().X - 64 * 2 - 20;
+	float MaxY = SrcRect.Max.Y - 64;
+	float SizeX = SrcRect.Size().X - 64 * 2 - 20;
 
 	for(uint32 i = 0; i <= 4; ++i)
 	{

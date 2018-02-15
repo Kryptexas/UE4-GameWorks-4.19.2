@@ -2019,8 +2019,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 		if(bVisualizeHDR)
 		{
-			ensureMsgf(!bUnscaledFinalOutput, TEXT("VisualizeHDR is incompatible with unscaled output."));
-
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeHDR());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Node->SetInput(ePId_Input1, Histogram);
