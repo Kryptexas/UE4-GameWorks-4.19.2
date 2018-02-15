@@ -743,10 +743,14 @@ void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRen
 
 			OneFrameResources->PrimitiveUniformBuffer->InitResource();
 
-			// Clear the resource pointers so they cannot be overwritten accidentally.
-			// These resources will be released by the PDI.
-			VertexBuffer = nullptr;
-			IndexBuffer = nullptr;
+			//if drawoffset is used do not zero out.
+			if (DrawOffset == nullptr)
+			{
+				// Clear the resource pointers so they cannot be overwritten accidentally.
+				// These resources will be released by the PDI.
+				VertexBuffer = nullptr;
+				IndexBuffer = nullptr;
+			}
 		}
 
 		const bool bHasValidIndexBuffer = OneFrameResources->IndexBuffer && OneFrameResources->IndexBuffer->Indices.Num();
