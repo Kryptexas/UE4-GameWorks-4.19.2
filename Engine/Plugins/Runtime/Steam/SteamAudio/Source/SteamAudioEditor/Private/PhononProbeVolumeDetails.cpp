@@ -237,7 +237,7 @@ namespace SteamAudio
 
 			// Update probe component with new probe locations
 			{
-				FScopeLock(&PhononProbeVolumeHandle->PhononProbeComponent->ProbeLocationsCriticalSection);
+				FScopeLock ScopeLock(&PhononProbeVolumeHandle->PhononProbeComponent->ProbeLocationsCriticalSection);
 				auto& ProbeLocations = PhononProbeVolumeHandle->GetPhononProbeComponent()->ProbeLocations;
 				ProbeLocations.Empty();
 				ProbeLocations.SetNumUninitialized(ProbeSpheres.Num());
