@@ -49,6 +49,8 @@ public class OSVR : ModuleRules
                             Path.Combine(EngineDir, @"Source\Runtime\Windows\D3D11RHI\Private"),
                             Path.Combine(EngineDir, @"Source\Runtime\Windows\D3D11RHI\Private\Windows")
     				        });
+
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
         }
     }
 }

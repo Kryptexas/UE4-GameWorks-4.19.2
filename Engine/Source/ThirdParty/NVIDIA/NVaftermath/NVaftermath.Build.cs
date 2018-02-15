@@ -23,8 +23,7 @@ public class NVAftermath : ModuleRules
             PublicDelayLoadDLLs.Add(AftermathDllName);
             RuntimeDependencies.Add(nvDLLPath);
 
-            //temporarily disable until codegen issues with struct sizes dealing with this define are resolved.
-            PublicDefinitions.Add("NV_AFTERMATH=0");
+            PublicDefinitions.Add("NV_AFTERMATH=1");
         }
 		else
         {

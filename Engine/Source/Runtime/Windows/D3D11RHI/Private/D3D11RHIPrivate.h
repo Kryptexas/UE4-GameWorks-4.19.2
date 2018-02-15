@@ -33,10 +33,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #define WITH_DX_PERF	1
 #endif
 
-#ifndef NV_AFTERMATH
-#define NV_AFTERMATH	0
-#endif
-
 #if NV_AFTERMATH
 #define GFSDK_Aftermath_WITH_DX11 1
 #include "GFSDK_Aftermath.h"
