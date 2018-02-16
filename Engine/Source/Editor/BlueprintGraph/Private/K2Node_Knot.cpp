@@ -161,16 +161,21 @@ void UK2Node_Knot::PropagatePinTypeFromDirection(bool bFromInput)
 
 		for (UEdGraphPin* LinkPin : MyDestinationPin->LinkedTo)
 		{
-			if (UK2Node* OwningNode = Cast<UK2Node>(LinkPin->GetOwningNode()))
+			// Order of reconstruction can be such that nulls haven't been cleared out of the destination node's list yet so
+			// must protect against null here
+			if (LinkPin)
 			{
-				// Notify any pins in the destination direction
-				if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(OwningNode))
+				if (UK2Node* OwningNode = Cast<UK2Node>(LinkPin->GetOwningNode()))
 				{
-					KnotNode->PropagatePinTypeFromDirection(bFromInput);
-				}
-				else
-				{
-					OwningNode->PinConnectionListChanged(LinkPin);
+					// Notify any pins in the destination direction
+					if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(OwningNode))
+					{
+						KnotNode->PropagatePinTypeFromDirection(bFromInput);
+					}
+					else
+					{
+						OwningNode->PinConnectionListChanged(LinkPin);
+					}
 				}
 			}
 		}
