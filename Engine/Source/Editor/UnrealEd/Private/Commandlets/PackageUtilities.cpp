@@ -216,7 +216,11 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 		for ( int32 PackageIndex = 0; PackageIndex < PackagePathNames.Num(); PackageIndex++ )
 		{
 			// (otherwise, attempting to run a commandlet on e.g. Engine.xxx will always return results for Engine.u instead)
-			FString PackageName = FPackageName::FilenameToLongPackageName(PackagePathNames[PackageIndex]);
+			FString PackageName;
+			if (!FPackageName::TryConvertFilenameToLongPackageName(PackagePathNames[PackageIndex], PackageName))
+			{
+				PackageName = PackagePathNames[PackageIndex];
+			}
 			UPackage* ExistingPackage = FindObject<UPackage>(NULL, *PackageName, true);
 			if ( ExistingPackage != NULL )
 			{
