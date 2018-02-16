@@ -18,7 +18,7 @@ struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SourceData, meta = (PinShownByDefault))
 	FName SubjectName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, NoClear, Category = Retarget, meta = (PinShownByDefault))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, NoClear, Category = Retarget, meta = (NeverAsPin))
 	TSubclassOf<ULiveLinkRetargetAsset> RetargetAsset;
 
 	UPROPERTY(transient)
