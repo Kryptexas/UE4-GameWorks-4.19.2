@@ -165,8 +165,13 @@ FCanvasTriangleRendererItem::FTriangleVertexFactory::FTriangleVertexFactory(ERHI
 			EVertexStreamUsage::ManualFetch
 		));
 
-		// update the data
-		SetData(VertexData);
+		FCanvasTriangleRendererItem::FTriangleVertexFactory* Self = this;
+		ENQUEUE_RENDER_COMMAND(FCanvasTriangleRendererItemInit)(
+			[Self, VertexData](FRHICommandListImmediate& RHICmdList)
+		{
+			// update the data
+			Self->SetData(VertexData);
+		});
 	}
 }
 
