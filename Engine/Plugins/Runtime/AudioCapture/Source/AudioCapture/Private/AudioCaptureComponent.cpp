@@ -110,13 +110,10 @@ void UAudioCaptureComponent::OnStop()
 void UAudioCaptureComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
 	// Don't do anything if the stream isn't open
-	if (!bIsStreamOpen)
+	if (!bIsStreamOpen || !CaptureSynth.IsStreamOpen() || !CaptureSynth.IsCapturing())
 	{
 		return;
 	}
-
-	check(CaptureSynth.IsStreamOpen());
-	check(CaptureSynth.IsCapturing());
 
 	// Allow the mic capture to buffer up some audio before starting to consume it
 	if (FramesSinceStarting >= JitterLatencyFrames)
