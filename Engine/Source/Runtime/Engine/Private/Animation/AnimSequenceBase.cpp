@@ -298,8 +298,10 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 			}
 			else
 			{
+				const float DeltaTime = Context.GetDeltaTime();
+				const float MyMoveDelta = PlayRate * DeltaTime;
 				// If leader is not valid, advance time as normal, do not jump position and pop.
-				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
+				FAnimationRuntime::AdvanceTime(Instance.bLooping, MyMoveDelta, CurrentTime, SequenceLength);
 				UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
 			}
 		}

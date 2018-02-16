@@ -672,6 +672,11 @@ public:
 		return AnimLengthRatio;
 	}
 
+	void InvalidateMarkerSync()
+	{
+		bIsMarkerPositionValid = false;
+	}
+
 	bool CanUseMarkerPosition() const
 	{
 		return bIsMarkerPositionValid;
