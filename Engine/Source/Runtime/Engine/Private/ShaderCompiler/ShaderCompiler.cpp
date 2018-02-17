@@ -86,6 +86,9 @@ const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 
+static float GRegularWorkerTimeToLive = 20.0f;
+static float GBuildWorkerTimeToLive = 600.0f;
+
 static void ModalErrorOrLog(const FString& Text)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -258,6 +261,7 @@ namespace SCWErrorCode
 
 	void HandleGeneralCrash(const TCHAR* ExceptionInfo, const TCHAR* Callstack)
 	{
+		GLog->PanicFlushThreadedLogs();
 		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed!\n%s\n\t%s"), ExceptionInfo, Callstack);
 	}
 
@@ -650,7 +654,6 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 					{
 						FShaderCommonCompileJob* CommonJob = QueuedJobs[Index];
 						FShaderCompileJob* SingleJob = CommonJob->GetSingleShaderJob();
-						GLog->Flush();
 						if (SingleJob)
 						{
 							UE_LOG(LogShaderCompilers, Error, TEXT("Job %d [Single] %s"), Index, *DumpSingleJob(SingleJob));
@@ -1419,6 +1422,8 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	verify(GConfig->GetInt( TEXT("DevOptions.Shaders"), TEXT("MaxShaderJobBatchSize"), MaxShaderJobBatchSize, GEngineIni ));
 	verify(GConfig->GetBool( TEXT("DevOptions.Shaders"), TEXT("bPromptToRetryFailedShaderCompiles"), bPromptToRetryFailedShaderCompiles, GEngineIni ));
 	verify(GConfig->GetBool( TEXT("DevOptions.Shaders"), TEXT("bLogJobCompletionTimes"), bLogJobCompletionTimes, GEngineIni ));
+	GConfig->GetFloat(TEXT("DevOptions.Shaders"), TEXT("WorkerTimeToLive"), GRegularWorkerTimeToLive, GEngineIni);
+	GConfig->GetFloat(TEXT("DevOptions.Shaders"), TEXT("BuildWorkerTimeToLive"), GBuildWorkerTimeToLive, GEngineIni);
 
 	GRetryShaderCompilation = bPromptToRetryFailedShaderCompiles;
 
@@ -1570,6 +1575,11 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	if ( GIsBuildMachine )
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
+		WorkerParameters += FString::Printf(TEXT(" -TimeToLive=%f"), GBuildWorkerTimeToLive);
+	}
+	else
+	{
+		WorkerParameters += FString::Printf(TEXT(" -TimeToLive=%f"), GRegularWorkerTimeToLive);
 	}
 	if (PLATFORM_LINUX) //-V560
 	{
@@ -2701,9 +2711,13 @@ void GlobalBeginCompileShader(
 			Input.DebugGroupName.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
 			Input.DebugGroupName.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
-			Input.DebugGroupName.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
+			Input.DebugGroupName.ReplaceInline(TEXT("EHeightFogFeature==E_"), TEXT(""));
+			Input.DebugGroupName.ReplaceInline(TEXT("Capsule"), TEXT("Caps"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Movable"), TEXT("Mov"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Culling"), TEXT("Cull"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Exponential"), TEXT("Exp"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
@@ -2737,6 +2751,7 @@ void GlobalBeginCompileShader(
 			Input.DebugGroupName.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
 			Input.DebugGroupName.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
 			Input.DebugGroupName.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
+			Input.DebugGroupName.ReplaceInline(TEXT("EAtmRenderFlag==E_"), TEXT(""));
 		}
 	}
 	

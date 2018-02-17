@@ -142,6 +142,11 @@ static void ProcessCompilationJob(const FShaderCompilerInput& Input,FShaderCompi
 class FWorkLoop
 {
 public:
+	bool bIsBuildMachine = false;
+
+	// If we have been idle for 20 seconds then exit. Can be overriden from the cmd line with -TimeToLive=N where N is in seconds (and a float value)
+	float TimeToLive = 20.0f;
+
 	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, TMap<FString, uint32>& InFormatVersionMap)
 	:	ParentProcessId(FCString::Atoi(ParentProcessIdText))
 	,	WorkingDirectory(InWorkingDirectory)
@@ -151,6 +156,22 @@ public:
 	,	OutputFilePath(FString(InWorkingDirectory) + InOutputFilename)
 	,	FormatVersionMap(InFormatVersionMap)
 	{
+		bIsBuildMachine = FParse::Param(FCommandLine::Get(), TEXT("buildmachine"));
+
+		TArray<FString> Tokens, Switches;
+		FCommandLine::Parse(FCommandLine::Get(), Tokens, Switches);
+		for (FString& Switch : Switches)
+		{
+			if (Switch.StartsWith(TEXT("TimeToLive=")))
+			{
+				float TokenTime = FCString::Atof(Switch.GetCharArray().GetData() + 11);
+				if (TokenTime > 0)
+				{
+					TimeToLive = TokenTime;
+					break;
+				}
+			}
+		}
 	}
 
 	void Loop()
@@ -569,10 +590,9 @@ private:
 		}
 
 		const double CurrentTime = FPlatformTime::Seconds();
-		// If we have been idle for 20 seconds then exit
-		if (CurrentTime - LastCompileTime > 20.0)
+		if (CurrentTime - LastCompileTime > TimeToLive)
 		{
-			UE_LOG(LogShaders, Log, TEXT("No jobs found for 20 seconds, exiting"));
+			UE_LOG(LogShaders, Log, TEXT("No jobs found for %f seconds, exiting"), (float)(CurrentTime - LastCompileTime));
 			FPlatformMisc::RequestExit(false);
 		}
 #else
@@ -611,9 +631,9 @@ private:
 
 			const double CurrentTime = FPlatformTime::Seconds();
 			// If we have been idle for 20 seconds then exit
-			if (CurrentTime - LastCompileTime > 20.0)
+			if (CurrentTime - LastCompileTime > TimeToLive)
 			{
-				UE_LOG(LogShaders, Log, TEXT("No jobs found for 20 seconds, exiting"));
+				UE_LOG(LogShaders, Log, TEXT("No jobs found for %f seconds, exiting"), (float)(CurrentTime - LastCompileTime));
 				FPlatformMisc::RequestExit(false);
 			}
 		}
