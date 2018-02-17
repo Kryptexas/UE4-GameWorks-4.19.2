@@ -156,7 +156,16 @@ void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(const FGuid& B
 	}
 
 	UMovieSceneSequence* Sequence = Sequencer->GetEvaluationTemplate().GetSequence(TemplateID);
+	if (!Sequence)
+	{
+		return;
+	}
+
 	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
+	if (!MovieScene)
+	{
+		return;
+	}
 
 	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(BindingId);
 
