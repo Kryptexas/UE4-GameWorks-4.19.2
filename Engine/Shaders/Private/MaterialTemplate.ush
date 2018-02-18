@@ -512,10 +512,6 @@ MaterialFloat2 GetDefaultSceneTextureUV(FMaterialPixelParameters Parameters, con
 
 		#if POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
 		{
-			if (IsPostProcessInputSceneTexture(SceneTextureId))
-			{
-				return GetSceneTextureUV(Parameters);
-			}
 			return ViewportUVToSceneTextureUV(GetViewportUV(Parameters), SceneTextureId);
 		}
 		#endif
