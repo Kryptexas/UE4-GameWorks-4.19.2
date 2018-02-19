@@ -1390,7 +1390,8 @@ public:
 	{
 		if( !ReferencingObject->GetClass()->IsChildOf(UClass::StaticClass()) )
 		{
-			ReferencingObject->SerializeScriptProperties(GetVerySlowReferenceCollectorArchive());
+			FVerySlowReferenceCollectorArchiveScope CollectorScope(GetVerySlowReferenceCollectorArchive(), ReferencingObject);
+			ReferencingObject->SerializeScriptProperties(CollectorScope.GetArchive());
 		}
 		// CallAddReferencedObjects doesn't modify the object with FSubobjectReferenceFinder passed in as parameter but may modify when called by GC
 		UObject* MutableReferencingObject = const_cast<UObject*>(ReferencingObject);

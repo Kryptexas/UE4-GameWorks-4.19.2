@@ -42,16 +42,15 @@ struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 		}
 
 		{
-			FArchive& CollectorArchive = GetVerySlowReferenceCollectorArchive();
-			FSerializedPropertyScope PropertyScope(CollectorArchive, nullptr);
-			const bool bOldFilterEditorOnly = CollectorArchive.IsFilterEditorOnly();
-			CollectorArchive.SetFilterEditorOnly(true);
+			FVerySlowReferenceCollectorArchiveScope CollectorScope(GetVerySlowReferenceCollectorArchive(), Object, nullptr);
+			const bool bOldFilterEditorOnly = CollectorScope.GetArchive().IsFilterEditorOnly();
+			CollectorScope.GetArchive().SetFilterEditorOnly(true);
 			if (UClass* AsBPGC = Cast<UBlueprintGeneratedClass>(Object))
 			{
 				Object = Dependencies.FindOriginalClass(AsBPGC);
 			}
-			Object->Serialize(CollectorArchive);
-			CollectorArchive.SetFilterEditorOnly(bOldFilterEditorOnly);
+			Object->Serialize(CollectorScope.GetArchive());
+			CollectorScope.GetArchive().SetFilterEditorOnly(bOldFilterEditorOnly);
 		}
 	}
 

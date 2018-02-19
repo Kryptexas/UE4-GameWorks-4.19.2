@@ -660,9 +660,8 @@ void FReferenceFinder::FindReferences(UObject* Object, UObject* InReferencingObj
 
 	if (!Object->GetClass()->IsChildOf(UClass::StaticClass()))
 	{
-		FArchive& CollectorArchive = GetVerySlowReferenceCollectorArchive();
-		FSerializedPropertyScope PropertyScope(CollectorArchive, SerializedProperty);
-		Object->SerializeScriptProperties(CollectorArchive);
+		FVerySlowReferenceCollectorArchiveScope CollectorScope(GetVerySlowReferenceCollectorArchive(), InReferencingObject, SerializedProperty);
+		Object->SerializeScriptProperties(CollectorScope.GetArchive());
 	}
 	Object->CallAddReferencedObjects(*this);
 }
@@ -1579,7 +1578,8 @@ static void AddReferencedObjectsViaSerialization( UObject* Object, FReferenceCol
 	check( Object != NULL );
 
 	// Collect object references by serializing the object
-	Object->Serialize(Collector.GetVerySlowReferenceCollectorArchive());
+	FVerySlowReferenceCollectorArchiveScope CollectorScope(Collector.GetVerySlowReferenceCollectorArchive(), Object);
+	Object->Serialize(CollectorScope.GetArchive());
 }
 #endif
 

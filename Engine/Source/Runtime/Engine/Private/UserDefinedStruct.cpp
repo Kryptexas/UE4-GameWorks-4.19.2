@@ -427,7 +427,8 @@ void UUserDefinedStruct::AddReferencedObjects(UObject* InThis, FReferenceCollect
 	uint8* StructData = This->DefaultStructInstance.GetStructMemory();
 	if (StructData)
 	{
-		This->SerializeBin(Collector.GetVerySlowReferenceCollectorArchive(), StructData);
+		FVerySlowReferenceCollectorArchiveScope CollectorScope(Collector.GetVerySlowReferenceCollectorArchive(), This);
+		This->SerializeBin(CollectorScope.GetArchive(), StructData);
 	}
 
 	Super::AddReferencedObjects(This, Collector);

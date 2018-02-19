@@ -3281,7 +3281,7 @@ void ConstructorHelpers::StripObjectClass( FString& PathName, bool bAssertOnBadP
 /*----------------------------------------------------------------------------
 FSimpleObjectReferenceCollectorArchive.
 ----------------------------------------------------------------------------*/
-class FSimpleObjectReferenceCollectorArchive : public FArchiveUObject
+class FSimpleObjectReferenceCollectorArchive : public FReferenceCollectorArchive
 {
 public:
 
@@ -3290,13 +3290,12 @@ public:
 	*
 	* @param	InObjectArray			Array to add object references to
 	*/
-	FSimpleObjectReferenceCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
-		: Collector(InCollector)
-		, SerializingObject(InSerializingObject)
+	FSimpleObjectReferenceCollectorArchive(UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: FReferenceCollectorArchive(InSerializingObject, InCollector)
 	{
 		ArIsObjectReferenceCollector = true;
-		ArIsPersistent = Collector.IsIgnoringTransient();
-		ArIgnoreArchetypeRef = Collector.IsIgnoringArchetypeRef();
+		ArIsPersistent = InCollector.IsIgnoringTransient();
+		ArIgnoreArchetypeRef = InCollector.IsIgnoringArchetypeRef();
 	}
 
 protected:
@@ -3307,30 +3306,28 @@ protected:
 	* @param Object	reference to Object reference
 	* @return reference to instance of this class
 	*/
-	FArchive& operator<<(UObject*& Object)
+	virtual FArchive& operator<<(UObject*& Object) override
 	{
 		if (Object)
 		{
-			UProperty* OldCollectorSerializedProperty = Collector.GetSerializedProperty();
-			Collector.SetSerializedProperty(GetSerializedProperty());
-			Collector.AddReferencedObject(Object, SerializingObject, GetSerializedProperty());
-			Collector.SetSerializedProperty(OldCollectorSerializedProperty);
+			FReferenceCollector& CurrentCollector = GetCollector();
+			UProperty* OldCollectorSerializedProperty = CurrentCollector.GetSerializedProperty();
+			CurrentCollector.SetSerializedProperty(GetSerializedProperty());
+			CurrentCollector.AddReferencedObject(Object, GetSerializingObject(), GetSerializedProperty());
+			CurrentCollector.SetSerializedProperty(OldCollectorSerializedProperty);
 		}
 		return *this;
 	}
 
-	/** Stored pointer to reference collector. */
-	FReferenceCollector& Collector;
-	/** Object which is performing the serialization. */
-	const UObject* SerializingObject;
+
 };
 
 class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
 {
 public:
-	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+	FPersistentFrameCollectorArchive(UObject* InSerializingObject, FReferenceCollector& InCollector)
 		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
-	{}
+	{	}
 
 protected:
 	virtual FArchive& operator<<(UObject*& Object) override
@@ -3339,7 +3336,7 @@ protected:
 		if (!ensureMsgf((Object == nullptr) || Object->IsValidLowLevelFast()
 			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
 			, (int64)(PTRINT)Object
-			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
+			, GetSerializingObject() ? *GetSerializingObject()->GetFullName() : TEXT("NULL")
 			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")))
 		{
 			// clear the property value (it's garbage)... the ubergraph-frame
@@ -3364,7 +3361,7 @@ protected:
 			}
 
 			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
-			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
+			bWeakRef = bWeakRef && GetCollector().MarkWeakObjectReferenceForClearing(&Object);
 
 			if (!bWeakRef)
 			{
