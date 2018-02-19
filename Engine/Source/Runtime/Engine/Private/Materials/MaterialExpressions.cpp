@@ -14238,8 +14238,6 @@ UMaterialExpressionTangentOutput::UMaterialExpressionTangentOutput(const FObject
 		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Custom(LOCTEXT( "Custom", "Custom" ))
 		{
-			// Register with attribute map to allow use with material attribute nodes and blending	
-			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0x8EAB2CB2, 0x73634A24, 0x8CD14F47, 0x3F9C8E55), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,0,0));
 		}
 	};
 	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
@@ -14287,8 +14285,6 @@ UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNorm
 		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Utility(LOCTEXT("Utility", "Utility"))
 		{
-			// Register with attribute map to allow use with material attribute nodes and blending
-			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xAA3D5C04, 0x16294716, 0xBBDEC869, 0x6A27DD72), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
 		}
 	};
 	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
@@ -14344,8 +14340,6 @@ UMaterialExpressionBentNormalCustomOutput::UMaterialExpressionBentNormalCustomOu
 		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Utility(LOCTEXT("Utility", "Utility"))
 		{
-			// Register with attribute map to allow use with material attribute nodes and blending
-			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xfbd7b46e, 0xb1234824, 0xbde76b23, 0x609f984c), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
 		}
 	};
 	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
