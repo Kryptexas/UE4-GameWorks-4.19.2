@@ -662,7 +662,7 @@ public:
 	friend class FLandscapeVertexFactoryMobilePixelShaderParameters;
 
 	// FLandscapeComponentSceneProxy interface.
-	FORCEINLINE uint64 GetStaticBatchElementVisibility(const FSceneView& InView, const FMeshBatch* InBatch, const void* InViewCustomData) const;
+	uint64 GetStaticBatchElementVisibility(const FSceneView& InView, const FMeshBatch* InBatch, const void* InViewCustomData) const;
 #if WITH_EDITOR
 	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
 #endif
