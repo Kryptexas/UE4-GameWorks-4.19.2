@@ -97,16 +97,34 @@ bool FSoftObjectPath::Serialize(FArchive& Ar)
 	return true;
 }
 
-void FSoftObjectPath::SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize)
+void FSoftObjectPath::SerializePath(FArchive& Ar)
 {
+	bool bSerializeInternals = true;
 #if WITH_EDITOR
 	if (Ar.IsSaving())
 	{
 		PreSavePath();
 	}
+
+	// Only read serialization options in editor as it is a bit slow
+	FName PackageName, PropertyName;
+	ESoftObjectPathCollectType CollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType SerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
+
+	FSoftObjectPathThreadContext& ThreadContext = FSoftObjectPathThreadContext::Get();
+	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType, SerializeType);
+
+	if (SerializeType == ESoftObjectPathSerializeType::NeverSerialize)
+	{
+		bSerializeInternals = false;
+	}
+	else if (SerializeType == ESoftObjectPathSerializeType::SkipSerializeIfArchiveHasSize)
+	{
+		bSerializeInternals = Ar.IsObjectReferenceCollector() || Ar.Tell() < 0;
+	}
 #endif // WITH_EDITOR
 
-	if (!bSkipSerializeIfArchiveHasSize || Ar.IsObjectReferenceCollector() || Ar.Tell() < 0)
+	if (bSerializeInternals)
 	{
 		if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
 		{
@@ -404,10 +422,11 @@ FSoftClassPath FSoftClassPath::GetOrCreateIDForClass(const UClass *InClass)
 	return FSoftClassPath(InClass);
 }
 
-bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType) const
+bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType, ESoftObjectPathSerializeType& OutSerializeType) const
 {
 	FName CurrentPackageName, CurrentPropertyName;
 	ESoftObjectPathCollectType CurrentCollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType CurrentSerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
 	bool bFoundAnything = false;
 	if (OptionStack.Num() > 0)
 	{
@@ -430,11 +449,15 @@ bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName
 			{
 				CurrentCollectType = Options.CollectType;
 			}
+			if (Options.SerializeType < CurrentSerializeType)
+			{
+				CurrentSerializeType = Options.SerializeType;
+			}
 		}
 
 		bFoundAnything = true;
 	}
-
+	
 	// Check UObject thread context as a backup
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 	if (ThreadContext.SerializedObject)
@@ -470,6 +493,7 @@ bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName
 		OutPackageName = CurrentPackageName;
 		OutPropertyName = CurrentPropertyName;
 		OutCollectType = CurrentCollectType;
+		OutSerializeType = CurrentSerializeType;
 		return true;
 	}
 

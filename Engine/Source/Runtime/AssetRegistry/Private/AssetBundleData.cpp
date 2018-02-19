@@ -9,7 +9,7 @@ bool FAssetBundleData::SetFromAssetData(const FAssetData& AssetData)
 	FString TagValue;
 
 	// Register that we're reading string assets for a specific package
-	FSoftObjectPathSerializationScope SerializationScope(AssetData.PackageName, FAssetBundleData::StaticStruct()->GetFName(), ESoftObjectPathCollectType::AlwaysCollect);
+	FSoftObjectPathSerializationScope SerializationScope(AssetData.PackageName, FAssetBundleData::StaticStruct()->GetFName(), ESoftObjectPathCollectType::AlwaysCollect, ESoftObjectPathSerializeType::AlwaysSerialize);
 
 	if (AssetData.GetTagValue(FAssetBundleData::StaticStruct()->GetFName(), TagValue))
 	{

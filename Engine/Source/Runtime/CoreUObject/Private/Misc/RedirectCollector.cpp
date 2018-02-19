@@ -30,8 +30,9 @@ void FRedirectCollector::OnSoftObjectPathLoaded(const FSoftObjectPath& InPath)
 
 	FName PackageName, PropertyName;
 	ESoftObjectPathCollectType CollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType SerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
 
-	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType);
+	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType, SerializeType);
 
 	if (CollectType == ESoftObjectPathCollectType::NeverCollect)
 	{

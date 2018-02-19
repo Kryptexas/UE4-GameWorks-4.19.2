@@ -596,7 +596,7 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 		}
 		
 		// Mark these as editor only if our type is editor only
-		FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, TypeData.Info.bIsEditorOnly ? ESoftObjectPathCollectType::EditorOnlyCollect : ESoftObjectPathCollectType::AlwaysCollect);
+		FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, TypeData.Info.bIsEditorOnly ? ESoftObjectPathCollectType::EditorOnlyCollect : ESoftObjectPathCollectType::AlwaysCollect, ESoftObjectPathSerializeType::AlwaysSerialize);
 
 		FAssetBundleData BundleData;
 		if (BundleData.SetFromAssetData(NewAssetData))
@@ -2806,7 +2806,7 @@ const TMap<int32, FAssetManagerChunkInfo>& UAssetManager::GetChunkManagementMap(
 void UAssetManager::ApplyPrimaryAssetLabels()
 {
 	// Load all of them off disk. Turn off string asset reference tracking to avoid them getting cooked
-	FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, ESoftObjectPathCollectType::NeverCollect);
+	FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, ESoftObjectPathCollectType::NeverCollect, ESoftObjectPathSerializeType::AlwaysSerialize);
 
 	TSharedPtr<FStreamableHandle> Handle = LoadPrimaryAssetsWithType(PrimaryAssetLabelType);
 
