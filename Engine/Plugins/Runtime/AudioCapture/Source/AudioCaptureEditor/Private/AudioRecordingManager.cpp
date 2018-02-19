@@ -103,6 +103,13 @@ void FAudioRecordingManager::StartRecording(const FRecordingSettings& InSettings
 	RecordingSampleRate = Info.preferredSampleRate;
 	NumInputChannels = Info.inputChannels;	
 
+	// Only support mono and stereo mic inputs for now...
+	if (NumInputChannels != 1 && NumInputChannels != 2)
+	{
+		UE_LOG(LogMicManager, Warning, TEXT("Audio recording only supports mono and stereo mic input."));
+		return;
+	}
+
 	// Reserve enough space in our current recording buffer for 10 seconds of audio to prevent slowing down due to allocations
 	if (Settings.RecordingDuration > 0.0f)
 	{
