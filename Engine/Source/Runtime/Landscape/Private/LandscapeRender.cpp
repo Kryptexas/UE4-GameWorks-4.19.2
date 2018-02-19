@@ -622,7 +622,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 			AvailableMaterials.Append(InComponent->MaterialInstances);
 		}
 
-		if (AvailableMaterials.IsValidIndex(0) && AvailableMaterials[0]->GetMaterial() != nullptr)
+		if (AvailableMaterials.IsValidIndex(0) && AvailableMaterials[0] != nullptr && AvailableMaterials[0]->GetMaterial() != nullptr)
 		{
 			TessellationEnabledOnDefaultMaterial = AvailableMaterials[0]->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation;
 		}
@@ -1194,6 +1194,11 @@ float FLandscapeComponentSceneProxy::GetComponentScreenSize(const FSceneView* Vi
 
 void FLandscapeComponentSceneProxy::BuildDynamicMeshElement(const FViewCustomDataLOD* InPrimitiveCustomData, bool InToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray) const
 {
+	if (InMaterialInterface == nullptr)
+	{
+		return;
+	}
+
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
 	bool bCurrentRequiresAdjacencyInformation = !InToolMesh && MaterialRenderingRequiresAdjacencyInformation_RenderingThread(InMaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel());
 
@@ -1307,6 +1312,11 @@ void FLandscapeComponentSceneProxy::BuildDynamicMeshElement(const FViewCustomDat
 
 bool FLandscapeComponentSceneProxy::GetMeshElement(bool UseSeperateBatchForShadow, bool ShadowOnly, bool HasTessellation, uint8 BatchLOD, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams>& OutStaticBatchParamArray) const
 {
+	if (InMaterialInterface == nullptr)
+	{
+		return false;
+	}
+
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
 	bool bCurrentRequiresAdjacencyInformation = MaterialRenderingRequiresAdjacencyInformation_RenderingThread(InMaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel());
 
