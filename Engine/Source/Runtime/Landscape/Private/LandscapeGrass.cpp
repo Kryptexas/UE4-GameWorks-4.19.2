@@ -1960,30 +1960,33 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				TSet<ULandscapeComponent*> FlushComponents;
 				for (auto Component : LandscapeComponents)
 				{
-					// check textures currently needing force streaming
-					if (Component->HeightmapTexture->bForceMiplevelsToBeResident)
+					if (Component != nullptr)
 					{
-						CurrentForcedStreamedTextures.Add(Component->HeightmapTexture);
-					}
-					for (auto WeightmapTexture : Component->WeightmapTextures)
-					{
-						if (WeightmapTexture->bForceMiplevelsToBeResident)
+						// check textures currently needing force streaming
+						if (Component->HeightmapTexture->bForceMiplevelsToBeResident)
 						{
-							CurrentForcedStreamedTextures.Add(WeightmapTexture);
+							CurrentForcedStreamedTextures.Add(Component->HeightmapTexture);
 						}
-					}
-
-					if (Component->IsGrassMapOutdated())
-					{
-						FlushComponents.Add(Component);
-					}
-
-					if (GrassTypes.Num() > 0 || bBakeMaterialPositionOffsetIntoCollision)
-					{
-						if (Component->IsGrassMapOutdated() ||
-							!Component->GrassData->HasData())
+						for (auto WeightmapTexture : Component->WeightmapTextures)
 						{
-							ComponentsNeedingGrassMapRender.Add(Component);
+							if (WeightmapTexture->bForceMiplevelsToBeResident)
+							{
+								CurrentForcedStreamedTextures.Add(WeightmapTexture);
+							}
+						}
+
+						if (Component->IsGrassMapOutdated())
+						{
+							FlushComponents.Add(Component);
+						}
+
+						if (GrassTypes.Num() > 0 || bBakeMaterialPositionOffsetIntoCollision)
+						{
+							if (Component->IsGrassMapOutdated() ||
+								!Component->GrassData->HasData())
+							{
+								ComponentsNeedingGrassMapRender.Add(Component);
+							}
 						}
 					}
 				}
@@ -1999,13 +2002,14 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 			{
 
 				ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
-				FScopeCycleCounter Context(Component->GetStatID());
 
 				// skip if we have no data and no way to generate it
-				if (World->IsGameWorld() && !Component->GrassData->HasData())
+				if (Component==nullptr || (World->IsGameWorld() && !Component->GrassData->HasData()))
 				{
 					continue;
 				}
+
+				FScopeCycleCounter Context(Component->GetStatID());
 
 				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->GetComponentTransform());
 				float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
