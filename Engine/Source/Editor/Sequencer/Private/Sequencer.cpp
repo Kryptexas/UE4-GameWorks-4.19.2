@@ -279,6 +279,13 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::ActiveMovieSceneChanged );
 	UpdateTimeBoundsToFocusedMovieScene();
 
+	// Make sure the current time is within the bounds
+	if (!TargetViewRange.Contains(GetLocalTime()))
+	{
+		SetLocalTimeDirectly(LastViewRange.GetLowerBoundValue());
+		OnGlobalTimeChangedDelegate.Broadcast();
+	}
+
 	// NOTE: Could fill in asset editor commands here!
 
 	BindCommands();
@@ -3244,13 +3251,6 @@ void FSequencer::UpdateTimeBoundsToFocusedMovieScene()
 
 	// Set the view range to the new range
 	SetViewRange(NewRange, EViewRangeInterpolation::Immediate);
-
-	// Make sure the current time is within the bounds
-	if (!TargetViewRange.Contains(GetLocalTime()))
-	{
-		SetLocalTimeDirectly(LastViewRange.GetLowerBoundValue());
-		OnGlobalTimeChangedDelegate.Broadcast();
-	}
 }
 
 
