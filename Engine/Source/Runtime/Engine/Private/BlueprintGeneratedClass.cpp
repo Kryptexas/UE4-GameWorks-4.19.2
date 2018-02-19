@@ -1237,17 +1237,10 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 			const bool bUberGraphFunctionIsReady = UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
 			if (bUberGraphFunctionIsReady)
 			{
-				const int32 UberGraphFunctionSize = UberGraphFunction->GetStructureSize();
+				INC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunction->GetStructureSize());
+				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
 
-				INC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunctionSize);
-				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunctionSize);
-
-				if (GIsEditor && Obj->HasAnyFlags(RF_ClassDefaultObject))
-				{
-					UE_LOG(LogUObjectGlobals, Log, TEXT("%s: Allocated persistent frame for %s (0x%016llx, %d bytes)"), *Obj->GetName(), *GetName(), (int64)(PTRINT)FrameMemory, UberGraphFunctionSize);
-				}
-
-				FMemory::Memzero(FrameMemory, UberGraphFunctionSize);
+				FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
 				for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
 				{
 					Property->InitializeValue_InContainer(FrameMemory);
@@ -1281,11 +1274,6 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 		PointerToUberGraphFrame->RawPointer = NULL;
 		if (FrameMemory)
 		{
-			if (GIsEditor && Obj->HasAnyFlags(RF_ClassDefaultObject))
-			{
-				UE_LOG(LogUObjectGlobals, Log, TEXT("%s: Destroying persistent frame for %s (0x%016llx)"), *Obj->GetName(), *GetName(), (int64)(PTRINT)FrameMemory);
-			}
-
 			for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
 			{
 				Property->DestroyValue_InContainer(FrameMemory);
@@ -1456,11 +1444,6 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{
-					if (GIsEditor /*&& InThis->HasAnyFlags(RF_ClassDefaultObject)*/)
-					{
-						UE_LOG(LogUObjectGlobals, Log, TEXT("%s: Serializing persistent frame for %s (0x%016llx)"), *InThis->GetName(), *BPGC->GetName(), (int64)(PTRINT)PointerToUberGraphFrame->RawPointer);
-					}
-
 					checkSlow(BPGC->UberGraphFunction);
 					FVerySlowReferenceCollectorArchiveScope CollectorScope(Collector.GetInternalPersisnentFrameReferenceCollectorArchive(), BPGC->UberGraphFunction);
 					BPGC->UberGraphFunction->SerializeBin(CollectorScope.GetArchive(), PointerToUberGraphFrame->RawPointer);
