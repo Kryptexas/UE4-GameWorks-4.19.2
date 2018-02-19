@@ -151,4 +151,8 @@ void FAnimSequencerInstanceProxy::EnsureAnimTrack(UAnimSequenceBase* InAnimSeque
 	{
 		InitAnimTrack(InAnimSequence, SequenceId);
 	}
+	else if (PlayerState->PlayerNode.Sequence != InAnimSequence)
+	{
+		PlayerState->PlayerNode.OverrideAsset(InAnimSequence);
+	}
 }
