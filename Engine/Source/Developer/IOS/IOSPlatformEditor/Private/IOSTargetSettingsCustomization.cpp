@@ -63,10 +63,15 @@ FIOSTargetSettingsCustomization::FIOSTargetSettingsCustomization()
 	, EngineGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::EngineDir()))
 	, GameGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::ProjectDir()))
 {
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20.png"), LOCTEXT("NotificationIcon_iPhone", "iPhone Notification Icon"), FText::GetEmpty(), 20, 20, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20@2x.png"), LOCTEXT("NotificationIcon_iPhoneRetina", "iPhone Retina Notification Icon"), FText::GetEmpty(), 40, 40, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20@3x.png"), LOCTEXT("NotificationIcon_iPhoneRetina_HD", "iPhone Retina HD Notification Icon"), FText::GetEmpty(), 60, 60, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29.png"), LOCTEXT("SettingsIcon_iPhone", "iPhone Settings Icon"), FText::GetEmpty(), 29, 29, FPlatformIconInfo::Optional);// also iOS6 spotlight search
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29@2x.png"), LOCTEXT("SettingsIcon_iPhoneRetina", "iPhone Retina Settings Icon"), FText::GetEmpty(), 58, 58, FPlatformIconInfo::Optional); // also iOS6 spotlight search
+	new (IconNames) FPlatformIconInfo(TEXT("Icon29@3x.png"), LOCTEXT("SettingsIcon_iPhoneRetina_HD", "iPhone Retina HD Settings Icon"), FText::GetEmpty(), 87, 87, FPlatformIconInfo::Optional); // also iOS6 spotlight search
 	new (IconNames) FPlatformIconInfo(TEXT("Icon40.png"), LOCTEXT("SpotlightIcon_iOS7", "iOS7 Spotlight Icon"), FText::GetEmpty(), 40, 40, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon40@2x.png"), LOCTEXT("SpotlightIcon_Retina_iOS7", "Retina iOS7 Spotlight Icon"), FText::GetEmpty(), 80, 80, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon40@3x.png"), LOCTEXT("SpotlightIcon_Retina_HD_iOS7", "Retina HD iOS7 Spotlight Icon"), FText::GetEmpty(), 120, 120, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon50.png"), LOCTEXT("SpotlightIcon_iPad_iOS6", "iPad iOS6 Spotlight Icon"), FText::GetEmpty(), 50, 50, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon50@2x.png"), LOCTEXT("SpotlightIcon_iPadRetina_iOS6", "iPad Retina iOS6 Spotlight Icon"), FText::GetEmpty(), 100, 100, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon57.png"), LOCTEXT("AppIcon_iPhone_iOS6", "iPhone iOS6 App Icon"), FText::GetEmpty(), 57, 57, FPlatformIconInfo::Required);
