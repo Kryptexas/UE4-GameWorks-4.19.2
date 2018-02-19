@@ -3081,6 +3081,12 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 		(*It)->SetTransform(NewTransform);
 	}
 
+	// Planar reflections
+	for (auto It = PlanarReflections.CreateIterator(); It; ++It)
+	{
+		(*It)->ApplyWorldOffset(InOffset);
+	}
+	
 	// Exponential Fog
 	for (FExponentialHeightFogSceneInfo& FogInfo : ExponentialFogs)
 	{

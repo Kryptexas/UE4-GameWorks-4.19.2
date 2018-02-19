@@ -114,6 +114,14 @@ public:
 		InverseTransposeMirrorMatrix4x4.GetScaledAxes((FVector&)InverseTransposeMirrorMatrix[0], (FVector&)InverseTransposeMirrorMatrix[1], (FVector&)InverseTransposeMirrorMatrix[2]);
 	}
 
+	void ApplyWorldOffset(const FVector& InOffset)
+	{
+		WorldBounds = WorldBounds.ShiftBy(InOffset);
+		PlanarReflectionOrigin+= InOffset;
+		ReflectionPlane = FPlane(PlanarReflectionOrigin, ReflectionPlane /*Normal*/);
+	}
+	
+
 	FBox WorldBounds;
 	FPlane ReflectionPlane;
 	FVector PlanarReflectionOrigin;
