@@ -56,28 +56,31 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewS
 		UActorFactory* FactoryToUse = ActorFactory ? ActorFactory : FActorFactoryAssetProxy::GetFactoryForAssetObject(&SourceObject);
 		if (!FactoryToUse)
 		{
-			ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from  asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
+			ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
 		}
 
-		if (!FactoryToUse->CanCreateActorFrom(FAssetData(&SourceObject), ErrorText))
+		if (FactoryToUse)
 		{
-			if (!ErrorText.IsEmpty())
+			if (!FactoryToUse->CanCreateActorFrom(FAssetData(&SourceObject), ErrorText))
 			{
-				ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset_Ex", "Unable to create spawnable from  asset '{0}'. {1}."), FText::FromString(SourceObject.GetName()), ErrorText);
+				if (!ErrorText.IsEmpty())
+				{
+					ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset_Ex", "Unable to create spawnable from  asset '{0}'. {1}."), FText::FromString(SourceObject.GetName()), ErrorText);
+				}
+				else
+				{
+					ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset", "Unable to create spawnable from  asset '{0}'."), FText::FromString(SourceObject.GetName()));
+				}
 			}
-			else
-			{
-				ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset", "Unable to create spawnable from  asset '{0}'."), FText::FromString(SourceObject.GetName()));
-			}
+
+			AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
+			Instance->bIsEditorPreviewActor = false;
+			NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transient);
+
+			const bool bNetForce = false;
+			const bool bShouldModifyLevel = false;
+			GWorld->DestroyActor(Instance, bNetForce, bShouldModifyLevel);
 		}
-
-		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
-		Instance->bIsEditorPreviewActor = false;
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transient);
-
-		const bool bNetForce = false;
-		const bool bShouldModifyLevel = false;
-		GWorld->DestroyActor(Instance, bNetForce, bShouldModifyLevel);
 	}
 
 	if (!NewSpawnable.ObjectTemplate || !NewSpawnable.ObjectTemplate->IsA<AActor>())
