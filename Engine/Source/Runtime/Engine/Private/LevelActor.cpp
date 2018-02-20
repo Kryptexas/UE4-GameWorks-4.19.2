@@ -714,30 +714,33 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRol
 		Options += InURL.Op[i];
 	}
 
-	AGameModeBase* GameMode = GetAuthGameMode();
-
-	// Give the GameMode a chance to accept the login
-	APlayerController* const NewPlayerController = GameMode->Login(NewPlayer, RemoteRole, *InURL.Portal, Options, UniqueId, Error);
-	if (NewPlayerController == NULL)
+	if (AGameModeBase* const GameMode = GetAuthGameMode())
 	{
-		UE_LOG(LogSpawn, Warning, TEXT("Login failed: %s"), *Error);
-		return NULL;
+		// Give the GameMode a chance to accept the login
+		APlayerController* const NewPlayerController = GameMode->Login(NewPlayer, RemoteRole, *InURL.Portal, Options, UniqueId, Error);
+		if (NewPlayerController == NULL)
+		{
+			UE_LOG(LogSpawn, Warning, TEXT("Login failed: %s"), *Error);
+			return NULL;
+		}
+
+		UE_LOG(LogSpawn, Log, TEXT("%s got player %s [%s]"), *NewPlayerController->GetName(), *NewPlayer->GetName(), UniqueId.IsValid() ? *UniqueId->ToString() : TEXT("Invalid"));
+
+		// Possess the newly-spawned player.
+		NewPlayerController->NetPlayerIndex = InNetPlayerIndex;
+		NewPlayerController->Role = ROLE_Authority;
+		NewPlayerController->SetReplicates(RemoteRole != ROLE_None);
+		if (RemoteRole == ROLE_AutonomousProxy)
+		{
+			NewPlayerController->SetAutonomousProxy(true);
+		}
+		NewPlayerController->SetPlayer(NewPlayer);
+		GameMode->PostLogin(NewPlayerController);
+		return NewPlayerController;
 	}
 
-	UE_LOG(LogSpawn, Log, TEXT("%s got player %s [%s]"), *NewPlayerController->GetName(), *NewPlayer->GetName(), UniqueId.IsValid() ? *UniqueId->ToString() : TEXT("Invalid"));
-
-	// Possess the newly-spawned player.
-	NewPlayerController->NetPlayerIndex = InNetPlayerIndex;
-	NewPlayerController->Role = ROLE_Authority;
-	NewPlayerController->SetReplicates(RemoteRole != ROLE_None);
-	if (RemoteRole == ROLE_AutonomousProxy)
-	{
-		NewPlayerController->SetAutonomousProxy(true);
-	}
-	NewPlayerController->SetPlayer(NewPlayer);
-	GameMode->PostLogin(NewPlayerController);
-
-	return NewPlayerController;
+	UE_LOG(LogSpawn, Warning, TEXT("Login failed: No game mode set."));
+	return nullptr;
 }
 
 /*-----------------------------------------------------------------------------
