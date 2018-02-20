@@ -41,9 +41,12 @@ struct FCameraCutPreRollExecutionToken : IMovieSceneExecutionToken
 			FMovieSceneSequenceID SequenceID = Operand.SequenceID;
 			if (CameraBindingID.GetSequenceID().IsValid())
 			{
-				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
-				FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
-				SequenceID = RootBindingID.GetSequenceID();
+				if (const FMovieSceneSubSequenceData* SubData = Player.GetEvaluationTemplate().GetHierarchy().FindSubData(SequenceID))
+				{
+					// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+					FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+					SequenceID = RootBindingID.GetSequenceID();
+				}
 			}
 
 			// If the transform is set, otherwise use the bound actor's transform
@@ -111,9 +114,12 @@ struct FCameraCutExecutionToken : IMovieSceneExecutionToken
 		FMovieSceneSequenceID SequenceID = Operand.SequenceID;
 		if (CameraBindingID.GetSequenceID().IsValid())
 		{
-			// Ensure that this ID is resolvable from the root, based on the current local sequence ID
-			FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
-			SequenceID = RootBindingID.GetSequenceID();
+			if (const FMovieSceneSubSequenceData* SubData = Player.GetEvaluationTemplate().GetHierarchy().FindSubData(SequenceID))
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+				SequenceID = RootBindingID.GetSequenceID();
+			}
 		}
 
 		FMovieSceneEvaluationOperand CameraOperand(SequenceID, CameraBindingID.GetGuid());
