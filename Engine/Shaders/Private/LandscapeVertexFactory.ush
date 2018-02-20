@@ -32,6 +32,7 @@ float4 LodBias;
 */
 float4 LodValues;
 
+#if USING_TESSELLATION
 /* Used to perform adaptative falloff using C - K * d
    x = C
    y = K
@@ -39,6 +40,7 @@ float4 LodValues;
    w = unused
 */
 float4 LodTessellationParams;
+#endif
 
 /* Fractional Lod values for each section */
 float4 SectionLods;
@@ -88,7 +90,11 @@ struct FVertexFactoryInput
 
 struct FVertexFactoryInterpolantsVSToPS
 {
+#if USING_TESSELLATION
 	float4	LayerTexCoord			: TEXCOORD0; // xy == texcoord, zw == tess falloff params
+#else
+	float2	LayerTexCoord			: TEXCOORD0; // xy == texcoord
+#endif
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	float2	WeightMapTexCoord		: TEXCOORD1;
 	float4	TransformedTexCoord0	: TEXCOORD2;
@@ -195,8 +201,10 @@ FLandscapeTexCoords GetLandscapeTexCoords(FVertexFactoryInput Input, FVertexFact
 	FLandscapeTexCoords Result;
 
 	Result.LayerTexCoord.xy = Intermediates.LocalPosition.xy + LandscapeParameters.SubsectionSizeVertsLayerUVPan.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.ww;
+#if USING_TESSELLATION
 	Result.LayerTexCoord.z = LodTessellationParams.x;
 	Result.LayerTexCoord.w = LodTessellationParams.y;
+#endif
 
 	Result.WeightMapTexCoord	= Intermediates.LocalPosition.xy * LandscapeParameters.WeightmapUVScaleBias.xy + LandscapeParameters.WeightmapUVScaleBias.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.zz;
 #if !(ES2_PROFILE || ES3_1_PROFILE)
