@@ -792,6 +792,12 @@ PyTypeObject* FPyWrapperTypeRegistry::GenerateWrappedStructType(const UStruct* I
 		return ExistingPyType;
 	}
 
+	// UFunction derives from UStruct to define its arguments, but we should never process a UFunction as a UStruct for Python
+	if (InStruct->IsA<UFunction>())
+	{
+		return nullptr;
+	}
+
 	// todo: allow generation of Blueprint generated structs
 	if (PyGenUtil::IsBlueprintGeneratedStruct(InStruct))
 	{
