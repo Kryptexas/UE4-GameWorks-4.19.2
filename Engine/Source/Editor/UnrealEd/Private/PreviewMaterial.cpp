@@ -1199,6 +1199,12 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 	{
 		ParameterGroups.Append(ParameterDefaultGroups);
 	}
+
+	if (DetailsView.IsValid())
+	{
+		// Tell our source instance to update itself so the preview updates.
+		DetailsView.Pin()->ForceRefresh();
+	}
 }
 
 void UMaterialEditorInstanceConstant::CopyToSourceInstance(const bool bForceStaticPermutationUpdate)

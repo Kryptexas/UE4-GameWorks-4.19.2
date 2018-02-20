@@ -316,5 +316,7 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	void AssignParameterToGroup(UMaterial* ParentMaterial, UDEditorParameterValue* ParameterValue);
 
 	static FName GlobalGroupPrefix;
+
+	TWeakPtr<class IDetailsView> DetailsView;
 };
 

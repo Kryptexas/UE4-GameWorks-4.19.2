@@ -785,6 +785,8 @@ void FMaterialInstanceEditor::CreateInternalWidgets()
 		&FMaterialInstanceParameterDetails::MakeInstance, MaterialEditorInstance, FGetShowHiddenParameters::CreateSP(this, &FMaterialInstanceEditor::GetShowHiddenParameters) );
 	MaterialInstanceDetails->RegisterInstancedCustomPropertyLayout( UMaterialEditorInstanceConstant::StaticClass(), LayoutMICDetails );
 
+	MaterialEditorInstance->DetailsView = MaterialInstanceDetails;
+
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
 	if (MaterialEditorModule->MaterialLayersEnabled() && !bIsFunctionPreviewMaterial)
 	{
@@ -1451,7 +1453,7 @@ void FMaterialInstanceEditor::UpdatePropertyWindow()
 	TArray<UObject*> SelectedObjects;
 	SelectedObjects.Add( MaterialEditorInstance );
 	MaterialInstanceDetails->SetObjects( SelectedObjects, true );
-	if (MaterialLayersFunctionsInstance.IsValid())
+	if (MaterialLayersFunctionsInstance.IsValid() && MaterialEditorInstance != MaterialLayersFunctionsInstance->MaterialEditorInstance)
 	{
 		MaterialLayersFunctionsInstance->SetEditorInstance(MaterialEditorInstance);
 	}

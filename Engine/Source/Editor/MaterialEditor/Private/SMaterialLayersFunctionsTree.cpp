@@ -1354,7 +1354,6 @@ void SMaterialLayersFunctionsInstanceWrapper::Construct(const FArguments& InArgs
 void SMaterialLayersFunctionsInstanceWrapper::SetEditorInstance(UMaterialEditorInstanceConstant* InMaterialEditorInstance)
 {
 	NestedTree->MaterialEditorInstance = InMaterialEditorInstance;
-	NestedTree->CreateGroupsWidget();
 	Refresh();
 }
 

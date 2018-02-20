@@ -642,12 +642,6 @@ void FMaterialPropertyHelpers::OnOverrideParameter(bool NewValue, class UDEditor
 	FEditorSupportDelegates::UpdateUI.Broadcast();
 }
 
-void FMaterialPropertyHelpers::OnOverrideParameterCheckbox(ECheckBoxState NewValue, class UDEditorParameterValue* Parameter, UMaterialEditorInstanceConstant* MaterialEditorInstance)
-{
-	const bool bIsChecked = (NewValue == ECheckBoxState::Checked);
-	OnOverrideParameter(bIsChecked, Parameter, MaterialEditorInstance);
-}
-
 FText FMaterialPropertyHelpers::GetParameterExpressionDescription(UDEditorParameterValue* Parameter, UObject* MaterialEditorInstance)
 {
 	UMaterial* BaseMaterial = nullptr;
