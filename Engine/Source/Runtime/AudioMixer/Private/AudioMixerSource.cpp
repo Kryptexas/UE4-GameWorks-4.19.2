@@ -999,12 +999,15 @@ namespace Audio
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-			MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			if (SendInfo.SoundSubmix != nullptr)
+			{
+				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
 
-			// Make sure we flag that we're using this submix sends since these can be dynamically added from BP
-			// If we don't flag this then these channel maps won't be generated for this channel format
-			ChannelMaps[(int32)SendInfo.SoundSubmix->ChannelFormat].bUsed = true;
+				// Make sure we flag that we're using this submix sends since these can be dynamically added from BP
+				// If we don't flag this then these channel maps won't be generated for this channel format
+				ChannelMaps[(int32)SendInfo.SoundSubmix->ChannelFormat].bUsed = true;
+			}
 		}
 	}
 
