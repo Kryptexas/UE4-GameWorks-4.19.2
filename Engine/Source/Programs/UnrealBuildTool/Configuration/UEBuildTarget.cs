@@ -1641,7 +1641,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Prepare all the receipts this target (all the .target and .modules files). See the VersionManifest class for an explanation of what these files are.
 		/// </summary>
-		void PrepareReceipts(UEToolChain ToolChain, bool bCreateDebugInfo)
+		void PrepareReceipts(UEToolChain ToolChain, bool bCreateDebugInfo, EHotReload HotReload)
 		{
 			// If linking is disabled, don't generate any receipt
 			if(Rules.bDisableLinking)
@@ -1666,9 +1666,9 @@ namespace UnrealBuildTool
 					// If this is a formal build, we can just the compatible changelist as the unique id.
 					Version.BuildId = String.Format("{0}", Version.EffectiveCompatibleChangelist);
 				}
-				else if(OnlyModules.Count > 0 || bEditorRecompile)
+				else if(HotReload != EHotReload.Disabled || OnlyModules.Count > 0)
 				{
-					// If we're hot reloading, just use the last version number.
+					// If we're hot reloading or doing a partial build, just use the last version number.
 					BuildVersion LastVersion;
 					if(VersionFile != null && BuildVersion.TryRead(VersionFile, out LastVersion))
 					{
@@ -2307,7 +2307,7 @@ namespace UnrealBuildTool
 			// Create a receipt for the target
 			if (!ProjectFileGenerator.bGenerateProjectFiles)
 			{
-				PrepareReceipts(TargetToolChain, GlobalLinkEnvironment.bCreateDebugInfo);
+				PrepareReceipts(TargetToolChain, GlobalLinkEnvironment.bCreateDebugInfo, HotReload);
 			}
 
 			// Write out the deployment context, if necessary
