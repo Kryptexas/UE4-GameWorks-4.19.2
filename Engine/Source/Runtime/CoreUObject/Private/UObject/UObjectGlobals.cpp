@@ -3333,7 +3333,7 @@ protected:
 	virtual FArchive& operator<<(UObject*& Object) override
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		const bool bIsValidObjectReference = Object == nullptr || Object->IsValidLowLevelFast();
+		const bool bIsValidObjectReference = (Object == nullptr || Object->IsValidLowLevelFast());
 		if (!bIsValidObjectReference)
 		{
 			if (const UFunction* UberGraphFunction = Cast<UFunction>(GetSerializingObject()))
@@ -3377,11 +3377,12 @@ protected:
 		};
 
 		if (!ensureMsgf(bIsValidObjectReference
-			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s, Instance: %s) - If you have a reliable repro for this, please contact the development team with it.")
+			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s, Instance: %s, Address: 0x%016llx) - If you have a reliable repro for this, please contact the development team with it.")
 			, (int64)(PTRINT)Object
-			, GetBlueprintObjectNameLambda(GetSerializingObject())
+			, *GetBlueprintObjectNameLambda(GetSerializingObject())
 			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")
-			, GetSerializedDataContainer() ? *GetSerializedDataContainer()->GetFullName() : TEXT("NULL")))
+			, GetSerializedDataContainer() ? *GetSerializedDataContainer()->GetFullName() : TEXT("NULL")
+			, (int64)(PTRINT)&Object))
 		{
 			// clear the property value (it's garbage)... the ubergraph-frame
 			// has just lost a reference to whatever it was attempting to hold onto
