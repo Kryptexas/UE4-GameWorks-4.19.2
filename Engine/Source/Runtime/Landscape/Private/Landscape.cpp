@@ -200,66 +200,58 @@ void ULandscapeComponent::BeginCacheForCookedPlatformData(const ITargetPlatform*
 void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 {
 #if ENABLE_LANDSCAPE_COOKING
-	// Calculate hash of source data and skip generation if the data we have in memory is unchanged
+	
+	// Regenerate platform data only when it's missing or there is a valid hash-mismatch.
+
 	FBufferArchive ComponentStateAr;
 	SerializeStateHashes(ComponentStateAr);
+	
 	uint32 Hash[5];
 	FSHA1::HashBuffer(ComponentStateAr.GetData(), ComponentStateAr.Num(), (uint8*)Hash);
-
 	FGuid NewSourceHash = FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
 
-	bool bGenerateVertexData = true;
-	bool bGeneratePixelData = true;
-
-	// Skip generation if the source hash matches
-	if (MobileDataSourceHash.IsValid() && MobileDataSourceHash == NewSourceHash)
+	bool bHashMismatch = MobileDataSourceHash.IsValid() && MobileDataSourceHash != NewSourceHash;
+	bool bMissingVertexData = !PlatformData.HasValidPlatformData();
+	bool bMissingPixelData = !MobileMaterialInterface || !MobileWeightNormalmapTexture;
+	
+	bool bRegenerateVertexData = bMissingVertexData || bMissingPixelData || bHashMismatch;
+	
+	if (bRegenerateVertexData)
 	{
-		if (MobileMaterialInterface != nullptr && MobileWeightNormalmapTexture != nullptr)
+		if (bIsCooking)
 		{
-			bGeneratePixelData = false;
-		}
+			// The DDC is only useful when cooking (see else).
 
-		if (PlatformData.HasValidPlatformData())
-		{
-			bGenerateVertexData = false;
-		}
-		else
-		{
-			// Pull some of the code to build the platform data into this block so we can get accurate the hit/miss timings.
 			COOK_STAT(auto Timer = LandscapeCookStats::UsageStats.TimeSyncWork());
 			if (PlatformData.LoadFromDDC(NewSourceHash))
 			{
 				COOK_STAT(Timer.AddHit(PlatformData.GetPlatformDataSize()));
-				bGenerateVertexData = false;
 			}
-			else if (bIsCooking)
+			else
 			{
 				GeneratePlatformVertexData();
 				PlatformData.SaveToDDC(NewSourceHash);
 				COOK_STAT(Timer.AddMiss(PlatformData.GetPlatformDataSize()));
-				bGenerateVertexData = false;
 			}
 		}
-	}
-
-	if (bGenerateVertexData)
-	{
-		// If we didn't even try to load from the DDC for some reason, but still need to build the data, treat that as a separate "miss" case that is causing DDC-related work to be done.
-		COOK_STAT(auto Timer = LandscapeCookStats::UsageStats.TimeSyncWork());
-		GeneratePlatformVertexData();
-		if (bIsCooking)
+		else
 		{
-			PlatformData.SaveToDDC(NewSourceHash);
+			// When not cooking (e.g. mobile preview) DDC data isn't sufficient to 
+			// display correctly, so the platform vertex data must be regenerated.
+
+			GeneratePlatformVertexData();
 		}
-		COOK_STAT(Timer.AddMiss(PlatformData.GetPlatformDataSize()));
 	}
 
-	if (bGeneratePixelData)
+	bool bRegeneratePixelData = bMissingPixelData || bHashMismatch;
+
+	if (bRegeneratePixelData)
 	{
 		GeneratePlatformPixelData();
 	}
 
 	MobileDataSourceHash = NewSourceHash;
+
 #endif
 }
 #endif
