@@ -253,6 +253,13 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 
 	SetPreviewAsset( GUnrealEd->GetThumbnailManager()->EditorSphere );
 
+	UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+	const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
+	if (Settings->Profiles.IsValidIndex(ProfileIndex))
+	{
+		AdvancedPreviewScene->SetEnvironmentVisibility(Settings->Profiles[ProfileIndex].bShowEnvironment);
+	}
+
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SMaterialEditor3DPreviewViewport::OnPropertyChanged);
 	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 }
@@ -620,7 +627,7 @@ void SMaterialEditor3DPreviewViewport::TogglePreviewBackground()
 	const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
 	if (Settings->Profiles.IsValidIndex(ProfileIndex))
 	{
-		Settings->Profiles[ProfileIndex].bShowEnvironment = !Settings->Profiles[ProfileIndex].bShowEnvironment;
+		AdvancedPreviewScene->SetEnvironmentVisibility(!Settings->Profiles[ProfileIndex].bShowEnvironment);
 	}
 	RefreshViewport();
 }
