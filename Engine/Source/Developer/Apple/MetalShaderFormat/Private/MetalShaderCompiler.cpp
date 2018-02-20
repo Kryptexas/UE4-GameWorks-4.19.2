@@ -1,5 +1,5 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
-// ...............
+// .
 
 #include "CoreMinimal.h"
 #include "MetalShaderFormat.h"
@@ -2101,7 +2101,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	}
 
 	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
-	if (bDumpDebugInfo)
+	if (bDumpDebugInfo && !bDirectCompile)
 	{
 		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / FPaths::GetBaseFilename(Input.GetSourceFilename() + TEXT(".usf"))));
 		if (FileWriter)

@@ -594,6 +594,10 @@ static const char *const operator_strs[ir_opcode_count] =
 
 	"dFdx",
 	"dFdy",
+	"dFdxFine",
+	"dFdyFine",
+	"dFdxCoarse",
+	"dFdyCoarse",
 
 	"isnan",
 	"isinf",

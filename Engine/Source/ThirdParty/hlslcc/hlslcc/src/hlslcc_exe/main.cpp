@@ -86,6 +86,8 @@ struct FGlslLanguageSpec : public ILanguageSpec
 	virtual bool SupportsIntegerModulo() const {return true;}
 	virtual bool AllowsSharingSamplers() const { return false; }
 
+	virtual bool SupportsSinCosIntrinsic() const { return false; }
+
 	// half3x3 <-> float3x3
 	virtual bool SupportsMatrixConversions() const {return false;}
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

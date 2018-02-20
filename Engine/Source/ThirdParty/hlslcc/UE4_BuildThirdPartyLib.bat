@@ -15,7 +15,7 @@ pushd hlslcc\projects
 	if "%CheckLINUX_ROOT%"=="" goto SkipLinux
 
 	pushd Linux
-	CrossCompile.bat
+	call CrossCompile.bat
 	popd
 
 :SkipLinux
