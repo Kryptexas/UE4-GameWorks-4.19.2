@@ -248,7 +248,8 @@ public:
 
 	virtual bool MaterialLayersEnabled()
 	{
-		return GetDefault<UEditorExperimentalSettings>()->bMaterialLayeringEnabled;
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportMaterialLayers"));
+		return CVar && CVar->GetValueOnAnyThread() == 1;
 	};
 
 	/** Gets the extensibility managers for outside entities to extend material editor's menus and toolbars */

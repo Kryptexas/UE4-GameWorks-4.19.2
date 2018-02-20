@@ -125,10 +125,6 @@ public:
 	//UPROPERTY(EditAnywhere, config, Category = Core)
 	bool bTextAssetFormatSupport;
 
-	/** Enable material layering assets and workflow */
-	UPROPERTY(EditAnywhere, config, Category = Materials)
-	bool bMaterialLayeringEnabled;
-
 	/** When creating new Material Layers and Material Layer Blends, set up example graphs. */
 	UPROPERTY(EditAnywhere, config, Category = Materials)
 	bool bExampleLayersAndBlends;

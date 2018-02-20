@@ -2137,6 +2137,11 @@ bool UMaterial::GetParameterDesc(const FMaterialParameterInfo& ParameterInfo, FS
 
 bool UMaterial::GetScalarParameterValue(const FMaterialParameterInfo& ParameterInfo, float& OutValue, bool bOveriddenOnly) const
 {
+	if (bOveriddenOnly && !AreExperimentalMaterialLayersEnabled())
+	{
+		return false;
+	}
+
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
 	UMaterialExpressionScalarParameter* Parameter = nullptr;
@@ -2256,6 +2261,11 @@ bool UMaterial::GetScalarParameterSliderMinMax(const FMaterialParameterInfo& Par
 
 bool UMaterial::GetVectorParameterValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue, bool bOveriddenOnly) const
 {
+	if (bOveriddenOnly && !AreExperimentalMaterialLayersEnabled())
+	{
+		return false;
+	}
+
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
 	UMaterialExpressionVectorParameter* Parameter = nullptr;
@@ -2374,8 +2384,13 @@ bool UMaterial::IsVectorParameterUsedAsChannelMask(const FMaterialParameterInfo&
 	return false;
 }
 
-bool UMaterial::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const
+bool UMaterial::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue, bool bOveriddenOnly) const
 {
+	if (bOveriddenOnly && !AreExperimentalMaterialLayersEnabled())
+	{
+		return false;
+	}
+
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
 	UMaterialExpressionTextureSampleParameter* Parameter = nullptr;

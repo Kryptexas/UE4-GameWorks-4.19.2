@@ -18,6 +18,7 @@ URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer
 	bSupportPointLightWholeSceneShadows = true;
 	bSupportAtmosphericFog = true;
 	bSupportSkinCacheShaders = false;
+	bSupportMaterialLayers = false;
 }
 
 void URendererSettings::PostInitProperties()

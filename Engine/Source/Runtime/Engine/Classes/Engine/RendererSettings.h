@@ -565,6 +565,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Support reversed index buffers, which provide a minor rendering speedup at the expense of using twice the index buffer memory.",
 		ConfigRestartRequired = true))
 		uint32 bSupportReversedIndexBuffers : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Experimental, meta = (
+		ConsoleVariable = "r.SupportMaterialLayers", Tooltip = "Support new material layering system. Disabling it reduces some overhead in place to support the experimental feature",
+		ConfigRestartRequired = true))
+		uint32 bSupportMaterialLayers : 1;
+
 public:
 
 	//~ Begin UObject Interface

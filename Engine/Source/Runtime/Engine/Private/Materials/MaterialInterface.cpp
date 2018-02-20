@@ -287,7 +287,7 @@ bool UMaterialInterface::GetLinearColorCurveParameterValue(const FMaterialParame
 	return false;
 }
 
-bool UMaterialInterface::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const
+bool UMaterialInterface::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue, bool bOveriddenOnly) const
 {
 	return false;
 }

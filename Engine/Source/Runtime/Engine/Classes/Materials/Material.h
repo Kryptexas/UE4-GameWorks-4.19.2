@@ -915,7 +915,7 @@ public:
 	ENGINE_API virtual bool GetScalarParameterSliderMinMax(const FMaterialParameterInfo& ParameterInfo, float& OutMinSlider, float& OutMaxSlider) const override;
 	ENGINE_API virtual bool GetVectorParameterValue(const FMaterialParameterInfo& ParameterInfo,FLinearColor& OutValue, bool bOveriddenOnly = false) const override;
 	ENGINE_API virtual bool IsVectorParameterUsedAsChannelMask(const FMaterialParameterInfo& ParameterInfo, bool& OutValue) const override;
-	ENGINE_API virtual bool GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo,class UTexture*& OutValue) const override;
+	ENGINE_API virtual bool GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo,class UTexture*& OutValue, bool bOveriddenOnly = false) const override;
 	ENGINE_API virtual bool GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo,class UFont*& OutFontValue,int32& OutFontPage) const override;
 	ENGINE_API virtual bool GetGroupName(const FMaterialParameterInfo& ParameterInfo, FName& OutGroup) const override;
 	ENGINE_API virtual bool GetRefractionSettings(float& OutBiasValue) const override;

@@ -720,7 +720,7 @@ bool UMaterialInstance::IsVectorParameterUsedAsChannelMask(const FMaterialParame
 	return false;
 }
 
-bool UMaterialInstance::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const
+bool UMaterialInstance::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue, bool bOveriddenOnly) const
 {
 	bool bFoundAValue = false;
 
@@ -769,7 +769,7 @@ bool UMaterialInstance::GetTextureParameterValue(const FMaterialParameterInfo& P
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetTextureParameterValue(ParameterInfo,OutValue);
+		return Parent->GetTextureParameterValue(ParameterInfo,OutValue,bOveriddenOnly);
 	}
 	
 	return false;
