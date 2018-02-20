@@ -14,7 +14,6 @@
 #include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialLayersFunctions.h"
-#include "Materials/MaterialSharedInputCollection.h"
 #include "UniquePtr.h"
 
 #include "Material.generated.h"
@@ -274,30 +273,6 @@ struct FMaterialParameterCollectionInfo
 	bool operator==(const FMaterialParameterCollectionInfo& Other) const
 	{
 		return StateId == Other.StateId && ParameterCollection == Other.ParameterCollection;
-	}
-};
-
-/** Stores information about a shared input collection that this material references, used to know when the material needs to be recompiled. */
-USTRUCT()
-struct FMaterialSharedInputCollectionInfo
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Id that the collection had when this material was last compiled. */
-	UPROPERTY()
-	FGuid StateId;
-
-	/** The collection which this material has a dependency on. */
-	UPROPERTY()
-	class UMaterialSharedInputCollection* SharedInputCollection;
-
-	FMaterialSharedInputCollectionInfo()
-		: SharedInputCollection(NULL)
-	{}
-
-	bool operator==(const FMaterialSharedInputCollectionInfo& Other) const
-	{
-		return StateId == Other.StateId && SharedInputCollection == Other.SharedInputCollection;
 	}
 };
 
@@ -785,10 +760,6 @@ public:
 	/** Array of all parameter collections this material depends on. */
 	UPROPERTY()
 	TArray<struct FMaterialParameterCollectionInfo> MaterialParameterCollectionInfos;
-
-	/** Array of all shared input collections this material depends on. */
-	UPROPERTY()
-	TArray<struct FMaterialSharedInputCollectionInfo> MaterialSharedInputCollectionInfos;
 
 	/** true if this Material can be assumed Opaque when set to masked. */
 	UPROPERTY()
@@ -1393,11 +1364,6 @@ private:
 	 */
 	void RebuildMaterialParameterCollectionInfo();
 	
-	/** 
-	 * Rebuild the MaterialSharedInputCollectionInfos array with the current state of the material's shared input collection dependencies.
-	 */
-	void RebuildMaterialSharedInputCollectionInfo();
-
 	/** 
 	 * Cache resource shaders for rendering. 
 	 * If a matching shader map is not found in memory or the DDC, a new one will be compiled.

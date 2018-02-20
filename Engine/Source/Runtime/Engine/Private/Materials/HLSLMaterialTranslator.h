@@ -33,7 +33,6 @@
 #include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "Materials/MaterialSharedInputCollection.h"
 #include "Containers/LazyPrintf.h"
 #endif
 
@@ -173,10 +172,6 @@ protected:
 
 	/** Parameter collections referenced by this material.  The position in this array is used as an index on the shader parameter. */
 	TArray<UMaterialParameterCollection*> ParameterCollections;
-
-	/** Shared inputs referenced by this material */
-	TArray<FGuid> CompiledSharedInputs;
-	TArray<FExpressionInput> CompiledSharedInputExpressions;
 
 	// Index of the next symbol to create
 	int32 NextSymbolIndex;
@@ -2246,78 +2241,6 @@ protected:
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 1,
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 2,
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 3);
-	}
-
-	virtual int32 AddCompiledSharedInput(int32 CodeIndex, FExpressionInput Expression, FGuid InputId, FName InputName, EMaterialValueType InputType) override
-	{
-		if (CompiledSharedInputs.Contains(InputId))
-		{
-			return Errorf(TEXT("Tried to compile shared input '%s' twice!"), *InputName.ToString());
-		}
-
-		CompiledSharedInputs.Add(InputId);
-		CompiledSharedInputExpressions.Add(Expression);
-		return CodeIndex;
-	}
-
-	virtual int32 AccessSharedInput(UMaterialSharedInputCollection* InputCollection, FGuid InputId, FName InputName) override
-	{
-		int32 SharedInputIndex = INDEX_NONE;
-		if (!CompiledSharedInputs.Find(InputId, SharedInputIndex))
-		{
-			return INDEX_NONE;
-		}
-
-		if (!InputCollection || InputCollection->GetInputName(InputId).IsNone())
-		{
-			return Errorf(TEXT("Failed to find input with name '%s'"), *InputName.ToString());
-		}
-
-		EMaterialSharedInputType::Type InputType = InputCollection->GetInputType(InputId);
-		EMaterialValueType OutputType;
-		switch(InputType)
-		{
-		case EMaterialSharedInputType::Vector2:
-			OutputType = MCT_Float2; break;
-		case EMaterialSharedInputType::Vector3:
-			OutputType = MCT_Float3; break;
-		case EMaterialSharedInputType::Vector4:
-			OutputType = MCT_Float4; break;
-		case EMaterialSharedInputType::Texture2D:
-			OutputType = MCT_Texture2D; break;
-		case EMaterialSharedInputType::TextureCube:
-			OutputType = MCT_TextureCube; break;
-		default: // EMaterialSharedInputType::Scalar
-			OutputType = MCT_Float;
-		}
-
-		if (OutputType & MCT_Texture)
-		{
-			// Compile the input with a forced global association
-			FMaterialParameterInfo AssociationInfo;
-			PushParameterOwner(AssociationInfo);
-			int32 Ret = CompiledSharedInputExpressions[SharedInputIndex].GetTracedInput().Compile(this);
-			PopParameterOwner();
-			return Ret;
-		}
-		else
-		{
-			// Add call to implementation function
-			const int32 OutputIndex = 0;
-			FString CodeChunk = FString::Printf(TEXT("%s_%s%d(Parameters)"), *InputCollection->GetName(), *InputName.ToString(), OutputIndex);
-			return AddCodeChunk(OutputType, *CodeChunk);
-		}	
-	}
-
-	virtual UMaterialExpression* AccessSharedInputExpression(FGuid InputId) override
-	{
-		int32 SharedInputIndex = INDEX_NONE;
-		if (!CompiledSharedInputs.Find(InputId, SharedInputIndex))
-		{
-			return nullptr;
-		}
-		
-		return CompiledSharedInputExpressions[SharedInputIndex].GetTracedInput().Expression;
 	}
 
 	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override

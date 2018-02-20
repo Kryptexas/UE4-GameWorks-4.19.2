@@ -19,8 +19,6 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UnrealEngine.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
-#include "Materials/MaterialExpressionGetSharedInput.h"
-#include "Materials/MaterialExpressionSetSharedInput.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
@@ -223,7 +221,6 @@ void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShader
 	FMaterial::GetShaderMapId(Platform, OutId);
 	Material->AppendReferencedFunctionIdsTo(OutId.ReferencedFunctions);
 	Material->AppendReferencedParameterCollectionIdsTo(OutId.ReferencedParameterCollections);
-	Material->AppendReferencedSharedInputCollectionIdsTo(OutId.ReferencedSharedInputCollections);
 
 	Material->GetForceRecompileTextureIdsHash(OutId.TextureReferencesHash);
 
@@ -3098,83 +3095,6 @@ void UMaterial::RebuildMaterialParameterCollectionInfo()
 	}
 }
 
-void UMaterial::RebuildMaterialSharedInputCollectionInfo()
-{
-	MaterialSharedInputCollectionInfos.Empty();
-	UMaterialSharedInputCollection* CurrentCollection = nullptr;
-
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
-	{
-		UMaterialExpression* Expression = Expressions[ExpressionIndex];
-		UMaterialExpressionGetSharedInput* GetSharedInputCollection = Cast<UMaterialExpressionGetSharedInput>(Expression);
-		UMaterialExpressionSetSharedInput* SetSharedInputCollection = Cast<UMaterialExpressionSetSharedInput>(Expression);
-		UMaterialExpressionMaterialFunctionCall* MaterialFunctionNode = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
-		UMaterialExpressionMaterialAttributeLayers* MaterialLayersNode = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression);
-
-		CurrentCollection = GetSharedInputCollection ? GetSharedInputCollection->Collection :
-			(SetSharedInputCollection ? SetSharedInputCollection->Collection : nullptr);
-
-		if (CurrentCollection)
-		{
-			FMaterialSharedInputCollectionInfo NewInfo;
-			NewInfo.SharedInputCollection = CurrentCollection;
-			NewInfo.StateId = CurrentCollection->StateId;
-			MaterialSharedInputCollectionInfos.AddUnique(NewInfo);
-		}
-		else if (MaterialFunctionNode && MaterialFunctionNode->MaterialFunction)
-		{
-			TArray<UMaterialFunctionInterface*> DependentFunctions;
-			MaterialFunctionNode->GetDependentFunctions(DependentFunctions);
-
-			// Handle nested functions
-			for (UMaterialFunctionInterface* CurrentFunction : DependentFunctions)
-			{
-				for (UMaterialExpression* CurrentExpression : *CurrentFunction->GetFunctionExpressions())
-				{
-					UMaterialExpressionGetSharedInput* FunctionGetSharedInputCollection = Cast<UMaterialExpressionGetSharedInput>(CurrentExpression);
-					UMaterialExpressionSetSharedInput* FunctionSetSharedInputCollection = Cast<UMaterialExpressionSetSharedInput>(CurrentExpression);
-
-					CurrentCollection = FunctionGetSharedInputCollection ? FunctionGetSharedInputCollection->Collection :
-						(FunctionSetSharedInputCollection ? FunctionSetSharedInputCollection->Collection : nullptr);
-
-					if (CurrentCollection)
-					{
-						FMaterialSharedInputCollectionInfo NewInfo;
-						NewInfo.SharedInputCollection = CurrentCollection;
-						NewInfo.StateId = CurrentCollection->StateId;
-						MaterialSharedInputCollectionInfos.AddUnique(NewInfo);
-					}
-				}
-			}
-		}
-		else if (MaterialLayersNode)
-		{
-			TArray<UMaterialFunctionInterface*> DependentFunctions;
-			MaterialLayersNode->GetDependentFunctions(DependentFunctions);
-
-			for (UMaterialFunctionInterface* CurrentFunction : DependentFunctions)
-			{
-				for (UMaterialExpression* CurrentExpression : *CurrentFunction->GetFunctionExpressions())
-				{
-					UMaterialExpressionGetSharedInput* FunctionGetSharedInputCollection = Cast<UMaterialExpressionGetSharedInput>(CurrentExpression);
-					UMaterialExpressionSetSharedInput* FunctionSetSharedInputCollection = Cast<UMaterialExpressionSetSharedInput>(CurrentExpression);
-
-					CurrentCollection = FunctionGetSharedInputCollection ? FunctionGetSharedInputCollection->Collection :
-						(FunctionSetSharedInputCollection ? FunctionSetSharedInputCollection->Collection : nullptr);
-
-					if (CurrentCollection)
-					{
-						FMaterialSharedInputCollectionInfo NewInfo;
-						NewInfo.SharedInputCollection = CurrentCollection;
-						NewInfo.StateId = CurrentCollection->StateId;
-						MaterialSharedInputCollectionInfos.AddUnique(NewInfo);
-					}
-				}
-			}
-		}
-	}
-}
-
 void UMaterial::CacheExpressionTextureReferences()
 {
 	if ( ExpressionTextureReferences.Num() <= 0 )
@@ -3213,7 +3133,6 @@ void UMaterial::RebuildExpressionTextureReferences()
 		// Update the cached material function information, which will store off information about the functions this material uses
 		RebuildMaterialFunctionInfo();
 		RebuildMaterialParameterCollectionInfo();
-		RebuildMaterialSharedInputCollectionInfo();
 	}
 
 	ExpressionTextureReferences.Empty();
@@ -3573,14 +3492,6 @@ void UMaterial::PostLoad()
 		if (MaterialParameterCollectionInfos[CollectionIndex].ParameterCollection)
 		{
 			MaterialParameterCollectionInfos[CollectionIndex].ParameterCollection->ConditionalPostLoad();
-		}
-	}
-
-	for (int32 CollectionIndex = 0; CollectionIndex < MaterialSharedInputCollectionInfos.Num(); CollectionIndex++)
-	{
-		if (MaterialSharedInputCollectionInfos[CollectionIndex].SharedInputCollection)
-		{
-			MaterialSharedInputCollectionInfos[CollectionIndex].SharedInputCollection->ConditionalPostLoad();
 		}
 	}
 
@@ -5170,14 +5081,6 @@ void UMaterial::AppendReferencedParameterCollectionIdsTo(TArray<FGuid>& Ids) con
 	for (int32 CollectionIndex = 0; CollectionIndex < MaterialParameterCollectionInfos.Num(); CollectionIndex++)
 	{
 		Ids.AddUnique(MaterialParameterCollectionInfos[CollectionIndex].StateId);
-	}
-}
-
-void UMaterial::AppendReferencedSharedInputCollectionIdsTo(TArray<FGuid>& Ids) const
-{
-	for (int32 CollectionIndex = 0; CollectionIndex < MaterialSharedInputCollectionInfos.Num(); CollectionIndex++)
-	{
-		Ids.AddUnique(MaterialSharedInputCollectionInfos[CollectionIndex].StateId);
 	}
 }
 

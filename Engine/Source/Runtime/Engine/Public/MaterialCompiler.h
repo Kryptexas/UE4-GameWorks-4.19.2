@@ -93,10 +93,6 @@ public:
 	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) = 0;
 	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) = 0;
 
-	virtual int32 AddCompiledSharedInput(int32 CodeIndex, FExpressionInput Expression, FGuid InputId, FName InputName, EMaterialValueType InputType) = 0;
-	virtual int32 AccessSharedInput(class UMaterialSharedInputCollection* InputCollection, FGuid InputId, FName InputName) = 0;
-	virtual UMaterialExpression* AccessSharedInputExpression(FGuid InputId) = 0;
-
 	virtual int32 Constant(float X) = 0;
 	virtual int32 Constant2(float X,float Y) = 0;
 	virtual int32 Constant3(float X,float Y,float Z) = 0;
@@ -340,10 +336,6 @@ public:
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override { return Compiler->AccessCollectionParameter(ParameterCollection, ParameterIndex, ComponentIndex); }
 	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override { return Compiler->ScalarParameter(ParameterName,DefaultValue); }
 	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
-
-	virtual int32 AddCompiledSharedInput(int32 CodeIndex, FExpressionInput Expression, FGuid InputId, FName InputName, EMaterialValueType InputType) override { return Compiler->AddCompiledSharedInput(CodeIndex, Expression, InputId, InputName, InputType); }
-	virtual int32 AccessSharedInput(class UMaterialSharedInputCollection* InputCollection, FGuid InputId, FName InputName) override { return Compiler->AccessSharedInput(InputCollection, InputId, InputName); }
-	virtual UMaterialExpression* AccessSharedInputExpression(FGuid InputId) override { return Compiler->AccessSharedInputExpression(InputId); }
 
 	virtual int32 Constant(float X) override { return Compiler->Constant(X); }
 	virtual int32 Constant2(float X,float Y) override { return Compiler->Constant2(X,Y); }

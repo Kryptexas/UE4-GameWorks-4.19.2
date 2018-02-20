@@ -94,7 +94,6 @@
 #include "Factories/MaterialFunctionInstanceFactory.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
 #include "Factories/MaterialParameterCollectionFactoryNew.h"
-#include "Factories/MaterialSharedInputCollectionFactory.h"
 #include "Factories/ModelFactory.h"
 #include "Factories/ObjectLibraryFactory.h"
 #include "Factories/PackageFactory.h"
@@ -155,7 +154,6 @@
 #include "Sound/DialogueWave.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "Materials/MaterialSharedInputCollection.h"
 #include "Engine/ObjectLibrary.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/Polys.h"
@@ -584,23 +582,6 @@ UMaterialParameterCollectionFactoryNew::UMaterialParameterCollectionFactoryNew(c
 }
 
 UObject* UMaterialParameterCollectionFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
-{
-	return NewObject<UObject>(InParent, Class, Name, Flags);
-}
-
-/*------------------------------------------------------------------------------
-	UMaterialParameterCollectionFactoryNew implementation.
-------------------------------------------------------------------------------*/
-UMaterialSharedInputCollectionFactory::UMaterialSharedInputCollectionFactory(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-
-	SupportedClass = UMaterialSharedInputCollection::StaticClass();
-	bCreateNew = true;
-	bEditAfterNew = true;
-}
-
-UObject* UMaterialSharedInputCollectionFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	return NewObject<UObject>(InParent, Class, Name, Flags);
 }

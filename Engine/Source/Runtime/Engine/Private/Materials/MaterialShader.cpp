@@ -483,6 +483,7 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 	// Backwards compatibility only works with FMaterialShaderMapId's stored in packages.  
 	// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FMaterialShaderMapId.
 	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	uint32 UsageInt = Usage;
 	Ar << UsageInt;
@@ -510,9 +511,11 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 		Ar << ReferencedParameterCollections;
 	}
 
-	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::AddedMaterialSharedInputs)
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::AddedMaterialSharedInputs &&
+		Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::RemovedMaterialSharedInputCollection)
 	{
-		Ar << ReferencedSharedInputCollections;
+		TArray<FGuid> Deprecated;
+		Ar << Deprecated;
 	}
 
 	Ar << ShaderTypeDependencies;
@@ -566,11 +569,6 @@ void FMaterialShaderMapId::GetMaterialHash(FSHAHash& OutHash) const
 		HashState.Update((const uint8*)&ReferencedParameterCollections[CollectionIndex], sizeof(ReferencedParameterCollections[CollectionIndex]));
 	}
 
-	for (int32 CollectionIndex = 0; CollectionIndex < ReferencedSharedInputCollections.Num(); CollectionIndex++)
-	{
-		HashState.Update((const uint8*)&ReferencedSharedInputCollections[CollectionIndex], sizeof(ReferencedSharedInputCollections[CollectionIndex]));
-	}	
-
 	HashState.Update((const uint8*)&TextureReferencesHash, sizeof(TextureReferencesHash));
 
 	HashState.Update((const uint8*)&BasePropertyOverridesHash, sizeof(BasePropertyOverridesHash));
@@ -602,7 +600,6 @@ bool FMaterialShaderMapId::operator==(const FMaterialShaderMapId& ReferenceSet) 
 	if (ParameterSet != ReferenceSet.ParameterSet
 		|| ReferencedFunctions.Num() != ReferenceSet.ReferencedFunctions.Num()
 		|| ReferencedParameterCollections.Num() != ReferenceSet.ReferencedParameterCollections.Num()
-		|| ReferencedSharedInputCollections.Num() != ReferenceSet.ReferencedSharedInputCollections.Num()
 		|| ShaderTypeDependencies.Num() != ReferenceSet.ShaderTypeDependencies.Num()
 		|| ShaderPipelineTypeDependencies.Num() != ReferenceSet.ShaderPipelineTypeDependencies.Num()
 		|| VertexFactoryTypeDependencies.Num() != ReferenceSet.VertexFactoryTypeDependencies.Num())
@@ -625,16 +622,6 @@ bool FMaterialShaderMapId::operator==(const FMaterialShaderMapId& ReferenceSet) 
 		const FGuid& ReferenceGuid = ReferenceSet.ReferencedParameterCollections[RefCollectionIndex];
 
 		if (ReferencedParameterCollections[RefCollectionIndex] != ReferenceGuid)
-		{
-			return false;
-		}
-	}
-
-	for (int32 RefCollectionIndex = 0; RefCollectionIndex < ReferenceSet.ReferencedSharedInputCollections.Num(); RefCollectionIndex++)
-	{
-		const FGuid& ReferenceGuid = ReferenceSet.ReferencedSharedInputCollections[RefCollectionIndex];
-
-		if (ReferencedSharedInputCollections[RefCollectionIndex] != ReferenceGuid)
 		{
 			return false;
 		}
@@ -729,11 +716,6 @@ void FMaterialShaderMapId::AppendKeyString(FString& KeyString) const
 	for (int32 CollectionIndex = 0; CollectionIndex < ReferencedParameterCollections.Num(); CollectionIndex++)
 	{
 		KeyString += ReferencedParameterCollections[CollectionIndex].ToString();
-	}
-
-	for (int32 CollectionIndex = 0; CollectionIndex < ReferencedSharedInputCollections.Num(); CollectionIndex++)
-	{
-		KeyString += ReferencedSharedInputCollections[CollectionIndex].ToString();
 	}
 
 	TMap<const TCHAR*,FCachedUniformBufferDeclaration> ReferencedUniformBuffers;

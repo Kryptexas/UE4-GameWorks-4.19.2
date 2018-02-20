@@ -49,6 +49,9 @@ struct CORE_API FReleaseObjectVersion
 		// Added disable flag to skeletal mesh data
 		AddSkeletalMeshSectionDisable,
 
+		// Removed objects that were serialized as part of this material feature
+		RemovedMaterialSharedInputCollection,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
