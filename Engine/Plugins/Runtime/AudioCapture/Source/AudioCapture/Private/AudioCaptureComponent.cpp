@@ -12,6 +12,7 @@ UAudioCaptureComponent::UAudioCaptureComponent(const FObjectInitializer& ObjectI
 	bIsDestroying = false;
 	bIsReadyForForFinishDestroy = true;
 	bIsStreamOpen = false;
+	bOutputToBusOnly = true;
 }
 
 bool UAudioCaptureComponent::Init(int32& SampleRate)
@@ -58,6 +59,7 @@ void UAudioCaptureComponent::FinishDestroy()
 	bIsCapturing = false;
 	bIsDestroying = false;
 	bIsStreamOpen = false;
+	bOutputToBusOnly = true;
 }
 
 void UAudioCaptureComponent::OnBeginGenerate()
@@ -87,15 +89,14 @@ void UAudioCaptureComponent::OnBeginGenerate()
 
 void UAudioCaptureComponent::OnEndGenerate()
 {
-	if (bIsStreamOpen)
+	if (bIsStreamOpen && CaptureSynth.IsStreamOpen())
 	{
-		check(CaptureSynth.IsStreamOpen());
 		CaptureSynth.AbortCapturing();
 		check(!CaptureSynth.IsCapturing());
 		check(!CaptureSynth.IsStreamOpen());
-
-		bIsReadyForForFinishDestroy = true;
 	}
+	bIsStreamOpen = false;
+	bIsReadyForForFinishDestroy = true;
 }
 
 // Called when synth is about to start playing
