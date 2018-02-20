@@ -1743,7 +1743,7 @@ FIntPoint FSceneRenderer::ApplyResolutionFraction(const FSceneViewFamily& ViewFa
 	// Mosaic needs the viewport height to be a multiple of 2.
 	if (ViewFamily.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1 && IsMobileHDRMosaic())
 	{
-		ViewSize.Y = ViewSize.Y + (~1) & ViewSize.Y;
+		ViewSize.Y = ViewSize.Y + (1 & ViewSize.Y);		
 	}
 
 	check(ViewSize.GetMin() > 0);
