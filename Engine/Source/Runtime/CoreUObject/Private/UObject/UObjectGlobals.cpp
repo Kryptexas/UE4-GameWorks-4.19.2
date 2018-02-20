@@ -3333,11 +3333,55 @@ protected:
 	virtual FArchive& operator<<(UObject*& Object) override
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		if (!ensureMsgf((Object == nullptr) || Object->IsValidLowLevelFast()
-			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
+		const bool bIsValidObjectReference = Object == nullptr || Object->IsValidLowLevelFast();
+		if (!bIsValidObjectReference)
+		{
+			if (const UFunction* UberGraphFunction = Cast<UFunction>(GetSerializingObject()))
+			{
+				const int32 PersistentFrameDataSize = UberGraphFunction->GetStructureSize();
+				if (const uint8* PersistentFrameDataAddr = (const uint8*)GetSerializedDataPtr())
+				{
+					FString PersistentFrameDataText;
+					const int32 MaxBytesToDisplayPerLine = 32;
+					PersistentFrameDataText.Reserve(PersistentFrameDataSize * 2 + PersistentFrameDataSize / MaxBytesToDisplayPerLine);
+					for (int32 PersistentFrameDataIdx = 0; PersistentFrameDataIdx < PersistentFrameDataSize; ++PersistentFrameDataIdx)
+					{
+						if (PersistentFrameDataIdx % MaxBytesToDisplayPerLine == 0)
+						{
+							PersistentFrameDataText += TEXT("\n");
+						}
+
+						PersistentFrameDataText += FString::Printf(TEXT("%02x "), PersistentFrameDataAddr[PersistentFrameDataIdx]);
+					}
+
+					UE_LOG(LogUObjectGlobals, Log, TEXT("PersistentFrame: Addr=0x%016llx, Size=%d%s"),
+						(int64)(PTRINT)PersistentFrameDataAddr,
+						PersistentFrameDataSize,
+						*PersistentFrameDataText);
+				}
+			}
+		}
+
+		auto GetBlueprintObjectNameLambda = [](const UObject* InSerializingObject) -> FString
+		{
+			if (InSerializingObject)
+			{
+				const UClass* BPGC = InSerializingObject->GetTypedOuter<UClass>();
+				if (BPGC && BPGC->ClassGeneratedBy)
+				{
+					return BPGC->ClassGeneratedBy->GetFullName();
+				}
+			}
+
+			return TEXT("NULL");
+		};
+
+		if (!ensureMsgf(bIsValidObjectReference
+			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s, Instance: %s) - If you have a reliable repro for this, please contact the development team with it.")
 			, (int64)(PTRINT)Object
-			, GetSerializingObject() ? *GetSerializingObject()->GetFullName() : TEXT("NULL")
-			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")))
+			, GetBlueprintObjectNameLambda(GetSerializingObject())
+			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")
+			, GetSerializedDataContainer() ? *GetSerializedDataContainer()->GetFullName() : TEXT("NULL")))
 		{
 			// clear the property value (it's garbage)... the ubergraph-frame
 			// has just lost a reference to whatever it was attempting to hold onto

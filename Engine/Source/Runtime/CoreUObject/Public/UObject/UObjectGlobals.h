@@ -1499,6 +1499,10 @@ class COREUOBJECT_API FReferenceCollectorArchive : public FArchiveUObject
 {
 	/** Object which is performing the serialization. */
 	const UObject* SerializingObject;
+	/** Object that owns the serialized data. */
+	const UObject* SerializedDataContainer;
+	/** Pointer to serialized data (read-only). */
+	const void* SerializedDataPtr;
 	/** Stored pointer to reference collector. */
 	class FReferenceCollector& Collector;
 
@@ -1513,6 +1517,8 @@ public:
 
 	FReferenceCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
 		: SerializingObject(InSerializingObject)
+		, SerializedDataContainer(nullptr)
+		, SerializedDataPtr(nullptr)
 		, Collector(InCollector)
 	{
 	}
@@ -1520,32 +1526,56 @@ public:
 	{
 		SerializingObject = InSerializingObject;
 	}
-	const UObject* GetSerializingObject()
+	const UObject* GetSerializingObject() const
 	{
 		return SerializingObject;
 	}
+	void SetSerializedDataContainer(const UObject* InDataContainer)
+	{
+		SerializedDataContainer = InDataContainer;
+	}
+	const UObject* GetSerializedDataContainer() const
+	{
+		return SerializedDataContainer;
+	}
+	void SetSerializedDataPtr(const void* InSerializedDataPtr)
+	{
+		SerializedDataPtr = InSerializedDataPtr;
+	}
+	const void* GetSerializedDataPtr() const
+	{
+		return SerializedDataPtr;
+	}
 };
 
-/** Helper class for setting and resetting SerializingObject on the FReferenceCollectorArchive */
+/** Helper class for setting and resetting attributes on the FReferenceCollectorArchive */
 class COREUOBJECT_API FVerySlowReferenceCollectorArchiveScope
 {	
 	FReferenceCollectorArchive& Archive;
 	const UObject* OldSerializingObject;
 	UProperty* OldSerializedProperty;
+	const UObject* OldSerializedDataContainer;
+	const void* OldSerializedDataPtr;
 
 public:
-	FVerySlowReferenceCollectorArchiveScope(FReferenceCollectorArchive& InArchive, const UObject* InSerializingObject, UProperty* InSerializedProperty = nullptr)
+	FVerySlowReferenceCollectorArchiveScope(FReferenceCollectorArchive& InArchive, const UObject* InSerializingObject, UProperty* InSerializedProperty = nullptr, const UObject* InSerializedDataContainer = nullptr, const void* InSerializedDataPtr = nullptr)
 		: Archive(InArchive)
 		, OldSerializingObject(InArchive.GetSerializingObject())
 		, OldSerializedProperty(InArchive.GetSerializedProperty())
+		, OldSerializedDataContainer(InArchive.GetSerializedDataContainer())
+		, OldSerializedDataPtr(InArchive.GetSerializedDataPtr())
 	{
 		Archive.SetSerializingObject(InSerializingObject);
 		Archive.SetSerializedProperty(InSerializedProperty);
+		Archive.SetSerializedDataContainer(InSerializedDataContainer);
+		Archive.SetSerializedDataPtr(InSerializedDataPtr);
 	}
 	~FVerySlowReferenceCollectorArchiveScope()
 	{
 		Archive.SetSerializingObject(OldSerializingObject);
 		Archive.SetSerializedProperty(OldSerializedProperty);
+		Archive.SetSerializedDataContainer(OldSerializedDataContainer);
+		Archive.SetSerializedDataPtr(OldSerializedDataPtr);
 	}
 	FReferenceCollectorArchive& GetArchive()
 	{
@@ -1694,7 +1724,7 @@ public:
 	* INTERNAL USE ONLY: returns the persistent frame collector archive associated with this collector.
 	* NOTE THAT COLLECTING REFERENCES THROUGH SERIALIZATION IS VERY SLOW.
 	*/
-	FReferenceCollectorArchive& GetInternalPersisnentFrameReferenceCollectorArchive()
+	FReferenceCollectorArchive& GetInternalPersistentFrameReferenceCollectorArchive()
 	{
 		if (!PersistentFrameReferenceCollectorArchive)
 		{

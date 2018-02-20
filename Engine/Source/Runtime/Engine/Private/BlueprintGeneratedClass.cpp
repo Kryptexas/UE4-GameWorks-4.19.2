@@ -1445,7 +1445,12 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				if (PointerToUberGraphFrame->RawPointer)
 				{
 					checkSlow(BPGC->UberGraphFunction);
-					FVerySlowReferenceCollectorArchiveScope CollectorScope(Collector.GetInternalPersisnentFrameReferenceCollectorArchive(), BPGC->UberGraphFunction);
+					FVerySlowReferenceCollectorArchiveScope CollectorScope(
+						Collector.GetInternalPersistentFrameReferenceCollectorArchive(),
+						BPGC->UberGraphFunction,
+						BPGC->UberGraphFramePointerProperty,
+						InThis,
+						PointerToUberGraphFrame->RawPointer);
 					BPGC->UberGraphFunction->SerializeBin(CollectorScope.GetArchive(), PointerToUberGraphFrame->RawPointer);
 				}
 			}
