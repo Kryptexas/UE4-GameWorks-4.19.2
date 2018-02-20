@@ -179,22 +179,23 @@ public:
 				int32 PreviewIndex = INDEX_NONE;
 				int32 ThumbnailIndex = INDEX_NONE;
 				EMaterialParameterAssociation PreviewAssociation = EMaterialParameterAssociation::GlobalParameter;
-
-				if(Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
+				if (AssetObject)
 				{
-					PreviewIndex = StackParameterData->ParameterInfo.Index;
-					PreviewAssociation = EMaterialParameterAssociation::LayerParameter;
-					Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
-					ThumbnailIndex = PreviewIndex;
+					if (Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayer)
+					{
+						PreviewIndex = StackParameterData->ParameterInfo.Index;
+						PreviewAssociation = EMaterialParameterAssociation::LayerParameter;
+						Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
+						ThumbnailIndex = PreviewIndex;
+					}
+					if (Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+					{
+						PreviewIndex = StackParameterData->ParameterInfo.Index;
+						PreviewAssociation = EMaterialParameterAssociation::BlendParameter;
+						Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
+						ThumbnailIndex = PreviewIndex - 1;
+					}
 				}
-				if (Cast<UMaterialFunctionInterface>(AssetObject)->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
-				{
-					PreviewIndex = StackParameterData->ParameterInfo.Index;
-					PreviewAssociation = EMaterialParameterAssociation::BlendParameter;
-					Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
-					ThumbnailIndex = PreviewIndex - 1;
-				}
-
 				HeaderRowWidget->AddSlot()
 					.AutoWidth()
 					.HAlign(HAlign_Center)
