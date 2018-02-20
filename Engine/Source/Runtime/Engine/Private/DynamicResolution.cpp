@@ -572,7 +572,7 @@ public:
 			Heuristic.CommitPreviousFrameGPUTimings_RenderThread(HistoryEntryId,
 				/* TotalFrameGPUBusyTimeMs = */ PrevFrameGPUTimeMs,
 				/* DynamicResolutionGPUBusyTimeMs = */ PrevFrameGPUTimeMs,
-				/* bGPUTimingsHaveCPUBubbles = */ GRHISupportsFrameCyclesBubblesRemoval);
+				/* bGPUTimingsHaveCPUBubbles = */ !GRHISupportsFrameCyclesBubblesRemoval);
 
 			Heuristic.RefreshCurentFrameResolutionFraction_RenderThread();
 
