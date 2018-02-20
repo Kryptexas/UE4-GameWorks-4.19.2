@@ -2048,7 +2048,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 			}
 			else
 			{
-				PerInstanceRenderData->UpdateAllInstanceData(this);
+				PerInstanceRenderData->UpdateAllInstanceData(this, true, true);
 			}
 		}
 	}
