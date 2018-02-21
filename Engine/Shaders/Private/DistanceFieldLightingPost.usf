@@ -230,7 +230,14 @@ void UpdateHistoryDepthRejectionPS(
 		EffectiveHistoryWeight = 0;
 	}
 
-	OutBentNormal.rgb = isnan(OutBentNormal.rgb) || isinf(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
+#if XBOXONE_PROFILE
+    // Xbox shader compiler (FXC) does non-IEEE optimization by default unless __XBOX_CONTROL_NONIEEE is
+    // defined to 0, which is not done currently due to performance reason. As a result, we need to check
+    // for Nan manually on Xbox.
+	OutBentNormal.rgb = (asuint(OutBentNormal.rgb) & 0x7f800000) == 0x7f800000 ? 0 : OutBentNormal.rgb;
+#else
+    OutBentNormal.rgb = isnan(OutBentNormal.rgb) || isinf(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
+#endif
 	OutBentNormal.a = SceneDepth;
 
 	FLATTEN
