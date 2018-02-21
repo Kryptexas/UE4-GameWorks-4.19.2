@@ -87,7 +87,7 @@ public:
 	TArray<class UMaterialInstanceConstant*> StoredBlendPreviews;
 
 	TSharedRef<SWidget> CreateThumbnailWidget(EMaterialParameterAssociation InAssociation, int32 InIndex, float InThumbnailSize);
-	void UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex);
+	void UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex, bool bAlterBlendIndex = false);
 protected:
 
 	void ShowSubParameters(TSharedPtr<FStackSortedData> ParentParameter);

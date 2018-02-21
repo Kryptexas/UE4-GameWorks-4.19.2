@@ -192,7 +192,7 @@ public:
 					{
 						PreviewIndex = StackParameterData->ParameterInfo.Index;
 						PreviewAssociation = EMaterialParameterAssociation::BlendParameter;
-						Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex);
+						Tree->UpdateThumbnailMaterial(PreviewAssociation, PreviewIndex, true);
 						ThumbnailIndex = PreviewIndex - 1;
 					}
 				}
@@ -593,8 +593,8 @@ public:
 			LeftSideWidget = NodeWidgets.NameWidget.ToSharedRef();
 			RightSideWidget = NodeWidgets.ValueWidget.ToSharedRef();
 
-			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index));
-			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index));
+			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index, false));
+			StackParameterData->ParameterNode->CreatePropertyHandle()->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateSP(Tree, &SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial, StackParameterData->ParameterInfo.Association, StackParameterData->ParameterInfo.Index, false));
 
 			const int32 LayerStateIndex = StackParameterData->ParameterInfo.Association == EMaterialParameterAssociation::BlendParameter ? StackParameterData->ParameterInfo.Index + 1 : StackParameterData->ParameterInfo.Index;
 			const bool bEnabled = FMaterialPropertyHelpers::IsOverriddenExpression(StackParameterData->Parameter) && Tree->FunctionInstance->LayerStates[LayerStateIndex];
@@ -1105,7 +1105,7 @@ TSharedRef<SWidget> SMaterialLayersFunctionsInstanceTree::CreateThumbnailWidget(
 	return AssetThumbnail->MakeThumbnailWidget();
 }
 
-void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex)
+void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex, bool bAlterBlendIndex)
 {
 	// Need to invert index b/c layer properties is generated in reverse order
 	TArray<TSharedPtr<FStackSortedData>> AssetChildren = LayerProperties[LayerProperties.Num() - 1 - InIndex]->Children;
@@ -1126,7 +1126,12 @@ void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<E
 		}
 		if (InAssociation == EMaterialParameterAssociation::BlendParameter)
 		{
-			MaterialToUpdate = StoredBlendPreviews[InIndex - 1];
+			int32 BlendIndex = InIndex;
+			if (bAlterBlendIndex)
+			{
+				BlendIndex--;
+			}
+			MaterialToUpdate = StoredBlendPreviews[BlendIndex];
 		}
 
 	}
