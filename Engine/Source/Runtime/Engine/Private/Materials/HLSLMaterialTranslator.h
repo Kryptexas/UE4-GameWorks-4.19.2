@@ -3836,7 +3836,9 @@ protected:
 
 	virtual int32 ExternalTexture(const FGuid& ExternalTextureGuid) override
 	{
-		if (ShaderFrequency != SF_Pixel)
+		bool bOnlyInPixelShader = GetFeatureLevel() < ERHIFeatureLevel::SM4;
+
+		if (bOnlyInPixelShader && ShaderFrequency != SF_Pixel)
 		{
 			return NonPixelShaderExpressionError();
 		}
@@ -3846,7 +3848,9 @@ protected:
 
 	virtual int32 ExternalTexture(UTexture* InTexture, int32& TextureReferenceIndex) override
 	{
-		if (ShaderFrequency != SF_Pixel)
+		bool bOnlyInPixelShader = GetFeatureLevel() < ERHIFeatureLevel::SM4;
+
+		if (bOnlyInPixelShader && ShaderFrequency != SF_Pixel)
 		{
 			return NonPixelShaderExpressionError();
 		}
@@ -3859,7 +3863,9 @@ protected:
 
 	virtual int32 ExternalTextureParameter(FName ParameterName, UTexture* DefaultValue, int32& TextureReferenceIndex) override
 	{
-		if (ShaderFrequency != SF_Pixel)
+		bool bOnlyInPixelShader = GetFeatureLevel() < ERHIFeatureLevel::SM4;
+
+		if (bOnlyInPixelShader && ShaderFrequency != SF_Pixel)
 		{
 			return NonPixelShaderExpressionError();
 		}

@@ -151,6 +151,10 @@ MaterialFloat4 TextureExternalSample(TextureExternal Tex, SamplerState Sampler, 
 	return Tex.Sample(Sampler, UV);
 #endif
 }
+MaterialFloat4 TextureExternalSampleLevel(Texture2D Tex, SamplerState Sampler, float2 UV, MaterialFloat Mip)
+{
+	return Tex.SampleLevel(Sampler, UV, Mip);
+}
 
 //converts an input 1d to 2d position. Useful for locating z frames that have been laid out in a 2d grid like a flipbook.
 float2 Tile1Dto2D(float xsize, float idx)
