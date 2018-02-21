@@ -622,7 +622,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 			AvailableMaterials.Append(InComponent->MaterialInstances);
 		}
 
-		if (AvailableMaterials.IsValidIndex(0) && AvailableMaterials[0] != nullptr && AvailableMaterials[0]->GetMaterial() != nullptr)
+		if (AvailableMaterials.Num() > 1 && AvailableMaterials[0] != nullptr && AvailableMaterials[0]->GetMaterial() != nullptr)
 		{
 			TessellationEnabledOnDefaultMaterial = AvailableMaterials[0]->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation;
 		}
