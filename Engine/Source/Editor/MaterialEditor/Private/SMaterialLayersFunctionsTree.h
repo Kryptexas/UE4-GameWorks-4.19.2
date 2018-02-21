@@ -83,8 +83,7 @@ public:
 
 	SMaterialLayersFunctionsInstanceWrapper* GetWrapper() { return Wrapper; }
 
-	TArray<class UMaterialInstanceConstant*> StoredLayerPreviews;
-	TArray<class UMaterialInstanceConstant*> StoredBlendPreviews;
+
 
 	TSharedRef<SWidget> CreateThumbnailWidget(EMaterialParameterAssociation InAssociation, int32 InIndex, float InThumbnailSize);
 	void UpdateThumbnailMaterial(TEnumAsByte<EMaterialParameterAssociation> InAssociation, int32 InIndex, bool bAlterBlendIndex = false);

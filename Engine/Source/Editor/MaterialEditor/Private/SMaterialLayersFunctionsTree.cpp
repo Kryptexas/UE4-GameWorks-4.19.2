@@ -967,15 +967,15 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 				LayerHandle->GetNumChildren(LayerChildren);
 				uint32 BlendChildren;
 				BlendHandle->GetNumChildren(BlendChildren);
-				if (StoredLayerPreviews.Num() != LayerChildren)
+				if (MaterialEditorInstance->StoredLayerPreviews.Num() != LayerChildren)
 				{
-					StoredLayerPreviews.Empty();
-					StoredLayerPreviews.AddDefaulted(LayerChildren);
+					MaterialEditorInstance->StoredLayerPreviews.Empty();
+					MaterialEditorInstance->StoredLayerPreviews.AddDefaulted(LayerChildren);
 				}
-				if (StoredBlendPreviews.Num() != BlendChildren)
+				if (MaterialEditorInstance->StoredBlendPreviews.Num() != BlendChildren)
 				{
-					StoredBlendPreviews.Empty();
-					StoredBlendPreviews.AddDefaulted(BlendChildren);
+					MaterialEditorInstance->StoredBlendPreviews.Empty();
+					MaterialEditorInstance->StoredBlendPreviews.AddDefaulted(BlendChildren);
 				}
 					
 				TSharedPtr<FStackSortedData> StackProperty(new FStackSortedData());
@@ -998,9 +998,15 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 				ChildProperty->ParameterHandle->GetValue(AssetObject);
 				if (AssetObject)
 				{
-					StoredLayerPreviews[LayerChildren - 1] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+					if (MaterialEditorInstance->StoredLayerPreviews[LayerChildren - 1] == nullptr)
+					{
+						MaterialEditorInstance->StoredLayerPreviews[LayerChildren - 1] = (NewObject<UMaterialInstanceConstant>(MaterialEditorInstance, NAME_None));
+					}
 					UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
-					StoredLayerPreviews[LayerChildren - 1]->SetParentEditorOnly(EditedMaterial);
+					if (MaterialEditorInstance->StoredLayerPreviews[LayerChildren - 1] && MaterialEditorInstance->StoredLayerPreviews[LayerChildren - 1]->Parent != EditedMaterial)
+					{
+						MaterialEditorInstance->StoredLayerPreviews[LayerChildren - 1]->SetParentEditorOnly(EditedMaterial);
+					}
 				}
 
 				StackProperty->Children.Add(ChildProperty);
@@ -1021,9 +1027,15 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterHandle->GetValue(AssetObject);
 						if (AssetObject)
 						{
-							StoredBlendPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+							if (MaterialEditorInstance->StoredBlendPreviews[Counter] == nullptr)
+							{
+								MaterialEditorInstance->StoredBlendPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(MaterialEditorInstance, NAME_None));
+							}
 							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
-							StoredBlendPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+							if (MaterialEditorInstance->StoredBlendPreviews[Counter] && MaterialEditorInstance->StoredBlendPreviews[Counter]->Parent != EditedMaterial)
+							{
+								MaterialEditorInstance->StoredBlendPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+							}
 						}
 						LayerProperties.Last()->Children.Add(ChildProperty);
 							
@@ -1045,9 +1057,15 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterHandle->GetValue(AssetObject);
 						if (AssetObject)
 						{
-							StoredLayerPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+							if (MaterialEditorInstance->StoredLayerPreviews[Counter] == nullptr)
+							{
+								MaterialEditorInstance->StoredLayerPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(MaterialEditorInstance, NAME_None));
+							}
 							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
-							StoredLayerPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+							if (MaterialEditorInstance->StoredLayerPreviews[Counter] && MaterialEditorInstance->StoredLayerPreviews[Counter]->Parent != EditedMaterial)
+							{
+								MaterialEditorInstance->StoredLayerPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
+							}
 						}
 						LayerProperties.Last()->Children.Add(ChildProperty);
 					}
@@ -1095,11 +1113,11 @@ TSharedRef<SWidget> SMaterialLayersFunctionsInstanceTree::CreateThumbnailWidget(
 	UObject* ThumbnailObject = nullptr;
 	if (InAssociation == EMaterialParameterAssociation::LayerParameter)
 	{
-		ThumbnailObject = StoredLayerPreviews[InIndex];
+		ThumbnailObject = MaterialEditorInstance->StoredLayerPreviews[InIndex];
 	}
 	else if (InAssociation == EMaterialParameterAssociation::BlendParameter)
 	{
-		ThumbnailObject = StoredBlendPreviews[InIndex];
+		ThumbnailObject = MaterialEditorInstance->StoredBlendPreviews[InIndex];
 	}
 	const TSharedPtr<FAssetThumbnail> AssetThumbnail = MakeShareable(new FAssetThumbnail(ThumbnailObject, InThumbnailSize, InThumbnailSize, GetTreeThumbnailPool()));
 	return AssetThumbnail->MakeThumbnailWidget();
@@ -1110,6 +1128,20 @@ void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<E
 	// Need to invert index b/c layer properties is generated in reverse order
 	TArray<TSharedPtr<FStackSortedData>> AssetChildren = LayerProperties[LayerProperties.Num() - 1 - InIndex]->Children;
 	UMaterialInstanceConstant* MaterialToUpdate = nullptr;
+	int32 ParameterIndex = InIndex;
+	if (InAssociation == EMaterialParameterAssociation::LayerParameter)
+	{
+		MaterialToUpdate = MaterialEditorInstance->StoredLayerPreviews[ParameterIndex];
+	}
+	if (InAssociation == EMaterialParameterAssociation::BlendParameter)
+	{
+		if (bAlterBlendIndex)
+		{
+			ParameterIndex--;
+		}
+		MaterialToUpdate = MaterialEditorInstance->StoredBlendPreviews[ParameterIndex];
+	}
+
 	TArray<FEditorParameterGroup> ParameterGroups;
 	for (TSharedPtr<FStackSortedData> AssetChild : AssetChildren)
 	{
@@ -1117,22 +1149,22 @@ void SMaterialLayersFunctionsInstanceTree::UpdateThumbnailMaterial(TEnumAsByte<E
 		{
 			if (Group->ParameterInfo.Association == InAssociation)
 			{
-				ParameterGroups.Add(Group->Group);
+				FEditorParameterGroup DuplicatedGroup = FEditorParameterGroup();
+				DuplicatedGroup.GroupAssociation = Group->Group.GroupAssociation;
+				DuplicatedGroup.GroupName = Group->Group.GroupName;
+				DuplicatedGroup.GroupSortPriority = Group->Group.GroupSortPriority;
+				for (UDEditorParameterValue* Parameter : Group->Group.Parameters)
+				{
+					if (Parameter->ParameterInfo.Index == ParameterIndex)
+					{
+						DuplicatedGroup.Parameters.Add(Parameter);
+					}
+				}
+				ParameterGroups.Add(DuplicatedGroup);
 			}
 		}
-		if (InAssociation == EMaterialParameterAssociation::LayerParameter)
-		{
-			MaterialToUpdate = StoredLayerPreviews[InIndex];
-		}
-		if (InAssociation == EMaterialParameterAssociation::BlendParameter)
-		{
-			int32 BlendIndex = InIndex;
-			if (bAlterBlendIndex)
-			{
-				BlendIndex--;
-			}
-			MaterialToUpdate = StoredBlendPreviews[BlendIndex];
-		}
+
+	
 
 	}
 	if (MaterialToUpdate != nullptr)

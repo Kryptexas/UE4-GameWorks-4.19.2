@@ -318,5 +318,13 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	static FName GlobalGroupPrefix;
 
 	TWeakPtr<class IDetailsView> DetailsView;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	TArray<class UMaterialInstanceConstant*> StoredLayerPreviews;
+
+	UPROPERTY()
+	TArray<class UMaterialInstanceConstant*> StoredBlendPreviews;
+#endif
 };
 

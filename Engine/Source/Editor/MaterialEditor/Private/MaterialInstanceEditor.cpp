@@ -1453,7 +1453,7 @@ void FMaterialInstanceEditor::UpdatePropertyWindow()
 	TArray<UObject*> SelectedObjects;
 	SelectedObjects.Add( MaterialEditorInstance );
 	MaterialInstanceDetails->SetObjects( SelectedObjects, true );
-	if (MaterialLayersFunctionsInstance.IsValid() && MaterialEditorInstance != MaterialLayersFunctionsInstance->MaterialEditorInstance)
+	if (MaterialLayersFunctionsInstance.IsValid())
 	{
 		MaterialLayersFunctionsInstance->SetEditorInstance(MaterialEditorInstance);
 	}
