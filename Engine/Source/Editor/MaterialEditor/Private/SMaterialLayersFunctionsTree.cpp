@@ -993,12 +993,12 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 				ChildProperty->ParameterInfo.Index = LayerChildren - 1;
 				ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::LayerParameter;
 				ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
-
-				StoredLayerPreviews[LayerChildren - 1] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
+				
 				UObject* AssetObject;
 				ChildProperty->ParameterHandle->GetValue(AssetObject);
 				if (AssetObject)
 				{
+					StoredLayerPreviews[LayerChildren - 1] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
 					UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
 					StoredLayerPreviews[LayerChildren - 1]->SetParentEditorOnly(EditedMaterial);
 				}
@@ -1018,10 +1018,10 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterInfo.Index = Counter;
 						ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::BlendParameter;
 						ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
-						StoredBlendPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
 						ChildProperty->ParameterHandle->GetValue(AssetObject);
 						if (AssetObject)
 						{
+							StoredBlendPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
 							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
 							StoredBlendPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
 						}
@@ -1042,10 +1042,10 @@ void SMaterialLayersFunctionsInstanceTree::CreateGroupsWidget()
 						ChildProperty->ParameterInfo.Index = Counter;
 						ChildProperty->ParameterInfo.Association = EMaterialParameterAssociation::LayerParameter;
 						ChildProperty->NodeKey = FString::FromInt(ChildProperty->ParameterInfo.Index) + FString::FromInt(ChildProperty->ParameterInfo.Association);
-						StoredLayerPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
 						ChildProperty->ParameterHandle->GetValue(AssetObject);
 						if (AssetObject)
 						{
+							StoredLayerPreviews[Counter] = (NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transactional));
 							UMaterialInterface* EditedMaterial = Cast<UMaterialInterface>(Cast<UMaterialFunctionInterface>(AssetObject)->GetPreviewMaterial());
 							StoredLayerPreviews[Counter]->SetParentEditorOnly(EditedMaterial);
 						}
@@ -1347,10 +1347,7 @@ void SMaterialLayersFunctionsInstanceWrapper::Construct(const FArguments& InArgs
 		.InWrapper(this);
 
 	LayerParameter = NestedTree->FunctionParameter;
-	if (LayerParameter != nullptr)
-	{
-		IsParamChecked = TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateStatic(&FMaterialPropertyHelpers::IsOverriddenExpressionCheckbox, LayerParameter));
-	}
+
 	MaterialEditorInstance = InArgs._InMaterialEditorInstance;
 	FEditorSupportDelegates::UpdateUI.AddSP(this, &SMaterialLayersFunctionsInstanceWrapper::Refresh);
 
