@@ -52,6 +52,7 @@ struct FKeyboardConfig
 #if HAS_METAL
 	// global metal device
 	id<MTLDevice> MetalDevice;
+	id<CAMetalDrawable> PanicDrawable;
 #endif
 
 	// are we using the Metal API?
@@ -94,6 +95,10 @@ struct FKeyboardConfig
 #if HAS_METAL
 // Return a drawable object (ie a back buffer texture) for the RHI to render to
 - (id<CAMetalDrawable>)MakeDrawable;
+
+// handle backgrounding by making sure we have a drawable object while suspend[ing|ed]
+-(void)ResetPanicDrawable;
+-(void)GetPanicDrawable;
 #endif
 
 
