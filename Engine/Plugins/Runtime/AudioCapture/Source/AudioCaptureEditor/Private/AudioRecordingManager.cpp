@@ -51,6 +51,10 @@ FAudioRecordingManager::FAudioRecordingManager()
 
 FAudioRecordingManager::~FAudioRecordingManager()
 {
+	if (ADC.isStreamOpen())
+	{
+		ADC.abortStream();
+	}
 }
 
 FAudioRecordingManager& FAudioRecordingManager::Get()
@@ -232,6 +236,8 @@ void FAudioRecordingManager::StopRecording(TArray<USoundWave*>& OutSoundWaves)
 	if (bRecording)
 	{
 		bRecording = false;
+		ADC.stopStream();
+		ADC.closeStream();
 
 		if (CurrentRecordedPCMData.Num() > 0)
 		{
