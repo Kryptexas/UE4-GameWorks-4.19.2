@@ -72,75 +72,86 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 		}
 
 		GRemoteBuildServerHost = "";
-		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
+
+		if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RemoteServerName")))
+		{
+			GRemoteBuildServerHost = InEnvironment->RemoteServerData[TEXT("RemoteServerName")];
+		}
 		if(GRemoteBuildServerHost.Len() == 0)
 		{
-			// check for it on the command line - meant for ShaderCompileWorker
-			if (!FParse::Value(FCommandLine::Get(), TEXT("servername"), GRemoteBuildServerHost) && GRemoteBuildServerHost.Len() == 0)
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
+			if (GRemoteBuildServerHost.Len() == 0)
 			{
-				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RemoteServerName")))
+				// check for it on the command line - meant for ShaderCompileWorker
+				if (!FParse::Value(FCommandLine::Get(), TEXT("servername"), GRemoteBuildServerHost) && GRemoteBuildServerHost.Len() == 0)
 				{
-					GRemoteBuildServerHost = InEnvironment->RemoteServerData[TEXT("RemoteServerName")];
-				}
-				if (GRemoteBuildServerHost.Len() == 0)
-				{
-					if (!GMetalLoggedRemoteCompileNotConfigured)
+					if (GRemoteBuildServerHost.Len() == 0)
 					{
-						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						if (!GMetalLoggedRemoteCompileNotConfigured)
 						{
-							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
+							if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+							{
+								UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
+							}
+							GMetalLoggedRemoteCompileNotConfigured = true;
 						}
-						GMetalLoggedRemoteCompileNotConfigured = true;
+						return false;
 					}
-					return false;
 				}
 			}
 		}
 
 		GRemoteBuildServerUser = "";
-		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), GRemoteBuildServerUser, GEngineIni);
+		if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RSyncUsername")))
+		{
+			GRemoteBuildServerUser = InEnvironment->RemoteServerData[TEXT("RSyncUsername")];
+		}
 
 		if(GRemoteBuildServerUser.Len() == 0)
 		{
-			// check for it on the command line - meant for ShaderCompileWorker
-			if (!FParse::Value(FCommandLine::Get(), TEXT("serveruser"), GRemoteBuildServerUser) && GRemoteBuildServerUser.Len() == 0)
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), GRemoteBuildServerUser, GEngineIni);
+
+			if (GRemoteBuildServerUser.Len() == 0)
 			{
-				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RSyncUsername")))
+				// check for it on the command line - meant for ShaderCompileWorker
+				if (!FParse::Value(FCommandLine::Get(), TEXT("serveruser"), GRemoteBuildServerUser) && GRemoteBuildServerUser.Len() == 0)
 				{
-					GRemoteBuildServerUser = InEnvironment->RemoteServerData[TEXT("RSyncUsername")];
-				}
-				if (GRemoteBuildServerUser.Len() == 0)
-				{
-					if (!GMetalLoggedRemoteCompileNotConfigured)
+					if (GRemoteBuildServerUser.Len() == 0)
 					{
-						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						if (!GMetalLoggedRemoteCompileNotConfigured)
 						{
-							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
+							if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+							{
+								UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
+							}
+							GMetalLoggedRemoteCompileNotConfigured = true;
 						}
-						GMetalLoggedRemoteCompileNotConfigured = true;
+						return false;
 					}
-					return false;
 				}
 			}
 		}
 
 		GRemoteBuildServerSSHKey = "";
-		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), GRemoteBuildServerSSHKey, GEngineIni);
+		if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("SSHPrivateKeyOverridePath")))
+		{
+			GRemoteBuildServerSSHKey = InEnvironment->RemoteServerData[TEXT("SSHPrivateKeyOverridePath")];
+		}
 
 		if(GRemoteBuildServerSSHKey.Len() == 0)
 		{
-			if (!FParse::Value(FCommandLine::Get(), TEXT("serverkey"), GRemoteBuildServerSSHKey) && GRemoteBuildServerSSHKey.Len() == 0)
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), GRemoteBuildServerSSHKey, GEngineIni);
+			if (GRemoteBuildServerSSHKey.Len() == 0)
 			{
-				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("SSHPrivateKeyOverridePath")))
+				if (!FParse::Value(FCommandLine::Get(), TEXT("serverkey"), GRemoteBuildServerSSHKey) && GRemoteBuildServerSSHKey.Len() == 0)
 				{
-					GRemoteBuildServerSSHKey = InEnvironment->RemoteServerData[TEXT("SSHPrivateKeyOverridePath")];
-				}
-				if (GRemoteBuildServerSSHKey.Len() == 0)
-				{
-					// RemoteToolChain.cs in UBT looks in a few more places but the code in FIOSTargetSettingsCustomization::OnGenerateSSHKey() only puts the key in this location so just going with that to keep things simple
-					TCHAR Path[4096];
-					FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
-					GRemoteBuildServerSSHKey = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *GRemoteBuildServerHost, *GRemoteBuildServerUser);
+					if (GRemoteBuildServerSSHKey.Len() == 0)
+					{
+						// RemoteToolChain.cs in UBT looks in a few more places but the code in FIOSTargetSettingsCustomization::OnGenerateSSHKey() only puts the key in this location so just going with that to keep things simple
+						TCHAR Path[4096];
+						FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
+						GRemoteBuildServerSSHKey = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *GRemoteBuildServerHost, *GRemoteBuildServerUser);
+					}
 				}
 			}
 		}
