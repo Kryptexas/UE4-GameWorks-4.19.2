@@ -106,6 +106,13 @@ public:
 public:
 
 	/**
+	 * Whether this class is supported as a spawnable
+	 * @param InClass The class
+	 * @return Whether this class is supported as a spawnable
+	 */
+	virtual bool CanSpawnObject(UClass* InClass) const { return false; }
+
+	/**
 	 * Create a new spawnable type from the given source object
 	 *
 	 * @param SourceObject		The source object to create the spawnable from

@@ -4946,15 +4946,21 @@ void ExportObjectsToText(const TArray<UMovieSceneCopyableBinding*>& ObjectsToExp
 class FObjectBindingTextFactory : public FCustomizableTextObjectFactory
 {
 public:
-	FObjectBindingTextFactory()
+	FObjectBindingTextFactory(FSequencer& InSequencer)
 		: FCustomizableTextObjectFactory(GWarn)
+		, SequencerPtr(&InSequencer)
 	{
 	}
 
 	// FCustomizableTextObjectFactory implementation
 	virtual bool CanCreateClass(UClass* InObjectClass, bool& bOmitSubObjs) const override
 	{
-		return true;
+		if (InObjectClass->IsChildOf<UMovieSceneCopyableBinding>())
+		{
+			return true;
+		}
+
+		return SequencerPtr->GetSpawnRegister().CanSpawnObject(InObjectClass);
 	}
 	
 
@@ -4976,16 +4982,19 @@ public:
 public:
 	TArray<UMovieSceneCopyableBinding*> NewCopyableBindings;
 	TArray<UObject*> NewSpawnableObjectTemplates;
+
+private:
+	FSequencer* SequencerPtr;
 };
 
 
-void ImportObjectsFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneCopyableBinding*>& ImportedObjects)
+void ImportObjectsFromText(FSequencer& InSequencer, const FString& TextToImport, /*out*/ TArray<UMovieSceneCopyableBinding*>& ImportedObjects)
 {
 	UPackage* TempPackage = NewObject<UPackage>(nullptr, TEXT("/Engine/Sequencer/Editor/Transient"), RF_Transient);
 	TempPackage->AddToRoot();
 
 	// Turn the text buffer into objects
-	FObjectBindingTextFactory Factory;
+	FObjectBindingTextFactory Factory(InSequencer);
 	Factory.ProcessBuffer(TempPackage, RF_Transactional, TextToImport);
 	ImportedObjects = Factory.NewCopyableBindings;
 
@@ -5118,7 +5127,7 @@ void FSequencer::PasteCopiedTracks()
 	UObject* BindingContext = GetPlaybackContext();
 
 	TArray<UMovieSceneCopyableBinding*> ImportedBindings;
-	ImportObjectsFromText(TextToImport, ImportedBindings);
+	ImportObjectsFromText(*this, TextToImport, ImportedBindings);
 
 	if (ImportedBindings.Num() != 0)
 	{
@@ -5341,9 +5350,9 @@ public:
 	TArray<UMovieSceneTrack*> NewTracks;
 };
 
-bool FSequencer::CanPaste(const FString& TextToImport) const
+bool FSequencer::CanPaste(const FString& TextToImport)
 {
-	FObjectBindingTextFactory ObjectBindingFactory;
+	FObjectBindingTextFactory ObjectBindingFactory(*this);
 	if (ObjectBindingFactory.CanCreateObjectsFromText(TextToImport))
 	{
 		return true;

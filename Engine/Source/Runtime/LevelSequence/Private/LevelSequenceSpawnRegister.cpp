@@ -57,3 +57,15 @@ void FLevelSequenceSpawnRegister::DestroySpawnedObject(UObject& Object)
 
 	checkf(false, TEXT("No valid object spawner found to destroy spawned object of type %s"), *Object.GetClass()->GetName());
 }
+
+bool FLevelSequenceSpawnRegister::CanSpawnObject(UClass* InClass) const
+{
+	for (TSharedRef<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
+	{
+		if (InClass->IsChildOf(MovieSceneObjectSpawner->GetSupportedTemplateType()))
+		{
+			return true;
+		}
+	}
+	return false;
+}
