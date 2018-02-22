@@ -93,12 +93,15 @@ void FPoseDataContainer::MarkPoseFlags(USkeleton* InSkeleton, FName& InRetargetS
 		check(Pose.LocalSpacePose.Num() == Tracks.Num());
 
 		Pose.LocalSpacePoseMask.SetNumZeroed(Tracks.Num(), true);
-		for (int32 TrackIndex = 0; TrackIndex < Tracks.Num(); ++TrackIndex)
+		if (InSkeleton)
 		{
-			FTransform DefaultTransform = GetDefaultTransform(Tracks[TrackIndex], InSkeleton, InRetargetSourceName);
-			if (!Pose.LocalSpacePose[TrackIndex].Equals(DefaultTransform, KINDA_SMALL_NUMBER))
+			for (int32 TrackIndex = 0; TrackIndex < Tracks.Num(); ++TrackIndex)
 			{
-				Pose.LocalSpacePoseMask[TrackIndex] = true;
+				FTransform DefaultTransform = GetDefaultTransform(Tracks[TrackIndex], InSkeleton, InRetargetSourceName);
+				if (!Pose.LocalSpacePose[TrackIndex].Equals(DefaultTransform, KINDA_SMALL_NUMBER))
+				{
+					Pose.LocalSpacePoseMask[TrackIndex] = true;
+				}
 			}
 		}
 	}
@@ -606,11 +609,7 @@ void UPoseAsset::Serialize(FArchive& Ar)
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::PoseAssetSupportPerBoneMask)
 	{
 		// fix curve names
-		USkeleton* MySkeleton = GetSkeleton();
-		if (MySkeleton)
-		{
-			PoseContainer.MarkPoseFlags(MySkeleton, RetargetSource);
-		}
+		PoseContainer.MarkPoseFlags(GetSkeleton(), RetargetSource);
 	}
 
 #if WITH_EDITOR
@@ -1367,10 +1366,22 @@ bool UPoseAsset::GetBasePoseTransform(TArray<FTransform>& OutBasePose, TArray<fl
 	if (BasePoseIndex == -1)
 	{
 		OutBasePose.AddUninitialized(TotalNumTrack);
-		for (int32 TrackIndex = 0; TrackIndex < PoseContainer.Tracks.Num(); ++TrackIndex)
+
+		USkeleton* MySkeleton = GetSkeleton();
+		if (MySkeleton)
 		{
-			const FName& TrackName = PoseContainer.Tracks[TrackIndex];
-			OutBasePose[TrackIndex] = PoseContainer.GetDefaultTransform(TrackName, GetSkeleton(), RetargetSource);
+			for (int32 TrackIndex = 0; TrackIndex < PoseContainer.Tracks.Num(); ++TrackIndex)
+			{
+				const FName& TrackName = PoseContainer.Tracks[TrackIndex];
+				OutBasePose[TrackIndex] = PoseContainer.GetDefaultTransform(TrackName, GetSkeleton(), RetargetSource);
+			}
+		}
+		else
+		{
+			for (int32 TrackIndex = 0; TrackIndex < PoseContainer.Tracks.Num(); ++TrackIndex)
+			{
+				OutBasePose[TrackIndex].SetIdentity();
+			}
 		}
 
 		// add zero curves
