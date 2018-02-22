@@ -14,6 +14,7 @@
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionMaterialLayerOutput.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +101,10 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 
 						// @TODO: Remove this. Temporary flag for toggling experimental material layers functionality
 						if (!bMaterialLayersEnabled && Class == UMaterialExpressionMaterialAttributeLayers::StaticClass())
+						{
+							continue;
+						}
+						if (Class == UMaterialExpressionMaterialLayerOutput::StaticClass())
 						{
 							continue;
 						}
