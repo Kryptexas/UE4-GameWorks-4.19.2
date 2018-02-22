@@ -552,7 +552,18 @@ FReply FMaterialPropertyHelpers::OnClickedSaveNewLayerInstance(class UMaterialFu
 	}
 	for (TSharedPtr<FStackSortedData> Group : InSortedData->Children)
 	{
-		ParameterGroups.Add(Group->Group);
+		FEditorParameterGroup DuplicatedGroup = FEditorParameterGroup();
+		DuplicatedGroup.GroupAssociation = Group->Group.GroupAssociation;
+		DuplicatedGroup.GroupName = Group->Group.GroupName;
+		DuplicatedGroup.GroupSortPriority = Group->Group.GroupSortPriority;
+		for (UDEditorParameterValue* Parameter : Group->Group.Parameters)
+		{
+			if (Parameter->ParameterInfo.Index == InSortedData->ParameterInfo.Index)
+			{
+				DuplicatedGroup.Parameters.Add(Parameter);
+			}
+		}
+		ParameterGroups.Add(DuplicatedGroup);
 	}
 
 	if (Object)
