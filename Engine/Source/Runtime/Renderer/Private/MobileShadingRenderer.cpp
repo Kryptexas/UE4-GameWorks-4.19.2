@@ -113,6 +113,8 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 	UpdatePrimitivePrecomputedLightingBuffers();
 
 	UpdatePostProcessUsageFlags();
+
+	PostInitViewCustomData();
 	
 	OnStartFrame(RHICmdList);
 }
@@ -175,8 +177,6 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
-
-	PostInitViewCustomData();
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 
