@@ -749,6 +749,14 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL_MACES2;
 }
 
+/** Whether the shader platform is OpenGL and corresponds to the ES2/ES3.1 feature level. */
+inline bool IsMobileOpenGlPlatform(const EShaderPlatform Platform)
+{
+	return IsES2Platform(Platform)
+		|| Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID
+		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID;
+}
+
 /** Whether the shader platform corresponds to the ES2/ES3.1 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
