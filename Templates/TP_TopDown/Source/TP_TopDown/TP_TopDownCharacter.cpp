@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Materials/Material.h"
+#include "Engine/World.h"
 
 ATP_TopDownCharacter::ATP_TopDownCharacter()
 {

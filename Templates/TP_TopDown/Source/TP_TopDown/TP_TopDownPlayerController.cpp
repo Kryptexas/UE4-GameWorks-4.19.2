@@ -5,6 +5,7 @@
 #include "Runtime/Engine/Classes/Components/DecalComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "TP_TopDownCharacter.h"
+#include "Engine/World.h"
 
 ATP_TopDownPlayerController::ATP_TopDownPlayerController()
 {
