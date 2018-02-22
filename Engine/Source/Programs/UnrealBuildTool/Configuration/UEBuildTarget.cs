@@ -1618,6 +1618,18 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Also add the version file if it's been specified
+				if (VersionFile != null)
+				{
+					Manifest.BuildProducts.Add(VersionFile.FullName);
+				}
+
+				// Add all the version manifests to the receipt
+				foreach (FileReference VersionManifestFile in FileReferenceToModuleManifestPairs.Select(x => x.Key))
+				{
+					Manifest.BuildProducts.Add(VersionManifestFile.FullName);
+				}
+
 				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 				if (OnlyModules.Count == 0)
 				{
