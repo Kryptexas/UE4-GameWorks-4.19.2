@@ -91,12 +91,15 @@ void UResonanceAudioSpatializationSourceSettings::PostEditChangeProperty(FProper
 				UAudioComponent* AudioComponent = *Itr;
 				if (!AudioComponent->IsPendingKill() && DoesAudioComponentReferenceThis(AudioComponent))
 				{
-					AActor* CurrentActor = CastChecked<AActor>(AudioComponent->GetOwner());
-					AResonanceAudioDirectivityVisualizer* DirectivityVisualizer = Cast<AResonanceAudioDirectivityVisualizer>(GEditor->AddActor(World->GetCurrentLevel(), AResonanceAudioDirectivityVisualizer::StaticClass(), CurrentActor->GetTransform()));
-					// Attach the visualizer to the owning object so that it can be moved with it in the editor.
-					DirectivityVisualizer->AttachToActor(CurrentActor, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-					DirectivityVisualizer->SetSettings(this);
-					DirectivityVisualizer->DrawPattern();
+					AActor* CurrentActor = AudioComponent->GetOwner();
+					if (CurrentActor != nullptr)
+					{
+						AResonanceAudioDirectivityVisualizer* DirectivityVisualizer = Cast<AResonanceAudioDirectivityVisualizer>(GEditor->AddActor(World->GetCurrentLevel(), AResonanceAudioDirectivityVisualizer::StaticClass(), CurrentActor->GetTransform()));
+						// Attach the visualizer to the owning object so that it can be moved with it in the editor.
+						DirectivityVisualizer->AttachToActor(CurrentActor, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+						DirectivityVisualizer->SetSettings(this);
+						DirectivityVisualizer->DrawPattern();
+					}
 				}
 			}
 		}
