@@ -69,28 +69,6 @@ struct FInstancedStaticMeshMappingInfo
 	}
 };
 
-class FAsyncBuildInstanceBuffer : public FNonAbandonableTask
-{
-public:
-	class UInstancedStaticMeshComponent* Component;
-	class UWorld* World;
-
-	FAsyncBuildInstanceBuffer(class UInstancedStaticMeshComponent* InComponent, class UWorld* InWorld)
-		: Component(InComponent)
-		, World(InWorld)
-	{
-	}
-	void DoWork();
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncBuildInstanceBuffer, STATGROUP_ThreadPoolAsyncTasks);
-	}
-	static const TCHAR *Name()
-	{
-		return TEXT("FAsyncBuildInstanceBuffer");
-	}
-};
-
 /** A component that efficiently renders multiple instances of the same StaticMesh. */
 UCLASS(ClassGroup = Rendering, meta = (BlueprintSpawnableComponent), Blueprintable)
 class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
@@ -135,9 +113,6 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	/** Tracks outstanding proxysize, as this is a bit hard to do with the fire-and-forget grass. */
 	SIZE_T ProxySize;
-
-	// Temp hack, long term we will load data in the right format directly
-	FAsyncTask<FAsyncBuildInstanceBuffer>* AsyncBuildInstanceBufferTask;
 
 	/** Add an instance to this component. Transform is given in local space of this component. */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
@@ -308,9 +283,6 @@ protected:
 
 	/** Initializes the body instance for the specified instance of the static mesh. */
 	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* InBodyInstance);
-
-	/** Flush the asyc instance buffer task if we're running in async mode */
-	void FlushAsyncBuildInstanceBufferTask();
 
 	/** Number of pending lightmaps still to be calculated (Apply()'d). */
 	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)

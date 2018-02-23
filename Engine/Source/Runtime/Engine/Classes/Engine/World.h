@@ -1303,9 +1303,6 @@ public:
 	UPROPERTY(transient)
 	uint32 bAreConstraintsDirty:1;
 
-	/** Coordinates async tasks started in post load that we want completed before we register components.  May not be here for long; currently used to convert foliage instance buffers.*/
-	FThreadSafeCounter AsyncPreRegisterLevelStreamingTasks;
-
 #if WITH_EDITORONLY_DATA
 	/** List of DDC async requests we need to wait on before we register components. Game thread only. */
 	TArray<TSharedPtr<FAsyncPreRegisterDDCRequest>> AsyncPreRegisterDDCRequests;

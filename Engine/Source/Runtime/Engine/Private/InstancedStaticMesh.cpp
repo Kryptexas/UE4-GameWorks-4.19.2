@@ -35,12 +35,6 @@ TAutoConsoleVariable<int32> CVarMinLOD(
 	-1,
 	TEXT("Used to discard the top LODs for performance evaluation. -1: Disable all effects of this cvar."));
 
-static TAutoConsoleVariable<int32> CVarASyncInstaneBufferConversion(
-	TEXT("foliage.ASyncInstaneBufferConversion"),
-	1,
-	TEXT("If this is > 0, then build game instance buffering async during streaming. This is not thought to be a long term solution to this problem."));
-
-
 /** InstancedStaticMeshInstance hit proxy */
 void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Collector)
 {
@@ -864,19 +858,7 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 UInstancedStaticMeshComponent::~UInstancedStaticMeshComponent()
 {
 	ReleasePerInstanceRenderData();
-	FlushAsyncBuildInstanceBufferTask();
 }
-
-void UInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTask()
-{
-	if (AsyncBuildInstanceBufferTask != nullptr)
-	{
-		AsyncBuildInstanceBufferTask->EnsureCompletion();
-		delete AsyncBuildInstanceBufferTask;
-		AsyncBuildInstanceBufferTask = nullptr;
-	}
-}
-
 
 #if WITH_EDITOR
 /** Helper class used to preserve lighting/selection state across blueprint reinstancing */
@@ -1017,7 +999,6 @@ void UInstancedStaticMeshComponent::OnRegister()
 FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 {
 	ProxySize = 0;
-	FlushAsyncBuildInstanceBufferTask();
 
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
@@ -2036,37 +2017,9 @@ void UInstancedStaticMeshComponent::PostLoad()
 
 		if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetNumInstances() == 0) // only load the data if it's not already loaded
 		{
-			UWorld* World = GetWorld();
-
-			// Force update all the Render Data
-			if (CVarASyncInstaneBufferConversion.GetValueOnGameThread() > 0 && World != nullptr && World->IsGameWorld())
-			{
-				World->AsyncPreRegisterLevelStreamingTasks.Increment();
-
-				AsyncBuildInstanceBufferTask = new FAsyncTask<FAsyncBuildInstanceBuffer>(this, World);
-				AsyncBuildInstanceBufferTask->StartBackgroundTask();
-			}
-			else
-			{
-				PerInstanceRenderData->UpdateAllInstanceData(this, true, true);
-			}
+			PerInstanceRenderData->UpdateAllInstanceData(this);
 		}
 	}
-}
-
-void FAsyncBuildInstanceBuffer::DoWork()
-{
-	LLM_SCOPE(ELLMTag::StaticMesh);
-
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageAsyncBufferUpdate);
-
-	check(Component->PerInstanceRenderData.IsValid());
-	Component->PerInstanceRenderData->UpdateAllInstanceData(Component, true, true);
-	
-	check(World);
-	check(World->AsyncPreRegisterLevelStreamingTasks.GetValue() > 0);
-	FPlatformMisc::MemoryBarrier();
-	World->AsyncPreRegisterLevelStreamingTasks.Decrement();
 }
 
 void UInstancedStaticMeshComponent::PartialNavigationUpdate(int32 InstanceIdx)

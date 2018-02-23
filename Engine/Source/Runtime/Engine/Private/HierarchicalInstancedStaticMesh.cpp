@@ -2538,8 +2538,6 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 	}
 	ProxySize = 0;
 
-	FlushAsyncBuildInstanceBufferTask();
-
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances		
@@ -2601,7 +2599,7 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 		}
 
 		// If any of the data is out of sync, build the tree now!
-		BuildTreeIfOutdated(true, false);
+		BuildTreeIfOutdated(true, ExcludedDueToDensityScaling.Num() > 0);
 	}
 }
 
