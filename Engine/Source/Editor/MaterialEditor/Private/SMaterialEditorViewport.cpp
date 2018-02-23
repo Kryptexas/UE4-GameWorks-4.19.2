@@ -257,7 +257,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 	const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
 	if (Settings->Profiles.IsValidIndex(ProfileIndex))
 	{
-		AdvancedPreviewScene->SetEnvironmentVisibility(Settings->Profiles[ProfileIndex].bShowEnvironment);
+		AdvancedPreviewScene->SetEnvironmentVisibility(Settings->Profiles[ProfileIndex].bShowEnvironment, true);
 	}
 
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SMaterialEditor3DPreviewViewport::OnPropertyChanged);
