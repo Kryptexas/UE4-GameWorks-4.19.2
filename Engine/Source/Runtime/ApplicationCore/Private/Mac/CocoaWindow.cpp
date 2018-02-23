@@ -173,7 +173,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 				MacApplication->CloseWindow(Window.ToSharedRef());
 			}
 		}
-	});
+	}, @[ NSDefaultRunLoopMode ], false);
 }
 
 - (void)performZoom:(id)Sender
