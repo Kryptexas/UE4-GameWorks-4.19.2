@@ -1127,8 +1127,14 @@ static FShaderCodeLibraryImpl* Impl = nullptr;
 
 void FShaderCodeLibrary::InitForRuntime(EShaderPlatform ShaderPlatform)
 {
-	check(Impl == nullptr);
 	check(FPlatformProperties::RequiresCookedData());
+	
+	if (Impl != nullptr)
+	{
+		//cooked, can't change shader platform on the fly
+		check(Impl->GetRuntimeShaderPlatform() == ShaderPlatform);
+		return;
+	}
 
 	if (!FPlatformProperties::IsServerOnly() && FApp::CanEverRender())
 	{
