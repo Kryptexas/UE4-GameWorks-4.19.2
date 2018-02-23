@@ -1539,7 +1539,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const FSce
 
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeStaticDrawLODTime);
 
-	if (TessellationEnabledOnDefaultMaterial && InBatch->MaterialRenderProxy->GetMaterialInterface() == AvailableMaterials[0]) // Batch use tessellation
+	if (TessellationEnabledOnDefaultMaterial && AvailableMaterials.Num() > 1  && AvailableMaterials[0] != nullptr && InBatch->MaterialRenderProxy->GetMaterialInterface() == AvailableMaterials[0]) // Batch use tessellation
 	{
 		INC_DWORD_STAT(STAT_LandscapeTessellatedComponents);
 	}
