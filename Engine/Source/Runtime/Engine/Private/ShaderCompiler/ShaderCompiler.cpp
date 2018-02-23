@@ -80,7 +80,7 @@ FString GetMaterialShaderMapDDCKey()
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerInputVersion = 9;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerOutputVersion = 3;
+const int32 ShaderCompileWorkerOutputVersion = 4;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -89,18 +89,25 @@ const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 static float GRegularWorkerTimeToLive = 20.0f;
 static float GBuildWorkerTimeToLive = 600.0f;
 
-static void ModalErrorOrLog(const FString& Text)
+static void ModalErrorOrLog(const FString& Text, int64 CurrentFilePos = 0, int64 ExpectedFileSize = 0)
 {
+	FString BadFile;
+	if (CurrentFilePos > ExpectedFileSize)
+	{
+		// Corrupt file
+		BadFile = FString::Printf(TEXT("(Truncated or corrupt output file! Current file pos %lld, file size %lld)"), CurrentFilePos, ExpectedFileSize);
+	}
+
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
+		UE_LOG(LogShaderCompilers, Error, TEXT("%s%s"), *Text, *BadFile);
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
 		FPlatformMisc::RequestExit(false);
 		return;
 	}
 	else
 	{
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s%s"), *Text, *BadFile);
 	}
 }
 
@@ -604,6 +611,9 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 		ModalErrorOrLog(Text);
 	}
 
+	int64 FileSize = 0;
+	OutputFile << FileSize;
+
 	int32 ErrorCode;
 	OutputFile << ErrorCode;
 
@@ -713,12 +723,17 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 		if (SingleJobHeader != ShaderCompileWorkerSingleJobHeader)
 		{
 			FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker Single Jobs %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, SingleJobHeader);
-			ModalErrorOrLog(Text);
+			ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
 		}
 
 		int32 NumJobs;
 		OutputFile << NumJobs;
-		checkf(NumJobs == QueuedSingleJobs.Num(), TEXT("Worker returned %u single jobs, %u expected"), NumJobs, QueuedSingleJobs.Num());
+		if (NumJobs != QueuedSingleJobs.Num())
+		{
+			FString Text = FString::Printf(TEXT("ShaderCompileWorker returned %u single jobs, %u expected"), NumJobs, QueuedSingleJobs.Num());
+			ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
+		}
+
 		for (int32 JobIndex = 0; JobIndex < NumJobs; JobIndex++)
 		{
 			auto* CurrentJob = QueuedSingleJobs[JobIndex];
@@ -733,19 +748,27 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 		if (PipelineJobHeader != ShaderCompileWorkerPipelineJobHeader)
 		{
 			FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker Pipeline Jobs %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerPipelineJobHeader, PipelineJobHeader);
-			ModalErrorOrLog(Text);
+			ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
 		}
 
 		int32 NumJobs;
 		OutputFile << NumJobs;
-		checkf(NumJobs == QueuedPipelineJobs.Num(), TEXT("Worker returned %u pipeline jobs, %u expected"), NumJobs, QueuedPipelineJobs.Num());
+		if (NumJobs != QueuedPipelineJobs.Num())
+		{
+			FString Text = FString::Printf(TEXT("Worker returned %u pipeline jobs, %u expected"), NumJobs, QueuedPipelineJobs.Num());
+			ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
+		}
 		for (int32 JobIndex = 0; JobIndex < NumJobs; JobIndex++)
 		{
 			FShaderPipelineCompileJob* CurrentJob = QueuedPipelineJobs[JobIndex];
 
 			FString PipelineName;
 			OutputFile << PipelineName;
-			checkf(PipelineName == CurrentJob->ShaderPipeline->GetName(), TEXT("Worker returned Pipeline %s, expected %s!"), *PipelineName, CurrentJob->ShaderPipeline->GetName());
+			if (PipelineName != CurrentJob->ShaderPipeline->GetName())
+			{
+				FString Text = FString::Printf(TEXT("Worker returned Pipeline %s, expected %s!"), *PipelineName, CurrentJob->ShaderPipeline->GetName());
+				ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
+			}
 
 			check(!CurrentJob->bFinalized);
 			CurrentJob->bFinalized = true;
@@ -756,7 +779,11 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 
 			if (NumStageJobs != CurrentJob->StageJobs.Num())
 			{
-				checkf(NumJobs == QueuedPipelineJobs.Num(), TEXT("Worker returned %u stage pipeline jobs, %u expected"), NumStageJobs, CurrentJob->StageJobs.Num());
+				if (NumJobs != QueuedPipelineJobs.Num())
+				{
+					FString Text = FString::Printf(TEXT("Worker returned %u stage pipeline jobs, %u expected"), NumStageJobs, CurrentJob->StageJobs.Num());
+					ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
+				}
 			}
 
 			CurrentJob->bSucceeded = true;
@@ -1835,6 +1862,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 					auto* PipelineJob = CurrentJob.GetShaderPipelineJob();
 					for (int32 Index = 0; Index < PipelineJob->StageJobs.Num(); ++Index)
 					{
+						bSuccess = bSuccess && PipelineJob->StageJobs[Index]->bSucceeded;
 						CheckSingleJob(PipelineJob->StageJobs[Index]->GetSingleShaderJob(), Errors);
 					}
 				}

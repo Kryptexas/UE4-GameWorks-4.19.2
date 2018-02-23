@@ -16,7 +16,7 @@
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerInputVersion = 9;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerOutputVersion = 3;
+const int32 ShaderCompileWorkerOutputVersion = 4;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -525,6 +525,11 @@ private:
 		int32 OutputVersion = ShaderCompileWorkerOutputVersion;
 		OutputFile << OutputVersion;
 
+		// Temp size to be filled in after we finish
+		int64 FileSize = 0;
+		int64 FileSizePosition = OutputFile.Tell();
+		OutputFile << FileSize;
+
 		int32 ErrorCode = (int32)ESCWErrorCode::Success;
 		OutputFile << ErrorCode;
 
@@ -565,6 +570,11 @@ private:
 				}
 			}
 		}
+
+		// Go back and patch the size
+		FileSize = OutputFilePtr->Tell();
+		OutputFile.Seek(FileSizePosition);
+		OutputFile << FileSize;
 	}
 
 	/** Called in the idle loop, checks for conditions under which the helper should exit */
