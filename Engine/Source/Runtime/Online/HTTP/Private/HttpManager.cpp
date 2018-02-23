@@ -68,7 +68,7 @@ void FHttpManager::Flush(bool bShutdown)
 	{
 		const double AppTime = FPlatformTime::Seconds();
 		//UE_LOG(LogHttp, Display, TEXT("Waiting for %0.2f seconds. Limit:%0.2f seconds"), (AppTime - BeginWaitTime), MaxFlushTimeSeconds);
-		if (MaxFlushTimeSeconds > 0 && (AppTime - BeginWaitTime > MaxFlushTimeSeconds))
+		if (bShutdown && MaxFlushTimeSeconds > 0 && (GIsRequestingExit || (AppTime - BeginWaitTime > MaxFlushTimeSeconds)))
 		{
 			UE_LOG(LogHttp, Display, TEXT("Canceling remaining HTTP requests after waiting %0.2f seconds"), (AppTime - BeginWaitTime));
 			for (TArray<TSharedRef<IHttpRequest>>::TIterator It(Requests); It; ++It)
