@@ -775,7 +775,7 @@ bool UMaterialInstance::GetTextureParameterValue(const FMaterialParameterInfo& P
 	return false;
 }
 
-bool UMaterialInstance::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo,class UFont*& OutFontValue, int32& OutFontPage) const
+bool UMaterialInstance::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo,class UFont*& OutFontValue, int32& OutFontPage, bool bOveriddenOnly) const
 {
 	bool bFoundAValue = false;
 
@@ -811,11 +811,12 @@ bool UMaterialInstance::GetFontParameterValue(const FMaterialParameterInfo& Para
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
+					if (ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -825,7 +826,7 @@ bool UMaterialInstance::GetFontParameterValue(const FMaterialParameterInfo& Para
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetFontParameterValue(ParameterInfo, OutFontValue, OutFontPage);
+		return Parent->GetFontParameterValue(ParameterInfo, OutFontValue, OutFontPage, bOveriddenOnly);
 	}
 	
 	return false;
@@ -2500,7 +2501,7 @@ void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform,
 	}
 }
 
-bool UMaterialInstance::GetStaticSwitchParameterValue(const FMaterialParameterInfo& ParameterInfo, bool &OutValue,FGuid &OutExpressionGuid) const
+bool UMaterialInstance::GetStaticSwitchParameterValue(const FMaterialParameterInfo& ParameterInfo, bool &OutValue,FGuid &OutExpressionGuid, bool bOveriddenOnly) const
 {
 	if (GetReentrantFlag())
 	{
@@ -2537,11 +2538,13 @@ bool UMaterialInstance::GetStaticSwitchParameterValue(const FMaterialParameterIn
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+						return true;
+						
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2551,13 +2554,13 @@ bool UMaterialInstance::GetStaticSwitchParameterValue(const FMaterialParameterIn
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetStaticSwitchParameterValue(ParameterInfo, OutValue, OutExpressionGuid);
+		return Parent->GetStaticSwitchParameterValue(ParameterInfo, OutValue, OutExpressionGuid, bOveriddenOnly);
 	}
 	
 	return false;
 }
 
-bool UMaterialInstance::GetStaticComponentMaskParameterValue(const FMaterialParameterInfo& ParameterInfo, bool &OutR, bool &OutG, bool &OutB, bool &OutA, FGuid &OutExpressionGuid) const
+bool UMaterialInstance::GetStaticComponentMaskParameterValue(const FMaterialParameterInfo& ParameterInfo, bool &OutR, bool &OutG, bool &OutB, bool &OutA, FGuid &OutExpressionGuid, bool bOveriddenOnly) const
 {
 	if (GetReentrantFlag())
 	{
@@ -2597,11 +2600,12 @@ bool UMaterialInstance::GetStaticComponentMaskParameterValue(const FMaterialPara
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2611,7 +2615,7 @@ bool UMaterialInstance::GetStaticComponentMaskParameterValue(const FMaterialPara
 	if (Parent)
 	{
 		FMICReentranceGuard	Guard(this);
-		return Parent->GetStaticComponentMaskParameterValue(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+		return Parent->GetStaticComponentMaskParameterValue(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid, bOveriddenOnly);
 	}
 	
 	return false;

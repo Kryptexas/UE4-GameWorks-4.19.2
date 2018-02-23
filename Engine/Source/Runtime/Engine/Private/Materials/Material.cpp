@@ -2451,7 +2451,7 @@ bool UMaterial::GetTextureParameterValue(const FMaterialParameterInfo& Parameter
 	return false;
 }
 
-bool UMaterial::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage) const
+bool UMaterial::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage, bool bOveriddenOnly) const
 {
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
@@ -2481,11 +2481,12 @@ bool UMaterial::GetFontParameterValue(const FMaterialParameterInfo& ParameterInf
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
+					if (ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2503,11 +2504,12 @@ bool UMaterial::GetFontParameterValue(const FMaterialParameterInfo& ParameterInf
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
+					if (ParameterOwner->OverrideNamedFontParameter(ParameterInfo, OutFontValue, OutFontPage))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutFontValue, OutFontPage);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2517,7 +2519,7 @@ bool UMaterial::GetFontParameterValue(const FMaterialParameterInfo& ParameterInf
 }
 
 
-bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid) const
+bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid, bool bOveriddenOnly) const
 {
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
@@ -2532,7 +2534,7 @@ bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& Para
 			{
 				if (ExpressionParameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid))
 				{
-					return true;
+					return !bOveriddenOnly;
 				}
 			}
 			else if (UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
@@ -2547,11 +2549,12 @@ bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& Para
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2569,11 +2572,12 @@ bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& Para
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticSwitchParameter(ParameterInfo, OutValue, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutValue, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2583,7 +2587,7 @@ bool UMaterial::GetStaticSwitchParameterValue(const FMaterialParameterInfo& Para
 }
 
 
-bool UMaterial::GetStaticComponentMaskParameterValue(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) const
+bool UMaterial::GetStaticComponentMaskParameterValue(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid, bool bOveriddenOnly) const
 {
 	// In the case of duplicate parameters with different values, this will return the
 	// first matching expression found, not necessarily the one that's used for rendering
@@ -2613,11 +2617,12 @@ bool UMaterial::GetStaticComponentMaskParameterValue(const FMaterialParameterInf
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}
@@ -2635,11 +2640,12 @@ bool UMaterial::GetStaticComponentMaskParameterValue(const FMaterialParameterInf
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
+					if (ParameterOwner->OverrideNamedStaticComponentMaskParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid))
 					{
-						Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+						return true;
 					}
-					return true;
+					Parameter->IsNamedParameter(ParameterInfo, OutR, OutG, OutB, OutA, OutExpressionGuid);
+					return !bOveriddenOnly;
 				}
 			}
 		}

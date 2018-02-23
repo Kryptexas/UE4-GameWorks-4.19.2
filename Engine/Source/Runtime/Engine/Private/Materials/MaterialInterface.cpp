@@ -292,7 +292,7 @@ bool UMaterialInterface::GetTextureParameterValue(const FMaterialParameterInfo& 
 	return false;
 }
 
-bool UMaterialInterface::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, class UFont*& OutFontValue, int32& OutFontPage) const
+bool UMaterialInterface::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, class UFont*& OutFontValue, int32& OutFontPage, bool bOveriddenOnly) const
 {
 	return false;
 }

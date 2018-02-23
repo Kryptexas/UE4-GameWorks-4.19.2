@@ -1207,6 +1207,92 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 	}
 }
 
+#if WITH_EDITOR
+void UMaterialEditorInstanceConstant::CleanParameterStack(int32 Index, EMaterialParameterAssociation MaterialType)
+{
+	check(GIsEditor);
+	TArray<FEditorParameterGroup> CleanedGroups;
+	for (FEditorParameterGroup Group : ParameterGroups)
+	{
+		FEditorParameterGroup DuplicatedGroup = FEditorParameterGroup();
+		DuplicatedGroup.GroupAssociation = Group.GroupAssociation;
+		DuplicatedGroup.GroupName = Group.GroupName;
+		DuplicatedGroup.GroupSortPriority = Group.GroupSortPriority;
+		for (UDEditorParameterValue* Parameter : Group.Parameters)
+		{
+			if (Parameter->ParameterInfo.Association != MaterialType
+				|| Parameter->ParameterInfo.Index != Index)
+			{
+				DuplicatedGroup.Parameters.Add(Parameter);
+			}
+		}
+		CleanedGroups.Add(DuplicatedGroup);
+	}
+
+	ParameterGroups = CleanedGroups;
+	CopyToSourceInstance(true);
+}
+void UMaterialEditorInstanceConstant::ResetOverrides(int32 Index, EMaterialParameterAssociation MaterialType)
+{
+	check(GIsEditor);
+
+	for (FEditorParameterGroup Group : ParameterGroups)
+	{
+		for (UDEditorParameterValue* Parameter : Group.Parameters)
+		{
+			if (Parameter->ParameterInfo.Association == MaterialType
+				&& Parameter->ParameterInfo.Index == Index)
+			{
+				UDEditorScalarParameterValue* ScalarParameterValue = Cast<UDEditorScalarParameterValue>(Parameter);
+				UDEditorVectorParameterValue* VectorParameterValue = Cast<UDEditorVectorParameterValue>(Parameter);
+				UDEditorTextureParameterValue* TextureParameterValue = Cast<UDEditorTextureParameterValue>(Parameter);
+				UDEditorFontParameterValue* FontParameterValue = Cast<UDEditorFontParameterValue>(Parameter);
+				UDEditorStaticSwitchParameterValue* StaticSwitchParameterValue = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
+				UDEditorStaticComponentMaskParameterValue* StaticMaskParameterValue = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
+				if (ScalarParameterValue)
+				{
+					float Value;
+					Parameter->bOverride = SourceInstance->GetScalarParameterValue(Parameter->ParameterInfo, Value, true);
+				}
+				if (VectorParameterValue)
+				{
+					FLinearColor Value;
+					Parameter->bOverride = SourceInstance->GetVectorParameterValue(Parameter->ParameterInfo, Value, true);
+				}
+				if (TextureParameterValue)
+				{
+					UTexture* Value;
+					Parameter->bOverride = SourceInstance->GetTextureParameterValue(Parameter->ParameterInfo, Value, true);
+				}
+				if (FontParameterValue)
+				{
+					UFont* FontValue;
+					int32 FontPage;
+					Parameter->bOverride = SourceInstance->GetFontParameterValue(Parameter->ParameterInfo, FontValue, FontPage, true);
+				}
+				if (StaticSwitchParameterValue)
+				{
+					bool Value;
+					FGuid ExpressionId;
+					Parameter->bOverride = SourceInstance->GetStaticSwitchParameterValue(Parameter->ParameterInfo, Value, ExpressionId, true);
+				}
+				if (StaticMaskParameterValue)
+				{
+					bool R;
+					bool G;
+					bool B;
+					bool A;
+					FGuid ExpressionId;
+					Parameter->bOverride = SourceInstance->GetStaticComponentMaskParameterValue(Parameter->ParameterInfo, R, G, B, A, ExpressionId, true);
+				}
+			}
+		}
+	}
+	CopyToSourceInstance(true);
+
+}
+#endif
+
 void UMaterialEditorInstanceConstant::CopyToSourceInstance(const bool bForceStaticPermutationUpdate)
 {
 	if (!SourceInstance->IsTemplate(RF_ClassDefaultObject))

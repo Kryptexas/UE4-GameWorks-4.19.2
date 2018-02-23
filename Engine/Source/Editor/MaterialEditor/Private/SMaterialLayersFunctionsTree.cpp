@@ -844,7 +844,10 @@ void SMaterialLayersFunctionsInstanceTree::SetParentsExpansionState()
 void SMaterialLayersFunctionsInstanceTree::RefreshOnAssetChange(const struct FAssetData& InAssetData, int32 Index, EMaterialParameterAssociation MaterialType)
 {
 	FMaterialPropertyHelpers::OnMaterialLayerAssetChanged(InAssetData, Index, MaterialType, FunctionInstanceHandle, FunctionInstance);
+	//set their overrides back to 0
+	MaterialEditorInstance->CleanParameterStack(Index, MaterialType);
 	CreateGroupsWidget();
+	MaterialEditorInstance->ResetOverrides(Index, MaterialType);
 	RequestTreeRefresh();
 }
 
