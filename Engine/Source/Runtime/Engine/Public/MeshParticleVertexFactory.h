@@ -115,7 +115,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),TEXT("1"));
 
 		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
-		if (!ContainsManualVertexFetch && !IsMobilePlatform(Platform) && (RHIGetShaderLanguageVersion(Platform) >= 2))
+		if (!ContainsManualVertexFetch && !IsMobilePlatform(Platform) && (!IsMetalPlatform(Platform) ||  RHIGetShaderLanguageVersion(Platform) >= 2))
 		{
 			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
 		}
