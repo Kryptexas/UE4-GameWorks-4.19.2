@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,7 +49,11 @@ public:
 	UPROPERTY()
 	double Offset;
 
-	FLiveLinkWorldTime() = default;
+	FLiveLinkWorldTime()
+		: Offset(0.0)
+	{
+		Time = FPlatformTime::Seconds();
+	};
 
 	FLiveLinkWorldTime(const double InTime)
 		: Time(InTime)
