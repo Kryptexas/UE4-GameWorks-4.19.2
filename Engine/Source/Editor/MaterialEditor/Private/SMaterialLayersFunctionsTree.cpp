@@ -210,6 +210,8 @@ public:
 					];
 				ThumbnailBox->SetMaxDesiredHeight(ThumbnailSize);
 				ThumbnailBox->SetMinDesiredHeight(ThumbnailSize);
+				ThumbnailBox->SetMinDesiredWidth(ThumbnailSize);
+				ThumbnailBox->SetMaxDesiredWidth(ThumbnailSize);
 			}
 
 		
@@ -385,7 +387,9 @@ public:
 				]
 			;
 			ThumbnailBox->SetMaxDesiredHeight(ThumbnailOverride.Y);
-			ThumbnailBox->SetMinDesiredHeight(ThumbnailOverride.X);
+			ThumbnailBox->SetMinDesiredHeight(ThumbnailOverride.Y);
+			ThumbnailBox->SetMinDesiredWidth(ThumbnailOverride.X);
+			ThumbnailBox->SetMaxDesiredWidth(ThumbnailOverride.X);
 
 			SaveInstanceBox->AddSlot()
 				.AutoWidth()
@@ -854,6 +858,7 @@ void SMaterialLayersFunctionsInstanceTree::RefreshOnAssetChange(const struct FAs
 void SMaterialLayersFunctionsInstanceTree::ResetAssetToDefault(TSharedPtr<IPropertyHandle> InHandle, TSharedPtr<FStackSortedData> InData)
 {
 	FMaterialPropertyHelpers::ResetLayerAssetToDefault(FunctionInstanceHandle.ToSharedRef(), InData->Parameter, InData->ParameterInfo.Association, InData->ParameterInfo.Index, MaterialEditorInstance);
+	UpdateThumbnailMaterial(InData->ParameterInfo.Association, InData->ParameterInfo.Index, true);
 	CreateGroupsWidget();
 	RequestTreeRefresh();
 }

@@ -785,6 +785,7 @@ void FMaterialPropertyHelpers::ResetLayerAssetToDefault(TSharedPtr<IPropertyHand
 				else
 				{
 					StoredValue.Blends[Index] = nullptr;
+					MaterialEditorInstance->StoredBlendPreviews[Index] = nullptr;
 				}
 			}
 			else if (InAssociation == EMaterialParameterAssociation::LayerParameter)
@@ -796,6 +797,7 @@ void FMaterialPropertyHelpers::ResetLayerAssetToDefault(TSharedPtr<IPropertyHand
 				else
 				{
 					StoredValue.Layers[Index] = nullptr;
+					MaterialEditorInstance->StoredLayerPreviews[Index] = nullptr;
 				}
 			}
 			LayersParam->ParameterValue = StoredValue;
