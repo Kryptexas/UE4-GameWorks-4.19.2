@@ -496,8 +496,7 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 						}
 					}
 
-					// if additive, we always start with first pose
-					const int32 StartBlendLoopIndex = (!bAdditivePose || TotalLocalWeight < 1.f) ? 0 : 1;
+					const int32 StartBlendLoopIndex = (TotalLocalWeight < 1.f) ? 0 : 1;
 
 					if (BlendingTransform.Num() == 0)
 					{
@@ -518,8 +517,15 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 
 					for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
 					{
-						BlendedBoneTransform[TrackIndex].Accumulate(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
-						BlendedBoneTransform[TrackIndex].NormalizeRotation();
+						if (bAdditivePose)
+						{
+							BlendedBoneTransform[TrackIndex].NormalizeRotation();
+							FTransform::BlendFromIdentityAndAccumulate(BlendedBoneTransform[TrackIndex], BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+						}
+						else
+						{
+							BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+						}
 					}
 				}
 			}
