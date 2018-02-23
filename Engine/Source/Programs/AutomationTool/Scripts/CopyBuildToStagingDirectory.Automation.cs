@@ -273,18 +273,24 @@ public partial class Project : CommandUtils
 		}
 		if (Params.HasDLCName)
 		{
+			// Making a plugin
 			DirectoryReference DLCRoot = Params.DLCFile.Directory;
 
-			// Making a plugin, grab the binaries too
-			if (Params.DLCPakPluginFile)
+			// The .uplugin file is staged differently for different DLC
+			// The .uplugin file doesn't actually exist for mobile DLC
+			if (FileReference.Exists(Params.DLCFile))
 			{
-				SC.StageFile(StagedFileType.UFS, Params.DLCFile);
-			}
-			else
-			{
-				SC.StageFile(StagedFileType.NonUFS, Params.DLCFile);
+				if (Params.DLCPakPluginFile)
+				{
+					SC.StageFile(StagedFileType.UFS, Params.DLCFile);
+				}
+				else
+				{
+					SC.StageFile(StagedFileType.NonUFS, Params.DLCFile);
+				}
 			}
 
+			// Put the binaries into the staged dir
 			DirectoryReference BinariesDir = DirectoryReference.Combine(DLCRoot, "Binaries");
 			if (DirectoryReference.Exists(BinariesDir))
 			{
@@ -299,7 +305,12 @@ public partial class Project : CommandUtils
 			DirectoryReference PlatformEngineDir = DirectoryReference.Combine(PlatformCookDir, "Engine");
 			DirectoryReference PlatformMetadataDir = DirectoryReference.Combine(PlatformCookDir, SC.ShortProjectName, "Metadata");
 
-			SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(DLCRoot, "Config"), "*.ini", StageFilesSearch.AllDirectories);
+			// Put the config files into the staged dir
+			DirectoryReference ConfigDir = DirectoryReference.Combine(DLCRoot, "Config");
+			if (DirectoryReference.Exists(ConfigDir))
+			{
+				SC.StageFiles(StagedFileType.UFS, ConfigDir, "*.ini", StageFilesSearch.AllDirectories);
+			}
 
 			if (Params.DLCActLikePatch)
 			{

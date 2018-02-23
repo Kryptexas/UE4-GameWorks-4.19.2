@@ -562,9 +562,12 @@ namespace AutomationTool
 				PluginInfo DLCPlugin = CandidatePlugins.FirstOrDefault(x => String.Equals(x.Name, DLCName, StringComparison.InvariantCultureIgnoreCase));
 				if(DLCPlugin == null)
 				{
-					throw new AutomationException("Unable to find plugin '{0}' for building DLC", DLCName);
+					DLCFile = FileReference.Combine(RawProjectPath.Directory, "Plugins", DLCName, DLCName + ".uplugin");
 				}
-				DLCFile = DLCPlugin.File;
+				else
+				{
+					DLCFile = DLCPlugin.File;
+				}
 			}
 
             //this.DLCName = 
