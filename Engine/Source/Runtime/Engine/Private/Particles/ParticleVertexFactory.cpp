@@ -27,8 +27,11 @@ public:
 		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(FVector2D) * 4, BUF_Static | BUF_ShaderResource, CreateInfo, BufferData);
 		FMemory::Memzero(BufferData, sizeof(FVector2D) * 4);
 		RHIUnlockVertexBuffer(VertexBufferRHI);
-		
-		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
+
+		if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+		{
+			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
+		}
 	}
 	
 	virtual void ReleaseRHI() override

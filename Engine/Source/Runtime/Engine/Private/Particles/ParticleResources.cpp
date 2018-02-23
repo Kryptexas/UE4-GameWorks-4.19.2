@@ -149,7 +149,10 @@ void FParticleScratchVertexBuffer::InitRHI()
 	VertexBufferRHI = RHICreateVertexBuffer(GParticleScratchVertexBufferSize, Flags, CreateInfo);
 	if (GSupportsResourceView)
 	{
-		VertexBufferSRV_G32R32F = RHICreateShaderResourceView( VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F );
+		if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+		{
+			VertexBufferSRV_G32R32F = RHICreateShaderResourceView(VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F);
+		}
 	}
 }
 
