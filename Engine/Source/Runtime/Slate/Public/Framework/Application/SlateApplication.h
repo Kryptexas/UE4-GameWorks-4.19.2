@@ -154,6 +154,8 @@ private:
 
 	void FinishFrame();
 
+	void NotifyWindowDestroyed(TSharedRef<SWindow> DestroyedWindow);
+
 private:
 	/** The index the user was assigned. */
 	int32 UserIndex;
