@@ -244,16 +244,19 @@ private:
 	FString GetUniqueName(FString NetName)
 	{
 		FNodeHandlingFunctor::SanitizeName(NetName);
+		// Scratchpad so that we can find a new postfix:
+		FString NewNetName(NetName);
 
 		int32 Postfix = 0;
-		const void** ExistingNet = NameToNet.Find(NetName);
+		const void** ExistingNet = NameToNet.Find(NewNetName);
 		while(ExistingNet && *ExistingNet)
 		{
 			++Postfix;
-			NetName = NetName + FString::FromInt(Postfix);
-			ExistingNet = NameToNet.Find(NetName);
+			// Add an integer to the base name and check if it's free:
+			NewNetName = NetName + FString::FromInt(Postfix);
+			ExistingNet = NameToNet.Find(NewNetName);
 		}
-		return NetName;
+		return NewNetName;
 	}
 	
 	TMap<const void*, FString> NetToName;
