@@ -121,6 +121,18 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Game", meta=(BlueprintThreadSafe))
 	static FString GetGameName();
 
+	/** Get the directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectDirectory();
+
+	/** Get the content directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectContentDirectory();
+
+	/** Get the saved directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectSavedDirectory();
+
 	/**
 	 * Retrieves the game's platform-specific bundle identifier or package name of the game
 	 *

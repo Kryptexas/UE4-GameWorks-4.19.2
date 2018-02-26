@@ -6,6 +6,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/Paths.h"
 #include "Misc/RuntimeErrors.h"
 #include "UObject/GCObject.h"
 #include "EngineGlobals.h"
@@ -89,6 +90,21 @@ FString UKismetSystemLibrary::GetEngineVersion()
 FString UKismetSystemLibrary::GetGameName()
 {
 	return FString(FApp::GetProjectName());
+}
+
+FString UKismetSystemLibrary::GetProjectDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+}
+
+FString UKismetSystemLibrary::GetProjectContentDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
+}
+
+FString UKismetSystemLibrary::GetProjectSavedDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
 }
 
 FString UKismetSystemLibrary::GetGameBundleId()
