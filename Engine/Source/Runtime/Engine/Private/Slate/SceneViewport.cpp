@@ -367,6 +367,12 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 			//check(Window.IsValid());
 			if ( Window->IsViewportSizeDrivenByWindow() )
 			{
+				if (ViewportWidget.Pin()->ShouldRenderDirectly())
+				{
+					InitialPositionX = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.X);
+					InitialPositionY = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.Y);
+				}
+
 				ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode());
 			}
 		}
