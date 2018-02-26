@@ -760,7 +760,7 @@ enum EPhysicsSceneType
 
 
 /** Enum indicating how each type should respond */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="CollisionResponseType"))
 enum ECollisionResponse
 {
 	ECR_Ignore UMETA(DisplayName="Ignore"),

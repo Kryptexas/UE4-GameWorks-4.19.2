@@ -269,6 +269,9 @@ namespace PyGenUtil
 	/** Should the given enum be exported to Python? */
 	bool ShouldExportEnum(const UEnum* InEnum);
 
+	/** Should the given enum entry be exported to Python? */
+	bool ShouldExportEnumEntry(const UEnum* InEnum, int32 InEnumEntryIndex);
+
 	/** Should the given property be exported to Python? */
 	bool ShouldExportProperty(const UProperty* InProp);
 
@@ -313,6 +316,9 @@ namespace PyGenUtil
 
 	/** Get the Python name of the given property */
 	FString GetFunctionPythonName(const UFunction* InFunc);
+
+	/** Get the Python name of the given enum */
+	FString GetPropertyTypePythonName(const UProperty* InProp);
 
 	/** Get the Python name of the given property */
 	FString GetPropertyPythonName(const UProperty* InProp);

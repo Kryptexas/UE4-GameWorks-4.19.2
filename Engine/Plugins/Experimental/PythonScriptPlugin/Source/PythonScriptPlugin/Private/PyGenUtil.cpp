@@ -6,7 +6,10 @@
 #include "Internationalization/BreakIterator.h"
 #include "UObject/UnrealType.h"
 #include "UObject/Class.h"
+#include "UObject/EnumProperty.h"
 #include "UObject/Package.h"
+#include "UObject/TextProperty.h"
+#include "UObject/UnrealType.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Engine/UserDefinedEnum.h"
@@ -23,6 +26,7 @@ const FName NotBlueprintTypeMetaDataKey = TEXT("NotBlueprintType");
 const FName BlueprintSpawnableComponentMetaDataKey = TEXT("BlueprintSpawnableComponent");
 const FName BlueprintGetterMetaDataKey = TEXT("BlueprintGetter");
 const FName BlueprintSetterMetaDataKey = TEXT("BlueprintSetter");
+const TCHAR* HiddenMetaDataKey = TEXT("Hidden");
 
 
 TSharedPtr<IBreakIterator> NameBreakIterator;
@@ -326,6 +330,11 @@ bool IsBlueprintExposedEnum(const UEnum* InEnum)
 	return false;
 }
 
+bool IsBlueprintExposedEnumEntry(const UEnum* InEnum, int32 InEnumEntryIndex)
+{
+	return !InEnum->HasMetaData(HiddenMetaDataKey, InEnumEntryIndex);
+}
+
 bool IsBlueprintExposedProperty(const UProperty* InProp)
 {
 	return InProp->HasAnyPropertyFlags(CPF_BlueprintVisible);
@@ -394,6 +403,11 @@ bool ShouldExportStruct(const UStruct* InStruct)
 bool ShouldExportEnum(const UEnum* InEnum)
 {
 	return IsBlueprintExposedEnum(InEnum);
+}
+
+bool ShouldExportEnumEntry(const UEnum* InEnum, int32 InEnumEntryIndex)
+{
+	return IsBlueprintExposedEnumEntry(InEnum, InEnumEntryIndex);
 }
 
 bool ShouldExportProperty(const UProperty* InProp)
@@ -818,6 +832,84 @@ FString GetPropertyPythonName(const UProperty* InProp)
 	return PythonizePropertyName(PropName, EPythonizeNameCase::Lower);
 }
 
+FString GetPropertyTypePythonName(const UProperty* InProp)
+{
+#define GET_PROPERTY_TYPE(TYPE, VALUE)				\
+		if (Cast<const TYPE>(InProp) != nullptr)	\
+		{											\
+			return VALUE;							\
+		}
+
+	GET_PROPERTY_TYPE(UBoolProperty, TEXT("bool"))
+	GET_PROPERTY_TYPE(UInt8Property, TEXT("int8"))
+	GET_PROPERTY_TYPE(UInt16Property, TEXT("int16"))
+	GET_PROPERTY_TYPE(UUInt16Property, TEXT("uint16"))
+	GET_PROPERTY_TYPE(UIntProperty, TEXT("int32"))
+	GET_PROPERTY_TYPE(UUInt32Property, TEXT("uint32"))
+	GET_PROPERTY_TYPE(UInt64Property, TEXT("int64"))
+	GET_PROPERTY_TYPE(UUInt64Property, TEXT("uint64"))
+	GET_PROPERTY_TYPE(UFloatProperty, TEXT("float"))
+	GET_PROPERTY_TYPE(UDoubleProperty, TEXT("double"))
+	GET_PROPERTY_TYPE(UStrProperty, TEXT("String"))
+	GET_PROPERTY_TYPE(UNameProperty, TEXT("Name"))
+	GET_PROPERTY_TYPE(UTextProperty, TEXT("Text"))
+	if (const UByteProperty* ByteProp = Cast<const UByteProperty>(InProp))
+	{
+		if (ByteProp->Enum)
+		{
+			return GetEnumPythonName(ByteProp->Enum);
+		}
+		else
+		{
+			return TEXT("uint8");
+		}
+	}
+	if (const UEnumProperty* EnumProp = Cast<const UEnumProperty>(InProp))
+	{
+		return GetEnumPythonName(EnumProp->GetEnum());
+	}
+	if (const UClassProperty* ClassProp = Cast<const UClassProperty>(InProp))
+	{
+		return FString::Printf(TEXT("type(%s)"), *GetClassPythonName(ClassProp->PropertyClass));
+	}
+	if (const UObjectPropertyBase* ObjProp = Cast<const UObjectPropertyBase>(InProp))
+	{
+		return GetClassPythonName(ObjProp->PropertyClass);
+	}
+	if (const UInterfaceProperty* InterfaceProp = Cast<const UInterfaceProperty>(InProp))
+	{
+		return GetClassPythonName(InterfaceProp->InterfaceClass);
+	}
+	if (const UStructProperty* StructProp = Cast<const UStructProperty>(InProp))
+	{
+		return GetStructPythonName(StructProp->Struct);
+	}
+	if (const UDelegateProperty* DelegateProp = Cast<const UDelegateProperty>(InProp))
+	{
+		return GetDelegatePythonName(DelegateProp->SignatureFunction);
+	}
+	if (const UMulticastDelegateProperty* MulticastDelegateProp = Cast<const UMulticastDelegateProperty>(InProp))
+	{
+		return GetDelegatePythonName(MulticastDelegateProp->SignatureFunction);
+	}
+	if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(InProp))
+	{
+		return FString::Printf(TEXT("Array(%s)"), *GetPropertyTypePythonName(ArrayProperty->Inner));
+	}
+	if (const USetProperty* SetProperty = Cast<const USetProperty>(InProp))
+	{
+		return FString::Printf(TEXT("Set(%s)"), *GetPropertyTypePythonName(SetProperty->ElementProp));
+	}
+	if (const UMapProperty* MapProperty = Cast<const UMapProperty>(InProp))
+	{
+		return FString::Printf(TEXT("Map(%s, %s)"), *GetPropertyTypePythonName(MapProperty->KeyProp), *GetPropertyTypePythonName(MapProperty->ValueProp));
+	}
+
+	return TEXT("'undefined'");
+
+#undef GET_PROPERTY_TYPE
+}
+
 FString GetPropertyPythonType(const UProperty* InProp, const bool bIncludeReadWriteState, const uint64 InReadOnlyFlags)
 {
 	FString RetStr;
@@ -827,11 +919,7 @@ FString GetPropertyPythonType(const UProperty* InProp, const bool bIncludeReadWr
 
 void AppendPropertyPythonType(const UProperty* InProp, FString& OutStr, const bool bIncludeReadWriteState, const uint64 InReadOnlyFlags)
 {
-	FString PropExtendedType;
-	const FString PropType = InProp->GetCPPType(&PropExtendedType, CPPF_ArgumentOrReturnValue);
-
-	OutStr += PropType;
-	OutStr += PropExtendedType;
+	OutStr += GetPropertyTypePythonName(InProp);
 
 	if (bIncludeReadWriteState)
 	{
