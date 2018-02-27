@@ -1585,7 +1585,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 		DataTracker.AddLODIndex(0);
 
 		// Retrieve mesh and section data for each component
-		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToMerge.Num(); ++ComponentIndex)
+		for (int32 ComponentIndex = 0; ComponentIndex < StaticMeshComponentsToMerge.Num(); ++ComponentIndex)
 		{
 			// Create material merge adapter for this component
 			UStaticMeshComponent* Component = StaticMeshComponentsToMerge[ComponentIndex];
@@ -1901,7 +1901,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 		}
 
 		// Adjust UVs
-		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToMerge.Num(); ++ComponentIndex)
+		for (int32 ComponentIndex = 0; ComponentIndex < StaticMeshComponentsToMerge.Num(); ++ComponentIndex)
 		{
 			TArray<uint32> ProcessedMaterials;
 			for (TPair<FMeshLODKey, MaterialRemapPair>& MappingPair : OutputMaterialsMap)
@@ -1977,7 +1977,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			// Find meshes for each lod
 			const int32 LODIndex = *Iterator;
 			FRawMesh& MergedMesh = MergedRawMeshes[LODIndex];
-			for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToMerge.Num(); ++ComponentIndex)
+			for (int32 ComponentIndex = 0; ComponentIndex < StaticMeshComponentsToMerge.Num(); ++ComponentIndex)
 			{
 				int32 RetrievedLODIndex = LODIndex;
 				FRawMesh* RawMeshPtr = DataTracker.TryFindRawMeshForLOD(ComponentIndex, RetrievedLODIndex);
@@ -2065,7 +2065,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 	{
 		MergedRawMeshes.AddZeroed(1);
 		FRawMesh& MergedMesh = MergedRawMeshes.Last();
-		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToMerge.Num(); ++ComponentIndex)
+		for (int32 ComponentIndex = 0; ComponentIndex < StaticMeshComponentsToMerge.Num(); ++ComponentIndex)
 		{
 			int32 LODIndex = 0;
 
