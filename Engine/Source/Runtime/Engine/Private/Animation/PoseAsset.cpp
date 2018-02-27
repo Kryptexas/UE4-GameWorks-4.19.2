@@ -496,7 +496,7 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 						}
 					}
 
-					const int32 StartBlendLoopIndex = (TotalLocalWeight < 1.f) ? 0 : 1;
+					const int32 StartBlendLoopIndex = (bAdditivePose || TotalLocalWeight < 1.f) ? 0 : 1;
 
 					if (BlendingTransform.Num() == 0)
 					{
@@ -505,7 +505,11 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 					}
 					else
 					{
-						if (StartBlendLoopIndex == 0)
+						if (bAdditivePose)
+						{
+							BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex];
+						}
+						else if (StartBlendLoopIndex == 0)
 						{
 							BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex] * ScalarRegister(1.f - TotalLocalWeight);
 						}
