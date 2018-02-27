@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -36,28 +36,38 @@ namespace UnrealBuildTool
 		public static void GetProvisioningData(FileReference InProject, bool Distribution, out string MobileProvision, out string SigningCertificate, out string TeamUUID, out bool bAutomaticSigning)
 		{
 			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(InProject);
-
-			IOSProvisioningData Data = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProvisioningData(ProjectSettings, Distribution);
-			if(Data == null)
+			if (ProjectSettings == null)
 			{
 				MobileProvision = null;
 				SigningCertificate = null;
 				TeamUUID = null;
+				bAutomaticSigning = false;
+				return;
+			}
+			if (ProjectSettings.bAutomaticSigning)
+			{
+				MobileProvision = null;
+				SigningCertificate = null;
+				TeamUUID = ProjectSettings.TeamID;
 				bAutomaticSigning = true;
 			}
 			else
 			{
-				MobileProvision = Data.MobileProvision;
-				SigningCertificate = Data.SigningCertificate;
-				TeamUUID = Data.TeamUUID;
-                if (Data.MobileProvisionName.Contains("*") || ProjectSettings.bAutomaticSigning)
-                {
-                    bAutomaticSigning = true;
-                }
-                else
-                {
-                    bAutomaticSigning = false;
-                }
+				IOSProvisioningData Data = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProvisioningData(ProjectSettings, Distribution);
+				if (Data == null)
+				{ // no provisioning, swith to automatic
+					MobileProvision = null;
+					SigningCertificate = null;
+					TeamUUID = ProjectSettings.TeamID;
+					bAutomaticSigning = true;
+				}
+				else
+				{
+					MobileProvision = Data.MobileProvision;
+					SigningCertificate = Data.SigningCertificate;
+					TeamUUID = Data.TeamUUID;
+					bAutomaticSigning = false;
+				}
 			}
 		}
 

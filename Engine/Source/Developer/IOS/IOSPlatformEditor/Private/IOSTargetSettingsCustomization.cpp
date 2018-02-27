@@ -298,13 +298,52 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	BuildCategory.AddProperty(SignCertificateProperty)
 		.Visibility(EVisibility::Hidden);
 	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
-#if PLATFORM_MAC
-	BuildCategory.AddProperty(AutomaticSigningProperty);
-#else
+
 	BuildCategory.AddProperty(AutomaticSigningProperty)
+#if PLATFORM_MAC
+		.Visibility(EVisibility::Visible);
+#else
 		.Visibility(EVisibility::Hidden);
 #endif // PLATFORM_MAC
-//	ProvisionCategory.AddProperty(AutomaticSigningProperty);
+	// Remote Server Name Property
+	TSharedRef<IPropertyHandle> IOSTeamIDHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, IOSTeamID));
+	BuildCategory.AddProperty(IOSTeamIDHandle)
+		.Visibility(EVisibility::Hidden);
+		BuildCategory.AddCustomRow(LOCTEXT("IOSTeamID", "IOSTeamID"), false)
+#if !PLATFORM_MAC
+			.Visibility(EVisibility::Hidden)
+#endif // PLATFORM_MAC
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0, 1, 0, 1))
+					.FillWidth(1.0f)
+					[
+						SNew(STextBlock)
+							.Text(LOCTEXT("IOSTeamIDLabel", "IOS Team ID"))
+							.Font(DetailLayout.GetDetailFont())
+					]
+			]
+			.ValueContent()
+			.MinDesiredWidth(150.0f)
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Fill)
+					[
+						SAssignNew(IOSTeamIDTextBox, SEditableTextBox)
+						.IsEnabled(this, &FIOSTargetSettingsCustomization::IsAutomaticSigningEnabled)
+						.Text(this, &FIOSTargetSettingsCustomization::GetIOSTeamIDText, IOSTeamIDHandle)
+						.Font(DetailLayout.GetDetailFont())
+						.SelectAllTextOnCommit(true)
+						.SelectAllTextWhenFocused(true)
+						.ClearKeyboardFocusOnCommit(false)
+						.ToolTipText(IOSTeamIDHandle->GetToolTipText())
+						.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnIOSTeamIDTextChanged, IOSTeamIDHandle)
+					]
+			];
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -1558,6 +1597,13 @@ bool FIOSTargetSettingsCustomization::IsImportEnabled() const
 	return !RunningIPPProcess.Get();
 }
 
+bool FIOSTargetSettingsCustomization::IsAutomaticSigningEnabled() const
+{
+	bool bAutomaticSigning = false;
+	AutomaticSigningProperty->GetValue(bAutomaticSigning);
+	return bAutomaticSigning;
+}
+
 void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
 {
 	if(!IsBundleIdentifierValid(NewText.ToString()))
@@ -1575,6 +1621,19 @@ void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& New
 			InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
 			FindRequiredFiles();
 		}
+	}
+}
+
+void FIOSTargetSettingsCustomization::OnIOSTeamIDTextChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+{
+	BundleIdTextBox->SetError(FText::GetEmpty());
+
+	FText OutText;
+	InPropertyHandle->GetValueAsFormattedText(OutText);
+	if (OutText.ToString() != NewText.ToString())
+	{
+		InPropertyHandle->SetValueFromFormattedString(NewText.ToString());
+		FindRequiredFiles();
 	}
 }
 
@@ -1626,6 +1685,13 @@ void FIOSTargetSettingsCustomization::OnRemoteServerChanged(const FText& NewText
 }
 
 FText FIOSTargetSettingsCustomization::GetBundleText(TSharedRef<IPropertyHandle> InPropertyHandle) const
+{
+	FText OutText;
+	InPropertyHandle->GetValueAsFormattedText(OutText);
+	return OutText;
+}
+
+FText FIOSTargetSettingsCustomization::GetIOSTeamIDText(TSharedRef<IPropertyHandle> InPropertyHandle) const
 {
 	FText OutText;
 	InPropertyHandle->GetValueAsFormattedText(OutText);

@@ -342,6 +342,11 @@ namespace iPhonePackager
 						bPassesWildCardCheck = true;
 					}
 				}
+				bool bIsManaged = false;
+				if (p.ProvisionName == "iOS Team Provisioning Profile: " + CFBundleIdentifier)
+				{
+					bIsManaged = true;
+				}
 				bool bDistribution = ((p.ProvisionedDeviceIDs.Count == 0) && !p.bDebug);
 				string Validity = "VALID";
 				if (!bCertTimeIsValid)
@@ -355,6 +360,10 @@ namespace iPhonePackager
 				else if (!bPassesNameCheck && !bPassesWildCardCheck && !bPassesCompanyCheck)
 				{
 					Validity = "NO_MATCH";
+				}
+				if (bIsManaged)
+				{
+					Validity = "MANAGED";
 				}
 				if ((string.IsNullOrWhiteSpace(SelectedProvision) || FoundName < 2) && Validity == "VALID" && !bDistribution)
 				{

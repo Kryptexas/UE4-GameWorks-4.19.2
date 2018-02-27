@@ -311,6 +311,11 @@ namespace iPhonePackager
 		public static bool bForDistribution = false;
 
 		/// <summary>
+		/// Is this going to try automatic signing?
+		/// </summary>
+		public static bool bAutomaticSigning = false;
+
+		/// <summary>
 		/// Whether or not to strip symbols (they will always be stripped when packaging for distribution)
 		/// </summary>
 		public static bool bForceStripSymbols = false;
@@ -340,10 +345,15 @@ namespace iPhonePackager
 		/// </summary>
 		public static string ProvisionUUID = "";
 
-        /// <summary>
-        /// Whether the install should be performed on a certificate
-        /// </summary>
-        public static bool bCert = false;
+		/// <summary>
+		/// IOS Team ID to be used for automatic signing
+		/// </summary>
+		public static string TeamID = "";
+
+		/// <summary>
+		/// Whether the install should be performed on a certificate
+		/// </summary>
+		public static bool bCert = false;
 
 		/// <summary>
 		/// Certificate to be installed

@@ -379,6 +379,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
 	bool bAutomaticSigning;
 
+	// The team ID of the apple developer account to be used to autmatically sign IOS builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (ConfigHierarchyEditable))
+		FString IOSTeamID;
+
 	// Whether the app supports HTTPS
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (DisplayName = "Allow web connections to non-HTTPS websites"))
 	bool bDisableHTTPS;

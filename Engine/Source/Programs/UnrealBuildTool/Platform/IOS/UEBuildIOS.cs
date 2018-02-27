@@ -143,6 +143,12 @@ namespace UnrealBuildTool
 		public readonly bool bAutomaticSigning = false;
 
 		/// <summary>
+		/// The IOS Team ID
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "IOSTeamID")]
+		public readonly string TeamID = "";
+
+		/// <summary>
 		/// true to change FORCEINLINE to a regular INLINE.
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDisableForceInline")]
