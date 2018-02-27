@@ -6097,7 +6097,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				FString OriginalAssetRegistryPath = GetReleaseVersionAssetRegistryPath( BasedOnReleaseVersion, PlatformName ) / GetAssetRegistryFilename();
 
 				TArray<FName> PackageFiles;
-				verify( !GetAllPackageFilenamesFromAssetRegistry(OriginalAssetRegistryPath, PackageFiles) );
+				verify( GetAllPackageFilenamesFromAssetRegistry(OriginalAssetRegistryPath, PackageFiles) );
 
 				for ( const FName& PackageFilename : PackageFiles )
 				{
