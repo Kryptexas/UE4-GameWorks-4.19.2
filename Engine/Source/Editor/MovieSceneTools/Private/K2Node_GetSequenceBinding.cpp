@@ -203,6 +203,11 @@ FNodeHandlingFunctor* UK2Node_GetSequenceBinding::CreateNodeHandler(FKismetCompi
 	return new FKCHandler_GetSequenceBinding(CompilerContext);
 }
 
+void UK2Node_GetSequenceBinding::PreloadRequiredAssets()
+{
+	GetSequence();
+}
+
 FText UK2Node_GetSequenceBinding::GetSequenceName() const
 {
 	UMovieSceneSequence* Sequence = GetSequence();
