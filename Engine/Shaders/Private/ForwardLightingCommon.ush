@@ -329,7 +329,11 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		// if there was a hit
 		BRANCH if( HitUVzTime.w < 1 )
 		{
-			float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler,  ReprojectHit( HitUVzTime.xyz ) );
+			float2 SampleUV;
+			float Vignette;
+			ReprojectHit( HitUVzTime.xyz, SampleUV, Vignette );
+
+			float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler,  SampleUV ) * Vignette;
 			#if USE_PREEXPOSURE
 				SSR.rgb *= PrevSceneColorPreExposureInv;
 			#endif
