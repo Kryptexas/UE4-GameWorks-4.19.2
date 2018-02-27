@@ -1761,8 +1761,7 @@ void* FLandscapeComponentSceneProxy::InitViewCustomData(const FSceneView& InView
 	PrimitiveCustomDataIndex = GetPrimitiveSceneInfo()->GetIndex();
 	const FSceneView& View = GetLODView(InView);
 
-	FViewCustomDataLOD* LODData = (FViewCustomDataLOD*)new(InCustomDataMemStack)  FViewCustomDataLOD();
-	LODData->SubSections.AddDefaulted(NumSubsections == 1 ? 1 : MAX_SUBSECTION_COUNT);
+	FViewCustomDataLOD* LODData = new (InCustomDataMemStack) FViewCustomDataLOD();
 
 	check(InMeshScreenSizeSquared <= 1.0f);
 	LODData->ComponentScreenSize = InMeshScreenSizeSquared;
@@ -1946,7 +1945,6 @@ float FLandscapeComponentSceneProxy::GetNeighborLOD(const FSceneView& InView, fl
 			float MeshBatchScreenSizeSquared = GetComponentScreenSize(&GetLODView(InView), SubSectionOrigin, SubSectionMaxExtend, LandscapeComponent->Bounds.SphereRadius / 2.0f);
 
 			FViewCustomDataLOD NeighborLODData;
-			NeighborLODData.SubSections.AddDefaulted(MAX_SUBSECTION_COUNT);
 			CalculateLODFromScreenSize(InView, MeshBatchScreenSizeSquared, InView.LODDistanceFactor, DesiredSubSectionIndex, NeighborLODData);
 			const FViewCustomDataSubSectionLOD& SubSectionData = NeighborLODData.SubSections[DesiredSubSectionIndex];
 			check(SubSectionData.fBatchElementCurrentLOD != -1.0f);
@@ -1961,7 +1959,6 @@ float FLandscapeComponentSceneProxy::GetNeighborLOD(const FSceneView& InView, fl
 			float MeshBatchScreenSizeSquared = GetComponentScreenSize(&GetLODView(InView), LandscapeComponentOrigin, LandscapeComponentMaxExtends, LandscapeComponent->Bounds.SphereRadius);
 
 			FViewCustomDataLOD NeighborLODData;
-			NeighborLODData.SubSections.AddDefaulted(1);
 			CalculateLODFromScreenSize(InView, MeshBatchScreenSizeSquared, InView.LODDistanceFactor, 0, NeighborLODData);
 
 			FViewCustomDataSubSectionLOD& SubSectionLODData = NeighborLODData.SubSections[0];
@@ -3108,8 +3105,6 @@ public:
 			float ComponentScreenSize = SceneProxy->GetComponentScreenSize(&View, SceneProxy->LandscapeComponent->Bounds.Origin, SceneProxy->ComponentMaxExtend, SceneProxy->LandscapeComponent->Bounds.SphereRadius);
 			
 			FLandscapeComponentSceneProxy::FViewCustomDataLOD CurrentLODData;
-			CurrentLODData.SubSections.AddDefaulted(SceneProxy->NumSubsections == 1 ? 1 : FLandscapeComponentSceneProxy::MAX_SUBSECTION_COUNT);
-
 			SceneProxy->CalculateBatchElementLOD(InView, ComponentScreenSize, View.LODDistanceFactor, CurrentLODData);
 
 			if (LodBiasParameter.IsBound())

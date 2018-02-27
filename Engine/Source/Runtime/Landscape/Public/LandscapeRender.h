@@ -484,6 +484,7 @@ public:
 		FVector4 ShaderCurrentNeighborLOD;
 	};
 
+	// NOTE: CustomData is added in a FMemStack of the render thread, so no destructor will be called on any of the elements
 	struct FViewCustomDataLOD
 	{
 		FViewCustomDataLOD()
@@ -498,7 +499,7 @@ public:
 		int8 StaticMeshBatchLOD;
 		bool UseCombinedMeshBatch;
 		float ComponentScreenSize;
-		TArray<FViewCustomDataSubSectionLOD> SubSections; // We always have at least 1 subsections
+		TStaticArray<FViewCustomDataSubSectionLOD, MAX_SUBSECTION_COUNT> SubSections; // We always have at least 1 subsections
 
 		// Shaders pre calculated params
 		FVector4 ShaderCurrentLOD;
