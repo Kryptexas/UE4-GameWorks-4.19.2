@@ -362,7 +362,7 @@ void FSlateUser::FinishFrame()
 
 void FSlateUser::NotifyWindowDestroyed(TSharedRef<SWindow> DestroyedWindow)
 {
-	if (FocusWidgetPathStrong.IsValid() && DestroyedWindow == FocusWidgetPathStrong->GetWindow())
+	if (FocusWidgetPathStrong.IsValid() && FocusWidgetPathStrong->IsValid() && DestroyedWindow == FocusWidgetPathStrong->GetWindow())
 	{
 		FocusWidgetPathStrong.Reset();
 	}
