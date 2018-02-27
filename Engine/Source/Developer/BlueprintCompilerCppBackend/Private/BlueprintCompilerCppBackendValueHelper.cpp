@@ -730,7 +730,9 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 			if (!bCreatingSubObjectsOfClass && bIsInstancedReference)
 			{
 				// Emit ctor code to create the instance only if it's not a default subobject; otherwise, just assign the reference value to a local variable for initialization.
-				const FString MappedObject = HandleInstancedSubobject(Context, Object, !bIsDefaultSubobject);
+				// Note that we also skip the editor-only check if it's a default subobject. In that case, the instance will either have already been created with CreateDefaultSubobject(),
+				// or creation will have been skipped (e.g. CreateEditorOnlyDefaultSubobject()). We check the pointer for NULL before assigning default value overrides in the generated ctor.
+				const FString MappedObject = HandleInstancedSubobject(Context, Object, /* bCreateInstance = */ !bIsDefaultSubobject, /* bSkipEditorOnlyCheck = */ bIsDefaultSubobject);
 
 				// We should always find a mapping in this case.
 				if (ensure(!MappedObject.IsEmpty()))
@@ -2141,6 +2143,9 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	}
 	else
 	{
+		// We should always be the one creating an instance in this case.
+		check(bCreateInstance);
+
 		// Dummy object that's instanced for any editor-only subobject dependencies.
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
