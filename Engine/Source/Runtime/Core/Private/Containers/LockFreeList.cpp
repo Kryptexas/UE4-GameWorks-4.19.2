@@ -50,12 +50,14 @@ void LockFreeLinksExhausted(uint32 TotalNum)
 
 static void ChangeMem(int32 Delta)
 {
+#if 0   // this is not safe; we cannot change stats in the middle of a lock free operation
 	static FThreadSafeCounter LockFreeListMem;
 	LockFreeListMem.Add(Delta);
 	if (GIsRunning)
 	{
 		SET_MEMORY_STAT(STAT_LockFreeListLinks, LockFreeListMem.GetValue());
 	}
+#endif
 }
 
 void* LockFreeAllocLinks(SIZE_T AllocSize)
