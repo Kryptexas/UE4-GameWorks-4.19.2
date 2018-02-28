@@ -818,6 +818,15 @@ void FMetalRenderPass::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uin
 	[Encoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
 }
 
+void FMetalRenderPass::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size)
+{
+	ConditionalSwitchToAsyncBlit();
+	id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
+	check(Encoder);
+	
+	[Encoder copyFromBuffer:SourceBuffer sourceOffset:SourceOffset toBuffer:DestinationBuffer destinationOffset:DestinationOffset size:Size];
+}
+
 void FMetalRenderPass::AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture)
 {
 	ConditionalSwitchToAsyncBlit();

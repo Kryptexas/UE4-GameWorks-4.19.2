@@ -93,6 +93,8 @@ public:
     
     void AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
     
+    void AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size);
+	
     void AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture);
     
 	void SubmitAsyncCommands(MTLCommandBufferHandler ScheduledHandler, MTLCommandBufferHandler CompletionHandler, bool const bWait);

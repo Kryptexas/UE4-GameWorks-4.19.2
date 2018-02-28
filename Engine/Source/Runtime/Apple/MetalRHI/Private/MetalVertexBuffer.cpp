@@ -313,7 +313,7 @@ void FMetalVertexBuffer::Unlock()
 		if (LockSize && CPUBuffer)
 		{
 			// Synchronise the buffer with the GPU
-			GetMetalDeviceContext().CopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+			GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
 		}
 #if PLATFORM_MAC
 		else if(LockSize && Buffer.storageMode == MTLStorageModeManaged)

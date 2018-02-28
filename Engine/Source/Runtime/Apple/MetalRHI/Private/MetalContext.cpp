@@ -1482,6 +1482,11 @@ void FMetalContext::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32
 	RenderPass.AsyncCopyFromTextureToTexture(Texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin);
 }
 
+void FMetalContext::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size)
+{
+	RenderPass.AsyncCopyFromBufferToBuffer(SourceBuffer, SourceOffset, DestinationBuffer, DestinationOffset, Size);
+}
+
 void FMetalContext::AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture)
 {
 	RenderPass.AsyncGenerateMipmapsForTexture(Texture);
