@@ -196,6 +196,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	//~ Begin UAnimInstance Interface
 	virtual void NativeInitializeAnimation() override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	virtual bool CanRunParallelWork() const { return false; }
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;
 	//~ End UAnimInstance Interface

@@ -571,6 +571,7 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 	const bool bUseParallelUpdateAnimation = (GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && bUseMultiThreadedAnimationUpdate) || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
+		!CanRunParallelWork() ||
 		GIntraFrameDebuggingGameThread ||
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||

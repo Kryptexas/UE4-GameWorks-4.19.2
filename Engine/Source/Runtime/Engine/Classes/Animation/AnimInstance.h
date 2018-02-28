@@ -458,6 +458,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pose")
 	virtual void SnapshotPose(UPARAM(ref) FPoseSnapshot& Snapshot);
 
+	// Can this animation instance run Update or Evaluation work in parallel
+	virtual bool CanRunParallelWork() const { return true; }
+
 	// Are we being evaluated on a worker thread
 	bool IsRunningParallelEvaluation() const;
 
