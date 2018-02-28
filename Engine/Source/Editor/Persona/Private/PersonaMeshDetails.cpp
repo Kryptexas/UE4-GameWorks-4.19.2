@@ -2100,7 +2100,7 @@ void FPersonaMeshDetails::OnGetSectionsForView(ISectionListBuilder& OutSections,
 
 		if (LODIndex == 0 || !bHasMaterialMap)
 		{
-			int32 NumSections = Model.NumNonClothingSections();
+			int32 NumSections = Model.Sections.Num();
 			for (int32 SectionIdx = 0; SectionIdx < NumSections; SectionIdx++)
 			{
 				int32 MaterialIndex = Model.Sections[SectionIdx].MaterialIndex;
