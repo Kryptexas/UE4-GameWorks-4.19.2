@@ -3284,11 +3284,21 @@ namespace UnrealBuildTool
 				List<UEBuildModule> PrecompiledModules = new List<UEBuildModule>();
 				foreach (UEBuildModuleCPP Module in Modules.Values.OfType<UEBuildModuleCPP>())
 				{
-					if(Module.Binary != null && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !PrecompiledModules.Contains(Module))
+					if(!PrecompiledModules.Contains(Module) && Module.Binary != null)
 					{
-						PrecompiledModules.Add(Module);
+						if (Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						{
+							PrecompiledModules.Add(Module);
+						}
+						
+						// If engine is installed and enterprise is installed, add enterprise modules to list of precompiled modules
+						else if (bUsePrecompiled && UnrealBuildTool.IsEnterpriseInstalled() && UnrealBuildTool.IsUnderAnEngineDirectory(Module.RulesFile.Directory))
+						{
+							PrecompiledModules.Add(Module);
+						}
 					}
 				}
+
 
 				// If we're precompiling a base engine target, create binaries for all the engine modules that are compatible with it.
 				if (bPrecompile && ProjectFile == null && TargetType != TargetType.Program)
@@ -4495,11 +4505,19 @@ namespace UnrealBuildTool
 					{
 						GeneratedCodeDirectory = Plugin.Directory;
 					}
-					else if (bUseSharedBuildEnvironment && ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+					else if (bUseSharedBuildEnvironment)
 					{
-						GeneratedCodeDirectory = UnrealBuildTool.EngineDirectory;
+						if(ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						{
+							GeneratedCodeDirectory = UnrealBuildTool.EngineDirectory;
+						}
+						else if (UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory))
+						{
+							GeneratedCodeDirectory = UnrealBuildTool.EnterpriseDirectory;
+						}
 					}
-					else
+					
+					if(GeneratedCodeDirectory == null)
 					{
 						GeneratedCodeDirectory = ProjectDirectory;
 					}

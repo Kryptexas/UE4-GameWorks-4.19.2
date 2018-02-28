@@ -99,6 +99,16 @@ namespace UnrealBuildTool
 		public static readonly DirectoryReference EnterpriseSourceDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Source");
 
 		/// <summary>
+		/// The full name of the Enterprise/Plugins directory
+		/// </summary>
+		public static readonly DirectoryReference EnterprisePluginsDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Plugins");
+
+		/// <summary>
+		/// The full name of the Enterprise/Intermediate directory
+		/// </summary>
+		public static readonly DirectoryReference EnterpriseIntermediateDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Intermediate");
+
+		/// <summary>
 		/// The Remote Ini directory.  This should always be valid when compiling using a remote server.
 		/// </summary>
 		static string RemoteIniPath = null;
@@ -284,7 +294,7 @@ namespace UnrealBuildTool
 		{
 			// Enterprise modules are considered as engine modules
 			return InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
-				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
+				InDirectory.IsUnderDirectory( UnrealBuildTool.EnterprisePluginsDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseIntermediateDirectory );
 		}
 
 		/// <summary>
@@ -298,7 +308,7 @@ namespace UnrealBuildTool
 			bool bIsUnderEngine = InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory );
 
 			bool bIsUnderEnterprise = InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
-				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
+				InDirectory.IsUnderDirectory(UnrealBuildTool.EnterprisePluginsDirectory) || InDirectory.IsUnderDirectory(UnrealBuildTool.EnterpriseIntermediateDirectory);
 
 			return (IsEngineInstalled() && bIsUnderEngine) || (IsEnterpriseInstalled() && bIsUnderEnterprise);
 		}
