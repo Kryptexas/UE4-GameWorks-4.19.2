@@ -1950,6 +1950,17 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		}
 	}
 
+	// Add the uber graph frame just so that we match the old skeleton class's layout. This will be removed in 4.20:
+	if (CompilerContext.UsePersistentUberGraphFrame() && AllEventGraphs.Num() != 0)
+	{
+		//UBER GRAPH PERSISTENT FRAME
+		FEdGraphPinType Type(TEXT("struct"), NAME_None, FPointerToUberGraphFrame::StaticStruct(), EPinContainerType::None, false, FEdGraphTerminalType());
+		CompilerContext.NewClass = Ret;
+		UProperty* Property = CompilerContext.CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
+		CompilerContext.NewClass = OriginalNewClass;
+		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
+	}
+
 	CompilerContext.NewClass = Ret;
 	CompilerContext.bAssignDelegateSignatureFunction = true;
 	CompilerContext.FinishCompilingClass(Ret);
