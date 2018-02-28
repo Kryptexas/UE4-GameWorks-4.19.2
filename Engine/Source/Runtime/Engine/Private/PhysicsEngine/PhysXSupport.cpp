@@ -915,19 +915,28 @@ void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, 
 	}
 
 
-	if(e == PxErrorCode::eINTERNAL_ERROR)
+	if (e == PxErrorCode::eINTERNAL_ERROR)
 	{
 		const char* HillClimbError = "HillClimbing";
 		const char* TestSATCapsulePoly = "testSATCapsulePoly";
-		//HACK: We parse the message to see if it's hill climbing so that we can log some more useful information higher up in the callstack
-		if(FPlatformString::Strstr(message, HillClimbError))
+		const char* MeshCleanFailed = "cleaning the mesh failed";
+
+		// HACK: We parse the message to see if it's hill climbing so that we can log some more useful information higher up in the callstack
+		if (FPlatformString::Strstr(message, HillClimbError))
 		{
 			GHillClimbError = true;
 		}
-		
-		if(FPlatformString::Strstr(message, TestSATCapsulePoly))
+
+		if (FPlatformString::Strstr(message, TestSATCapsulePoly))
 		{
 			GHillClimbError = true;
+		}
+
+		// HACK: Internal errors which we want to suppress in release builds should be changed to debug warning error codes.
+		// This way we see them in debug but not in production.
+		if (FPlatformString::Strstr(message, MeshCleanFailed))
+		{
+			e = PxErrorCode::eDEBUG_WARNING;
 		}
 	}
 
