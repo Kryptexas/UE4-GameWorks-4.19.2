@@ -349,4 +349,7 @@ void UAppleARKitFaceMeshComponent::PublishViaLiveLink(FName SubjectName)
 	}
 }
 
-
+FTransform UAppleARKitFaceMeshComponent::GetTransform() const
+{
+	return LocalToWorldTransform;
+}

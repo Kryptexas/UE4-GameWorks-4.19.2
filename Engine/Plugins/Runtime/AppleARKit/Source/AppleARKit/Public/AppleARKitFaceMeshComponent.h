@@ -103,6 +103,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|ARFaceMesh")
 	void PublishViaLiveLink(FName SubjectName);
 
+	/** Get the transform that the AR camera has detected */
+	UFUNCTION(BlueprintPure, Category = "Components|ARFaceMesh")
+	FTransform GetTransform() const;
+
 	/**	Indicates whether collision should be created for this face mesh. This adds significant cost, so only use if you need to trace against the face mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components|ARFaceMesh")
 	bool bWantsCollision;
