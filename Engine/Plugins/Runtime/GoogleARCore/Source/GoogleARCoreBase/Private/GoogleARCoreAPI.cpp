@@ -90,17 +90,34 @@ void ArSession_reportEngineType(ArSession* session, const char* engine_type, con
 /****************************************/
 /*       FGoogleARCoreAPKManager        */
 /****************************************/
-EGoogleARCoreAvailabilityInternal FGoogleARCoreAPKManager::CheckARCoreAPKAvailability()
+EGoogleARCoreAvailability FGoogleARCoreAPKManager::CheckARCoreAPKAvailability()
 {
-	ensureMsgf(false, TEXT("FGoogleARCoreAPKManager::CheckARCoreAPKAvailability Not Implemented!"));
-	return EGoogleARCoreAvailabilityInternal::UnkownError;
-
+#if PLATFORM_ANDROID
+	static JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "getApplicationContext", "()Landroid/content/Context;", false);
+	static jobject ApplicationContext = FJavaWrapper::CallObjectMethod(Env, FAndroidApplication::GetGameActivityThis(), Method);
+	
+	ArAvailability OutAvailability = AR_AVAILABILITY_UNKNOWN_ERROR;
+	ArCoreApk_checkAvailability(Env, ApplicationContext, &OutAvailability);
+	
+	// Use static_cast here since we already make sure the enum has the same value.
+	return static_cast<EGoogleARCoreAvailability>(OutAvailability);
+#endif
+	return EGoogleARCoreAvailability::UnsupportedDeviceNotCapable;
 }
 
-EGoogleARCoreAPIStatus FGoogleARCoreAPKManager::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus)
+EGoogleARCoreAPIStatus FGoogleARCoreAPKManager::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatus& OutInstallStatus)
 {
-	ensureMsgf(false, TEXT("FGoogleARCoreAPKManager::RequestInstall Not Implemented!"));
-	return EGoogleARCoreAPIStatus::AR_ERROR_FATAL;
+	EGoogleARCoreAPIStatus Status = EGoogleARCoreAPIStatus::AR_ERROR_FATAL;
+#if PLATFORM_ANDROID
+	static JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	static jobject ApplicationActivity = FAndroidApplication::GetGameActivityThis();
+	
+	ArInstallStatus OutAvailability = AR_INSTALL_STATUS_INSTALLED;
+	Status = ToARCoreAPIStatus(ArCoreApk_requestInstall(Env, ApplicationActivity, bUserRequestedInstall, &OutAvailability));
+	OutInstallStatus = static_cast<EGoogleARCoreInstallStatus>(OutAvailability);
+#endif
+	return Status;
 }
 
 /****************************************/
@@ -611,11 +628,23 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARC
 		ArTrackable_getType(SessionHandle, TrackableHandle, &TrackableType);
 
 		// Filter the HitResult based on the requested trace channel.
-		if (TrackableType == AR_TRACKABLE_POINT && !!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePoint))
+		if (TrackableType == AR_TRACKABLE_POINT)
 		{
-			UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
-			FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
-			OutHitResults.Add(UEHitResult);
+			ArPoint* ARPointHandle = reinterpret_cast<ArPoint*>(TrackableHandle);
+			ArPointOrientationMode OrientationMode = AR_POINT_ORIENTATION_INITIALIZED_TO_IDENTITY;
+			ArPoint_getOrientationMode(SessionHandle, ARPointHandle, &OrientationMode);
+			if(OrientationMode == AR_POINT_ORIENTATION_ESTIMATED_SURFACE_NORMAL && !!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePointWithSurfaceNormal))
+			{
+				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
+				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
+				OutHitResults.Add(UEHitResult);
+			}
+			else if(!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePoint))
+			{
+				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
+				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
+				OutHitResults.Add(UEHitResult);
+			}
 		}
 		else if (TrackableType == AR_TRACKABLE_PLANE)
 		{

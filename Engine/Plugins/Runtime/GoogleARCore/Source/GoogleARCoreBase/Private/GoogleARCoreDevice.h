@@ -19,9 +19,9 @@ public:
 
 	FGoogleARCoreDevice();
 
-	EGoogleARCoreAvailabilityInternal CheckARCoreAPKAvailability();
+	EGoogleARCoreAvailability CheckARCoreAPKAvailability();
 
-	EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus);
+	EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatus& OutInstallStatus);
 
 	bool GetIsTrackingTypeSupported(EARSessionType SessionType);
 	

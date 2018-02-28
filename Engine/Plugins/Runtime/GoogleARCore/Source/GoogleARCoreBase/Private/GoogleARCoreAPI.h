@@ -19,82 +19,81 @@ DEFINE_LOG_CATEGORY_STATIC(LogGoogleARCoreAPI, Log, All);
 
 enum class EGoogleARCoreAPIStatus : int
 {
+	/// The operation was successful.
 	AR_SUCCESS = 0,
-	// Invalid argument handling: null pointers and invalid enums for void
-	// functions are handled by logging and returning best-effort value.
-	// Non-void functions additionally return AR_ERROR_INVALID_ARGUMENT.
+	
+	/// One of the arguments was invalid, either null or not appropriate for the
+	/// operation requested.
 	AR_ERROR_INVALID_ARGUMENT = -1,
+	
+	/// An internal error occurred that the application should not attempt to
+	/// recover from.
 	AR_ERROR_FATAL = -2,
+	
+	/// An operation was attempted that requires the session be running, but the
+	/// session was paused.
 	AR_ERROR_SESSION_PAUSED = -3,
+	
+	/// An operation was attempted that requires the session be paused, but the
+	/// session was running.
 	AR_ERROR_SESSION_NOT_PAUSED = -4,
+	
+	/// An operation was attempted that the session be in the TRACKING state,
+	/// but the session was not.
 	AR_ERROR_NOT_TRACKING = -5,
+	
+	/// A texture name was not set by calling ArSession_setCameraTextureName()
+	/// before the first call to ArSession_update()
 	AR_ERROR_TEXTURE_NOT_SET = -6,
+	
+	/// An operation required GL context but one was not available.
 	AR_ERROR_MISSING_GL_CONTEXT = -7,
+	
+	/// The configuration supplied to ArSession_configure() was unsupported.
+	/// To avoid this error, ensure that Session_checkSupported() returns true.
 	AR_ERROR_UNSUPPORTED_CONFIGURATION = -8,
+	
+	/// The android camera permission has not been granted prior to calling
+	/// ArSession_resume()
 	AR_ERROR_CAMERA_PERMISSION_NOT_GRANTED = -9,
-
-	// Acquire failed because the object being acquired is already released.
-	// This happens e.g. if the developer holds an old frame for too long, and
-	// then tries to acquire a point cloud from it.
+	
+	/// Acquire failed because the object being acquired is already released.
+	/// For example, this happens if the application holds an ::ArFrame beyond
+	/// the next call to ArSession_update(), and then tries to acquire its point
+	/// cloud.
 	AR_ERROR_DEADLINE_EXCEEDED = -10,
-
-	// Acquire failed because there are too many objects already acquired. For
-	// example, the developer may acquire up to N point clouds.
-	// N is determined by available resources, and is usually small, e.g. 8.
-	// If the developer tries to acquire N+1 point clouds without releasing the
-	// previously acquired ones, they will get this error.
+	
+	/// There are no available resources to complete the operation.  In cases of
+	/// @c acquire methods returning this error, This can be avoided by
+	/// releasing previously acquired objects before acquiring new ones.
 	AR_ERROR_RESOURCE_EXHAUSTED = -11,
-
-	// Acquire failed because the data isn't available yet for the current
-	// frame. For example, acquire the image metadata may fail with this error
-	// because the camera hasn't fully started.
+	
+	/// Acquire failed because the data isn't available yet for the current
+	/// frame. For example, acquire the image metadata may fail with this error
+	/// because the camera hasn't fully started.
 	AR_ERROR_NOT_YET_AVAILABLE = -12,
-
+	
+	/// The android camera has been reallocated to a higher priority app or is
+	/// otherwise unavailable.
+	AR_ERROR_CAMERA_NOT_AVAILABLE = -13,
+	
+	/// The ARCore APK is not installed on this device.
 	AR_UNAVAILABLE_ARCORE_NOT_INSTALLED = -100,
+	
+	/// The device is not currently compatible with ARCore.
 	AR_UNAVAILABLE_DEVICE_NOT_COMPATIBLE = -101,
-	AR_UNAVAILABLE_ANDROID_VERSION_NOT_SUPPORTED = -102,
-	// The ARCore APK currently installed on device is too old and needs to be
-	// updated. For example, SDK v2.0.0 when APK is v1.0.0.
+	
+	/// The ARCore APK currently installed on device is too old and needs to be
+	/// updated.
 	AR_UNAVAILABLE_APK_TOO_OLD = -103,
-	// The ARCore APK currently installed no longer supports the sdk that the
-	// app was built with. For example, SDK v1.0.0 when APK includes support for
-	// v2.0.0+.
+	
+	/// The ARCore APK currently installed no longer supports the ARCore SDK
+	/// that the application was built with.
 	AR_UNAVAILABLE_SDK_TOO_OLD = -104,
-};
-
-UENUM(BlueprintType)
-enum class EGoogleARCoreInstallStatusInternal : uint8
-{
-	/* The requested resource is already installed.*/
-	Installed = 0,
-	/* Installation of the resource was requested. The current activity will be paused. */
-	Requrested = 1,
-	/* Cannot start the install request because the platform is not supported. */
-	NotAvailable = 200,
-};
-
-enum class EGoogleARCoreAvailabilityInternal : uint8
-{
-	/* An internal error occurred while determining ARCore availability. */
-	UnkownError = 0,
-	/* ARCore is not installed, and a query has been issued to check if ARCore is is supported. */
-	UnkownChecking = 1,
-	/*
-	* ARCore is not installed, and the query to check if ARCore is supported
-	* timed out. This may be due to the device being offline.
-	*/
-	UnkownTimedOut = 2,
-	/* ARCore is not supported on this device.*/
-	UnsupportedDeviceNotCapable = 100,
-	/* The device and Android version are supported, but the ARCore APK is not installed.*/
-	SupportedNotInstalled = 201,
-	/*
-	* The device and Android version are supported, and a version of the
-	* ARCore APK is installed, but that ARCore APK version is too old.
-	*/
-	SupportedApkTooOld = 202,
-	/* ARCore is supported, installed, and available to use. */
-	SupportedInstalled = 203
+	
+	/// The user declined installation of the ARCore APK during this run of the
+	/// application and the current request was not marked as user-initiated.
+	AR_UNAVAILABLE_USER_DECLINED_INSTALLATION = -105
 };
 
 #if PLATFORM_ANDROID
@@ -147,8 +146,8 @@ public:
 class FGoogleARCoreAPKManager
 {
 public:
-	static EGoogleARCoreAvailabilityInternal CheckARCoreAPKAvailability();
-	static EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus);
+	static EGoogleARCoreAvailability CheckARCoreAPKAvailability();
+	static EGoogleARCoreAPIStatus RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatus& OutInstallStatus);
 };
 
 

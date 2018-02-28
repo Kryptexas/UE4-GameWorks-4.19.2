@@ -14,11 +14,11 @@ class GOOGLEARCOREBASE_API UGoogleARCorePointCloudRendererComponent : public USc
 	GENERATED_BODY()
 public:
 	/** The color of the point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePointCloudRenderer")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|PointCloudRenderer")
 	FColor PointColor = FColor::Red;
 
 	/** The size of the point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePointCloudRenderer")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|PointCloudRenderer")
 	float PointSize = 1.f;
 
 	UGoogleARCorePointCloudRendererComponent();

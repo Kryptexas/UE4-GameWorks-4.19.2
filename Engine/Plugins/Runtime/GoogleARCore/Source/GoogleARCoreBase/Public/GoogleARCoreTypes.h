@@ -26,38 +26,51 @@ typedef struct ArPointCloud_ ArPointCloud;
 typedef struct ArAnchor_ ArAnchor;
 #endif
 
-/**
- * @ingroup GoogleARCoreBase
- * Describes the status of ARCore availability
- */
 UENUM(BlueprintType)
 enum class EGoogleARCoreAvailability : uint8
 {
 	/* An internal error occurred while determining ARCore availability. */
-	UnkownError,
+	UnkownError = 0,
+	/* ARCore is not installed, and a query has been issued to check if ARCore is is supported. */
+	UnkownChecking = 1,
+	/*
+	 * ARCore is not installed, and the query to check if ARCore is supported
+	 * timed out. This may be due to the device being offline.
+	 */
+	UnkownTimedOut = 2,
 	/* ARCore is not supported on this device.*/
-	UnsupportedDeviceNotCapable,
-	/* The device and Android version are supported, but the ARCore app is not installed or not up to date*/
-	SupportedNotInstalled,
+	UnsupportedDeviceNotCapable = 100,
+	/* The device and Android version are supported, but the ARCore APK is not installed.*/
+	SupportedNotInstalled = 201,
+	/*
+	 * The device and Android version are supported, and a version of the
+	 * ARCore APK is installed, but that ARCore APK version is too old.
+	 */
+	SupportedApkTooOld = 202,
 	/* ARCore is supported, installed, and available to use. */
-	SupportedInstalled
+	SupportedInstalled = 203
 };
 
-/**
- * @ingroup GoogleARCoreBase
- * Describes the result of ARCore install request
- */
+UENUM(BlueprintType)
+enum class EGoogleARCoreInstallStatus : uint8
+{
+	/* The requested resource is already installed.*/
+	Installed = 0,
+	/* Installation of the resource was requested. The current activity will be paused. */
+	Requrested = 1,
+};
+
 UENUM(BlueprintType)
 enum class EGoogleARCoreInstallRequestResult : uint8
 {
-	/* The ARCore app is installed*/
+	/* The ARCore APK is installed*/
 	Installed,
-	/* ARCore app install request failed because the device is not compatible. */
+	/* ARCore APK install request failed because the device is not compatible. */
 	DeviceNotCompatible,
-	/* ARCore app install request failed because the user declined the installation. */
+	/* ARCore APK install request failed because the current version of android is too old to support ARCore. */
 	UserDeclinedInstallation,
-	/* ARCore app install request failed because some error happens while checking or requesting installation. */
-	Error
+	/* ARCore APK install request failed because unknown error happens while checking or requesting installation. */
+	FatalError
 };
 
 /**
@@ -132,7 +145,12 @@ enum class EGoogleARCoreLineTraceChannel : uint8
 	/** Trace against the plane using its extent. */
 	PlaneUsingExtent = 4,
 	/** Trace against the plane using its boundary polygon. */
-	PlaneUsingBoundaryPolygon = 8
+	PlaneUsingBoundaryPolygon = 8,
+	/**
+	 * Trace against feature point and attempt to estimate the normal of the surface centered around the trace hit point.
+	 * Surface normal estimation is most likely to succeed on textured surfaces and with camera motion.
+	 */
+	FeaturePointWithSurfaceNormal = 16,
 };
 ENUM_CLASS_FLAGS(EGoogleARCoreLineTraceChannel);
 
@@ -155,19 +173,19 @@ public:
 	int64 GetUpdateTimestamp();
 
 	/** Checks if this point cloud has been updated in this frame. */
-	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|PointCloud")
 	bool IsUpdated();
 
 	/** Returns the number of point inside this point cloud. */
-	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|PointCloud")
 	int GetPointNum();
 
 	/** Returns the point position in Unreal world space and it's confidence value from 0 ~ 1. */
-	UFUNCTION(BlueprintPure, Category = "UGoogleARCorePointCloud")
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|PointCloud")
 	void GetPoint(int Index, FVector& OutWorldPosition, float& OutConfidence);
 
 	/** Release PointCloud's resources back to ArCore. Data will not be available after releasePointCloud is called. */
-	UFUNCTION(BlueprintCallable, Category = "UGoogleARCorePointCloud")
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|PointCloud")
 	void ReleasePointCloud();
 
 private:

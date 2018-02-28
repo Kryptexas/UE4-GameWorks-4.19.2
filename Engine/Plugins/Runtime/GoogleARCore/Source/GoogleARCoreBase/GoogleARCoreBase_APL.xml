@@ -5,7 +5,9 @@
   <init>
     <log text="GoogleARCorePlugin APL init"/>
     <setBoolFromProperty result="bGradle" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="bEnableGradle" default="false"/>
-  </init>
+		<!-- Get the bARCoreRequiredApp setting from the Engine ini. -->
+		<setBoolFromProperty result="bARCoreRequiredApp" ini="Engine" section="/Script/GoogleARCoreBase.GoogleARCoreEditorSettings" property="bARCoreRequiredApp" default="true" />
+	</init>
 
   <!-- optional files or directories to copy to Intermediate/Android/APK -->
   <resourceCopies>
@@ -24,8 +26,20 @@
 
   <!-- optional updates applied to AndroidManifest.xml -->
   <androidManifestUpdates>
-    <addPermission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <addPermission android:name="android.permission.CAMERA"/>
+    <if condition="bARCoreRequiredApp">
+      <true>
+        <addFeature android:name="android.hardware.camera.ar" android:required="true"/>
+        <addElements tag="application">
+          <meta-data android:name="com.google.ar.core" android:value="required" />
+        </addElements>
+      </true>
+      <false>
+        <addElements tag="application">
+          <meta-data android:name="com.google.ar.core" android:value="optional" />
+        </addElements>
+      </false>
+    </if>
   </androidManifestUpdates>
 
 
@@ -108,7 +122,7 @@
   <buildGradleAdditions>
       <insert>
         dependencies {
-          compile('com.google.ar:core:0.91.0')
+          compile('com.google.ar:core:1.0.0')
         }
       </insert>
   </buildGradleAdditions>
@@ -118,7 +132,7 @@
     <insertNewline/>
     <if condition="bGradle">
       <false>
-        <insert>com.google.ar, core, 0.91.0</insert>
+        <insert>com.google.ar, core, 1.0.0</insert>
         <insertNewline/>
       </false>
     </if>

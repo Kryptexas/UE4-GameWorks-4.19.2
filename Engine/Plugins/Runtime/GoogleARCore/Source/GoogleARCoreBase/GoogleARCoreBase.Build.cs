@@ -20,6 +20,7 @@ namespace UnrealBuildTool.Rules
 					new string[]
 					{
 						"HeadMountedDisplay",
+						"AugmentedReality",
 					}
 				);
 
@@ -38,7 +39,6 @@ namespace UnrealBuildTool.Rules
 					"AndroidPermission",
 					"GoogleARCoreRendering",
 					"GoogleARCoreSDK",
-					"AugmentedReality",
 					"OpenGL"
 				}
 			);

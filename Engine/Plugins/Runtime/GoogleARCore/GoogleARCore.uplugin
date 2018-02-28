@@ -1,8 +1,8 @@
 {
     "FileVersion" : 3,
 
-    "Version" : 2,
-    "VersionName" : "0.9",
+    "Version" : 3,
+    "VersionName" : "1.0",
     "FriendlyName" : "Google ARCore",
     "Description" : "Support for Google's AR platform.",
     "Category" : "Augmented Reality",

@@ -22,25 +22,29 @@ namespace
 
 		return nullptr;
 	}
-
-	EGoogleARCoreAvailability ToGoogleARCoreAvailability(EGoogleARCoreAvailabilityInternal AvailabilityInternal)
+	
+	EGoogleARCoreInstallRequestResult ToAPKInstallStatus(EGoogleARCoreAPIStatus RequestStatus)
 	{
-		switch (AvailabilityInternal)
+		EGoogleARCoreInstallRequestResult OutRequestResult = EGoogleARCoreInstallRequestResult::FatalError;
+		switch (RequestStatus)
 		{
-		case EGoogleARCoreAvailabilityInternal::UnkownError:
-		case EGoogleARCoreAvailabilityInternal::UnkownTimedOut:
-			return EGoogleARCoreAvailability::UnkownError;
-		case EGoogleARCoreAvailabilityInternal::UnsupportedDeviceNotCapable:
-			return EGoogleARCoreAvailability::UnsupportedDeviceNotCapable;
-		case EGoogleARCoreAvailabilityInternal::SupportedNotInstalled:
-		case EGoogleARCoreAvailabilityInternal::SupportedApkTooOld:
-			return EGoogleARCoreAvailability::SupportedNotInstalled;
-		case EGoogleARCoreAvailabilityInternal::SupportedInstalled:
-			return EGoogleARCoreAvailability::SupportedInstalled;
-		default:
-			ensureMsgf(false, TEXT("Unknown conversion from EGoogleARCoreAvailabilityInternal %d to EGoogleARCoreAvailability."), static_cast<int>(AvailabilityInternal));
-			return EGoogleARCoreAvailability::UnkownError;
+			case EGoogleARCoreAPIStatus::AR_SUCCESS:
+				OutRequestResult = EGoogleARCoreInstallRequestResult::Installed;
+				break;
+			case EGoogleARCoreAPIStatus::AR_ERROR_FATAL:
+				OutRequestResult = EGoogleARCoreInstallRequestResult::FatalError;
+				break;
+			case EGoogleARCoreAPIStatus::AR_UNAVAILABLE_DEVICE_NOT_COMPATIBLE:
+				OutRequestResult = EGoogleARCoreInstallRequestResult::DeviceNotCompatible;
+				break;
+			case EGoogleARCoreAPIStatus::AR_UNAVAILABLE_USER_DECLINED_INSTALLATION:
+				OutRequestResult = EGoogleARCoreInstallRequestResult::UserDeclinedInstallation;
+				break;
+			default:
+				ensureMsgf(false, TEXT("Unexpected ARCore API Status: %d"), RequestStatus);
+				break;
 		}
+		return OutRequestResult;
 	}
 
 	const float DefaultLineTraceDistance = 100000; // 1000 meter
@@ -49,15 +53,136 @@ namespace
 /************************************************************************/
 /*  UGoogleARCoreSessionFunctionLibrary | Lifecycle                     */
 /************************************************************************/
+struct FARCoreCheckAvailabilityAction : public FPendingLatentAction
+{
+public:
+	FName ExecutionFunction;
+	int32 OutputLink;
+	FWeakObjectPtr CallbackTarget;
+	EGoogleARCoreAvailability& OutAvailability;
+	
+	FARCoreCheckAvailabilityAction(const FLatentActionInfo& InLatentInfo, EGoogleARCoreAvailability& InAvailability)
+	: FPendingLatentAction()
+	, ExecutionFunction(InLatentInfo.ExecutionFunction)
+	, OutputLink(InLatentInfo.Linkage)
+	, CallbackTarget(InLatentInfo.CallbackTarget)
+	, OutAvailability(InAvailability)
+	{}
+	
+	virtual void UpdateOperation(FLatentResponse& Response) override
+	{
+		EGoogleARCoreAvailability ARCoreAvailability = FGoogleARCoreDevice::GetInstance()->CheckARCoreAPKAvailability();
+		if (ARCoreAvailability != EGoogleARCoreAvailability::UnkownChecking)
+		{
+			OutAvailability = ARCoreAvailability;
+			Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
+		}
+	}
+#if WITH_EDITOR
+	virtual FString GetDescription() const override
+	{
+		return FString::Printf(TEXT("Checking ARCore availability."));
+	}
+#endif
+};
+
 void UGoogleARCoreSessionFunctionLibrary::CheckARCoreAvailability(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreAvailability& OutAvailability)
 {
-	ensureMsgf(false, TEXT("UGoogleARCoreSessionFunctionLibrary::CheckARCoreAPKAvailability Not Implemented!"));
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+	{
+		FLatentActionManager& LatentManager = World->GetLatentActionManager();
+		if (LatentManager.FindExistingAction<FARCoreCheckAvailabilityAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
+		{
+			FARCoreCheckAvailabilityAction* NewAction = new FARCoreCheckAvailabilityAction(LatentInfo, OutAvailability);
+			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
+		}
+		else
+		{
+			UE_LOG(LogGoogleARCore, Warning, TEXT("CheckARCoreAvailability not excuted. The previous action hasn't finished yet."));
+		}
+	}
 }
 
+EGoogleARCoreAvailability UGoogleARCoreSessionFunctionLibrary::CheckARCoreAvailableStatus()
+{
+	return FGoogleARCoreDevice::GetInstance()->CheckARCoreAPKAvailability();
+}
+
+struct FARCoreAPKInstallAction : public FPendingLatentAction
+{
+public:
+	FName ExecutionFunction;
+	int32 OutputLink;
+	FWeakObjectPtr CallbackTarget;
+	EGoogleARCoreInstallRequestResult& OutRequestResult;
+	bool bInstallRequested;
+	
+	FARCoreAPKInstallAction(const FLatentActionInfo& InLatentInfo, EGoogleARCoreInstallRequestResult& InRequestResult)
+	: FPendingLatentAction()
+	, ExecutionFunction(InLatentInfo.ExecutionFunction)
+	, OutputLink(InLatentInfo.Linkage)
+	, CallbackTarget(InLatentInfo.CallbackTarget)
+	, OutRequestResult(InRequestResult)
+	, bInstallRequested(false)
+	{}
+	
+	virtual void UpdateOperation(FLatentResponse& Response) override
+	{
+		UE_LOG(LogTemp, Log, TEXT("IntallARCore UpdateOperation..."));
+		EGoogleARCoreInstallStatus InstallStatus = EGoogleARCoreInstallStatus::Installed;
+		EGoogleARCoreAPIStatus RequestStatus = FGoogleARCoreDevice::GetInstance()->RequestInstall(!bInstallRequested, InstallStatus);
+		UE_LOG(LogTemp, Log, TEXT("Requset ARCore Install(User Requested %d) Status: %d, Install Status: %d"), !bInstallRequested, (int)RequestStatus, (int)InstallStatus);
+		if (RequestStatus != EGoogleARCoreAPIStatus::AR_SUCCESS)
+		{
+			OutRequestResult = ToAPKInstallStatus(RequestStatus);
+			Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
+		}
+		else if (InstallStatus == EGoogleARCoreInstallStatus::Installed)
+		{
+			OutRequestResult = EGoogleARCoreInstallRequestResult::Installed;
+			Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
+		}
+		else
+		{
+			// InstallSttatus returns requested.
+			bInstallRequested = true;
+		}
+	}
+#if WITH_EDITOR
+	virtual FString GetDescription() const override
+	{
+		return FString::Printf(TEXT("Checking ARCore availability."));
+	}
+#endif
+};
 
 void UGoogleARCoreSessionFunctionLibrary::InstallARCoreService(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreInstallRequestResult& OutInstallResult)
 {
-	ensureMsgf(false, TEXT("UGoogleARCoreSessionFunctionLibrary::InstallARCoreService Not Implemented!"));
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+	{
+		FLatentActionManager& LatentManager = World->GetLatentActionManager();
+		if (LatentManager.FindExistingAction<FARCoreAPKInstallAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
+		{
+			FARCoreAPKInstallAction* NewAction = new FARCoreAPKInstallAction(LatentInfo, OutInstallResult);
+			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
+		}
+	}
+}
+
+EGoogleARCoreInstallStatus UGoogleARCoreSessionFunctionLibrary::RequestInstallARCoreAPK()
+{
+	EGoogleARCoreInstallStatus InstallStatus = EGoogleARCoreInstallStatus::Installed;
+	EGoogleARCoreAPIStatus RequestStatus = FGoogleARCoreDevice::GetInstance()->RequestInstall(true, InstallStatus);
+	
+	return InstallStatus;
+}
+
+EGoogleARCoreInstallRequestResult UGoogleARCoreSessionFunctionLibrary::GetARCoreAPKInstallResult()
+{
+	EGoogleARCoreInstallStatus InstallStatus = EGoogleARCoreInstallStatus::Installed;
+	EGoogleARCoreAPIStatus RequestStatus = FGoogleARCoreDevice::GetInstance()->RequestInstall(false, InstallStatus);
+	
+	return ToAPKInstallStatus(RequestStatus);
 }
 
 struct FARCoreStartSessionAction : public FPendingLatentAction

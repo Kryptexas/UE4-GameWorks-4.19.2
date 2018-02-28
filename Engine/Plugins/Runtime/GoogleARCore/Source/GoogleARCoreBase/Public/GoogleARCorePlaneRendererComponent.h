@@ -14,23 +14,23 @@ class GOOGLEARCOREBASE_API UGoogleARCorePlaneRendererComponent : public USceneCo
 public:
 
 	/** Render the plane quad when set to true. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|TrackablePlaneRenderer")
 	bool bRenderPlane = true;
 
 	/** Render the plane boundary polygon lines when set to true. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|TrackablePlaneRenderer")
 	bool bRenderBoundaryPolygon = true;
 
 	/** The color of the plane. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|TrackablePlaneRenderer")
 	FLinearColor PlaneColor = FLinearColor::Green;
 
 	/** The color of the boundary polygon. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|TrackablePlaneRenderer")
 	FLinearColor BoundaryPolygonColor = FLinearColor::Blue;
 
 	/** The line thickness for the plan boundary polygon. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePlaneRendererComponent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|TrackablePlaneRenderer")
 	float BoundaryPolygonThickness = 0.5f;
 
 	UGoogleARCorePlaneRendererComponent();

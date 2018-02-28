@@ -66,12 +66,12 @@ FGoogleARCoreDevice::FGoogleARCoreDevice()
 {
 }
 
-EGoogleARCoreAvailabilityInternal FGoogleARCoreDevice::CheckARCoreAPKAvailability()
+EGoogleARCoreAvailability FGoogleARCoreDevice::CheckARCoreAPKAvailability()
 {
 	return FGoogleARCoreAPKManager::CheckARCoreAPKAvailability();
 }
 
-EGoogleARCoreAPIStatus FGoogleARCoreDevice::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatusInternal& OutInstallStatus)
+EGoogleARCoreAPIStatus FGoogleARCoreDevice::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatus& OutInstallStatus)
 {
 	return FGoogleARCoreAPKManager::RequestInstall(bUserRequestedInstall, OutInstallStatus);
 }
