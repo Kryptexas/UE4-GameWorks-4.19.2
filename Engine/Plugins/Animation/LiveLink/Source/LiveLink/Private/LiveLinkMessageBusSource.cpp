@@ -29,7 +29,7 @@ void FLiveLinkMessageBusSource::ReceiveClient(ILiveLinkClient* InClient, FGuid I
 	FHeartbeatManager::Get()->RegisterSource(this);
 }
 
-void FLiveLinkMessageBusSource::SendHeartbeat()
+bool FLiveLinkMessageBusSource::SendHeartbeat()
 {
 	const double CurrentTime = FPlatformTime::Seconds();
 
@@ -42,6 +42,7 @@ void FLiveLinkMessageBusSource::SendHeartbeat()
 
 	MessageEndpoint->Send(new FLiveLinkHeartbeatMessage(), ConnectionAddress);
 	HeartbeatLastSent = CurrentTime;
+	return bIsValid;
 }
 
 

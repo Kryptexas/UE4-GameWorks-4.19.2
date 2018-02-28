@@ -38,7 +38,7 @@ public:
 	virtual FText GetSourceMachineName() const { return SourceMachineName; }
 	virtual FText GetSourceStatus() const { return SourceStatus; }
 
-	void SendHeartbeat();
+	bool SendHeartbeat();
 
 private:
 

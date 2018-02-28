@@ -42,14 +42,19 @@ uint32 FHeartbeatManager::Run()
 			// Loop through all sources and send heartbeat
 			for (const auto& MessageBusSource : MessageBusSources)
 			{
-				if (MessageBusSource != nullptr && MessageBusSource->IsSourceStillValid())
+				if (MessageBusSource != nullptr)
 				{
-					MessageBusSource->SendHeartbeat();
-				}
-				else
-				{
-					// Source is invalid, queue it for removal
-					SourcesToRemove.Emplace(MessageBusSource);
+					bool bStillValid = MessageBusSource->IsSourceStillValid();
+					if (bStillValid)
+					{
+						bStillValid = MessageBusSource->SendHeartbeat();
+					}
+
+					if (!bStillValid)
+					{
+						// Source is invalid, queue it for removal
+						SourcesToRemove.Emplace(MessageBusSource);
+					}
 				}
 			}
 
