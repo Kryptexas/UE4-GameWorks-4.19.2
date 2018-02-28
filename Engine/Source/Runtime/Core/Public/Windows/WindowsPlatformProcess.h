@@ -211,42 +211,6 @@ private:
 	 * @param SearchPaths Search directories to scan for imports
 	 */
 	static void* LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths);
-
-	/**
-	 * Resolve all the imports for the given library, searching through a set of directories.
-	 *
-	 * @param FileName Path to the library to load
-	 * @param SearchPaths Search directories to scan for imports
-	 * @param ImportFileNames Array which is filled with a list of the resolved imports found in the given search directories
-	 * @param VisitedImportNames Array which stores a list of imports which have been checked
-	 */
-	static void ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames);
-
-	/**
-	 * Resolve an individual import.
-	 *
-	 * @param ImportName Name of the imported module
-	 * @param SearchPaths Search directories to scan for imports
-	 * @param OutFileName On success, receives the path to the imported file
-	 * @return true if an import was found.
-	 */
-	static bool ResolveImport(const FString& ImportName, const TArray<FString>& SearchPaths, FString& OutFileName);
-
-	/**
-	 * Reads a list of import names from a portable executable file.
-	 *
-	 * @param FileName Path to the library
-	 * @param ImportNames Array to receive the list of imported PE file names
-	 */
-	static bool ReadLibraryImports(const TCHAR* FileName, TArray<FString>& ImportNames);
-
-	/**
-	 * Log diagnostic messages showing missing imports for module.
-	 *
-	 * @param FileName Path to the library to load
-	 * @param SearchPaths Search directories to scan for imports
-	 */
-	static void LogImportDiagnostics(const FString& FileName, const TArray<FString>& SearchPaths);
 };
 
 
