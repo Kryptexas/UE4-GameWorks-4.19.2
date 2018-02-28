@@ -143,6 +143,8 @@ private:
 	bool bPermissionDeniedByUser;
 	bool bStartSessionRequested; // User called StartSession
 	bool bShouldSessionRestart; // Start tracking on activity start
+	bool bARCoreInstallRequested;
+	bool bARCoreInstalled;
 	float WorldToMeterScale;
 	class UARCoreAndroidPermissionHandler* PermissionHandler;
 	FThreadSafeBool bDisplayOrientationChanged;

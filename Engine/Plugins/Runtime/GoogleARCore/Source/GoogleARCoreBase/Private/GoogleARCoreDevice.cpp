@@ -59,6 +59,8 @@ FGoogleARCoreDevice::FGoogleARCoreDevice()
 	, bPermissionDeniedByUser(false)
 	, bStartSessionRequested(false)
 	, bShouldSessionRestart(false)
+	, bARCoreInstallRequested(false)
+	, bARCoreInstalled(false)
 	, WorldToMeterScale(100.0f)
 	, PermissionHandler(nullptr)
 	, bDisplayOrientationChanged(false)
@@ -143,6 +145,7 @@ void FGoogleARCoreDevice::StartARCoreSessionRequest(UARSessionConfig* SessionCon
 	bStartSessionRequested = true;
 	// Re-request permission if necessary
 	bPermissionDeniedByUser = false;
+	bARCoreInstallRequested = false;
 
 	// Try recreating the ARCoreSession to fix the fatal error.
 	if (CurrentSessionStatus == EARSessionStatus::FatalError)
@@ -169,7 +172,27 @@ void FGoogleARCoreDevice::OnWorldTickStart(ELevelTick TickType, float DeltaTime)
 
 	if (!bIsARCoreSessionRunning && bStartSessionRequested)
 	{
-		if (bPermissionDeniedByUser)
+		if (!bARCoreInstalled)
+		{
+			EGoogleARCoreInstallStatus InstallStatus = EGoogleARCoreInstallStatus::Installed;
+			EGoogleARCoreAPIStatus Status = FGoogleARCoreAPKManager::RequestInstall(!bARCoreInstallRequested, InstallStatus);
+
+			if (Status != EGoogleARCoreAPIStatus::AR_SUCCESS)
+			{
+				bStartSessionRequested = false;
+				CurrentSessionStatus = EARSessionStatus::NotSupported;
+			}
+			else if (InstallStatus == EGoogleARCoreInstallStatus::Installed)
+			{
+				bARCoreInstalled = true;
+			}
+			else
+			{
+				bARCoreInstallRequested = true;
+			}
+		}
+
+		else if (bPermissionDeniedByUser)
 		{
 			CurrentSessionStatus = EARSessionStatus::PermissionNotGranted;
 			bStartSessionRequested = false;
@@ -378,7 +401,14 @@ void FGoogleARCoreDevice::PauseARCoreSession()
 	UE_LOG(LogGoogleARCore, Log, TEXT("Stopping ARCore session."));
 	if (!bIsARCoreSessionRunning)
 	{
-		UE_LOG(LogGoogleARCore, Log, TEXT("Could not stop ARCore tracking session because there is no running tracking session!"));
+		if(bStartSessionRequested)
+		{
+			bStartSessionRequested = false;
+		}
+		else
+		{
+			UE_LOG(LogGoogleARCore, Log, TEXT("Could not stop ARCore tracking session because there is no running tracking session!"));
+		}
 		return;
 	}
 
