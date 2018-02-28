@@ -203,7 +203,7 @@ const FMovieSceneEvaluationGroup* FMovieSceneRootEvaluationTemplateInstance::Set
 
 		// Verify that this field entry is still valid (all its cached signatures are still the same)
 		TRange<float> InvalidatedSubSequenceRange = TRange<float>::Empty();
-		if (FieldMetaData.IsDirty(*RootOverrideInstance.Sequence, RootOverrideInstance.Template->Hierarchy, &InvalidatedSubSequenceRange))
+		if (FieldMetaData.IsDirty(*RootOverrideInstance.Sequence, RootOverrideInstance.Template->Hierarchy, *TemplateStore, &InvalidatedSubSequenceRange))
 		{
 			TemplateFieldIndex = INDEX_NONE;
 
@@ -454,7 +454,7 @@ bool FMovieSceneRootEvaluationTemplateInstance::IsDirty() const
 {
 	if (TransientInstances.RootInstance.IsValid())
 	{
-		return LastFrameMetaData.IsDirty(*TransientInstances.RootInstance.Sequence, TransientInstances.RootInstance.Template->Hierarchy);
+		return LastFrameMetaData.IsDirty(*TransientInstances.RootInstance.Sequence, TransientInstances.RootInstance.Template->Hierarchy, *TemplateStore);
 	}
 
 	return true;

@@ -2,6 +2,7 @@
 
 #include "Evaluation/MovieSceneEvaluationField.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Algo/Sort.h"
 
@@ -233,7 +234,7 @@ void FMovieSceneEvaluationMetaData::DiffEntities(const FMovieSceneEvaluationMeta
 	}
 }
 
-bool FMovieSceneEvaluationMetaData::IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, TRange<float>* OutSubRangeToInvalidate) const
+bool FMovieSceneEvaluationMetaData::IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, IMovieSceneSequenceTemplateStore& TemplateStore, TRange<float>* OutSubRangeToInvalidate) const
 {
 	bool bDirty = false;
 
@@ -243,7 +244,14 @@ bool FMovieSceneEvaluationMetaData::IsDirty(UMovieSceneSequence& RootSequence, c
 		const FMovieSceneSubSequenceData* SubData = RootHierarchy.FindSubData(Pair.Key);
 		UMovieSceneSequence* SubSequence = SubData ? SubData->GetSequence() : nullptr;
 
-		if (!SubSequence || SubSequence->GetSignature() != Pair.Value)
+		bool bThisSequenceIsDirty = true;
+		if (SubSequence)
+		{
+			FGuid SequenceSignature = SubSequence->GetSignature();
+			bThisSequenceIsDirty = SequenceSignature != Pair.Value || TemplateStore.AccessTemplate(*SubSequence).SequenceSignature != SequenceSignature;
+		}
+
+		if (bThisSequenceIsDirty)
 		{
 			bDirty = true;
 

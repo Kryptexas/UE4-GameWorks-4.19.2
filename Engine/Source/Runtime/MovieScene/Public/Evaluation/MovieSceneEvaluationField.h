@@ -11,7 +11,7 @@
 #include "MovieSceneEvaluationField.generated.h"
 
 struct FMovieSceneSequenceHierarchy;
-
+struct IMovieSceneSequenceTemplateStore;
 class UMovieSceneSequence;
 
 /** A pointer to a track held within an evaluation template */
@@ -189,11 +189,12 @@ struct FMovieSceneEvaluationMetaData
 	 *
 	 * @param RootSequence				The sequence that corresponds to this meta-data's root sequence
 	 * @param RootHierarchy				The hierarchy that corresponds to this meta-data's root sequence
+	 * @param TemplateStore				The template store used to retrieve templates for sub sequences
 	 * @param OutSubRangeToInvalidate	(Optional) A range to fill with a range to invalidate in the sequence's evaluation field (in root space)
 	 *
 	 * @return true if the meta-data needs re-generating, false otherwise
 	 */
-	bool IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, TRange<float>* OutSubRangeToInvalidate = nullptr) const;
+	bool IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, IMovieSceneSequenceTemplateStore& TemplateStore, TRange<float>* OutSubRangeToInvalidate = nullptr) const;
 
 	/** Array of sequences that are active in this time range. */
 	UPROPERTY()
