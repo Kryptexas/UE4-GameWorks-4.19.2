@@ -182,8 +182,3 @@ const TMap<EARFaceBlendShape, float> UARFaceGeometry::GetBlendShapes() const
 {
 	return BlendShapes;
 }
-
-FTransform UARFaceGeometry::GetTransform() const
-{
-	return LocalToTrackingTransform;
-}
