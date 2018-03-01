@@ -344,11 +344,11 @@ namespace Audio
 			EBufferType::Type BufferType = MixerBuffer->GetType();
 			bResourcesNeedFreeing = (BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming);
 
-			// Not all wave data types have PCM data size at this point (e.g. procedural sound waves)
-			if (InWaveInstance->WaveData->RawPCMDataSize > 0)
+			// Not all wave data types have a non-zero duration
+			const float Duration = InWaveInstance->WaveData->GetDuration();
+			if (Duration > 0.0f)
 			{
-				int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
-				NumTotalFrames = NumBytes / (Buffer->NumChannels * sizeof(int16));
+				NumTotalFrames = Duration * InWaveInstance->WaveData->SampleRate;
 				check(NumTotalFrames > 0);
 			}
 
