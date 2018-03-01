@@ -1593,7 +1593,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const FSce
 	return BatchesToRenderMask;
 }
 
-void FLandscapeComponentSceneProxy::CalculateBatchElementLOD(const FSceneView& InView, float InMeshScreenSizeSquared, float InViewLODScale, FViewCustomDataLOD& InOutLODData) const
+void FLandscapeComponentSceneProxy::CalculateBatchElementLOD(const FSceneView& InView, float InMeshScreenSizeSquared, float InViewLODScale, FViewCustomDataLOD& InOutLODData, bool InForceCombined) const
 {
 	float SquaredViewLODScale = FMath::Square(InViewLODScale);
 
@@ -1650,7 +1650,7 @@ void FLandscapeComponentSceneProxy::CalculateBatchElementLOD(const FSceneView& I
 			}
 		}
 
-		if (!GLandscapeDebugOptions.IsCombinedDisabled() && (AllSubSectionHaveSameScreenSize || GLandscapeDebugOptions.IsCombinedAll() || ForcedLOD != INDEX_NONE))
+		if (!GLandscapeDebugOptions.IsCombinedDisabled() && (AllSubSectionHaveSameScreenSize || GLandscapeDebugOptions.IsCombinedAll() || ForcedLOD != INDEX_NONE || InForceCombined))
 		{
 			InOutLODData.UseCombinedMeshBatch = true;
 
@@ -3105,7 +3105,8 @@ public:
 			float ComponentScreenSize = SceneProxy->GetComponentScreenSize(&View, SceneProxy->LandscapeComponent->Bounds.Origin, SceneProxy->ComponentMaxExtend, SceneProxy->LandscapeComponent->Bounds.SphereRadius);
 			
 			FLandscapeComponentSceneProxy::FViewCustomDataLOD CurrentLODData;
-			SceneProxy->CalculateBatchElementLOD(InView, ComponentScreenSize, View.LODDistanceFactor, CurrentLODData);
+			SceneProxy->CalculateBatchElementLOD(InView, ComponentScreenSize, View.LODDistanceFactor, CurrentLODData, true);
+			check(CurrentLODData.UseCombinedMeshBatch);
 
 			if (LodBiasParameter.IsBound())
 			{
@@ -3122,17 +3123,7 @@ public:
 
 			if (SectionLodsParameter.IsBound())
 			{
-				if (CurrentLODData.UseCombinedMeshBatch)
-				{
-					SetShaderValue(RHICmdList, VertexShaderParamRef, SectionLodsParameter, CurrentLODData.ShaderCurrentLOD);
-				}
-				else
-				{
-					FVector4 ShaderCurrentLOD(ForceInitToZero);
-					ShaderCurrentLOD.Component(SubSectionIndex) = CurrentLODData.SubSections[SubSectionIndex].fBatchElementCurrentLOD;
-
-					SetShaderValue(RHICmdList, VertexShaderParamRef, SectionLodsParameter, ShaderCurrentLOD);
-				}
+				SetShaderValue(RHICmdList, VertexShaderParamRef, SectionLodsParameter, CurrentLODData.ShaderCurrentLOD);
 			}
 
 			if (NeighborSectionLodParameter.IsBound())
@@ -3149,18 +3140,7 @@ public:
 					}
 				}
 
-				if (CurrentLODData.UseCombinedMeshBatch)
-				{
-					SetShaderValue(RHICmdList, VertexShaderParamRef, NeighborSectionLodParameter, CurrentNeighborLOD);
-				}
-				else // in non combined, only the one representing us as we'll be called 4 times (once per sub section)
-				{
-					FVector4 ShaderCurrentNeighborLOD[4];
-					ShaderCurrentNeighborLOD[SubSectionIndex] = CurrentNeighborLOD[SubSectionIndex];
-					check(ShaderCurrentNeighborLOD[SubSectionIndex].X != -1.0f); // they should all match so only check the 1st one for simplicity
-
-					SetShaderValue(RHICmdList, VertexShaderParamRef, NeighborSectionLodParameter, ShaderCurrentNeighborLOD);
-				}
+				SetShaderValue(RHICmdList, VertexShaderParamRef, NeighborSectionLodParameter, CurrentNeighborLOD);
 			}				
 		}
 
