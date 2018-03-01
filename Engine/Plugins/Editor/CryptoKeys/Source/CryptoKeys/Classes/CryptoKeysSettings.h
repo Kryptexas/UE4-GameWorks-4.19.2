@@ -18,7 +18,17 @@ class CRYPTOKEYS_API UCryptoKeysSettings : public UObject
 public:
 
 	UCryptoKeysSettings();
-	 
+
+	bool IsEncryptionEnabled() const
+	{
+		return EncryptionKey.Len() > 0 && (bEncryptAllAssetFiles || bEncryptPakIndex || bEncryptPakIniFiles || bEncryptUAssetFiles);
+	}
+
+	bool IsSigningEnabled() const
+	{
+		return bEnablePakSigning && SigningModulus.Len() > 0 && SigningPrivateExponent.Len() > 0 && SigningPublicExponent.Len() > 0;
+	}
+
 	// The 128-bit AES encryption key used to protect the pak file
 	UPROPERTY(config, VisibleAnywhere, Category = Encryption)
 	FString EncryptionKey;

@@ -24,7 +24,8 @@ public class CryptoKeys : ModuleRules
 				"UnrealEd",
 				"CryptoKeysOpenSSL",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"GameProjectGeneration"
 		});
 	}
 }

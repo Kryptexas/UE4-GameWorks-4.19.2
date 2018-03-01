@@ -6,6 +6,8 @@
 #include "PropertyEditorModule.h"
 #include "CryptoKeysSettings.h"
 #include "CryptoKeysSettingsDetails.h"
+#include "CryptoKeysProjectBuildMutatorFeature.h"
+#include "Features/IModularFeatures.h"
 
 #define LOCTEXT_NAMESPACE "CryptoKeysModule"
 
@@ -20,6 +22,8 @@ public:
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout(UCryptoKeysSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FCryptoKeysSettingsDetails::MakeInstance));
+
+		IModularFeatures::Get().RegisterModularFeature(FProjectBuildMutatorFeature::GetFeatureName(), &ProjectBuildMutator);
 	}
 
 	virtual void ShutdownModule() override
@@ -30,6 +34,8 @@ public:
 
 			FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.UnregisterCustomClassLayout(UCryptoKeysSettings::StaticClass()->GetFName());
+
+			IModularFeatures::Get().UnregisterModularFeature(FProjectBuildMutatorFeature::GetFeatureName(), &ProjectBuildMutator);
 		}
 	}
 
@@ -51,6 +57,10 @@ public:
 			SettingsModule->UnregisterSettings("Project", "Project", "Crypto");
 		}
 	}
+
+private:
+
+	FCryptoKeysProjectBuildMutatorFeature ProjectBuildMutator;
 };
 
 #undef LOCTEXT_NAMESPACE

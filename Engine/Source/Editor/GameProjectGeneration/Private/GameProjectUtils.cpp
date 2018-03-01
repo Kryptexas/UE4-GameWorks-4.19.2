@@ -44,6 +44,8 @@
 #include "SNewClassDialog.h"
 #include "FeaturedClasses.inl"
 
+#include "Features/IModularFeatures.h"
+
 #include "Interfaces/IMainFrameModule.h"
 
 #include "AnalyticsEventAttribute.h"
@@ -71,6 +73,8 @@
 #include "PlatformInfo.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "Settings/ProjectPackagingSettings.h"
+
+#include "ProjectBuildMutatorFeature.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -3349,6 +3353,12 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 
 	// check to see if Blueprint nativization is enabled in the Project settings
 	bRequiresBuild |= GetDefault<UProjectPackagingSettings>()->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled;
+
+	// check to see if any projectmutator modular features are available
+	for (FProjectBuildMutatorFeature* Feature : IModularFeatures::Get().GetModularFeatureImplementations<FProjectBuildMutatorFeature>(FProjectBuildMutatorFeature::GetFeatureName()))
+	{
+		bRequiresBuild |= Feature->RequiresProjectBuild(InPlatformInfoName);
+	}
 
 	return bRequiresBuild;
 }
