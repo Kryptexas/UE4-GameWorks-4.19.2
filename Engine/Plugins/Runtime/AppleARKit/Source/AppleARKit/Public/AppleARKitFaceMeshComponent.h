@@ -119,6 +119,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components|ARFaceMesh")
 	EARFaceComponentTransformMixing TransformSetting;
 
+	/**	If true, the face mesh will be rotated to face out of the screen (-X) rather than into the screen (+X) and corresponding axises to match */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components|ARFaceMesh")
+	bool bFlipTrackedRotation;
+
 	/** Used when rendering the face mesh (mostly debug reasons) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components|ARFaceMesh")
 	class UMaterialInterface* FaceMaterial;

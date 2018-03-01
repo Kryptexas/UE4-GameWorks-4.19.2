@@ -325,6 +325,15 @@ void UAppleARKitFaceMeshComponent::TickComponent(float DeltaTime, ELevelTick, FA
 	if (UARFaceGeometry* FaceGeometry = FindFaceGeometry())
 	{
 		LocalToWorldTransform = FaceGeometry->GetLocalToWorldTransform();
+		// +X is the default for Unreal, but you probably want the face point out of the screen (-X)
+		if (bFlipTrackedRotation)
+		{
+			FRotator TrackedRot(LocalToWorldTransform.GetRotation());
+			TrackedRot.Yaw = TrackedRot.Yaw - 180.f;
+			TrackedRot.Pitch = -TrackedRot.Pitch;
+			TrackedRot.Roll = -TrackedRot.Roll;
+			LocalToWorldTransform.SetRotation(FQuat(TrackedRot));
+		}
 		BlendShapes = FaceGeometry->GetBlendShapes();
 		LastUpdateFrameNumber = FaceGeometry->GetLastUpdateFrameNumber();
 		LastUpdateTimestamp = FaceGeometry->GetLastUpdateTimestamp();
