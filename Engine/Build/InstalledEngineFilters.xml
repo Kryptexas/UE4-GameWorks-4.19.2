@@ -337,6 +337,8 @@
 	<Do If="'$(HostPlatform)' == 'Win64'">
 		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter)">
 			Engine/Binaries/DotNET/IOS/openssl.exe
+			Engine/Binaries/Mac/DsymExporter*
+			Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Mac/...
 			Engine/Binaries/ThirdParty/IOS/*
 			Engine/Build/BatchFiles/MakeAndInstallSSHKey.bat
 			Engine/Extras/ThirdPartyNotUE/DeltaCopy/...
