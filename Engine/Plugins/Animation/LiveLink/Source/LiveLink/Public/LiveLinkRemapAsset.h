@@ -24,13 +24,25 @@ class ULiveLinkRemapAsset : public ULiveLinkRetargetAsset
 	UFUNCTION(BlueprintNativeEvent, Category = "Live Link Remap")
 	FName GetRemappedBoneName(FName BoneName) const;
 
+	/** Blueprint Implementable function for getting a remapped curve name from the original */
+	UFUNCTION(BlueprintNativeEvent, Category = "Live Link Remap")
+	FName GetRemappedCurveName(FName CurveName) const;
+
+	/** Blueprint Implementable function for remapping, adding or otherwise modifying the curve element data from Live Link. This is run after GetRemappedCurveName */
+	UFUNCTION(BlueprintNativeEvent, Category = "Live Link Remap")
+	void RemapCurveElements(UPARAM(ref)TMap<FName, float>& CurveItems) const;
+
 private:
 
 	void OnBlueprintClassCompiled(UBlueprint* TargetBlueprint);
 
 	// Name mapping between source bone name and transformed bone name
 	// (returned from GetRemappedBoneName)
-	TMap<FName, FName> NameMap;
+	TMap<FName, FName> BoneNameMap;
+
+	// Name mapping between source curve name and transformed curve name
+	// (returned from GetRemappedCurveName)
+	TMap<FName, FName> CurveNameMap;
 
 	/** Blueprint.OnCompiled delegate handle */
 	FDelegateHandle OnBlueprintCompiledDelegate;

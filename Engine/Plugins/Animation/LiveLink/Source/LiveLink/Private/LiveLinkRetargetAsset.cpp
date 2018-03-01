@@ -12,6 +12,15 @@ ULiveLinkRetargetAsset::ULiveLinkRetargetAsset(const FObjectInitializer& ObjectI
 {
 }
 
+void ULiveLinkRetargetAsset::ApplyCurveValue(const USkeleton* Skeleton, const FName CurveName, const float CurveValue, FBlendedCurve& OutCurve) const
+{
+	SmartName::UID_Type UID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, CurveName);
+	if (UID != SmartName::MaxUID)
+	{
+		OutCurve.Set(UID, CurveValue);
+	}
+}
+
 void ULiveLinkRetargetAsset::BuildCurveData(const FLiveLinkSubjectFrame& InFrame, const FCompactPose& InPose, FBlendedCurve& OutCurve) const
 {
 	const USkeleton* Skeleton = InPose.GetBoneContainer().GetSkeletonAsset();
@@ -21,13 +30,17 @@ void ULiveLinkRetargetAsset::BuildCurveData(const FLiveLinkSubjectFrame& InFrame
 		const FOptionalCurveElement& Curve = InFrame.Curves[CurveIdx];
 		if (Curve.IsValid())
 		{
-			FName CurveName = InFrame.CurveKeyData.CurveNames[CurveIdx];
-
-			SmartName::UID_Type UID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, CurveName);
-			if (UID != SmartName::MaxUID)
-			{
-				OutCurve.Set(UID, Curve.Value);
-			}
+			ApplyCurveValue(Skeleton, InFrame.CurveKeyData.CurveNames[CurveIdx], Curve.Value, OutCurve);
 		}
+	}
+}
+
+void ULiveLinkRetargetAsset::BuildCurveData(const TMap<FName, float>& CurveMap, const FCompactPose& InPose, FBlendedCurve& OutCurve) const
+{
+	const USkeleton* Skeleton = InPose.GetBoneContainer().GetSkeletonAsset();
+
+	for (const TPair<FName, float>& Pair : CurveMap)
+	{
+		ApplyCurveValue(Skeleton, Pair.Key, Pair.Value, OutCurve);
 	}
 }
