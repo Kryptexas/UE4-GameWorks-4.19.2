@@ -163,7 +163,7 @@ void FPositionVertexBuffer::InitRHI()
 		// Create the vertex buffer.
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
 		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-		if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+		if (GSupportsResourceView)
 		{
 			PositionComponentSRV = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
 		}

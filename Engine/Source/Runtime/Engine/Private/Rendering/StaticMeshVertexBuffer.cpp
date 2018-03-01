@@ -227,7 +227,7 @@ void FStaticMeshVertexBuffer::InitRHI()
 			// Create the vertex buffer.
 			FRHIResourceCreateInfo CreateInfo(ResourceArray);
 			TangentsVertexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				TangentsSRV = RHICreateShaderResourceView(TangentsVertexBuffer.VertexBufferRHI, GetUseHighPrecisionTangentBasis() ? 8 : 4, GetUseHighPrecisionTangentBasis() ? PF_A16B16G16R16 : PF_R8G8B8A8);
 			}
@@ -241,7 +241,7 @@ void FStaticMeshVertexBuffer::InitRHI()
 			// Create the vertex buffer.
 			FRHIResourceCreateInfo CreateInfo(ResourceArray);
 			TexCoordVertexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				TextureCoordinatesSRV = RHICreateShaderResourceView(TexCoordVertexBuffer.VertexBufferRHI, GetUseFullPrecisionUVs() ? 8 : 4, GetUseFullPrecisionUVs() ? PF_G32R32F : PF_G16R16F);
 			}

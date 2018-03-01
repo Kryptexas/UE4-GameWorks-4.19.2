@@ -51,7 +51,7 @@ public:
 			void* Data = nullptr;
 			PositionBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(PositionSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
 			PositionBufferData = static_cast<FVector*>(Data);
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				PositionBufferSRV = RHICreateShaderResourceView(PositionBuffer.VertexBufferRHI, sizeof(float), PF_R32_FLOAT);
 			}
@@ -67,7 +67,7 @@ public:
 			void* Data = nullptr;
 			TangentBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(TangentSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
 			TangentBufferData = static_cast<FPackedNormal*>(Data);
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				TangentBufferSRV = RHICreateShaderResourceView(TangentBuffer.VertexBufferRHI, sizeof(FPackedNormal), PF_R8G8B8A8);
 			}
@@ -83,7 +83,7 @@ public:
 			TexCoordBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(TexCoordSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
 			TexCoordBufferData = static_cast<FVector2D*>(Data);
 
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				TexCoordBufferSRV = RHICreateShaderResourceView(TexCoordBuffer.VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
 			}
@@ -98,7 +98,7 @@ public:
 			void* Data = nullptr;
 			ColorBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(ColorSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
 			ColorBufferData = static_cast<uint32*>(Data);
-			if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+			if (GSupportsResourceView)
 			{
 				ColorBufferSRV = RHICreateShaderResourceView(ColorBuffer.VertexBufferRHI, sizeof(uint32), PF_R8G8B8A8);
 			}

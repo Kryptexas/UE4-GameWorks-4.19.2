@@ -28,7 +28,7 @@ public:
 		FMemory::Memzero(BufferData, sizeof(FVector2D) * 4);
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 
-		if (GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+		if (GSupportsResourceView)
 		{
 			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
 		}
