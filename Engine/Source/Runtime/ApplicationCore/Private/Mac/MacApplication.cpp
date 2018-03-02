@@ -38,6 +38,8 @@ extern "C" void MTDeviceStart(void*, int);
 extern "C" bool MTDeviceIsBuiltIn(void*);
 #endif
 
+FMacApplication::MenuBarShutdownFuncPtr FMacApplication::MenuBarShutdownFunc = nullptr;
+
 FMacApplication* FMacApplication::CreateMacApplication()
 {
 	MacApplication = new FMacApplication();
@@ -118,6 +120,11 @@ FMacApplication::FMacApplication()
 
 FMacApplication::~FMacApplication()
 {
+	if (MenuBarShutdownFunc)
+	{
+		MenuBarShutdownFunc();
+	}
+
 	MainThreadCall(^{
 		if (MouseMovedEventMonitor)
 		{

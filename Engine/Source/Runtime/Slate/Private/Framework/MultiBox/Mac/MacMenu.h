@@ -15,6 +15,7 @@ class SLATE_API FSlateMacMenu
 {
 public:
 
+	static void CleanupOnShutdown();
 	static void UpdateWithMultiBox(const TSharedPtr<FMultiBox> MultiBox);
 	static void UpdateMenu(FMacMenu* Menu);
 	static void UpdateCachedState();

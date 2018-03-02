@@ -92,6 +92,12 @@ static FCriticalSection GCachedMenuStateCS;
 
 @end
 
+void FSlateMacMenu::CleanupOnShutdown()
+{
+	FScopeLock Lock(&GCachedMenuStateCS);
+	GCachedMenuState.Reset();
+}
+
 void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 {
 	// The dispatch block can't handle TSharedPtr correctly, so we use a small trick to pass MultiBox safely
@@ -288,6 +294,11 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 void FSlateMacMenu::UpdateCachedState()
 {
+	if (FMacApplication::MenuBarShutdownFunc == nullptr)
+	{
+		FMacApplication::MenuBarShutdownFunc = &FSlateMacMenu::CleanupOnShutdown;
+	}
+
 	bool bShouldUpdate = false;
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment

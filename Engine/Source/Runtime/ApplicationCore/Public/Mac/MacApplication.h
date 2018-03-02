@@ -258,6 +258,9 @@ public:
 
 	static float GetPrimaryScreenBackingScaleFactor();
 
+	typedef void (*MenuBarShutdownFuncPtr)();
+	static MenuBarShutdownFuncPtr MenuBarShutdownFunc;
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
