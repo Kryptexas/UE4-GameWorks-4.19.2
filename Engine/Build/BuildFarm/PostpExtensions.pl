@@ -37,6 +37,9 @@
 	"Warning: guard '.*__page_permission_service' cannot be installed at specified location",
 	"Warning: The object file name .* in the do_not_analyze section was not found",
 
+	# PVS Studio
+	"warning Renew: Your license will expire in.*viva64\\.com",	
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
