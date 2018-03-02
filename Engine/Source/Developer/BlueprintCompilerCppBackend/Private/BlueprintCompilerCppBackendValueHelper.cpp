@@ -259,12 +259,10 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 	{
 		//TODO: if the struct has a custom ExportTextItem, that support PPF_ExportCpp, then ELocalConstructionType::Custom should be returned
 
-		//For regular native structs default constructor is not relaible, so we need to use InitializeStruct
-		const bool bUDS = InnerStructProperty && (nullptr != Cast<UUserDefinedStruct>(InnerStructProperty->Struct));
-		const bool bSpecialNativeStruct = InnerStructProperty && InnerStructProperty->Struct
+		//For UDS and regular native structs the default constructor is not reliable, so we need to use InitializeStruct
+		const bool bInitializeWithoutScriptStruct = InnerStructProperty && InnerStructProperty->Struct
 			&& InnerStructProperty->Struct->IsNative()
 			&& ((0 != (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport)) || IsTInlineStruct(InnerStructProperty->Struct));
-		const bool bInitializeWithoutScriptStruct = bUDS || bSpecialNativeStruct;
 		if (!bInitializeWithoutScriptStruct)
 		{
 			if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
