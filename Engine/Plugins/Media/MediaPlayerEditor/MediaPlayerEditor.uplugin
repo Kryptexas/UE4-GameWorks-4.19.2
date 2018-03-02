@@ -19,7 +19,7 @@
 		{
 			"Name" : "MediaPlayerEditor",
 			"Type" : "Editor",
-			"LoadingPhase" : "Default"
+			"LoadingPhase" : "PostEngineInit"
 		}
 	]
 }

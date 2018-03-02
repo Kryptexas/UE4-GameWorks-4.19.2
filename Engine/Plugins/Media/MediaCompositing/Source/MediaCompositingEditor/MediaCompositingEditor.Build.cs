@@ -15,6 +15,7 @@ namespace UnrealBuildTool.Rules
 					"Engine",
 					"MediaAssets",
 					"MediaCompositing",
+					"MediaUtils",
 					"MovieScene",
 					"MovieSceneTools",
 					"MovieSceneTracks",

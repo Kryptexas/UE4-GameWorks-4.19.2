@@ -35,6 +35,14 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=0))
 	float CacheSizeGB;
 
+	/** Maximum number of image caching threads to use (0 = number of cores, default = 8). */
+	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=0))
+	int32 CacheThreads;
+
+	/** Size of the stack for each caching thread (in kB; default = 128). */
+	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=128), AdvancedDisplay)
+	int32 CacheThreadStackSizeKB;
+
 public:
 
 	/** Number of worker threads to use when decoding EXR images (0 = auto). */

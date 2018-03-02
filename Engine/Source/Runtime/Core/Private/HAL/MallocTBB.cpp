@@ -72,7 +72,7 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 	{
 		OutOfMemory(Size, Alignment);
 	}
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+#if UE_BUILD_DEBUG
 	else if (Size)
 	{
 		FMemory::Memset(NewPtr, DEBUG_FILL_NEW, Size); 
@@ -96,7 +96,7 @@ void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 #endif
 
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+#if UE_BUILD_DEBUG
 	SIZE_T OldSize = 0;
 	if (Ptr)
 	{
@@ -123,7 +123,7 @@ void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 		NewPtr = scalable_realloc(Ptr, NewSize);
 	}
 #endif
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+#if UE_BUILD_DEBUG
 	if (NewPtr && NewSize > OldSize )
 	{
 		FMemory::Memset((uint8*)NewPtr + OldSize, DEBUG_FILL_NEW, NewSize - OldSize); 
@@ -144,7 +144,7 @@ void FMallocTBB::Free( void* Ptr )
 		return;
 	}
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+#if UE_BUILD_DEBUG
 	FMemory::Memset(Ptr, DEBUG_FILL_FREED, scalable_msize(Ptr)); 
 #endif
 	IncrementTotalFreeCalls();

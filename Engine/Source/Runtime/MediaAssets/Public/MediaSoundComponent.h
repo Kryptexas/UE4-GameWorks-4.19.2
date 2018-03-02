@@ -8,6 +8,7 @@
 #include "HAL/CriticalSection.h"
 #include "MediaSampleQueue.h"
 #include "Misc/Timespan.h"
+#include "Templates/Atomic.h"
 #include "Templates/SharedPointer.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/ScriptMacros.h"
@@ -68,9 +69,28 @@ public:
 public:
 
 	/**
+	 * Get the attenuation settings based on the current component settings.
+	 *
+	 * @param OutAttenuationSettings Will contain the attenuation settings, if available.
+	 * @return true if attenuation settings were returned, false if attenuation is disabled.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaSoundComponent", meta=(DisplayName="Get Attenuation Settings To Apply", ScriptName="GetAttenuationSettingsToApply"))
+	bool BP_GetAttenuationSettingsToApply(FSoundAttenuationSettings& OutAttenuationSettings);
+
+	/**
+	 * Get the media player that provides the audio samples.
+	 *
+	 * @return The component's media player, or nullptr if not set.
+	 * @see SetMediaPlayer
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaSoundComponent")
+	UMediaPlayer* GetMediaPlayer() const;
+
+	/**
 	 * Set the media player that provides the audio samples.
 	 *
 	 * @param NewMediaPlayer The player to set.
+	 * @see GetMediaPlayer
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaSoundComponent")
 	void SetMediaPlayer(UMediaPlayer* NewMediaPlayer);
@@ -78,6 +98,12 @@ public:
 public:
 
 	void UpdatePlayer();
+
+public:
+
+	//~ TAttenuatedComponentVisualizer interface
+
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
 public:
 
@@ -105,6 +131,15 @@ public:
 
 protected:
 
+	/**
+	 * Get the attenuation settings based on the current component settings.
+	 *
+	 * @return Attenuation settings, or nullptr if attenuation is disabled.
+	 */
+	const FSoundAttenuationSettings* GetSelectedAttenuationSettings() const;
+
+protected:
+
 	//~ USynthComponent interface
 
 	virtual bool Init(int32& SampleRate) override;
@@ -126,10 +161,10 @@ protected:
 private:
 
 	/** The player's current play rate (cached for use on audio thread). */
-	float CachedRate;
+	TAtomic<float> CachedRate;
 
 	/** The player's current time (cached for use on audio thread). */
-	FTimespan CachedTime;
+	TAtomic<FTimespan> CachedTime;
 
 	/** Critical section for synchronizing access to PlayerFacadePtr. */
 	FCriticalSection CriticalSection;

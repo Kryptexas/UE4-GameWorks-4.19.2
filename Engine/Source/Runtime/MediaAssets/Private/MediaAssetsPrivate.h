@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Logging/LogMacros.h"
+#include "Stats/Stats.h"
 
 
 /** Declares a log category for this module. */

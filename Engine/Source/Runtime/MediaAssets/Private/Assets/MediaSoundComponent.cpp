@@ -46,6 +46,27 @@ UMediaSoundComponent::~UMediaSoundComponent()
 /* UMediaSoundComponent interface
  *****************************************************************************/
 
+bool UMediaSoundComponent::BP_GetAttenuationSettingsToApply(FSoundAttenuationSettings& OutAttenuationSettings)
+{
+	const FSoundAttenuationSettings* SelectedAttenuationSettings = GetSelectedAttenuationSettings();
+
+	if (SelectedAttenuationSettings == nullptr)
+	{
+		return false;
+	}
+
+	OutAttenuationSettings = *SelectedAttenuationSettings;
+
+	return true;
+}
+
+
+UMediaPlayer* UMediaSoundComponent::GetMediaPlayer() const
+{
+	return CurrentPlayer.Get();
+}
+
+
 void UMediaSoundComponent::SetMediaPlayer(UMediaPlayer* NewMediaPlayer)
 {
 	CurrentPlayer = NewMediaPlayer;
@@ -70,22 +91,33 @@ void UMediaSoundComponent::UpdatePlayer()
 
 	if (PlayerFacade != CurrentPlayerFacade)
 	{
+		const auto NewSampleQueue = MakeShared<FMediaAudioSampleQueue, ESPMode::ThreadSafe>();
+		PlayerFacade->AddAudioSampleSink(NewSampleQueue);
 		{
-			const auto NewSampleQueue = MakeShared<FMediaAudioSampleQueue, ESPMode::ThreadSafe>();
-
 			FScopeLock Lock(&CriticalSection);
 			SampleQueue = NewSampleQueue;
 		}
 
-		PlayerFacade->AddAudioSampleSink(SampleQueue.ToSharedRef());
 		CurrentPlayerFacade = PlayerFacade;
 	}
 
 	// caching play rate and time for audio thread (eventual consistency is sufficient)
 	CachedRate = PlayerFacade->GetRate();
 	CachedTime = PlayerFacade->GetTime();
+}
 
-	check(SampleQueue.IsValid());
+
+/* TAttenuatedComponentVisualizer interface
+ *****************************************************************************/
+
+void UMediaSoundComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+{
+	const FSoundAttenuationSettings* SelectedAttenuationSettings = GetSelectedAttenuationSettings();
+
+	if (SelectedAttenuationSettings != nullptr)
+	{
+		SelectedAttenuationSettings->CollectAttenuationShapesForVisualization(ShapeDetailsMap);
+	}
 }
 
 
@@ -225,4 +257,23 @@ void UMediaSoundComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 	{
 		Resampler->Flush();
 	}
+}
+
+
+/* UMediaSoundComponent implementation
+ *****************************************************************************/
+
+const FSoundAttenuationSettings* UMediaSoundComponent::GetSelectedAttenuationSettings() const
+{
+	if (bOverrideAttenuation)
+	{
+		return &AttenuationOverrides;
+	}
+	
+	if (AttenuationSettings != nullptr)
+	{
+		return &AttenuationSettings->Attenuation;
+	}
+
+	return nullptr;
 }

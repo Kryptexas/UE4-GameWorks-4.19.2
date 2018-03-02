@@ -35,6 +35,7 @@ namespace UnrealBuildTool.Rules
 					"ImgMedia/Private/Loader",
 					"ImgMedia/Private/Player",
 					"ImgMedia/Private/Readers",
+					"ImgMedia/Private/Scheduler",
 				});
 
 			PublicDependencyModuleNames.AddRange(

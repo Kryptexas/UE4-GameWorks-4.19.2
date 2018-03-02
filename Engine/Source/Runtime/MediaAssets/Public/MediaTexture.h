@@ -137,6 +137,9 @@ protected:
 	 */
 	void TickResource(FTimespan Timecode);
 
+	/** Update the video sample queue, if necessary. */
+	void UpdateQueue();
+
 protected:
 
 	/**

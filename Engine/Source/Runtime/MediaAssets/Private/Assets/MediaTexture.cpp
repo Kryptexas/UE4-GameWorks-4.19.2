@@ -102,6 +102,7 @@ int32 UMediaTexture::GetWidth() const
 void UMediaTexture::SetMediaPlayer(UMediaPlayer* NewMediaPlayer)
 {
 	CurrentPlayer = NewMediaPlayer;
+	UpdateQueue();
 }
 
 
@@ -271,19 +272,12 @@ void UMediaTexture::TickResource(FTimespan Timecode)
 		return;
 	}
 
-	const FGuid LastGuid = CurrentGuid;
+	const FGuid PreviousGuid = CurrentGuid;
 
 	// media player bookkeeping
 	if (CurrentPlayer.IsValid())
 	{
-		const FGuid PlayerGuid = CurrentPlayer->GetGuid();
-
-		if (CurrentGuid != PlayerGuid)
-		{
-			SampleQueue = MakeShared<FMediaTextureSampleQueue, ESPMode::ThreadSafe>();
-			CurrentPlayer->GetPlayerFacade()->AddVideoSampleSink(SampleQueue.ToSharedRef());
-			CurrentGuid = PlayerGuid;
-		}
+		UpdateQueue();
 	}
 	else if (CurrentGuid != DefaultGuid)
 	{
@@ -317,14 +311,15 @@ void UMediaTexture::TickResource(FTimespan Timecode)
 		RenderParams.Rate = CurrentPlayer->GetRate();
 		RenderParams.Time = CurrentPlayer->GetTime();
 	}
-	else if (!AutoClear && LastGuid.IsValid())
+	else if (!AutoClear && (CurrentGuid == PreviousGuid))
 	{
 		return; // retain last frame
 	}
 
+	RenderParams.CanClear = AutoClear;
 	RenderParams.ClearColor = ClearColor;
-	RenderParams.LastGuid = LastGuid;
-	RenderParams.TextureGuid = CurrentGuid;
+	RenderParams.PreviousGuid = PreviousGuid;
+	RenderParams.CurrentGuid = CurrentGuid;
 	RenderParams.SrgbOutput = SRGB;
 
 	// redraw texture resource on render thread
@@ -334,4 +329,24 @@ void UMediaTexture::TickResource(FTimespan Timecode)
 		{
 			ResourceParam->Render(RenderParamsParam);
 		});
+}
+
+
+void UMediaTexture::UpdateQueue()
+{
+	if (CurrentPlayer.IsValid())
+	{
+		const FGuid PlayerGuid = CurrentPlayer->GetGuid();
+
+		if (CurrentGuid != PlayerGuid)
+		{
+			SampleQueue = MakeShared<FMediaTextureSampleQueue, ESPMode::ThreadSafe>();
+			CurrentPlayer->GetPlayerFacade()->AddVideoSampleSink(SampleQueue.ToSharedRef());
+			CurrentGuid = PlayerGuid;
+		}
+	}
+	else
+	{
+		SampleQueue.Reset();
+	}
 }

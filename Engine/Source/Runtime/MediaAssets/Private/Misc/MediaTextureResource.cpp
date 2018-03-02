@@ -26,6 +26,11 @@
 #define MEDIATEXTURERESOURCE_TRACE_RENDER 0
 
 
+/** Time spent in media player facade closing media. */
+DECLARE_CYCLE_STAT(TEXT("MediaAssets MediaTextureResource Render"), STAT_MediaAssets_MediaTextureResourceRender, STATGROUP_Media);
+
+
+
 /* Local helpers
  *****************************************************************************/
 
@@ -145,6 +150,8 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 {
 	check(IsInRenderingThread());
 
+	SCOPE_CYCLE_COUNTER(STAT_MediaAssets_MediaTextureResourceRender);
+
 	FLinearColor Rotation(1, 0, 0, 1);
 	FLinearColor Offset(0, 0, 0, 0);
 
@@ -202,26 +209,30 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 			Offset = Sample->GetOffset();
 		}
 	}
-	else if (!Cleared || (Params.ClearColor != CurrentClearColor))
+	else if (Params.CanClear)
 	{
-		#if MEDIATEXTURERESOURCE_TRACE_RENDER
-			UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Clearing texture at time %s"), this, *Params.Time.ToString());
-		#endif
+		if (!Cleared || (Params.ClearColor != CurrentClearColor))
+		{
+			#if MEDIATEXTURERESOURCE_TRACE_RENDER
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Clearing texture at time %s"), this, *Params.Time.ToString());
+			#endif
 
-		ClearTexture(Params.ClearColor, Params.SrgbOutput);
+			ClearTexture(Params.ClearColor, Params.SrgbOutput);
+		}
 	}
 
+	// update external texture registration
 	if (!GSupportsImageExternal)
 	{
-		if (Params.TextureGuid.IsValid())
+		if (Params.CurrentGuid.IsValid())
 		{
 			FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
-			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.TextureGuid, VideoTexture, SamplerStateRHI, Rotation, Offset);
+			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.CurrentGuid, VideoTexture, SamplerStateRHI, Rotation, Offset);
 		}
 
-		if (Params.LastGuid.IsValid() && (Params.LastGuid != Params.TextureGuid))
+		if (Params.PreviousGuid.IsValid() && (Params.PreviousGuid != Params.CurrentGuid))
 		{
-			FExternalTextureRegistry::Get().UnregisterExternalTexture(Params.LastGuid);
+			FExternalTextureRegistry::Get().UnregisterExternalTexture(Params.PreviousGuid);
 		}
 	}
 }

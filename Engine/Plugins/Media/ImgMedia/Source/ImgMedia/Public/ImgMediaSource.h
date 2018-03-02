@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "Classes/Engine/EngineTypes.h"
+#include "Engine/EngineTypes.h"
 #include "Containers/UnrealString.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/ScriptMacros.h"

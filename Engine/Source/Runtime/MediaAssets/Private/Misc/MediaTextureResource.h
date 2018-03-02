@@ -50,11 +50,17 @@ public:
 	/** Parameters for the Render method. */
 	struct FRenderParams
 	{
+		/** Whether the texture can be cleared. */
+		bool CanClear;
+
 		/** The clear color to use when clearing the texture. */
 		FLinearColor ClearColor;
 
-		/** The external texture GUID at the previously rendered frame. */
-		FGuid LastGuid;
+		/** The texture's current external texture GUID. */
+		FGuid CurrentGuid;
+
+		/** The texture's previously used external texture GUID. */
+		FGuid PreviousGuid;
 
 		/** The player's play rate. */
 		float Rate;
@@ -64,9 +70,6 @@ public:
 
 		/** Whether output should be in sRGB color space. */
 		bool SrgbOutput;
-
-		/** Guid associated with the texture. */
-		FGuid TextureGuid;
 
 		/** The time of the video frame to render (in player's clock). */
 		FTimespan Time;
