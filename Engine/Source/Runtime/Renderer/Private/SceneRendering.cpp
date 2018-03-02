@@ -1082,14 +1082,15 @@ void FViewInfo::SetupUniformBufferParameters(
 			FinalMaterialTextureMipBias += MaterialTextureMipBias;
 		}
 
-		FSamplerStateRHIRef WrappedSampler, ClampedSampler;
+		FSamplerStateRHIRef WrappedSampler = nullptr;
+		FSamplerStateRHIRef ClampedSampler = nullptr;
 
-		if (FinalMaterialTextureMipBias == GlobalMipBias)
+		if (FMath::Abs(FinalMaterialTextureMipBias - GlobalMipBias) < KINDA_SMALL_NUMBER)
 		{
 			WrappedSampler = Wrap_WorldGroupSettings->SamplerStateRHI;
 			ClampedSampler = Clamp_WorldGroupSettings->SamplerStateRHI;
 		}
-		else if (ViewState && ViewState->MaterialTextureCachedMipBias == FinalMaterialTextureMipBias)
+		else if (ViewState && FMath::Abs(ViewState->MaterialTextureCachedMipBias - FinalMaterialTextureMipBias) < KINDA_SMALL_NUMBER)
 		{
 			WrappedSampler = ViewState->MaterialTextureBilinearWrapedSamplerCache;
 			ClampedSampler = ViewState->MaterialTextureBilinearClampedSamplerCache;
@@ -1102,10 +1103,15 @@ void FViewInfo::SetupUniformBufferParameters(
 			ClampedSampler = RHICreateSamplerState(FSamplerStateInitializerRHI(WorldTextureGroupSamplerFilter, AM_Clamp, AM_Clamp, AM_Clamp, FinalMaterialTextureMipBias));
 		}
 
+		// At this point, a sampler must be set.
+		check(WrappedSampler.IsValid());
+		check(ClampedSampler.IsValid());
+
 		ViewUniformShaderParameters.MaterialTextureBilinearWrapedSampler = WrappedSampler;
 		ViewUniformShaderParameters.MaterialTextureBilinearClampedSampler = ClampedSampler;
 
-		if (ViewState)
+		// Update view state's cached sampler.
+		if (ViewState && ViewState->MaterialTextureBilinearWrapedSamplerCache != WrappedSampler)
 		{
 			ViewState->MaterialTextureCachedMipBias = FinalMaterialTextureMipBias;
 			ViewState->MaterialTextureBilinearWrapedSamplerCache = WrappedSampler;

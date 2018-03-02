@@ -128,6 +128,9 @@ FSceneViewState::FSceneViewState()
 	AOScreenGridResources = NULL;
 	bDOFHistory = true;
 	bDOFHistory2 = true;
+	
+	// Sets the mipbias to invalid large number.
+	MaterialTextureCachedMipBias = BIG_NUMBER;
 
 	bSequencerIsPaused = false;
 

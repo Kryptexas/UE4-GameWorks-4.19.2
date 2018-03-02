@@ -1038,10 +1038,15 @@ public:
 		MobileAaColor0.SafeRelease();
 		MobileAaColor1.SafeRelease();
 		BloomFFTKernel.SafeRelease();
-		MaterialTextureBilinearWrapedSamplerCache.SafeRelease();
-		MaterialTextureBilinearClampedSamplerCache.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
+
+		{
+			// Sets the mipbias that is normally <= 0 to invalid large number.
+			MaterialTextureCachedMipBias = BIG_NUMBER;
+			MaterialTextureBilinearWrapedSamplerCache.SafeRelease();
+			MaterialTextureBilinearClampedSamplerCache.SafeRelease();
+		}
 
 		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
 		{
