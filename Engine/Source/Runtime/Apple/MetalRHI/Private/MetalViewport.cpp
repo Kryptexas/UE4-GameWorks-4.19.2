@@ -261,8 +261,9 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 {
 	if (!Drawable
 #if !PLATFORM_MAC
-	|| (((id<CAMetalDrawable>)Drawable).texture.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).texture.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY()))
+	|| (((id<CAMetalDrawable>)Drawable).texture.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).texture.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
 #endif
+	)
 	{
 		@autoreleasepool
 		{
