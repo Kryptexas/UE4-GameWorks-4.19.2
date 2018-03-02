@@ -11,7 +11,6 @@ namespace ResonanceAudio
 	FResonanceAudioPluginListener::FResonanceAudioPluginListener()
 		: ResonanceAudioApi(nullptr)
 		, ResonanceAudioModule(nullptr)
-		, World(nullptr)
 		, ReverbPtr(nullptr)
 		, SpatializationPtr(nullptr)
 		, AmbisonicsPtr(nullptr)
@@ -29,8 +28,6 @@ namespace ResonanceAudio
 
 	void FResonanceAudioPluginListener::OnListenerInitialize(FAudioDevice* AudioDevice, UWorld* ListenerWorld)
 	{
-		World = ListenerWorld;
-
 		if (!ResonanceAudioModule)
 		{
 			ResonanceAudioModule = &FModuleManager::GetModuleChecked<FResonanceAudioModule>("ResonanceAudio");
@@ -84,10 +81,21 @@ namespace ResonanceAudio
 			const FQuat ConvertedRotation = ConvertToResonanceAudioRotation(ListenerTransform.GetRotation());
 			ResonanceAudioApi->SetHeadRotation(ConvertedRotation.X, ConvertedRotation.Y, ConvertedRotation.Z, ConvertedRotation.W);
 		}
+	}
 
-		if (ReverbPtr != nullptr && World->AudioVolumes.Num() > 0)
+	void FResonanceAudioPluginListener::OnListenerShutdown(FAudioDevice* AudioDevice)
+	{
+		if (ResonanceAudioModule)
 		{
-			AAudioVolume* CurrentVolume = World->GetAudioSettings(ListenerTransform.GetLocation(), nullptr, nullptr);
+			ResonanceAudioModule->UnregisterAudioDevice(AudioDevice);
+		}
+	}
+
+	void FResonanceAudioPluginListener::OnTick(UWorld* InWorld, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds)
+	{
+		if (ReverbPtr != nullptr && InWorld->AudioVolumes.Num() > 0)
+		{
+			AAudioVolume* CurrentVolume = InWorld->GetAudioSettings(ListenerTransform.GetLocation(), nullptr, nullptr);
 			if (CurrentVolume != nullptr)
 			{
 				UResonanceAudioReverbPluginPreset* Preset = static_cast<UResonanceAudioReverbPluginPreset*>(CurrentVolume->GetReverbSettings().ReverbPluginEffect);
@@ -109,14 +117,6 @@ namespace ResonanceAudio
 			{
 				ReverbPtr->SetPreset(nullptr);
 			}
-		}
-	}
-
-	void FResonanceAudioPluginListener::OnListenerShutdown(FAudioDevice* AudioDevice)
-	{
-		if (ResonanceAudioModule)
-		{
-			ResonanceAudioModule->UnregisterAudioDevice(AudioDevice);
 		}
 	}
 

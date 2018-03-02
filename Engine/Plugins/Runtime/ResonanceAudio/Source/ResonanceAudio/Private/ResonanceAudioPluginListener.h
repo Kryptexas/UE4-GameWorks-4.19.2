@@ -23,13 +23,13 @@ namespace ResonanceAudio
 		virtual void OnListenerInitialize(FAudioDevice* AudioDevice, UWorld* ListenerWorld) override;
 		virtual void OnListenerUpdated(FAudioDevice* AudioDevice, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds) override;
 		virtual void OnListenerShutdown(FAudioDevice* AudioDevice) override;
+		virtual void OnTick(UWorld* InWorld, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds) override;
 
 	private:
 		// Resonance Audio API instance.
 		vraudio::VrAudioApi* ResonanceAudioApi;
 
 		class FResonanceAudioModule* ResonanceAudioModule;
-		class UWorld* World;
 		class FResonanceAudioReverb* ReverbPtr;
 		class FResonanceAudioSpatialization* SpatializationPtr;
 		class FResonanceAudioAmbisonicsMixer* AmbisonicsPtr;

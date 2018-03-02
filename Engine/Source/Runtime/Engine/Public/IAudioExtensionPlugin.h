@@ -129,7 +129,7 @@ struct FAudioPluginSourceInputData
 	int32 SourceId;
 
 	// The ID of the audio component associated with the wave instance.
-	int32 AudioComponentId;
+	uint64 AudioComponentId;
 
 	// The audio input buffer
 	TArray<float>* AudioBuffer;
@@ -524,6 +524,11 @@ public:
 	//IAudioPluginListener is registered to. Please note that it is possible to miss this event
 	//if you register this IAudioPluginListener after the listener is initialized.
 	virtual void OnListenerInitialize(FAudioDevice* AudioDevice, UWorld* ListenerWorld)
+	{
+	}
+
+	// This is overridable for any actions a plugin manager may need to do on the game thread.
+	virtual void OnTick(UWorld* InWorld, const int32 ViewportIndex, const FTransform& ListenerTransform, const float InDeltaSeconds)
 	{
 	}
 
