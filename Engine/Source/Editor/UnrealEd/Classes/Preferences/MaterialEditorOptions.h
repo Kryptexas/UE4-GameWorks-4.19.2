@@ -22,10 +22,6 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowGrid:1;
 
-	/** If true, render background object in the preview scene. */
-	UPROPERTY(EditAnywhere, config, Category=Options)
-	uint32 bShowBackground:1;
-
 	/** If true, don't render connectors that are not connected to anything. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bHideUnusedConnectors:1;

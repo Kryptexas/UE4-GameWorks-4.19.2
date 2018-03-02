@@ -1463,11 +1463,6 @@ void FMaterialEditor::LoadEditorSettings()
 			PreviewViewport->TogglePreviewGrid();
 		}
 
-		if (EditorOptions->bShowBackground)
-		{
-			PreviewViewport->TogglePreviewBackground();
-		}
-
 		if (EditorOptions->bRealtimeMaterialViewport)
 		{
 			PreviewViewport->OnToggleRealtime();
@@ -1496,7 +1491,6 @@ void FMaterialEditor::SaveEditorSettings()
 	if ( EditorOptions )
 	{
 		EditorOptions->bShowGrid					= PreviewViewport->IsTogglePreviewGridChecked();
-		EditorOptions->bShowBackground				= PreviewViewport->IsTogglePreviewBackgroundChecked();
 		EditorOptions->bRealtimeMaterialViewport	= PreviewViewport->IsRealtime();
 		EditorOptions->bShowMobileStats				= bShowMobileStats;
 		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
