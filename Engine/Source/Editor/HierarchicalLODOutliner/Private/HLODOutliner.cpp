@@ -1527,27 +1527,40 @@ namespace HLODOutliner
 		{
 			// Iterate over all LOD levels (Number retrieved from world settings) and add Treeview items for them
 			const TArray<struct FHierarchicalSimplification>& HierarchicalLODSetups = CurrentWorldSettings->GetHierarchicalLODSetup();
-			const uint32 LODLevels = HierarchicalLODSetups.Num();
-			for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
+			const uint32 LODLevels = HierarchicalLODSetups.Num();			
+			auto AddHLODLevelItem = [&](const int32 HLODLevelIndex)
 			{
-				FTreeItemRef LevelItem = MakeShareable(new FLODLevelItem(LODLevelIndex));
+				FTreeItemRef LevelItem = MakeShareable(new FLODLevelItem(HLODLevelIndex));
 
 				PendingActions.Emplace(FOutlinerAction::AddItem, LevelItem);
-
-				// Add new HLOD level item to maps and arrays holding cached items
-				LevelNodes.Add(LevelItem->AsShared());
 				HLODTreeRoot.Add(LevelItem->AsShared());
 				AllNodes.Add(LevelItem->AsShared());
 
-				// Initialize lod level actors/screen size and build flag
-				LODLevelBuildFlags.Add(true);
-				LODLevelActors.AddDefaulted();					
-				LODLevelTransitionScreenSizes.Add(HierarchicalLODSetups[LODLevelIndex].TransitionScreenSize);
+				const int32 RequiredLevelEntries = HLODLevelIndex + 1;
+				if (LODLevelActors.Num() < RequiredLevelEntries)
+				{
+					// Add new HLOD level item to maps and arrays holding cached items
+					LODLevelActors.SetNum(RequiredLevelEntries);
+					LevelNodes.SetNumZeroed(RequiredLevelEntries);
+					LODLevelBuildFlags.SetNum(RequiredLevelEntries);
+					LODLevelTransitionScreenSizes.SetNum(RequiredLevelEntries);
+
+					LevelNodes[HLODLevelIndex] = LevelItem->AsShared();
+					// Initialize lod level actors/screen size and build flag
+					LODLevelBuildFlags[HLODLevelIndex] = true;
+					LODLevelTransitionScreenSizes[HLODLevelIndex] = (HierarchicalLODSetups.IsValidIndex(HLODLevelIndex) ? HierarchicalLODSetups[HLODLevelIndex].TransitionScreenSize : 1.0f);
+				}
 
 				TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
 
 				// Expand level items by default
 				LevelItem->bIsExpanded = true;
+			};
+
+			// Add 'known' HLOD level entries
+			for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
+			{
+				AddHLODLevelItem(LODLevelIndex);
 			}
 
 			// Loop over all the levels in the current world
@@ -1565,8 +1578,12 @@ namespace HLODOutliner
 							// Add LOD Actor item to the treeview
 							if (LODActor)
 							{
-								checkf((LODActor->LODLevel - 1) < LevelNodes.Num(), TEXT("LODActor (%s) found with LODLevel (%i) that is out of current WorldSettings range (%i)"), *LODActor->GetName(), LODActor->LODLevel - 1, LevelNodes.Num());
-								
+								// Ad-hoc adding of HLOD level entry
+								if (!LODLevelActors.IsValidIndex(LODActor->LODLevel - 1))
+								{
+									AddHLODLevelItem(LODActor->LODLevel - 1);
+								}
+
 								// This is to prevent issues with the sub actor array due to deleted scene actors while the HLOD outliner was closed
 								LODActor->CleanSubActorArray();
 
