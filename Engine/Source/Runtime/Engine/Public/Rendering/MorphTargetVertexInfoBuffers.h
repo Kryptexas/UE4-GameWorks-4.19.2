@@ -107,6 +107,23 @@ public:
 #endif
 	};
 
+	void Reset()
+	{
+		VertexIndices.Empty();
+		MorphDeltas.Empty();
+		MorphPermutations.Empty();
+		MaximumValuePerMorph.Empty();
+		MinimumValuePerMorph.Empty();
+		StartOffsetPerMorph.Empty();
+		WorkItemsPerMorph.Empty();
+		PermuationStart.Empty();
+		PermuationSize.Empty();
+		AccumStrategyRules.Empty();
+		AccumStrategyRules.Empty();
+		TempStoreSize = 0;
+		NumTotalWorkItems = 0;
+	}
+
 protected:
 
 	// Transient data used while creating the vertex buffers, gets deleted as soon as VB gets initialized.

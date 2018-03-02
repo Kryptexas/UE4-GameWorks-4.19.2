@@ -123,6 +123,7 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 {
 	INC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0);
 
+	MorphTargetVertexInfoBuffers.Reset();
 	MultiSizeIndexContainer.InitResources();
 
 	INC_DWORD_STAT_BY(STAT_SkeletalMeshVertexMemory, StaticVertexBuffers.PositionVertexBuffer.GetStride() * StaticVertexBuffers.PositionVertexBuffer.GetNumVertices());
@@ -285,7 +286,7 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 				typedef FMorphTargetVertexInfoBuffers::FPermuationNode FPermuationNode;
 				TMap<TBitArray<>, FPermuationNode::LinkType> ExistingNodes;
 				TArray<bool> InstantiatedNodes;
-				
+
 				//Make space for a zero at the very beginning
 				MorphTargetVertexInfoBuffers.TempStoreSize = 1;
 				InstantiatedNodes.Add(true);
