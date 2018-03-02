@@ -61,6 +61,15 @@ extern RHI_API bool GSupportsRenderDepthTargetableShaderResources;
 /** true if the RHI supports binding depth as a texture when testing against depth */
 extern RHI_API bool GSupportsDepthFetchDuringDepthTest;
 
+// The maximum feature level and shader platform available on this system
+// GRHIFeatureLevel and GRHIShaderPlatform have been deprecated. There is no longer a current featurelevel/shaderplatform that
+// should be used for all rendering, rather a specific set for each view.
+extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
+extern RHI_API EShaderPlatform GMaxRHIShaderPlatform;
+
+/** true if the RHI supports SRVs */
+extern RHI_API bool GSupportsResourceView;
+
 /** 
  * only set if RHI has the information (after init of the RHI and only if RHI has that information, never changes after that)
  * e.g. "NVIDIA GeForce GTX 670"
@@ -128,6 +137,13 @@ inline bool RHISupportsMSAA(EShaderPlatform Platform)
 inline bool RHISupportsVolumeTextures(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return FeatureLevel >= ERHIFeatureLevel::SM4;
+}
+
+/** Whether Manual Vertex Fetch is supported for the specified shader platform.
+    Shader Platform must not use the mobile renderer, and for Metal, the shader lanugage must be at least 2. */
+inline bool RHISupportsManualVertexFetch(EShaderPlatform InShaderPlatform)
+{
+	return !IsMobilePlatform(InShaderPlatform) && (!IsMetalPlatform(InShaderPlatform) || RHIGetShaderLanguageVersion(InShaderPlatform) >= 2);
 }
 
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
@@ -236,9 +252,6 @@ extern RHI_API bool GSupportsMobileMultiView;
 
 /** true if the RHI supports image external */
 extern RHI_API bool GSupportsImageExternal;
-
-/** true if the RHI supports SRVs */
-extern RHI_API bool GSupportsResourceView;
 
 /** true if the RHI supports MRT */
 extern RHI_API TRHIGlobal<bool> GSupportsMultipleRenderTargets;
@@ -439,11 +452,6 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
-// The maximum feature level and shader platform available on this system
-// GRHIFeatureLevel and GRHIShaderPlatform have been deprecated. There is no longer a current featurelevel/shaderplatform that
-// should be used for all rendering, rather a specific set for each view.
-extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
-extern RHI_API EShaderPlatform GMaxRHIShaderPlatform;
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];

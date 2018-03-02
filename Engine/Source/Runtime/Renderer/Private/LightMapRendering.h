@@ -267,7 +267,7 @@ public:
 		) const
 	{
 		check(VertexFactory);
-		VertexFactory->Set(View->GetFeatureLevel(), RHICmdList);
+		VertexFactory->Set(View->GetShaderPlatform(), RHICmdList);
 	}
 
 	void SetMesh(

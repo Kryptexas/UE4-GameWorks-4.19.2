@@ -207,7 +207,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FSceneView&
 void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
-	VertexFactory->Set(View->GetFeatureLevel(), RHICmdList);
+	VertexFactory->Set(View->GetShaderPlatform(), RHICmdList);
 }
 
 /**

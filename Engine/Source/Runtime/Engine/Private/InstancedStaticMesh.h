@@ -239,7 +239,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
-		if (!ContainsManualVertexFetch && !IsMobilePlatform(Platform) && (!IsMetalPlatform(Platform) ||  RHIGetShaderLanguageVersion(Platform) >= 2))
+		if (!ContainsManualVertexFetch && RHISupportsManualVertexFetch(Platform))
 		{
 			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
 		}

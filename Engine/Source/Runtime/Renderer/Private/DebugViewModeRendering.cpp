@@ -163,7 +163,7 @@ void FDebugViewMode::SetParametersVSHSDS(
 	bool bHasHullAndDomainShader
 	)
 {
-	VertexFactory->Set(View.GetFeatureLevel(), RHICmdList);
+	VertexFactory->Set(View.GetShaderPlatform(), RHICmdList);
 
 	GetMaterialForVSHSDS(&MaterialRenderProxy, &Material, View.GetFeatureLevel());
 

@@ -173,9 +173,9 @@ FVertexFactoryType* FindVertexFactoryType(FName TypeName)
 	return NULL;
 }
 
-void FVertexFactory::Set(ERHIFeatureLevel::Type InFeatureLevel, FRHICommandList& RHICmdList) const
+void FVertexFactory::Set(EShaderPlatform InShaderPlatform, FRHICommandList& RHICmdList) const
 {
-	bool bSupportsVertexFetch = SupportsManualVertexFetch(InFeatureLevel);
+	bool bSupportsVertexFetch = SupportsManualVertexFetch(InShaderPlatform);
 	check(IsInitialized());
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{

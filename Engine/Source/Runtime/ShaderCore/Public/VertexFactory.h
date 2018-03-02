@@ -366,7 +366,7 @@ public:
 	/**
 	 * Activates the vertex factory.
 	 */
-	void Set(ERHIFeatureLevel::Type InFeatureLevel, FRHICommandList& RHICmdList) const;
+	void Set(EShaderPlatform InShaderPlatform, FRHICommandList& RHICmdList) const;
 
 	/**
 	 * Call SetStreamSource on instance streams to offset the read pointer
@@ -431,10 +431,9 @@ public:
 	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch, const void* InViewCustomData = nullptr) const { return 1; }
 
 	bool NeedsDeclaration() const { return bNeedsDeclaration; }
-	bool SupportsManualVertexFetch(ERHIFeatureLevel::Type InFeatureLevel) const 
+	bool SupportsManualVertexFetch(EShaderPlatform InShaderPlatform) const 
 	{ 
-		check(InFeatureLevel != ERHIFeatureLevel::Num);
-		return bSupportsManualVertexFetch && InFeatureLevel > ERHIFeatureLevel::ES3_1 && !IsMobilePlatform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) >= 2);
+		return bSupportsManualVertexFetch && RHISupportsManualVertexFetch(InShaderPlatform);
 	}
 
 protected:

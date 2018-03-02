@@ -163,7 +163,9 @@ void FPositionVertexBuffer::InitRHI()
 		// Create the vertex buffer.
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
 		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-		if (GSupportsResourceView)
+		
+		// we have decide to create the SRV based on GMaxRHIShaderPlatform because this is created once and shared between feature levels for editor preview.
+		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
 			PositionComponentSRV = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
 		}

@@ -2252,7 +2252,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 	FRHIVertexShader* VS = VertexShader->GetVertexShader();
 
 	const auto* InstancedVertexFactory = static_cast<const FInstancedStaticMeshVertexFactory*>(VertexFactory);
-	if (InstancedVertexFactory->SupportsManualVertexFetch(View.GetFeatureLevel()))
+	if (InstancedVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
 	{
 		SetSRVParameter(RHICmdList, VS, VertexFetch_InstanceOriginBufferParameter, InstancedVertexFactory->GetInstanceOriginSRV());
 		SetSRVParameter(RHICmdList, VS, VertexFetch_InstanceTransformBufferParameter, InstancedVertexFactory->GetInstanceTransformSRV());

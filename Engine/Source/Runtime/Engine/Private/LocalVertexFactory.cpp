@@ -57,7 +57,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, F
 	const auto* LocalVertexFactory = static_cast<const FLocalVertexFactory*>(VertexFactory);
 	
 	FVertexShaderRHIParamRef VS = Shader->GetVertexShader();
-	if (LocalVertexFactory->SupportsManualVertexFetch(View.GetFeatureLevel()))
+	if (LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
 	{
 		SetSRVParameter(RHICmdList, VS, VertexFetch_PositionBufferParameter, LocalVertexFactory->GetPositionsSRV());
 		SetSRVParameter(RHICmdList, VS, VertexFetch_PackedTangentsBufferParameter, LocalVertexFactory->GetTangentsSRV());
@@ -89,7 +89,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, F
 		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
 		check(OverrideColorVertexBuffer);
 
-		if (!LocalVertexFactory->SupportsManualVertexFetch(View.GetFeatureLevel()))
+		if (!LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
 		{
 			LocalVertexFactory->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
 		}	
