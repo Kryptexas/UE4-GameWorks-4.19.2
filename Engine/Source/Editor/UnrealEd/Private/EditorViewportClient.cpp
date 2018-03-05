@@ -3558,7 +3558,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	}
 
 	// If not doing VR rendering, apply DPI derived resolution fraction even if show flag is disabled
-	if (!bStereoRendering && SupportsLowDPIPreview() && IsLowDPIPreview())
+	if (!bStereoRendering && SupportsLowDPIPreview() && IsLowDPIPreview() && ViewFamily.SupportsScreenPercentage())
 	{
 		ViewFamily.SecondaryViewFraction = GetDPIDerivedResolutionFraction();
 	}
@@ -3569,7 +3569,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		float GlobalResolutionFraction = 1.0f;
 
 		// If not doing VR rendering, apply preview resolution fraction.
-		if (!bStereoRendering && SupportsPreviewResolutionFraction())
+		if (!bStereoRendering && SupportsPreviewResolutionFraction() && ViewFamily.SupportsScreenPercentage())
 		{
 			GlobalResolutionFraction = PreviewResolutionFraction;
 

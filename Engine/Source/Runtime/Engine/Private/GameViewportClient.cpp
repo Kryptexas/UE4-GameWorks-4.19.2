@@ -1281,7 +1281,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Set up secondary resolution fraction for the view family.
-	if (!bStereoRendering)
+	if (!bStereoRendering && ViewFamily.SupportsScreenPercentage())
 	{
 		float CustomSecondaruScreenPercentage = CVarSecondaryScreenPercentage.GetValueOnGameThread();
 
@@ -1297,7 +1297,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		}
 
 		check(ViewFamily.SecondaryViewFraction > 0.0f);
-		check(ViewFamily.SupportsScreenPercentage() || ViewFamily.SecondaryViewFraction == 1.0f);
 	}
 
 	// Setup main view family with screen percentage interface by dynamic resolution if screen percentage is supported.
