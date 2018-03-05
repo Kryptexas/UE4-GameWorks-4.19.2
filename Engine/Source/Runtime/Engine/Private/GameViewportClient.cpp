@@ -1299,8 +1299,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		check(ViewFamily.SecondaryViewFraction > 0.0f);
 	}
 
+	checkf(ViewFamily.GetScreenPercentageInterface() == nullptr,
+		TEXT("Some code has tried to set up an alien screen percentage driver, that could be wrong if not supported very well by the RHI."));
+
 	// Setup main view family with screen percentage interface by dynamic resolution if screen percentage is supported.
-	if (ViewFamily.EngineShowFlags.ScreenPercentage && GEngine->GetDynamicResolutionState())
+	//
+	// Do not allow dynamic resolution to touch the view family if not supported to ensure there is no possibility to ruin
+	// game play experience on platforms that does not support it, but have it enabled by mistake.
+	if (ViewFamily.EngineShowFlags.ScreenPercentage && GEngine->GetDynamicResolutionState() && GEngine->GetDynamicResolutionState()->IsSupported())
 	{
 		GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginDynamicResolutionRendering);
 		GEngine->GetDynamicResolutionState()->SetupMainViewFamily(ViewFamily);

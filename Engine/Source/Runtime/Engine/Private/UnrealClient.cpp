@@ -408,8 +408,15 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	if (DynamicResolutionStatus == EDynamicResolutionStatus::Enabled)
 	{
 		const IDynamicResolutionState* DynResState = GEngine->GetDynamicResolutionState();
-		RawResolutionFraction = DynResState->GetResolutionFractionApproximation();
-		RawMaxResolutionFraction = DynResState->GetResolutionFractionUpperBound();
+		if (DynResState->IsSupported())
+		{
+			RawResolutionFraction = DynResState->GetResolutionFractionApproximation();
+			RawMaxResolutionFraction = DynResState->GetResolutionFractionUpperBound();
+		}
+		else
+		{
+			DynamicResolutionStatus = EDynamicResolutionStatus::Disabled;
+		}
 	}
 
 	/** Number of milliseconds the GPU was busy last frame. */
