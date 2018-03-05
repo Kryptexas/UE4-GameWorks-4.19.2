@@ -88,13 +88,12 @@ void UpdateHistoryDepthRejectionPS(
 	float PixelSpeed = 0.5 * length(Screenvelocity);
 
 	float2 OldScreenPosition = (UVAndScreenPos.zw - Screenvelocity);
-	float2 OldUV = OldScreenPosition * HistoryScreenPositionScaleBias.xy + HistoryScreenPositionScaleBias.wz;
-	float2 OldDistanceFieldUVs = OldUV.xy - View.ViewRectMin.xy * View.BufferSizeAndInvSize.zw;
+	float2 OldDistanceFieldUVs = OldScreenPosition * HistoryScreenPositionScaleBias.xy + HistoryScreenPositionScaleBias.wz;
 
 	float EffectiveHistoryWeight = HistoryWeight;
 
 	FLATTEN
-	if (any(OldUV > HistoryUVMinMax.zw) || any(OldUV < HistoryUVMinMax.xy))
+	if (any(OldDistanceFieldUVs > HistoryUVMinMax.zw) || any(OldDistanceFieldUVs < HistoryUVMinMax.xy))
 	{
 		EffectiveHistoryWeight = 0;
 	}
