@@ -116,7 +116,7 @@ public:
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
-		if(!FEngineBuildSettings::IsInternalBuild())
+		if(!FEngineBuildSettings::IsInternalBuild() && !FEngineBuildSettings::IsSourceDistribution())
 		{
 			TSharedPtr<IPlugin> SubstancePlugin = IPluginManager::Get().FindPlugin(TEXT("Substance"));
 			if (!SubstancePlugin.IsValid() )
