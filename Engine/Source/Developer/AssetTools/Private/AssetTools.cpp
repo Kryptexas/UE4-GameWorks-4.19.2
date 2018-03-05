@@ -1691,6 +1691,11 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 			continue;
 		}
 
+		if (ObjectToExport->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+		{
+			continue;
+		}
+
 		// Find all the exporters that can export this type of object and construct an export file dialog.
 		TArray<FString> AllFileTypes;
 		TArray<FString> AllExtensions;

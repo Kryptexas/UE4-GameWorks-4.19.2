@@ -129,7 +129,7 @@ enum EPackageFlags
 	PKG_DisallowLazyLoading			= 0x00080000,	// Set if the archive serializing this package cannot use lazy loading
 	PKG_PlayInEditor				= 0x00100000,	// Set if the package was created for the purpose of PIE
 	PKG_ContainsScript				= 0x00200000,	// Package is allowed to contain UClass objects
-//	PKG_Unused						= 0x00400000,
+	PKG_DisallowExport				= 0x00400000,	// Editor should not export asset in this package
 //	PKG_Unused						= 0x00800000,
 //	PKG_Unused						= 0x01000000,	
 //	PKG_Unused						= 0x02000000,	

@@ -535,6 +535,12 @@ namespace ObjectTools
 				DupObject->SetFlags(RF_Standalone);
 			}
 
+			// Duplicating an asset should respect the export controls of the original.
+			if (Object->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+			{
+				DupObject->GetOutermost()->SetPackageFlags(PKG_DisallowExport);
+			}
+
 			// Notify the asset registry
 			FAssetRegistryModule::AssetCreated(DupObject);
 
@@ -2803,6 +2809,12 @@ namespace ObjectTools
 						NewPackage->SetPackageFlags(PKG_FilterEditorOnly);
 					}
 					NewPackage->bIsCookedForEditor = Object->GetOutermost()->bIsCookedForEditor;
+
+					// Renaming an asset should respect the export controls of the original.
+					if (Object->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+					{
+						NewPackage->SetPackageFlags(PKG_DisallowExport);
+					}
 
 					UObjectRedirector* Redirector = Cast<UObjectRedirector>( StaticFindObject(UObjectRedirector::StaticClass(), NewPackage, *NewObjectName) );
 					bool bFoundCompatibleRedirector = false;

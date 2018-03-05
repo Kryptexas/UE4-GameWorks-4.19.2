@@ -76,6 +76,8 @@
 #include "ScriptDisassembler.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "AssetRegistryModule.h"
 #include "Matinee/MatineeActor.h"
@@ -510,6 +512,28 @@ bool UUnrealEdEngine::HandleModalTestCommand( const TCHAR* Str, FOutputDevice& A
 	return true;
 }
 
+bool UUnrealEdEngine::HandleDisallowExportCommand(const TCHAR* Str, FOutputDevice& Ar)
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+	TArray<FAssetData> SelectedAssets;
+	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
+
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		UObject* Object = AssetData.GetAsset();
+		if (Object)
+		{
+			UPackage* Package = Object->GetOutermost();
+			Package->SetPackageFlags(EPackageFlags::PKG_DisallowExport);
+			Package->MarkPackageDirty();
+			UE_LOG(LogUnrealEdSrv, Log, TEXT("Marked '%s' as not exportable"), *Object->GetName());
+		}
+	}
+
+	return true;
+}
+
 bool UUnrealEdEngine::HandleDumpBPClassesCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	UE_LOG(LogUnrealEdSrv, Log, TEXT("--- Listing all blueprint generated classes ---"));
@@ -696,6 +720,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	if( FParse::Command(&Str, TEXT("ModalTest") ) )
 	{
 		HandleModalTestCommand( Str, Ar );
+		return true;
+	}
+
+	if (FParse::Command(&Str, TEXT("DisallowExport")))
+	{
+		HandleDisallowExportCommand(Str, Ar);
 		return true;
 	}
 

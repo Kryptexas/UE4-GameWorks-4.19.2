@@ -403,23 +403,41 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 	// MOVE ACTIONS
 	MenuBuilder.BeginSection("AssetContextMoveActions", LOCTEXT("AssetContextMoveActionsMenuHeading", "Move"));
 	{
-		// Export
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Export", "Export..."),
-			LOCTEXT("ExportTooltip", "Export the selected assets to file."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteExport ) )
-			);
-
-		// Bulk Export
-		if (SelectedAssets.Num() > 1)
+		bool bHasExportableAssets = false;
+		for (const FAssetData& AssetData : SelectedAssets)
 		{
+			const UObject* Object = AssetData.GetAsset();
+			if (Object)
+			{
+				const UPackage* Package = Object->GetOutermost();
+				if (!Package->HasAnyPackageFlags(EPackageFlags::PKG_DisallowExport))
+				{
+					bHasExportableAssets = true;
+					break;
+				}
+			}
+		}
+
+		if (bHasExportableAssets)
+		{
+			// Export
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("BulkExport", "Bulk Export..."),
-				LOCTEXT("BulkExportTooltip", "Export the selected assets to file in the selected directory"),
+				LOCTEXT("Export", "Export..."),
+				LOCTEXT("ExportTooltip", "Export the selected assets to file."),
 				FSlateIcon(),
-				FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteBulkExport ) )
+				FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteExport ) )
 				);
+
+			// Bulk Export
+			if (SelectedAssets.Num() > 1)
+			{
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("BulkExport", "Bulk Export..."),
+					LOCTEXT("BulkExportTooltip", "Export the selected assets to file in the selected directory"),
+					FSlateIcon(),
+					FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteBulkExport ) )
+					);
+			}
 		}
 
 		// Migrate

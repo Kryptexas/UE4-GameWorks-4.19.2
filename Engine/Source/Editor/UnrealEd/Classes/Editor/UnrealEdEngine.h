@@ -793,6 +793,7 @@ public:
 	 */
 	bool HandleDumpModelGUIDCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleModalTestCommand( const TCHAR* Str, FOutputDevice& Ar );
+	bool HandleDisallowExportCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleDumpBPClassesCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleFindOutdateInstancesCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevice& Ar );

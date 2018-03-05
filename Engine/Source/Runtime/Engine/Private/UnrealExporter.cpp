@@ -99,6 +99,11 @@ UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 {
 	check(Object);
 
+	if (Object->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+	{
+		return NULL;
+	}
+
 	TMap<UClass*,UClass*> Exporters;
 
 	for (TSet< TWeakObjectPtr<UExporter> >::TIterator It(RegisteredExporters); It; ++It)
