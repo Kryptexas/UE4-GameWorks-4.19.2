@@ -66,6 +66,7 @@ float OneOverHistoryPreExposure;
 	#define AA_MANUALLY_CLAMP_HISTORY_UV 1
 	#define AA_YCOCG 1
 	#define AA_SAMPLE_CACHE_METHOD 1
+	#define AA_BORDER 1
 
 #elif TAA_PASS_CONFIG == 3 // Used for LightShaft
 	#define AA_ALPHA 1
@@ -75,6 +76,7 @@ float OneOverHistoryPreExposure;
 	#define AA_YCOCG 1
 	#define AA_SAMPLE_CACHE_METHOD 1
 	#define AA_LOWER_RESOLUTION 1
+	#define AA_BORDER 1
 
 #elif TAA_PASS_CONFIG == 4 // MainUpsampling
 	#define AA_ALPHA (POST_PROCESS_ALPHA)
