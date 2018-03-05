@@ -43,6 +43,11 @@ public:
 		return true;
 	}
 
+	virtual bool CanSupportXGEShaderCompile() const override
+	{
+		return true;
+	}
+
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override
 	{
 		return true;

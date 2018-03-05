@@ -71,6 +71,21 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 			}
 		}
 
+		bool bUsingXGE = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.UnrealEdOptions"), TEXT("UsingXGE"), bUsingXGE, GEditorIni);
+		if (bUsingXGE)
+		{
+			if (!GMetalLoggedRemoteCompileNotConfigured)
+			{
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote shader compilation cannot be used with XGE interface (is this a Launch-on build? try to pre-cook shaders to speed up loading times)."));
+				}
+				GMetalLoggedRemoteCompileNotConfigured = true;
+			}
+			return false;
+		}
+
 		GRemoteBuildServerHost = "";
 
 		if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RemoteServerName")))
@@ -211,7 +226,6 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 		GRSyncPath = FPaths::Combine(*DeltaCopyPath, TEXT("rsync.exe"));
 
 	#endif
-		UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building host: '%s'"), *GRemoteBuildServerHost);
 		FString XcodePath = GetXcodePath();
 		if (XcodePath.Len() <= 0)
 		{
@@ -219,7 +233,7 @@ bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 			{
 				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
 				{
-					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH run test failed."));
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Connection could not be established for remote shader compilation. Check your configuration and the connection to the remote server."));
 				}
 				GMetalLoggedRemoteCompileNotConfigured = true;
 			}

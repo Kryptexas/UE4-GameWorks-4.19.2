@@ -951,6 +951,7 @@ uint32 FShaderCompileThreadRunnableBase::Run()
 			CompilingLoop();
 		}
 	}
+	UE_LOG(LogShaderCompilers, Display, TEXT("Shaders left to compile 0"));
 
 	return 0;
 }
@@ -988,6 +989,8 @@ int32 FShaderCompileThreadRunnable::PullTasksFromQueue()
 
 				if (Manager->CompileQueue.Num() > 0)
 				{
+					UE_LOG(LogShaderCompilers, Display, TEXT("Shaders left to compile %i"), Manager->CompileQueue.Num());
+
 					bool bAddedLowLatencyTask = false;
 					int32 JobIndex = 0;
 
@@ -1404,6 +1407,7 @@ FShaderCompilingManager* GShaderCompilingManager = NULL;
 FShaderCompilingManager::FShaderCompilingManager() :
 	bCompilingDuringGame(false),
 	NumOutstandingJobs(0),
+	NumExternalJobs(0),
 #if PLATFORM_MAC
 	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Mac/ShaderCompileWorker")),
 #elif PLATFORM_LINUX
@@ -1512,16 +1516,36 @@ FShaderCompilingManager::FShaderCompilingManager() :
 
 	NumShaderCompilingThreadsDuringGame = FMath::Min<int32>(NumShaderCompilingThreadsDuringGame, NumShaderCompilingThreads);
 
+	bool bIsUsingXGEInterface = false;
 #if PLATFORM_WINDOWS
-	if (FShaderCompileXGEThreadRunnable_InterceptionInterface::IsSupported())
+	bool bCanUseXGE = true;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		const TArray<ITargetPlatform*>& Platforms = TPM->GetActiveTargetPlatforms();
+
+		for (int32 Index = 0; Index < Platforms.Num(); Index++)
+		{
+			if (!Platforms[Index]->CanSupportXGEShaderCompile())
+			{
+				bCanUseXGE = false;
+				break;
+			}
+		}
+	}
+
+	
+	if (FShaderCompileXGEThreadRunnable_InterceptionInterface::IsSupported() && bCanUseXGE)
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using XGE Shader Compiler (Interception Interface)."));
 		Thread = MakeUnique<FShaderCompileXGEThreadRunnable_InterceptionInterface>(this);
+		bIsUsingXGEInterface = true;
 	}
-	else if (FShaderCompileXGEThreadRunnable_XmlInterface::IsSupported())
+	else if (FShaderCompileXGEThreadRunnable_XmlInterface::IsSupported() && bCanUseXGE)
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using XGE Shader Compiler (XML Interface)."));
 		Thread = MakeUnique<FShaderCompileXGEThreadRunnable_XmlInterface>(this);
+		bIsUsingXGEInterface = true;
 	}
 	else
 #endif // PLATFORM_WINDOWS
@@ -1529,6 +1553,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using Local Shader Compiler."));
 		Thread = MakeUnique<FShaderCompileThreadRunnable>(this);
 	}
+	GConfig->SetBool(TEXT("/Script/UnrealEd.UnrealEdOptions"), TEXT("UsingXGE"), bIsUsingXGEInterface, GEditorIni);
 	Thread->StartThread();
 }
 

@@ -32,6 +32,8 @@
 #include "GameProjectGenerationModule.h"
 #include "AnalyticsEventAttribute.h"
 
+#include "ShaderCompiler.h"
+
 #define LOCTEXT_NAMESPACE "UATHelper"
 
 DEFINE_LOG_CATEGORY_STATIC(UATHelper, Log, All);
@@ -255,6 +257,29 @@ private:
 	static bool bSawSummary;
 
 public:
+
+	/**
+	* Determine if the output is an communication message we wish to process.
+	*
+	* @Param UATOutput - The current line of output from the UAT package process.
+	**/
+	static bool ProcessAndHandleCookMessageOutput(FString UATOutput)
+	{
+		FString LhsUATOutputMsg, ParsedCookIssue;
+		if (UATOutput.Split(TEXT("Shaders left to compile "), &LhsUATOutputMsg, &ParsedCookIssue))
+		{
+			if (GShaderCompilingManager)
+			{
+				if (ParsedCookIssue.IsNumeric())
+				{
+					int32 ShadersLeft = FCString::Atoi(*ParsedCookIssue);
+					GShaderCompilingManager->SetExternalJobs(ShadersLeft);
+				}
+			}
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	* Determine if the output is an error we wish to send to the Message Log.
@@ -512,6 +537,10 @@ public:
 		{
 			Event.ResultCallback(TEXT("Canceled"), TimeSec);
 		}
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->SetExternalJobs(0);
+		}
 		//	FMessageLog("PackagingResults").Warning(FText::Format(LOCTEXT("UatProcessCanceledMessageLog", "{TaskName} for {Platform} canceled by user"), Arguments));
 	}
 
@@ -578,14 +607,26 @@ public:
 
 			//		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 		}
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->SetExternalJobs(0);
+		}
 	}
-
 
 	static void HandleUatProcessOutput(FString Output, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName)
 	{
 		if ( !Output.IsEmpty() && !Output.Equals("\r") )
 		{
-			UE_LOG(UATHelper, Log, TEXT("%s (%s): %s"), *TaskName.ToString(), *PlatformDisplayName.ToString(), *Output);
+			bool bDisplayLog = true;
+			if (TaskName.EqualTo(LOCTEXT("PackagingTaskName", "Packaging")))
+			{
+				// Deal with any cook messages that may have been encountered.
+				bDisplayLog = FPackagingErrorHandler::ProcessAndHandleCookMessageOutput(Output);
+			}
+			if (bDisplayLog)
+			{
+				UE_LOG(UATHelper, Log, TEXT("%s (%s): %s"), *TaskName.ToString(), *PlatformDisplayName.ToString(), *Output);
+			}
 
 			if ( TaskName.EqualTo(LOCTEXT("PackagingTaskName", "Packaging")) )
 			{

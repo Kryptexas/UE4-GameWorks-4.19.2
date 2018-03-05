@@ -244,6 +244,13 @@ public:
 	virtual bool IsServerOnly() const = 0;
 
 	/**
+	* Checks whether this platform suports shader compilation over XGE interface.
+	*
+	* @return true if this platform can distribute shader compilation threads with XGE.
+	*/
+	virtual bool CanSupportXGEShaderCompile() const = 0;
+
+	/**
 	 * Checks whether the platform's SDK requirements are met so that we can do things like
 	 * package for the platform
 	 *

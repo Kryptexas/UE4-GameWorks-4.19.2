@@ -418,6 +418,13 @@ static bool CookASTC()
 	return bCookASTCTextures;
 }
 
+bool FIOSTargetPlatform::CanSupportXGEShaderCompile() const
+{
+	bool bRemoteCompilingEnabled = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("EnableRemoteShaderCompile"), bRemoteCompilingEnabled, GEngineIni);
+	return !bRemoteCompilingEnabled;
+}
+
 bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
 {
 	switch (Feature)

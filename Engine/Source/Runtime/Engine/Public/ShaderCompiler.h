@@ -398,6 +398,9 @@ private:
 	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
 	int32 NumOutstandingJobs;
 
+	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
+	int32 NumExternalJobs;
+
 	/** Critical section used to gain access to the variables above that are shared by both the main thread and the FShaderCompileThreadRunnable. */
 	FCriticalSection CompileQueueSection;
 
@@ -485,7 +488,7 @@ public:
 	bool ShouldDisplayCompilingNotification() const 
 	{ 
 		// Heuristic based on the number of jobs outstanding
-		return NumOutstandingJobs > 80; 
+		return NumOutstandingJobs > 80 || CompileQueue.Num() > 80 || NumExternalJobs > 10;
 	}
 
 	bool AllowAsynchronousShaderCompiling() const 
@@ -499,7 +502,7 @@ public:
 	 */
 	bool IsCompiling() const
 	{
-		return NumOutstandingJobs > 0 || PendingFinalizeShaderMaps.Num() > 0;
+		return NumOutstandingJobs > 0 || PendingFinalizeShaderMaps.Num() > 0 || CompileQueue.Num() > 0 || NumExternalJobs > 0;
 	}
 
 	/**
@@ -518,7 +521,12 @@ public:
 	 */
 	int32 GetNumRemainingJobs() const
 	{
-		return NumOutstandingJobs;
+		return NumOutstandingJobs + NumExternalJobs;
+	}
+
+	void SetExternalJobs(int32 NumJobs)
+	{
+		NumExternalJobs = NumJobs;
 	}
 
 	const FString& GetAbsoluteShaderDebugInfoDirectory() const
