@@ -353,32 +353,28 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		{
 			// Add any dependent blueprints for a bytecode compile, this is needed because we 
 			// have no way to keep bytecode safe when a function is renamed or parameters are
-			// added or removed - strictly speaking we only need to do this when function 
-			// parameters changed, but that's a somewhat dubious optimization - ideally this
-			// work *never* needs to happen:
-			if(!FBlueprintEditorUtils::IsInterfaceBlueprint(ComplieJob.BPToCompile))
+			// added or removed. Below (Stage VIII) we skip further compilation for blueprints 
+			// that are being bytecode compiled, but their dependencies have not changed:
+			TArray<UBlueprint*> DependentBlueprints;
+			FBlueprintEditorUtils::GetDependentBlueprints(ComplieJob.BPToCompile, DependentBlueprints);
+			for(UBlueprint* DependentBlueprint : DependentBlueprints)
 			{
-				TArray<UBlueprint*> DependentBlueprints;
-				FBlueprintEditorUtils::GetDependentBlueprints(ComplieJob.BPToCompile, DependentBlueprints);
-				for(UBlueprint* DependentBlueprint : DependentBlueprints)
+				if(!IsQueuedForCompilation(DependentBlueprint))
 				{
-					if(!IsQueuedForCompilation(DependentBlueprint))
-					{
-						DependentBlueprint->bQueuedForCompilation = true;
-						// Because we're adding this as a bytecode only blueprint compile we don't need to 
-						// recursively recompile dependencies. The assumption is that a bytecode only compile
-						// will not change the class layout. @todo: add an ensure to detect class layout changes
-						CurrentlyCompilingBPs.Add(
-							FCompilerData(
-								DependentBlueprint, 
-								ECompilationManagerJobType::Normal, 
-								nullptr, 
-								EBlueprintCompileOptions::None, 
-								true
-							)
-						);
-						BlueprintsToRecompile.Add(DependentBlueprint);
-					}
+					DependentBlueprint->bQueuedForCompilation = true;
+					// Because we're adding this as a bytecode only blueprint compile we don't need to 
+					// recursively recompile dependencies. The assumption is that a bytecode only compile
+					// will not change the class layout. @todo: add an ensure to detect class layout changes
+					CurrentlyCompilingBPs.Add(
+						FCompilerData(
+							DependentBlueprint, 
+							ECompilationManagerJobType::Normal, 
+							nullptr, 
+							EBlueprintCompileOptions::None, 
+							true
+						)
+					);
+					BlueprintsToRecompile.Add(DependentBlueprint);
 				}
 			}
 		}
@@ -962,8 +958,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					BP->SimpleConstructionScript->FixupRootNodeParentReferences();
 				}
-
-				const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(BP);
 
 				TArray<UBlueprint*> DependentBPs;
 				FBlueprintEditorUtils::GetDependentBlueprints(BP, DependentBPs);
