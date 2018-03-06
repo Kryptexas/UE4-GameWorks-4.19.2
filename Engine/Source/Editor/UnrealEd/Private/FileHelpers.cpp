@@ -1027,6 +1027,11 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 					DuplicatedAsset->SetFlags(RF_Public | RF_Standalone);
 				}
 
+				if (Asset->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+				{
+					DuplicatedPackage->SetPackageFlags(PKG_DisallowExport);
+				}
+
 				DuplicatedAsset->MarkPackageDirty();
 				FAssetRegistryModule::AssetCreated(DuplicatedAsset);
 				OutSavedAssets.Add(DuplicatedAsset);
