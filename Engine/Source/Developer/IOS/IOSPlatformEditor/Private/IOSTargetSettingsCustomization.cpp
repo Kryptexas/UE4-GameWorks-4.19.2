@@ -1151,6 +1151,7 @@ void FIOSTargetSettingsCustomization::BuildImageRow(IDetailLayoutBuilder& Detail
 				.FileDescription(Info.IconDescription)
 				.RequiredSize(Info.IconRequiredSize)
 				.MaxDisplaySize(MaxDisplaySize)
+				.DeleteTargetWhenDefaultChosen(true)
 			]
 		];
 }
