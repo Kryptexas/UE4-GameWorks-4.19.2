@@ -374,6 +374,8 @@ public class IOSPlatform : Platform
 			}
 		}
 
+		IOSExports.GenerateAssetCatalog(Params.RawProjectPath, FullExePath, CombinePaths(Params.BaseStageDirectory, (Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS")), Platform);
+
         bCreatedIPA = false;
 		bool bNeedsIPA = false;
 		if (Params.IterativeDeploy)

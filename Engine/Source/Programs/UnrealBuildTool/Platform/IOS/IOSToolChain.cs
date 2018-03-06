@@ -995,7 +995,7 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
+        public FileItem CompileAssetCatalogHelper(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
         {
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
@@ -1006,7 +1006,25 @@ namespace UnrealBuildTool
             {
                 FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Payload", Path.GetFileNameWithoutExtension(LocalExecutable.AbsolutePath) + ".app", "Assets.car");
             }
+
+            // Delete the Assets.car file to force the asset catalog to build every time, because
+            // removals of files or copies of icons (for instance) with a timestamp earlier than
+            // the last generated Assets.car will result in nothing built.
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+            {
+                if (File.Exists(FullDestPathRoot))
+                {
+                    File.Delete(FullDestPathRoot);
+                }
+            }
+
             OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                string RemoteFilename = ConvertPath(OutputFile.AbsolutePath);
+                RPCUtilHelper.Command("/", String.Format("rm -f {0}", RemoteFilename), "", null);
+            }
 
             // Make the compile action
             Action CompileAssetAction = ActionGraph.Add(ActionType.CreateAppBundle);
@@ -1301,8 +1319,10 @@ namespace UnrealBuildTool
 			}
         }
 
-        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform)
+        public void GenerateAssetCatalogHelper(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform, ref bool bUserImagesExist)
         {
+            bUserImagesExist = false;
+
             if (Platform == CppPlatform.TVOS)
             {
                 string[] Directories = { "Assets.xcassets",
@@ -1446,6 +1466,8 @@ namespace UnrealBuildTool
                     }
                     if (File.Exists(Image))
                     {
+                        bUserImagesExist = true;
+
                         File.Copy(Image, Path.Combine(Dir, Images[Index][0]), true);
                         LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[Index][0])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                         FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[Index][0]));
@@ -1475,16 +1497,33 @@ namespace UnrealBuildTool
             }
 
             // generate the asset catalog
+            bool bUserImagesExist = false;
+            GenerateAssetCatalog(BinaryLinkEnvironment.Platform, ref bUserImagesExist);
+            if (bUserImagesExist)
+            {
+                CompileAssetCatalog(Executable, BinaryLinkEnvironment.Platform, ActionGraph, OutputFiles);
+            }
+
+			return OutputFiles;
+        }
+
+        public void GenerateAssetCatalog(CppPlatform Platform, ref bool bUserImagesExist)
+        {
+            string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
+            string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+            string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+            GenerateAssetCatalogHelper(EngineDir, BuildDir, IntermediateDir, Platform, ref bUserImagesExist);
+        }
+
+        public void CompileAssetCatalog(FileItem Executable, CppPlatform Platform, ActionGraph ActionGraph, ICollection<FileItem> OutputFiles)
+        {
             if (CppPlatform == CppPlatform.TVOS || (CppPlatform == CppPlatform.IOS && Settings.Value.IOSSDKVersionFloat >= 11.0f))
             {
                 string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
-                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
-                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
-                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir, BinaryLinkEnvironment.Platform);
-                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, BinaryLinkEnvironment.Platform));
+                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                OutputFiles.Add(CompileAssetCatalogHelper(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, Platform));
             }
-
-            return OutputFiles;
         }
 
 		public static string GetCodesignPlatformName(UnrealTargetPlatform Platform)

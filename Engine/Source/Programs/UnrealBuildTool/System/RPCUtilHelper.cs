@@ -332,7 +332,7 @@ namespace UnrealBuildTool
 			{
 				// Zip source directory
 				string SourceWorkingDir = Path.GetDirectoryName(Source).Replace("\\", "/");
-				string ZipCommand = "zip -0 -r -y -T " + SourceDirName + ".zip " + SourceDirName;
+				string ZipCommand = "zip -0 -r -y -x .DS_Store -T " + SourceDirName + ".zip " + SourceDirName;
 				Command(SourceWorkingDir, ZipCommand, "", null);
 
 				// Download the zip file

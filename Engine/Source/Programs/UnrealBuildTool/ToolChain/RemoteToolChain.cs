@@ -555,6 +555,18 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public void SetUpGlobalEnvironment(bool bFlushBuildDirOnRemoteMac)
+		{
+			ParseProjectSettings();
+
+			// connect to server
+			if (InitializeRemoteExecution(bFlushBuildDirOnRemoteMac) == RemoteToolChainErrorCode.NoError)
+			{
+				// Setup root directory to use.
+				SetUserDevRootFromServer();
+			}
+		}
+
 		/// <summary>
 		/// Converts the passed in path from UBT host to compiler native format.
 		/// </summary>
