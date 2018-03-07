@@ -5163,6 +5163,7 @@ FAsyncPackage::FAsyncPackage(const FAsyncPackageDesc& InDesc)
 , bLoadHasFailed(false)
 , bLoadHasFinished(false)
 , bThreadedLoadingFinished(false)
+, bCreatedLinkerRoot(false)
 , TickStartTime(0)
 , LastObjectWorkWasPerformedOn(nullptr)
 , LastTypeOfWorkPerformed(nullptr)
@@ -5620,16 +5621,22 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		}
 		FScopeCycleCounterUObject ConstructorScope(Package, GET_STATID(STAT_FAsyncPackage_CreateLinker));
 
-		// Set package specific data 
-		Package->SetPackageFlags(Desc.PackageFlags);
-		Package->PIEInstanceID = Desc.PIEInstanceID;
+		if (Package->FileName == NAME_None && !Package->bHasBeenFullyLoaded)
+		{
+			// We just created the package, so set ownership flag and set up package info
+			bCreatedLinkerRoot = true;
 
-		// Always store package filename we loading from
-		Package->FileName = Desc.NameToLoad;
+			// Set package specific data 
+			Package->SetPackageFlags(Desc.PackageFlags);
+			Package->PIEInstanceID = Desc.PIEInstanceID;
+
+			// Always store package filename we loading from
+			Package->FileName = Desc.NameToLoad;
 #if WITH_EDITORONLY_DATA
-		// Assume all packages loaded through async loading are required by runtime
-		Package->SetLoadedByEditorPropertiesOnly(false);
+			// Assume all packages loaded through async loading are required by runtime
+			Package->SetLoadedByEditorPropertiesOnly(false);
 #endif
+		}
 
 		LastObjectWorkWasPerformedOn = Package;
 		// if the linker already exists, we don't need to lookup the file (it may have been pre-created with
@@ -6495,9 +6502,12 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 		// Clean up UPackage so it can't be found later
 		if (LinkerRoot && !LinkerRoot->IsRooted())
 		{
-			LinkerRoot->ClearFlags(RF_NeedPostLoad | RF_NeedLoad | RF_NeedPostLoadSubobjects);
-			LinkerRoot->MarkPendingKill();
-			LinkerRoot->Rename(*MakeUniqueObjectName(GetTransientPackage(), UPackage::StaticClass()).ToString(), nullptr, REN_DontCreateRedirectors | REN_DoNotDirty | REN_ForceNoResetLoaders | REN_NonTransactional);
+			if (bCreatedLinkerRoot)
+			{
+				LinkerRoot->ClearFlags(RF_NeedPostLoad | RF_NeedLoad | RF_NeedPostLoadSubobjects);
+				LinkerRoot->MarkPendingKill();
+				LinkerRoot->Rename(*MakeUniqueObjectName(GetTransientPackage(), UPackage::StaticClass()).ToString(), nullptr, REN_DontCreateRedirectors | REN_DoNotDirty | REN_ForceNoResetLoaders | REN_NonTransactional);
+			}
 			DetachLinker();
 		}
 
@@ -6614,9 +6624,12 @@ void FAsyncPackage::Cancel()
 		{
 			Linker->FlushCache();
 		}
-		LinkerRoot->ClearFlags(RF_WasLoaded);
-		LinkerRoot->bHasBeenFullyLoaded = false;
-		LinkerRoot->Rename(*MakeUniqueObjectName(GetTransientPackage(), UPackage::StaticClass()).ToString(), nullptr, REN_DontCreateRedirectors | REN_DoNotDirty | REN_ForceNoResetLoaders | REN_NonTransactional);
+		if (bCreatedLinkerRoot)
+		{
+			LinkerRoot->ClearFlags(RF_WasLoaded);
+			LinkerRoot->bHasBeenFullyLoaded = false;
+			LinkerRoot->Rename(*MakeUniqueObjectName(GetTransientPackage(), UPackage::StaticClass()).ToString(), nullptr, REN_DontCreateRedirectors | REN_DoNotDirty | REN_ForceNoResetLoaders | REN_NonTransactional);
+		}
 		DetachLinker();
 	}
 	PreLoadIndex = 0;

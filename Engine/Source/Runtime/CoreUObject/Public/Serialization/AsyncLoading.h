@@ -559,6 +559,8 @@ private:
 	bool						bLoadHasFinished;
 	/** True if threaded loading has finished for this package */
 	bool						bThreadedLoadingFinished;
+	/** True if this package was created by this async package */
+	bool						bCreatedLinkerRoot;
 	/** The time taken when we started the tick.														*/
 	double						TickStartTime;
 	/** Last object work was performed on. Used for debugging/ logging purposes.						*/
