@@ -236,6 +236,11 @@ public:
 	FGoogleARCoreCameraOverlayPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FMaterialShader(Initializer)
 	{
+		for (uint32 InputIter = 0; InputIter < ePId_Input_MAX; ++InputIter)
+		{
+			PostprocessInputParameter[InputIter].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("PostprocessInput%d"), InputIter));
+			PostprocessInputParameterSampler[InputIter].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("PostprocessInput%dSampler"), InputIter));
+		}
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView View, const FMaterialRenderProxy* Material)
@@ -243,6 +248,20 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Material, *Material->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, true, ESceneRenderTargetsMode::DontSet);
+
+		for (uint32 InputIter = 0; InputIter < ePId_Input_MAX; ++InputIter)
+		{
+			if (PostprocessInputParameter[InputIter].IsBound())
+			{
+				SetTextureParameter(
+					RHICmdList,
+					ShaderRHI,
+					PostprocessInputParameter[InputIter],
+					PostprocessInputParameterSampler[InputIter],
+					TStaticSamplerState<>::GetRHI(),
+					GBlackTexture->TextureRHI);
+			}
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -251,6 +270,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
+private:
+	FShaderResourceParameter PostprocessInputParameter[ePId_Input_MAX];
+	FShaderResourceParameter PostprocessInputParameterSampler[ePId_Input_MAX];
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FGoogleARCoreCameraOverlayPS,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainPS_ES2"),SF_Pixel);
