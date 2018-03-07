@@ -1395,6 +1395,9 @@ namespace UnrealBuildTool
                     LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                     if (Images[i] != null)
                     {
+                        // This assumption might not be true, but we need the asset catalog process to fire anyway.
+                        bUserImagesExist = true;
+
                         string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "TVOS"))), "Resources", "Graphics", Images[i]);
                         if (File.Exists(Image))
                         {
@@ -1499,10 +1502,7 @@ namespace UnrealBuildTool
             // generate the asset catalog
             bool bUserImagesExist = false;
             GenerateAssetCatalog(BinaryLinkEnvironment.Platform, ref bUserImagesExist);
-            if (bUserImagesExist)
-            {
-                CompileAssetCatalog(Executable, BinaryLinkEnvironment.Platform, ActionGraph, OutputFiles);
-            }
+            CompileAssetCatalog(Executable, BinaryLinkEnvironment.Platform, ActionGraph, OutputFiles);
 
 			return OutputFiles;
         }
