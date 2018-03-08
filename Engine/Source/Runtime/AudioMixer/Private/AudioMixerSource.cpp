@@ -345,10 +345,9 @@ namespace Audio
 			bResourcesNeedFreeing = (BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming);
 
 			// Not all wave data types have a non-zero duration
-			const float Duration = InWaveInstance->WaveData->GetDuration();
-			if (Duration > 0.0f)
+			if (InWaveInstance->WaveData->Duration > 0)
 			{
-				NumTotalFrames = Duration * InWaveInstance->WaveData->SampleRate;
+				NumTotalFrames = InWaveInstance->WaveData->Duration * InWaveInstance->WaveData->SampleRate;
 				check(NumTotalFrames > 0);
 			}
 
@@ -522,13 +521,18 @@ namespace Audio
 		{
 			int64 NumFrames = MixerSourceVoice->GetNumFramesPlayed();
 			AUDIO_MIXER_CHECK(NumTotalFrames > 0);
-			return (float)NumFrames / NumTotalFrames;
+			float PlaybackPercent = (float)NumFrames / NumTotalFrames;
+			if (WaveInstance->LoopingMode == LOOP_Never)
+			{
+				PlaybackPercent = FMath::Min(PlaybackPercent, 1.0f);
+			}
+			return PlaybackPercent;
 		}
 		else
 		{
 			// If we don't have any frames, that means it's a procedural sound wave, which means
 			// that we're never going to have a playback percentage.
-			return 0.0f;
+			return 1.0f;
 		}
 	}
 
@@ -875,6 +879,7 @@ namespace Audio
 		bBuffersToFlush = false;
 		bLoopCallback = false;
 		bResourcesNeedFreeing = false;
+		NumTotalFrames = 0;
 
 		// Reset the source's channel maps
 		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
