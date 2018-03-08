@@ -48,9 +48,11 @@ FMetalIndexBuffer::~FMetalIndexBuffer()
 
 void FMetalIndexBuffer::Alloc(uint32 InSize)
 {
+	bool const bUsePrivateMem = !(GetUsage() & BUF_Volatile) && FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits);
+	
 	if (!Buffer)
 	{
-		MTLStorageMode Mode = (FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits) ? MTLStorageModePrivate : BUFFER_STORAGE_MODE);
+		MTLStorageMode Mode = (bUsePrivateMem ? MTLStorageModePrivate : BUFFER_STORAGE_MODE);
 		Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
 		INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
 			
@@ -98,7 +100,7 @@ void FMetalIndexBuffer::Alloc(uint32 InSize)
 		}
 	}
 	
-	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits))
+	if (bUsePrivateMem)
 	{
 		if(CPUBuffer)
 		{
@@ -236,7 +238,7 @@ struct FMetalRHICommandInitialiseIndexBuffer : public FRHICommand<FMetalRHIComma
 	
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		GetMetalDeviceContext().CopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
 	}
 };
 

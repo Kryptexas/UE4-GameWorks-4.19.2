@@ -130,19 +130,21 @@ FMetalVertexBuffer::~FMetalVertexBuffer()
 	
 void FMetalVertexBuffer::Alloc(uint32 InSize)
 {
+	bool const bUsePrivateMem = !(GetUsage() & BUF_Volatile) && FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits);
+	
 	if (!Buffer)
 	{
 		// Zero-stride buffers must be separate in order to wrap appropriately
 		if(!(GetUsage() & BUF_ZeroStride))
 		{
-			MTLStorageMode Mode = (FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits) ? MTLStorageModePrivate : BUFFER_STORAGE_MODE);
+			MTLStorageMode Mode = (bUsePrivateMem ? MTLStorageModePrivate : BUFFER_STORAGE_MODE);
 			FMetalPooledBufferArgs Args(GetMetalDeviceContext().GetDevice(), InSize, Mode);
 			Buffer = GetMetalDeviceContext().CreatePooledBuffer(Args);
 		}
 		else
 		{
 			check(!(GetUsage() & BUF_UnorderedAccess));
-			MTLResourceOptions StorageOptions = (FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits) ? MTLResourceStorageModePrivate : BUFFER_MANAGED_MEM);
+			MTLResourceOptions StorageOptions = (bUsePrivateMem ? MTLResourceStorageModePrivate : BUFFER_MANAGED_MEM);
 			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(BUFFER_CACHE_MODE|MTLResourceHazardTrackingModeUntracked|StorageOptions)];
 			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 		}
@@ -160,7 +162,7 @@ void FMetalVertexBuffer::Alloc(uint32 InSize)
 		}
 	}
 	
-	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits))
+	if (bUsePrivateMem)
 	{
 		if (CPUBuffer)
 		{
@@ -407,7 +409,7 @@ struct FMetalRHICommandInitialiseVertexBuffer : public FRHICommand<FMetalRHIComm
 	
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		GetMetalDeviceContext().CopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
 	}
 };
 
