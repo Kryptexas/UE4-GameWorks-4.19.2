@@ -154,7 +154,7 @@ void USynthSamplePlayer::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 		const int32 BufferNumChannels = SampleBuffer.GetNumChannels();
 		const int32 BufferSampleRate = SampleBuffer.GetSampleRate();
 		SampleBufferReader.SetBuffer(&BufferData, BufferNumSamples, BufferNumChannels, BufferSampleRate);
-		SampleDurationSec = BufferNumSamples / BufferSampleRate;
+		SampleDurationSec = BufferNumSamples / (BufferSampleRate * BufferNumChannels);
 	}
 
 	if (SampleBufferReader.HasBuffer())
