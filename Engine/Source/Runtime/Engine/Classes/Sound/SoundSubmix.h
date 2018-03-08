@@ -87,8 +87,8 @@ class ENGINE_API USoundSubmix : public UObject
 	class UEdGraph* SoundSubmixGraph;
 #endif
 
-	// Specifies the channel format for the submix. Sources will be mixed at the specified format. Useful for specific effects that need to operate on a specific format.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
+	// Experimental! Specifies the channel format for the submix. Sources will be mixed at the specified format. Useful for specific effects that need to operate on a specific format.
+	UPROPERTY()
 	ESubmixChannelFormat ChannelFormat;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
