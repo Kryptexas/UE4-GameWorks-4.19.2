@@ -108,10 +108,14 @@ UVoipListenerSynthComponent* CreateVoiceSynthComponent(uint32 SampleRate)
 	return SynthComponentPtr;
 }
 
-ONLINESUBSYSTEMUTILS_API void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings)
+void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings)
 {
+	InSynthComponent->CreateAudioComponent();
+
 	InSynthComponent->bAllowSpatialization = true;
 	UAudioComponent* AudioComponent = InSynthComponent->GetAudioComponent();
+
+	check(AudioComponent != nullptr);
 
 	if (InSettings.ComponentToAttachTo)
 	{
@@ -132,6 +136,10 @@ ONLINESUBSYSTEMUTILS_API void ApplyVoiceSettings(UVoipListenerSynthComponent* In
 		if (!AudioComponent->IsRegistered())
 		{
 			AudioComponent->RegisterComponentWithWorld(InSettings.ComponentToAttachTo->GetWorld());
+
+			// By ensuring that this Audio Component's device handle is INDEX_NONE, we ensure that we will revert to
+			// using the audio device associated with the World we just registered this audio component on.
+			AudioComponent->AudioDeviceHandle = INDEX_NONE;
 		}
 	}
 

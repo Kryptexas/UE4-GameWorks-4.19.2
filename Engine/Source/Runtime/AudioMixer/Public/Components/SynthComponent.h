@@ -157,6 +157,9 @@ public:
 	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. Optionally override the sample rate of the sound wave, otherwise it uses the audio device's sample rate. */
 	void Initialize(int32 SampleRateOverride = INDEX_NONE);
 
+	/** Creates the audio component if it hasn't already been created yet. This should only be used when trying to assign explicit settings to the AudioComponent before calling Start(). */
+	void CreateAudioComponent();
+
 	/** Retrieves this synth component's audio component. */
 	UAudioComponent* GetAudioComponent();
 
@@ -204,9 +207,6 @@ protected:
 
 	// Gets the audio device associated with this synth component
 	FAudioDevice* GetAudioDevice() { return AudioComponent ? AudioComponent->GetAudioDevice() : nullptr; }
-
-	// Creates the audio component if it hasn't already been created yet
-	void CreateAudioComponent();
 
 	// Can be set by the derived class, defaults to 2
 	int32 NumChannels;
