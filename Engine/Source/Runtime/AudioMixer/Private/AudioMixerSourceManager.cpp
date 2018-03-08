@@ -165,7 +165,7 @@ namespace Audio
 		SourceWorkers.Reset();
 		if (NumSourceWorkers > 0)
 		{
-			const int32 NumSourcesPerWorker = NumTotalSources / NumSourceWorkers;
+			const int32 NumSourcesPerWorker = FMath::Max(NumTotalSources / NumSourceWorkers, 1);
 			int32 StartId = 0;
 			int32 EndId = 0;
 			while (EndId < NumTotalSources)
