@@ -381,6 +381,7 @@ void FStaticMeshVertexBuffers::InitModelBuffers(TArray<FModelVertex>& Vertices)
 	if (Vertices.Num())
 	{
 		PositionVertexBuffer.Init(Vertices.Num());
+		StaticMeshVertexBuffer.SetUseFullPrecisionUVs(true);
 		StaticMeshVertexBuffer.Init(Vertices.Num(), 2);
 
 		for (int32 i = 0; i < Vertices.Num(); i++)
