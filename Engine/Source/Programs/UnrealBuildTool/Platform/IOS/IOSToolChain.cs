@@ -1456,6 +1456,8 @@ namespace UnrealBuildTool
                     new string []{ "Icon1024.png", "Icon1024.png" },
                 };
                 Dir = Path.Combine(IntermediateDir, "Resources", "Assets.xcassets", "AppIcon.appiconset");
+
+                string BuildResourcesGraphicsDir = Path.Combine(BuildDir, "Resources", "Graphics");
                 for (int Index = 0; Index < Images.Length; ++Index)
                 {
                     string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resources", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "IOS"))), "Resources", "Graphics", Images[Index][1]);
@@ -1469,7 +1471,7 @@ namespace UnrealBuildTool
                     }
                     if (File.Exists(Image))
                     {
-                        bUserImagesExist = true;
+                        bUserImagesExist |= Image.StartsWith(BuildResourcesGraphicsDir);
 
                         File.Copy(Image, Path.Combine(Dir, Images[Index][0]), true);
                         LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[Index][0])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
