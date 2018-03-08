@@ -347,25 +347,7 @@ id<MTLDevice> GMetalDevice = nil;
 #if HAS_METAL
 - (id<CAMetalDrawable>)MakeDrawable
 {
-	// when we are background, we can get a case where the drawable is going to nil while backgrounding, but hte MetalRHI doesn't
-	// handle it well. This may throw errors about re-using the same drawable, but that won't cause GPU errors (after 3 GPU errors
-	// the OS will kill the app - this avoids it!)
-	if (PanicDrawable != nil)
-	{
-		return PanicDrawable;
-	}
-
 	return[(CAMetalLayer*)self.layer nextDrawable];
-}
-
--(void)ResetPanicDrawable
-{
-	PanicDrawable = nil;
-}
-
--(void)GetPanicDrawable
-{
-	PanicDrawable = [self MakeDrawable];
 }
 #endif
 

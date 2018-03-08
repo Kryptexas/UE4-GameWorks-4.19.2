@@ -838,13 +838,9 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	return YES;
 }
 
+FCriticalSection RenderSuspend;
 - (void)applicationWillResignActive:(UIApplication *)application
 {
-	if (@available(iOS 11, *))
-	{
-		[self.IOSView GetPanicDrawable];
-	}
-
 	/*
 	 Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
 	 Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
@@ -868,10 +864,14 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 		}
     }
 
-	FCoreDelegates::ApplicationWillDeactivateDelegate.Broadcast();
-
 	[self ToggleSuspend:true];
 	[self ToggleAudioSession:false];
+
+	RenderSuspend.TryLock();
+	FGraphEventRef ResignTask = FFunctionGraphTask::CreateAndDispatchWhenReady([]()
+	{
+		FScopeLock ScopeLock(&RenderSuspend);
+	}, TStatId(), NULL, ENamedThreads::ActualRenderingThread);
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
@@ -898,11 +898,9 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	/*
 	 Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
 	 */
-	[IOSView ResetPanicDrawable];
+	RenderSuspend.Unlock();
 	[self ToggleSuspend : false];
 	[self ToggleAudioSession:true];
-
-	FCoreDelegates::ApplicationHasReactivatedDelegate.Broadcast();
 
     if (bEngineInit)
     {
