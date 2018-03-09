@@ -3,6 +3,7 @@
 #include "ImgMediaScheduler.h"
 
 #include "GenericPlatform/GenericPlatformAffinity.h"
+#include "HAL/PlatformProcess.h"
 #include "Misc/ScopeLock.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectGlobals.h"
@@ -145,30 +146,33 @@ IQueuedWork* FImgMediaScheduler::GetWorkOrReturnToPool(FImgMediaSchedulerThread*
 {
 	FScopeLock Lock(&CriticalSection);
 
-	const int32 NumLoaders = Loaders.Num();
-
-	if (NumLoaders > 0)
+	if ((Thread == nullptr) || FPlatformProcess::SupportsMultithreading())
 	{
-		int32 CheckedLoaders = 0;
+		const int32 NumLoaders = Loaders.Num();
 
-		while (CheckedLoaders++ < NumLoaders)
+		if (NumLoaders > 0)
 		{
-			LoaderRoundRobin = (LoaderRoundRobin + 1) % NumLoaders;
+			int32 CheckedLoaders = 0;
 
-			TSharedPtr<FImgMediaLoader, ESPMode::ThreadSafe> Loader = Loaders[LoaderRoundRobin].Pin();
-
-			if (Loader.IsValid())
+			while (CheckedLoaders++ < NumLoaders)
 			{
-				IQueuedWork* Work = Loader->GetWork();
+				LoaderRoundRobin = (LoaderRoundRobin + 1) % NumLoaders;
 
-				if (Work != nullptr)
+				TSharedPtr<FImgMediaLoader, ESPMode::ThreadSafe> Loader = Loaders[LoaderRoundRobin].Pin();
+
+				if (Loader.IsValid())
 				{
-					return Work;
+					IQueuedWork* Work = Loader->GetWork();
+
+					if (Work != nullptr)
+					{
+						return Work;
+					}
 				}
-			}
-			else
-			{
-				RemoveLoader(LoaderRoundRobin);
+				else
+				{
+					RemoveLoader(LoaderRoundRobin);
+				}
 			}
 		}
 	}

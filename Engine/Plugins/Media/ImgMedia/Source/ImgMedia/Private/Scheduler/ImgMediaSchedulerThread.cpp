@@ -62,6 +62,12 @@ void FImgMediaSchedulerThread::QueueWork(IQueuedWork* Work)
 /* FRunnable interface
  *****************************************************************************/
 
+FSingleThreadRunnable* FImgMediaSchedulerThread::GetSingleThreadInterface()
+{
+	return this;
+}
+
+
 uint32 FImgMediaSchedulerThread::Run()
 {
 	while (!Stopping.Load(EMemoryOrder::Relaxed))
@@ -86,4 +92,20 @@ uint32 FImgMediaSchedulerThread::Run()
 	}
 
 	return 0;
+}
+
+
+/* FRunnable interface
+ *****************************************************************************/
+
+void FImgMediaSchedulerThread::Tick()
+{
+	IQueuedWork* Work = QueuedWork;
+	QueuedWork = nullptr;
+
+	while (Work != nullptr)
+	{
+		Work->DoThreadedWork();
+		Work = Owner.GetWorkOrReturnToPool(this);
+	}
 }

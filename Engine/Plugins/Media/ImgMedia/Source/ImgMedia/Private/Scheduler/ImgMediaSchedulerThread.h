@@ -5,6 +5,7 @@
 #include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformAffinity.h"
 #include "HAL/Runnable.h"
+#include "Misc/SingleThreadRunnable.h"
 #include "Templates/Atomic.h"
 
 class FEvent;
@@ -15,6 +16,7 @@ class IQueuedWork;
 
 class FImgMediaSchedulerThread
 	: public FRunnable
+	, private FSingleThreadRunnable
 {
 public:
 
@@ -43,7 +45,14 @@ public:
 
 	//~ FRunnable interface
 
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override;
 	virtual uint32 Run() override;
+
+public:
+
+	//~ FSingleThreadRunnable interface
+
+	virtual void Tick() override;
 
 private:
 
