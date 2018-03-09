@@ -592,11 +592,14 @@ public:
 	 * @param NodeName Node name.
 	 * @param Entry Node definition.
 	 * @param OutFilename filename specified for the cache
-	 * @return Boot data cache backend interface instance or NULL if unsuccessfull
+	 * @return Boot data cache backend interface instance or NULL if unsuccessful
 	 */
 	FMemoryDerivedDataBackend* ParseBootCache( const TCHAR* NodeName, const TCHAR* Entry, FString& OutFilename )
 	{
 		FMemoryDerivedDataBackend* Cache = NULL;
+
+		// Only allow boot cache with the editor. We don't want other tools and utilities (eg. SCW) writing to the same file.
+#if WITH_EDITOR
 		FString Filename;
 		int64 MaxCacheSize = -1; // in MB
 		const int64 MaxSupportedCacheSize = 2048; // 2GB
@@ -639,6 +642,7 @@ public:
 				}
 			}
 		}
+#endif
 		return Cache;
 	}
 
