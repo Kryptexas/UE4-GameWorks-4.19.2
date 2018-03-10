@@ -109,7 +109,7 @@ namespace Audio
 			}
 			else if (CurrentSeekType == ESeekType::FromEnd)
 			{
-				CurrentBufferFrameIndexInterpolated = (double)(BufferNumFrames - CurrentSeekFrame);
+				CurrentBufferFrameIndexInterpolated = (double)(BufferNumFrames - CurrentSeekFrame - 1);
 			}
 			else
 			{
@@ -237,12 +237,26 @@ namespace Audio
 				CurrentFrameIndex = FMath::FloorToInt(CurrentBufferFrameIndexInterpolated);
 				NextFrameIndex = CurrentFrameIndex + 1;
 				AlphaLerp = CurrentBufferFrameIndexInterpolated - (double)CurrentFrameIndex;
+				if (!bIsScrubMode)
+				{
+					if (NextFrameIndex >= BufferNumFrames)
+					{
+						bIsFinished = true;
+					}
+				}
 			}
 			else
 			{
 				CurrentFrameIndex = FMath::CeilToInt(CurrentBufferFrameIndexInterpolated);
 				NextFrameIndex = CurrentFrameIndex - 1;
 				AlphaLerp = (double)CurrentFrameIndex - CurrentBufferFrameIndexInterpolated;
+				if (!bIsScrubMode)
+				{
+					if (NextFrameIndex < 0)
+					{
+						bIsFinished = true;
+					}
+				}
 			}
 
 			if (!bIsFinished)
