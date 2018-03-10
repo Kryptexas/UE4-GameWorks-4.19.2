@@ -147,39 +147,41 @@ namespace UnrealBuildTool
                 }
 				else if (CppPlatform == CppPlatform.IOS && Settings.Value.IOSSDKVersionFloat >= 11.0f && BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 				{
-					FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "Assets.car");
+					int Index = Binary.Config.OutputFilePath.GetFileNameWithoutExtension().IndexOf("-");
+					string OutputFile = Binary.Config.OutputFilePath.GetFileNameWithoutExtension().Substring(0, Index > 0 ? Index : Binary.Config.OutputFilePath.GetFileNameWithoutExtension().Length);
+					FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "Assets.car");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon20x20@2x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@2x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon20x20@2x~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@2x~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon20x20@3x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@3x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon20x20~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon29x29@2x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@2x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon29x29@2x~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@2x~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon29x29@3x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@3x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon29x29~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon40x40@2x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@2x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon40x40@2x~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@2x~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon40x40@3x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@3x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon40x40~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon60x60@2x.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon60x60@2x.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon76x76@2x~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon76x76@2x~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon76x76~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon76x76~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
-					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".app", "AppIcon83.5x83.5@2x~ipad.png");
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon83.5x83.5@2x~ipad.png");
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
 				}
 			}
@@ -997,11 +999,17 @@ namespace UnrealBuildTool
 
         public FileItem CompileAssetCatalogHelper(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
         {
-            // Make a file item for the source and destination files
-            FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "AssetCatalog", "Assets.car");
+			// Make a file item for the source and destination files
+			FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
+			Console.WriteLine("LocalExe: " + LocalExecutable);
+			int Index = Path.GetFileName(LocalExecutable.AbsolutePath).IndexOf("-");
+			if (Index > 0)
+			{
+				LocalExecutable = FileItem.GetItemByPath(Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath).Substring(0, Index)));
+			}
+			string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "AssetCatalog", "Assets.car");
 
-            FileItem OutputFile;
+			FileItem OutputFile;
             if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Platform == CppPlatform.IOS)
             {
                 FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Payload", Path.GetFileNameWithoutExtension(LocalExecutable.AbsolutePath) + ".app", "Assets.car");
