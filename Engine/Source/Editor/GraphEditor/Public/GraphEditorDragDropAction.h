@@ -25,6 +25,8 @@ class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 public:
 	DRAG_DROP_OPERATOR_TYPE(FGraphEditorDragDropAction, FDragDropOperation)
 
+	FGraphEditorDragDropAction();
+
 	void SetHoveredPin(UEdGraphPin* InPin);
 	void SetHoveredNode(const TSharedPtr<SGraphNode>& InNode);
 	void SetHoveredNode(UEdGraphNode* InNode);

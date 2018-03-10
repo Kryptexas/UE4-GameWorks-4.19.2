@@ -15,6 +15,11 @@
 #include "Widgets/Layout/SScaleBox.h"
 #include "SPinTypeSelector.h"
 
+FGraphEditorDragDropAction::FGraphEditorDragDropAction()
+	: bDropTargetValid(true)
+{
+}
+
 UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 {
 	return HoveredPin.Get();
