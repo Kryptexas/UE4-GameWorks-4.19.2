@@ -1963,6 +1963,19 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			UnrecoverableError = true;
 		}
 
+		if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0
+				&& (bHasCode || (Result & ETargetPlatformReadyStatus::CodeBuildRequired)
+					|| (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
+		{
+			AddMessageLog(
+				LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field.") : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
+			);
+			UnrecoverableError = true;
+		}
+
 		if (UnrecoverableError)
 		{
 			return false;

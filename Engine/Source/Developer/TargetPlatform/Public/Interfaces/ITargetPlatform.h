@@ -93,6 +93,9 @@ namespace ETargetPlatformReadyStatus
 
 	/** License Not Accepted  */
 	const int32 LicenseNotAccepted = 128;
+
+	/** Code Build Required */
+	const int32 CodeBuildRequired = 256;
 };
 
 

@@ -253,6 +253,16 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
 
+	{
+		TArray<FString> FoundIconFiles;
+		FString Wildcard = FPaths::Combine(FPaths::ProjectDir(), TEXT("Build"), TEXT("IOS"), TEXT("Resources"), TEXT("Graphics"), TEXT("Icon*.png"));
+		IFileManager::Get().FindFiles(FoundIconFiles, *Wildcard, true, false);
+		if (FoundIconFiles.Num() > 0)
+		{
+			bReadyToBuild |= ETargetPlatformReadyStatus::CodeBuildRequired;
+		}
+	}
+
 	return bReadyToBuild;
 }
 

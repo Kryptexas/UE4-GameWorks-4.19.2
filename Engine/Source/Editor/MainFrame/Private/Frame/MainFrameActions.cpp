@@ -543,7 +543,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				UnrecoverableError = true;
 			}
 
-			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0 && (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
+			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0
+					&& (bProjectHasCode || (Result & ETargetPlatformReadyStatus::CodeBuildRequired)
+						|| (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
 			{
 				AddMessageLog(
 					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
