@@ -29,9 +29,6 @@ namespace Audio
 		// This must be a completely loaded buffer. This buffer reader doesn't OWN the buffer memory.
 		void SetBuffer(const int16** InBufferPtr, const int32 InNumBufferSamples, const int32 InNumChannels, const int32 InBufferSampleRate);
 
-		// Seeks the buffer the given number of frames. Returns true if succeeded.
-		void SeekFrame(const float InNumFrames, const ESeekType::Type InSeekType = ESeekType::FromBeginning, const bool bWrap = true);
-
 		// Seeks the buffer the given time in seconds. Returns true if succeeded.
 		void SeekTime(const float InTimeSec, const ESeekType::Type InSeekType = ESeekType::FromBeginning, const bool bWrap = true);
 
@@ -66,6 +63,7 @@ namespace Audio
 
 		float GetSampleValueForChannel(const int32 Channel);
 		void UpdateScrubMinAndMax();
+		void UpdateSeekFrame();
 		float GetSampleValue(const int16* InBuffer, const int32 SampleIndex);
 
 		const int16* BufferPtr;
@@ -94,6 +92,11 @@ namespace Audio
 		double ScrubMaxFrame;
 
 		double ScrubWidthFrames;
+		float CurrentSeekTime;
+		float CurrentScrubWidthSec;
+
+		ESeekType::Type CurrentSeekType;
+		bool bWrap;
 		bool bIsScrubMode;
 		bool bIsFinished;
 	};
