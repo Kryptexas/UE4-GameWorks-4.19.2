@@ -9,6 +9,7 @@
 #include "Policies/PrettyJsonPrintPolicy.h"
 #include "DataTableJSON.h"
 #include "EditorFramework/AssetImportData.h"
+#include "Engine/UserDefinedStruct.h"
 
 #if WITH_EDITORONLY_DATA
 namespace
@@ -303,19 +304,23 @@ void UDataTable::AddRow(FName RowName, const FTableRowBase& RowData)
 /** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
 UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 {
-	UProperty* Property = NULL;
-	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	UProperty* Property = RowStruct->FindPropertyByName(PropertyName);
+	if (Property == nullptr && RowStruct->IsA<UUserDefinedStruct>())
 	{
-		Property = *It;
-		check(Property != NULL);
-		if (PropertyName == Property->GetFName())
+		const FString PropertyNameStr = PropertyName.ToString();
+
+		for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
 		{
-			break;
+			if (PropertyNameStr == RowStruct->PropertyNameToDisplayName(It->GetFName()))
+			{
+				Property = *It;
+				break;
+			}
 		}
 	}
 	if (!DataTableUtils::IsSupportedTableProperty(Property))
 	{
-		Property = NULL;
+		Property = nullptr;
 	}
 
 	return Property;

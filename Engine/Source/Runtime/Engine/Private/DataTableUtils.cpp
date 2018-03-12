@@ -428,7 +428,8 @@ FName DataTableUtils::MakeValidName(const FString& InString)
 
 bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 {
-	return(	InProp->IsA(UIntProperty::StaticClass()) || 
+	return( InProp &&
+			(InProp->IsA(UIntProperty::StaticClass()) || 
 			InProp->IsA(UNumericProperty::StaticClass()) ||
 			InProp->IsA(UDoubleProperty::StaticClass()) ||
 			InProp->IsA(UFloatProperty::StaticClass()) ||
@@ -442,7 +443,7 @@ bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 			InProp->IsA(UArrayProperty::StaticClass()) ||
 			InProp->IsA(USetProperty::StaticClass()) ||
 			InProp->IsA(UMapProperty::StaticClass()) ||
-			InProp->IsA(UEnumProperty::StaticClass())
+			InProp->IsA(UEnumProperty::StaticClass()))
 			);
 }
 
