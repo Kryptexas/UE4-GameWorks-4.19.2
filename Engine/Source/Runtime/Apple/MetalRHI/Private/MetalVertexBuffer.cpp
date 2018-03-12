@@ -409,7 +409,7 @@ struct FMetalRHICommandInitialiseVertexBuffer : public FRHICommand<FMetalRHIComm
 	
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		GetMetalDeviceContext().CopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
 	}
 };
 
@@ -425,6 +425,8 @@ FVertexBufferRHIRef FMetalDynamicRHI::CreateVertexBuffer_RenderThread(class FRHI
 			
 			if (VertexBuffer->CPUBuffer)
 			{
+				FMemory::Memzero(VertexBuffer->CPUBuffer.contents, VertexBuffer->CPUBuffer.length);
+				
 				FMemory::Memcpy(VertexBuffer->CPUBuffer.contents, CreateInfo.ResourceArray->GetResourceData(), Size);
 
 				if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())

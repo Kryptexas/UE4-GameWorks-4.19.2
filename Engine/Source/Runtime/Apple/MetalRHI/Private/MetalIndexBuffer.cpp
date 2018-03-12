@@ -238,7 +238,7 @@ struct FMetalRHICommandInitialiseIndexBuffer : public FRHICommand<FMetalRHIComma
 	
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		GetMetalDeviceContext().CopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
 	}
 };
 
@@ -254,6 +254,8 @@ FIndexBufferRHIRef FMetalDynamicRHI::CreateIndexBuffer_RenderThread(class FRHICo
 			
 			if (IndexBuffer->CPUBuffer)
 			{
+				FMemory::Memzero(IndexBuffer->CPUBuffer.contents, IndexBuffer->CPUBuffer.length);
+				
 				FMemory::Memcpy(IndexBuffer->CPUBuffer.contents, CreateInfo.ResourceArray->GetResourceData(), Size);
 				
 				if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())

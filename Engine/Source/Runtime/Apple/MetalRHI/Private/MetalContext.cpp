@@ -852,20 +852,7 @@ void FMetalDeviceContext::ReleasePooledBuffer(id<MTLBuffer> Buffer)
 {
 	if(GIsRHIInitialized)
 	{
-		if (Buffer.storageMode == MTLStorageModePrivate)
-		{
-			static bool bSupportsHeaps = SupportsFeature(EMetalFeaturesHeaps);
-			id<TMTLBuffer> TBuffer = (id<TMTLBuffer>)Buffer;
-			check ([TBuffer heap: bSupportsHeaps]);
-			[TBuffer makeAliasable: bSupportsHeaps];
-
-			// Can't release via the resource path as we have made this resource aliasable and the backing store may be reused before we process the free-list
-			ReleaseObject(Buffer);
-		}
-		else
-		{
-			ReleaseResource(Buffer);
-		}
+		ReleaseResource(Buffer);
 	}
 }
 

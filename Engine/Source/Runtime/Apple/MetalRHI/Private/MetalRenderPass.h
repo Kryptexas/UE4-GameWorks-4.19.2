@@ -147,6 +147,10 @@ private:
     
     FMetalCommandEncoder CurrentEncoder;
     FMetalCommandEncoder PrologueEncoder;
+	
+	// To ensure that buffer uploads aren't overwritten before they are used track what is in flight
+	// Disjoint ranges *are* permitted!
+	TMap<id<MTLBuffer>, TArray<NSRange>> OutstandingBufferUploads;
     
     FMetalFence PassStartFence;
     FMetalFence CurrentEncoderFence;
