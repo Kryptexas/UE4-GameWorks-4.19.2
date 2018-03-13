@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Name>Vulkan SDK</Name>
+  <Name>Vulkan SDK v1.0.65.1</Name>
   <Location>/Engine/Source/ThirdParty/Vulkan/</Location>
   <Date>2016-05-03T18:32:12.7951438-04:00</Date>
   <Function>Is a new rendering interface with its own drivers. </Function>
