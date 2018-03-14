@@ -147,6 +147,12 @@ namespace UnrealBuildTool
 				return;
 			}
 
+            // Also don't attempt to use a remote Mac if packaging for TVOS on PC.
+            if (Platform == CppPlatform.TVOS && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                return;
+            }
+
 			// Save off the current bUseRPCUtil setting to restore at the end of this function.
 			// At this time, iPhonePackager needs to be called with bUseRPCUtil == true.
 			bool bSaveUseRPCUtil = RemoteToolChain.bUseRPCUtil;
